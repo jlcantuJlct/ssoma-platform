@@ -1,0 +1,2330 @@
+"use client";
+
+import { Activity, MONTHS } from "@/lib/types";
+import { ComplianceGauge } from "./ComplianceGauge";
+import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Rectangle, ComposedChart, Area, AreaChart, LabelList, ReferenceLine } from 'recharts';
+import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PieChart as PieChartIcon } from 'lucide-react';
+import { categorizeActivitiesByObjective, OBJECTIVES_CONFIG } from "@/lib/objective-categorization";
+import { USER_LIST, useAuth } from "@/lib/auth";
+import { useState, useEffect, useMemo } from "react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import { FileText, Image as ImageIcon, Download, Eye, X } from 'lucide-react';
+import { generateFilename, getInitials } from '@/lib/utils';
+import { SSOMA_LOCATIONS } from "@/lib/locations";
+
+
+interface DashboardChartsProps {
+    activities: Activity[];
+    mode?: 'general' | 'hhc';
+    currentMonth?: number;
+    currentYear?: number;
+}
+
+export function DashboardCharts({ activities, mode = 'general', currentMonth = -1, currentYear = 2026 }: DashboardChartsProps) {
+    // --- DATA LOADING FOR ANNUAL PROGRAM ---
+    const [programData, setProgramData] = useState<Record<string, any[]>>({});
+    const [executedInspections, setExecutedInspections] = useState<any[]>([]);
+
+    // --- AUTH CONTEXT ---
+    const { user } = useAuth();
+    const isDeveloper = user?.role === 'developer';
+
+    // --- HHC STATE ---
+    const [hhcRecords, setHhcRecords] = useState<any[]>([]);
+    const [newHHC, setNewHHC] = useState({
+        responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [] as string[], evidencePdf: '', lugar: ''
+    });
+
+    const [selectedArea, setSelectedArea] = useState<'todos' | 'seguridad' | 'salud' | 'ambiente'>('todos');
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [showProgramModal, setShowProgramModal] = useState(false);
+    const [trainingProgram, setTrainingProgram] = useState<any[]>([]);
+    const [complianceGoal, setComplianceGoal] = useState(95);
+
+    const [filters, setFilters] = useState({
+        responsable: '',
+        startDate: '',
+        endDate: '',
+        tema: '',
+        type: 'todos'
+    });
+
+    const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as any, tipo: 'capacitacion' as any });
+
+    // LOAD TRAINING PROGRAM - Cloud first, then localStorage fallback
+    useEffect(() => {
+        const loadTrainingProgram = async () => {
+            try {
+                const res = await fetch('/api/training-program');
+                const data = await res.json();
+                if (data.success && data.records.length > 0) {
+                    setTrainingProgram(data.records);
+                    localStorage.setItem('monthly_training_program', JSON.stringify(data.records));
+                    return;
+                }
+            } catch (e) {
+                console.warn('Could not fetch training program from cloud:', e);
+            }
+            // Fallback to localStorage
+            const prog = localStorage.getItem('monthly_training_program');
+            if (prog) {
+                try {
+                    setTrainingProgram(JSON.parse(prog));
+                } catch (e) {
+                    console.error("Error parsing monthly_training_program", e);
+                }
+            } else {
+                setTrainingProgram([
+                    { date: '2025-01-15', tema: 'Uso Correcto de EPP', area: 'seguridad', tipo: 'capacitacion' },
+                    { date: '2025-01-20', tema: 'Primeros Auxilios', area: 'salud', tipo: 'entrenamiento' },
+                    { date: '2025-02-05', tema: 'Gestión de Residuos', area: 'ambiente', tipo: 'capacitacion' }
+                ]);
+            }
+        };
+        loadTrainingProgram();
+    }, []);
+
+    // AUTO-SET RESPONSIBLE
+    useEffect(() => {
+        if (user && !newHHC.responsable) {
+            setNewHHC(prev => ({ ...prev, responsable: user.name }));
+        }
+    }, [user]);
+
+    // SAVE TRAINING PROGRAM - Local + Cloud sync
+    useEffect(() => {
+        if (trainingProgram.length > 0) {
+            localStorage.setItem('monthly_training_program', JSON.stringify(trainingProgram));
+            // Sync to cloud (fire and forget)
+            fetch('/api/training-program', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ records: trainingProgram })
+            }).catch(e => console.warn('Training program cloud sync failed:', e));
+        }
+    }, [trainingProgram]);
+
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // LOAD HHC - Cloud first, then localStorage fallback
+    useEffect(() => {
+        const loadHhcRecords = async (force = false) => {
+            // Si hay una subida en curso o una sincronización pendiente, no sobrescribir localmente
+            if (!force && (isUploading || isSyncing)) return;
+
+            try {
+                const res = await fetch('/api/hhc-records');
+                const data = await res.json();
+                if (data.success && data.records.length > 0) {
+                    // Solo sobrescribir si no hemos añadido algo localmente que aún no esté en la nube
+                    // O si es la carga inicial (isLoaded false)
+                    setHhcRecords(data.records);
+                    localStorage.setItem('hhc_records', JSON.stringify(data.records));
+                    setIsLoaded(true);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Could not fetch HHC records from cloud:', e);
+            }
+            // Fallback to localStorage
+            const hhc = localStorage.getItem('hhc_records');
+            if (hhc) {
+                try {
+                    setHhcRecords(JSON.parse(hhc));
+                } catch (e) {
+                    console.error("Error parsing hhc_records", e);
+                }
+            }
+            setIsLoaded(true);
+        };
+        loadHhcRecords(true); // Carga inicial forzada
+
+        const syncInterval = setInterval(() => loadHhcRecords(false), 30000);
+        return () => clearInterval(syncInterval);
+    }, []);
+
+    // SAVE HHC - Local + Cloud sync (with debouncing/locking)
+    useEffect(() => {
+        if (isLoaded) {
+            localStorage.setItem('hhc_records', JSON.stringify(hhcRecords));
+
+            const syncToCloud = async () => {
+                if (isSyncing) return;
+                setIsSyncing(true);
+                try {
+                    await fetch('/api/hhc-records', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ records: hhcRecords })
+                    });
+                } catch (e) {
+                    console.warn('Cloud sync failed:', e);
+                } finally {
+                    setIsSyncing(false);
+                }
+            };
+
+            syncToCloud();
+        }
+    }, [hhcRecords, isLoaded]);
+
+    // DRAFT PERSISTENCE - Save current form state
+    useEffect(() => {
+        if (editingIndex === null) {
+            localStorage.setItem('hhc_draft_v1', JSON.stringify(newHHC));
+        }
+    }, [newHHC, editingIndex]);
+
+    // DRAFT LOAD
+    useEffect(() => {
+        const savedDraft = localStorage.getItem('hhc_draft_v1');
+        if (savedDraft) {
+            try {
+                const draft = JSON.parse(savedDraft);
+                // Solo cargar si el formulario actual está vacío
+                if (!newHHC.tema && !newHHC.hhc) {
+                    setNewHHC(prev => ({ ...prev, ...draft }));
+                }
+            } catch (e) {
+                console.error("Error loading HHC draft", e);
+            }
+        }
+    }, []);
+
+    // LOAD ANNUAL PROGRAM DATA - Cloud first, then localStorage fallback
+    useEffect(() => {
+        const loadProgramData = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success && Object.keys(data.programData).length > 0) {
+                    setProgramData(data.programData);
+                    localStorage.setItem('annual_program_data', JSON.stringify(data.programData));
+                    return;
+                }
+            } catch (e) {
+                console.warn('Could not fetch annual program from cloud:', e);
+            }
+            // Fallback to localStorage
+            const pd = localStorage.getItem('annual_program_data');
+            if (pd) {
+                try {
+                    setProgramData(JSON.parse(pd));
+                } catch (e) {
+                    console.error("Error parsing annual_program_data", e);
+                }
+            }
+        };
+
+        const loadInspections = async () => {
+            try {
+                const res = await fetch('/api/inspections');
+                const data = await res.json();
+                if (data.success && data.records.length > 0) {
+                    setExecutedInspections(data.records);
+                    localStorage.setItem('inspections_records', JSON.stringify(data.records));
+                    return;
+                }
+            } catch (e) {
+                console.warn('Could not fetch inspections from cloud:', e);
+            }
+            // Fallback to localStorage
+            const ei = localStorage.getItem('inspections_records');
+            if (ei) {
+                try {
+                    setExecutedInspections(JSON.parse(ei));
+                } catch (e) {
+                    console.error("Error parsing inspections_records", e);
+                }
+            }
+        };
+
+        loadProgramData();
+        loadInspections();
+
+        // AUTO-SYNC: Actualizar cada 30 segundos para sincronizar entre dispositivos
+        const syncInterval = setInterval(() => {
+            loadProgramData();
+            loadInspections();
+        }, 30000);
+        return () => clearInterval(syncInterval);
+    }, []);
+
+    // CALCULATE FUNCTIONS REMOVED BY ACCIDENT - RESTORING
+    const getObjectiveMonthlyStats = (objId: string) => {
+        const items = programData[objId] || [];
+        const monthlyData = Array(12).fill(0).map((_, i) => ({ name: MONTHS[i], P: 0, E: 0 }));
+
+        items.forEach(item => {
+            if (!item || !item.date) return;
+            try {
+                const dateParts = String(item.date).split('-');
+                if (dateParts.length < 2) return;
+                const m = parseInt(dateParts[1], 10) - 1;
+                if (m >= 0 && m <= 11) monthlyData[m].P++;
+            } catch (e) { /* ignore corrupt date */ }
+        });
+
+        if (objId === 'obj3') {
+            executedInspections.forEach(ex => {
+                if (!ex || !ex.date) return;
+                try {
+                    const dateParts = String(ex.date).split('-');
+                    if (dateParts.length < 2) return;
+                    const m = parseInt(dateParts[1], 10) - 1;
+                    if (m >= 0 && m <= 11) monthlyData[m].E++;
+                } catch (e) { /* ignore */ }
+            });
+        } else {
+            items.forEach(item => {
+                if (!item || !item.date) return;
+                try {
+                    const dateParts = String(item.date).split('-');
+                    if (dateParts.length < 2) return;
+                    const m = parseInt(dateParts[1], 10) - 1;
+                    if (m >= 0 && m <= 11) {
+                        if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
+                            monthlyData[m].E++;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+            });
+        }
+        return monthlyData;
+    };
+
+    const calculateTrainingIndex = () => {
+        const stats = getObjectiveMonthlyStats('obj2');
+        const totalP = stats.reduce((acc, curr) => acc + curr.P, 0);
+        const totalE = stats.reduce((acc, curr) => acc + curr.E, 0);
+        return totalP === 0 ? 0 : Math.round((totalE / totalP) * 100);
+    };
+
+    const OBJECTIVES_LIST = [
+        { id: 'obj1', label: 'Programas de SCSST' },
+        { id: 'obj2', label: 'Capacitación' },
+        { id: 'obj3', label: 'Inspecciones' },
+        { id: 'obj4', label: 'Reporte A/C Inseguras' },
+        { id: 'obj5', label: 'EMO Realizados' },
+        { id: 'obj6', label: 'Inspecciones de Salud' },
+        { id: 'obj7', label: 'Formaciones de Salud' },
+        { id: 'obj8', label: 'Inspecciones M. Ambiente' },
+        { id: 'obj9', label: 'Formaciones M. Ambiente' },
+        { id: 'obj10', label: 'Control Segregación RRSS' },
+        { id: 'obj11', label: 'Control Acopios Temporales' },
+    ];
+
+    // --- IMPORT / EXPORT LOGIC ---
+    const [importMenuOpen, setImportMenuOpen] = useState(false);
+
+    const handleDeleteMonthHhc = () => {
+        setHhcRecords(prev => prev.filter(r => {
+            const d = new Date(r.date);
+            // Keep record IF year is diff OR month is diff
+            return !(d.getFullYear() === currentYear && d.getMonth() === hhcMonthFilter);
+        }));
+        alert(`✅ Registros de ${MONTHS[hhcMonthFilter]} eliminados correctamente.`);
+    };
+
+    const handleHhcExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+                if (worksheet.length === 0) return;
+
+                const newRecords: any[] = [];
+                const targetMonthIndex = hhcMonthFilter;
+
+                worksheet.forEach((row: any) => {
+                    // Mapeo básico
+                    // Intentar usar la fecha del Excel si existe, pero FORZAR el mes si no coincide o si se pide
+                    // Regla: Asignar al día 15 del mes seleccionado si no tiene fecha, 
+                    // O si tiene fecha, moverla al mes seleccionado conservando el día.
+
+                    let dateStr = row['Fecha'] || row['Date'] || row['FECHA'] || '';
+                    let finalDate = '';
+
+                    // Construir fecha en el mes seleccionado
+                    if (dateStr) {
+                        // Parse logic (simplified)
+                        // Si ya viene con fecha, intentamos respetar el día
+                        let day = 15;
+                        if (String(dateStr).includes('-')) {
+                            const parts = String(dateStr).split('-');
+                            // parts[2] usually day in YYYY-MM-DD
+                            if (parts.length === 3) day = parseInt(parts[2]);
+                        }
+                        // Force Year/Month
+                        finalDate = `${currentYear}-${String(targetMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    } else {
+                        finalDate = `${currentYear}-${String(targetMonthIndex + 1).padStart(2, '0')}-15`;
+                    }
+
+                    // Mapping
+                    newRecords.push({
+                        date: finalDate,
+                        hhc: Number(row['H. Cap'] || row['HHC'] || row['H.Cap'] || 0),
+                        hht: Number(row['H. Trab'] || row['HHT'] || row['H.Trab'] || 0),
+                        hombres: Number(row['Hombres'] || row['Males'] || 0),
+                        mujeres: Number(row['Mujeres'] || row['Females'] || 0),
+                        area: (row['Area'] || row['AREA'] || 'seguridad').toLowerCase(),
+                        tipo: (row['Tipo'] || row['TIPO'] || 'capacitacion').toLowerCase(),
+                        tema: row['Tema'] || row['TEMA'] || 'Actividad Importada',
+                        responsable: row['Responsable'] || row['RESPONSABLE'] || 'Importado',
+                        evidenceImgs: [],
+                        evidencePdf: ''
+                    });
+                });
+
+                // REPLACE or APPEND?
+                // User said "maintained in time".
+                // Usually import implies "Adding these records".
+                // But if re-importing same month?
+                // "Delete by month" is separate.
+                // So we Append. But we first REMOVE existing records for this month to avoid duplicates if user is re-importing?
+                // The Inspections logic was "Replace for this Area+Month".
+                // Here we don't separate by Area as strictly in storage.
+                // Let's safe-replace: Remove old for this month, Insert new.
+                // "solo se eliminara el calendario si yo lo realizo" (only delete if I do it).
+                // This implies IMPORT should APPEND, not replace. 
+                // Wait, in Inspections I did Replace. User seemed happy.
+                // But the text "solo se eliminara... si yo lo realizo" implies "Don't auto-delete".
+                // So I will APPEND. User can use "Delete Month" button to clear first if they want.
+
+                setHhcRecords(prev => [...prev, ...newRecords]);
+                alert(`✅ ${newRecords.length} registros importados a ${MONTHS[hhcMonthFilter]}.`);
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error al leer el archivo Excel.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+    };
+
+    // --- STATE FOR NEW HHC INDEX LOGIC ---
+    const [hhcMonthFilter, setHhcMonthFilter] = useState<number>(new Date().getMonth());
+    // Store manually input HHT (Horas Hombre Trabajadas) per month "YYYY-M" -> value
+    const [monthlyHHTInputs, setMonthlyHHTInputs] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        // Load HHT inputs
+        const saved = localStorage.getItem('monthly_hht_inputs');
+        if (saved) {
+            try {
+                setMonthlyHHTInputs(JSON.parse(saved));
+            } catch (e) {
+                console.error("Error loading HHT inputs", e);
+            }
+        }
+    }, []);
+
+    const handleHHTInputChange = (val: string) => {
+        const numericVal = Number(val);
+        const key = `${currentYear}-${hhcMonthFilter}`;
+        const updated = { ...monthlyHHTInputs, [key]: numericVal };
+        setMonthlyHHTInputs(updated);
+        localStorage.setItem('monthly_hht_inputs', JSON.stringify(updated));
+    };
+
+    // Calculate Indice HHC for the selected month
+    const indiceHHCValue = useMemo(() => {
+        // 1. Sum HHC for the selected month/year from records
+        const monthlyRecords = hhcRecords.filter(r => {
+            if (!r || !r.date) return false;
+            try {
+                const dateParts = String(r.date).split('-');
+                if (dateParts.length < 2) return false;
+                const rYear = parseInt(dateParts[0]);
+                const rMonth = parseInt(dateParts[1]) - 1;
+                return rYear === currentYear && rMonth === hhcMonthFilter;
+            } catch (e) { return false; }
+        });
+        const totalHHC = monthlyRecords.reduce((acc, r) => acc + (Number(r.hhc) || 0), 0);
+
+        // 2. Get Manually input HHT
+        const totalHHT = Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0;
+
+        // 3. Calc Index
+        if (totalHHT > 0) return ((totalHHC / totalHHT) * 100).toFixed(2);
+        return "0.00";
+    }, [hhcRecords, currentYear, hhcMonthFilter, monthlyHHTInputs]);
+
+    const hhcStats = useMemo(() => {
+        const data = MONTHS.map(m => ({ name: m.substring(0, 3), hhc: 0, hht: 0, index: 0, tempIndices: [] as number[] }));
+        hhcRecords.forEach(r => {
+            if (!r || !r.date) return;
+            try {
+                const parts = String(r.date).split('-');
+                if (parts.length < 2) return;
+                const m = parseInt(parts[1], 10) - 1;
+
+                if (m >= 0 && m <= 11 && data[m]) {
+                    const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
+                    const planilla = Number(r.hht) || 1; // Avoid div by 0
+                    const dailyIndex = (assistants / planilla) * 100;
+
+                    if (!data[m].tempIndices) data[m].tempIndices = [];
+                    data[m].tempIndices.push(dailyIndex);
+                }
+            } catch (e) { /* ignore */ }
+        });
+        data.forEach(d => {
+            // Month Index = Average of daily indices
+            if (d.tempIndices && d.tempIndices.length > 0) {
+                d.index = parseFloat((d.tempIndices.reduce((a: number, b: number) => a + b, 0) / d.tempIndices.length).toFixed(2));
+            } else {
+                d.index = 0;
+            }
+        });
+        return data;
+    }, [hhcRecords]);
+
+    const responsibleStats = useMemo(() => {
+        const counts: Record<string, number> = {};
+        hhcRecords.forEach(r => {
+            const name = r.responsable || 'Sin Asignar';
+            counts[name] = (counts[name] || 0) + (Number(r.hhc) || 0);
+        });
+        return Object.entries(counts)
+            .map(([name, val]) => ({ name, value: val }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 7);
+    }, [hhcRecords]);
+
+    const areaStatsChart = useMemo(() => {
+        const counts = { seguridad: 0, salud: 0, ambiente: 0 };
+        hhcRecords.forEach(r => {
+            const area = r.area?.toLowerCase() || 'seguridad';
+            if (area.includes('seguridad')) counts.seguridad += Number(r.hhc);
+            else if (area.includes('salud')) counts.salud += Number(r.hhc);
+            else if (area.includes('ambiente')) counts.ambiente += Number(r.hhc);
+            else counts.seguridad += Number(r.hhc);
+        });
+        return [
+            { name: 'Seguridad', value: counts.seguridad, fill: '#10b981' },
+            { name: 'Salud', value: counts.salud, fill: '#ec4899' },
+            { name: 'Ambiente', value: counts.ambiente, fill: '#3b82f6' }
+        ];
+    }, [hhcRecords]);
+    const generateRecordPDF = (record: any) => {
+        const doc = new jsPDF();
+
+        // Encabezado
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text("Reporte de Actividad HHC", 105, 20, { align: "center" });
+
+        // Detalles
+        doc.setFontSize(12);
+        doc.setTextColor(60);
+        let y = 40;
+
+        const tipoStr = (record.tipo || 'actividad').toUpperCase().replace('_', ' ');
+        const splitText = doc.splitTextToSize(`Reseña: Se llevó a cabo la actividad de tipo "${tipoStr}" abordando el tema "${record.tema || 'Sin Tema'}". La sesión fue dirigida por ${record.responsable || 'el responsable asignado'} el día ${record.date || 'S/F'}.`, 170);
+        doc.text(splitText, 20, y);
+        y += (splitText.length * 7) + 10;
+
+        const addLine = (label: string, value: string) => {
+            doc.setFont("helvetica", "bold");
+            doc.text(`${label}:`, 20, y);
+            doc.setFont("helvetica", "normal");
+            doc.text(String(value || '-').toUpperCase(), 70, y);
+            y += 7;
+        };
+
+        addLine("Área", record.area);
+        addLine("H. Trabajadas", String(record.hht));
+        addLine("H. Capacitadas", String(record.hhc));
+        addLine("Participantes", `H: ${record.hombres} / M: ${record.mujeres}`);
+
+        y += 10;
+        doc.setLineWidth(0.5);
+        doc.line(20, y, 190, y);
+        y += 15;
+
+        // Evidencia PDF
+        if (record.evidencePdf) {
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(0, 0, 255);
+            doc.text("[ DOCUMENTO PDF ADJUNTO EN PLATAFORMA ]", 20, y);
+            y += 15;
+        }
+
+        // Imágenes
+        if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+            doc.setTextColor(0);
+            doc.setFont("helvetica", "bold");
+            doc.text("Evidencia Fotográfica:", 20, y);
+            y += 10;
+
+            record.evidenceImgs.forEach((img: string, idx: number) => {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                try {
+                    doc.addImage(img, 'JPEG', 20, y, 170, 100);
+                    y += 110;
+                } catch (e) {
+                    // Ignore
+                }
+            });
+        }
+
+        doc.save(`HHC_Reporte_${record.date}_${record.tipo}.pdf`);
+    };
+
+    const generateBulkHHCPDF = () => {
+        if (filteredRecords.length === 0) {
+            alert("⚠️ No hay registros filtrados para exportar.");
+            return;
+        }
+
+        const doc = new jsPDF();
+
+        filteredRecords.slice().reverse().forEach((record, index) => {
+            if (index > 0) doc.addPage();
+
+            // Encabezado
+            doc.setFontSize(16);
+            doc.setTextColor(40);
+            doc.text("Reporte de Actividad HHC", 105, 20, { align: "center" });
+
+            doc.setFontSize(11);
+            doc.setTextColor(60);
+            let y = 40;
+
+            // Reseña Narrativa
+            doc.setFont("helvetica", "normal");
+            const tipoStr = (record.tipo || 'actividad').toUpperCase().replace('_', ' ');
+            const splitText = doc.splitTextToSize(`Reseña: Se llevó a cabo la actividad de tipo "${tipoStr}" abordando el tema "${record.tema || 'Sin Tema'}". La sesión fue dirigida por ${record.responsable || 'el responsable asignado'} el día ${record.date || 'S/F'}.`, 170);
+            doc.text(splitText, 20, y);
+            y += (splitText.length * 7) + 10;
+
+            doc.setFont("helvetica", "bold");
+            doc.text(`Detalles Técnicos:`, 20, y);
+            y += 7;
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Área: ${record.area.toUpperCase()} | HHT: ${record.hht} | HHC: ${record.hhc}`, 20, y);
+            y += 7;
+            doc.text(`Participantes: ${record.hombres} Hombres / ${record.mujeres} Mujeres`, 20, y);
+
+            y += 10;
+            doc.setLineWidth(0.5);
+            doc.line(20, y, 190, y);
+            y += 15;
+
+            // Evidencia PDF
+            if (record.evidencePdf) {
+                doc.setFont("helvetica", "italic");
+                doc.setTextColor(0, 0, 255);
+                doc.text("[ DOCUMENTO PDF ADJUNTO EN PLATAFORMA ]", 20, y);
+                y += 15;
+            }
+
+            // Imágenes
+            if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+                doc.setTextColor(0);
+                doc.setFont("helvetica", "bold");
+                doc.text("Evidencia Fotográfica:", 20, y);
+                y += 10;
+
+                record.evidenceImgs.forEach((img: string) => {
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    try {
+                        doc.addImage(img, 'JPEG', 20, y, 170, 100);
+                        y += 110;
+                    } catch (e) {
+                        // Ignore
+                    }
+                });
+            }
+        });
+
+        doc.save("Reporte_Masivo_HHC.pdf");
+    };
+
+    const filteredRecords = hhcRecords.filter(r => selectedArea === 'todos' || r.area === selectedArea);
+
+    // Helper para obtener el lunes de la semana (Lunes a Domingo)
+    const getWeekMonday = (dateStr: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr + 'T12:00:00');
+        const day = date.getDay(); // 0 (Dom) a 6 (Sab)
+        const diff = date.getDate() - (day === 0 ? 6 : day - 1); // Ajustar para que lunes sea el inicio
+        const monday = new Date(date.setDate(diff));
+        return monday.toISOString().split('T')[0];
+    };
+
+    const latestDate = filteredRecords.length > 0
+        ? [...filteredRecords].sort((a, b) => b.date.localeCompare(a.date))[0].date
+        : null;
+    const latestWeekMonday = latestDate ? getWeekMonday(latestDate) : null;
+
+    const latestRecord = filteredRecords.length > 0 ? filteredRecords[filteredRecords.length - 1] : null;
+
+    // Acumulado Semanal (de la última semana calendario registrada para el área)
+    const weeklyStats = filteredRecords
+        .filter(r => latestWeekMonday && getWeekMonday(r.date) === latestWeekMonday)
+        .reduce((acc, curr) => ({ hhc: acc.hhc + curr.hhc, hht: acc.hht + curr.hht }), { hhc: 0, hht: 0 });
+
+    // Acumulado Mensual (del mes seleccionado o el último con datos)
+    const targetMonth = currentMonth === -1 && latestRecord ? parseInt((latestRecord.date || '0000-00').substring(5, 7)) - 1 : currentMonth;
+    const monthlyStats = filteredRecords
+        .filter(r => {
+            if (!r.date) return false;
+            const rYear = parseInt(r.date.substring(0, 4));
+            const rMonth = parseInt(r.date.substring(5, 7)) - 1;
+            return rYear === currentYear && (targetMonth === -1 || rMonth === targetMonth);
+        })
+        .reduce((acc, curr) => ({ hhc: acc.hhc + (Number(curr.hhc) || 0), hht: acc.hht + (Number(curr.hht) || 0) }), { hhc: 0, hht: 0 });
+
+    // Acumulado Anual
+    const annualStats = filteredRecords
+        .filter(r => r.date && parseInt(r.date.substring(0, 4)) === currentYear)
+        .reduce((acc, curr) => ({ hhc: acc.hhc + (Number(curr.hhc) || 0), hht: acc.hht + (Number(curr.hht) || 0) }), { hhc: 0, hht: 0 });
+
+    // --- CÁLCULO DE INDICES SEGÚN NUEVA REGLA ---
+    // Indice Diario = (Asistentes / Planilla) * 100
+    // Asumimos que r.hht es la "Planilla" ingresada por el usuario
+
+    // 1. Helper para calcular Indice Diario de un registro
+    const getRecordIndex = (r: any) => {
+        const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
+        const planilla = Number(r.hht) || 0;
+        return planilla > 0 ? (assistants / planilla) * 100 : 0;
+    };
+
+    // 2. Acumulado Semanal: Promedio de indices diarios de la semana
+    const weeklyRecords = filteredRecords.filter(r => latestWeekMonday && getWeekMonday(r.date) === latestWeekMonday);
+    const sumWeeklyIndices = weeklyRecords.reduce((acc, r) => acc + getRecordIndex(r), 0);
+    const weeklyIndex = weeklyRecords.length > 0 ? (sumWeeklyIndices / weeklyRecords.length).toFixed(2) : "0";
+
+    // 3. Acumulado Mensual: Promedio de indices diarios del mes (Actualizado: Suma Asistentes / Suma Planilla del Mes)
+    const monthlyRecordsForIndex = hhcRecords.filter(r => {
+        if (!r || !r.date) return false;
+        try {
+            const dateParts = String(r.date).split('-');
+            if (dateParts.length < 2) return false;
+            const rYear = parseInt(dateParts[0]);
+            const rMonth = parseInt(dateParts[1]) - 1;
+            return rYear === currentYear && rMonth === hhcMonthFilter;
+        } catch (e) { return false; }
+    });
+
+    const sumAssistantsMonth = monthlyRecordsForIndex.reduce((acc, r) => acc + (Number(r.hombres) || 0) + (Number(r.mujeres) || 0), 0);
+    const sumPlanillaMonth = monthlyRecordsForIndex.reduce((acc, r) => acc + (Number(r.hht) || 0), 0);
+
+    const monthlyIndex = sumPlanillaMonth > 0 ? ((sumAssistantsMonth / sumPlanillaMonth) * 100).toFixed(2) : "0.00";
+
+    // 4. Indice Anual: Sumatoria de porcentajes de los meses / 12
+    // Primero calculamos el indice de CADA mes del año con la NUEVA FORMULA
+    let sumMonthIndicesNew = 0;
+    for (let m = 0; m < 12; m++) {
+        const recsInMonth = hhcRecords.filter(r => {
+            const d = new Date(r.date);
+            return d.getFullYear() === currentYear && d.getMonth() === m;
+        });
+
+        if (recsInMonth.length > 0) {
+            const sumAssistants = recsInMonth.reduce((acc, r) => acc + (Number(r.hombres) || 0) + (Number(r.mujeres) || 0), 0);
+            const sumPlanilla = recsInMonth.reduce((acc, r) => acc + (Number(r.hht) || 0), 0);
+
+            const mIndex = sumPlanilla > 0 ? (sumAssistants / sumPlanilla) * 100 : 0;
+            sumMonthIndicesNew += mIndex;
+        }
+    }
+    const annualIndex = (sumMonthIndicesNew / 12).toFixed(2);
+
+    // Cálculos por Tipo (para el área seleccionada)
+    const getStatsByType = () => {
+        const types = ['induccion_gen', 'induccion_esp', 'capacitacion', 'difusion', 'entrenamiento', 'charla'];
+        return types.map(t => {
+            const stats = filteredRecords
+                .filter(r => r.tipo === t && r.date && parseInt(r.date.substring(0, 4)) === currentYear && (targetMonth === -1 || parseInt(r.date.substring(5, 7)) - 1 === targetMonth))
+                .reduce((acc, curr) => ({ hhc: acc.hhc + (Number(curr.hhc) || 0), hht: acc.hht + (Number(curr.hht) || 0) }), { hhc: 0, hht: 0 });
+            return {
+                baseType: t,
+                label: t.replace('_', ' ').toUpperCase(),
+                hhc: stats.hhc,
+                hht: stats.hht,
+                index: stats.hht > 0 ? ((stats.hhc / stats.hht) * 100).toFixed(2) : "0" // Mantener logica anterior para tipo por ahora, o actualizar si el usuario lo pide
+            };
+        });
+    };
+
+
+
+    const handleAddHHCRecord = () => {
+        // Fix: Check for empty strings/nulls instead of falsy which might block "0"
+        if (newHHC.date === '' || newHHC.hhc === '' || newHHC.hht === '') {
+            alert("⚠️ Por favor complete los campos obligatorios: Fecha, H. Trabajadas y el cálculo de H. Capacitadas.");
+            return;
+        }
+
+        const newRecord = {
+            date: newHHC.date,
+            hhc: Number(newHHC.hhc),
+            hht: Number(newHHC.hht),
+            hombres: Number(newHHC.hombres) || 0,
+            mujeres: Number(newHHC.mujeres) || 0,
+            area: newHHC.area,
+            tipo: newHHC.tipo,
+            tema: newHHC.tema,
+            responsable: newHHC.responsable,
+            evidenceImgs: newHHC.evidenceImgs || [],
+            evidencePdf: newHHC.evidencePdf || ''
+        };
+
+        // --- AUTOPILOT: ACTUALIZAR PROGRAMA ANUAL (OBJ 2) Y GRÁFICAS ---
+        // 1. Cargamos el programa actual
+        let currentProgram = JSON.parse(localStorage.getItem('annual_program_data') || '{}');
+        let obj2Activities = currentProgram['obj2'] || [];
+
+        // 2. Buscamos si existe una actividad programada coincidente (Mismo Mes y Tema similar)
+        let foundIndex = -1;
+        const recordMonth = new Date(newRecord.date).getMonth();
+
+        // Buscamos coincidencia aproximada por tema o fecha exacta
+        foundIndex = obj2Activities.findIndex((act: any) => {
+            const actDate = new Date(act.date);
+            // Coincide mes Y (Coincide tema O es misma fecha exacta)
+            return actDate.getMonth() === recordMonth && (
+                act.description.toLowerCase().includes(newRecord.tema.toLowerCase()) ||
+                act.date === newRecord.date
+            );
+        });
+
+        // 3. Si encontramos la actividad programada, la actualizamos
+        if (foundIndex !== -1) {
+            obj2Activities[foundIndex] = {
+                ...obj2Activities[foundIndex],
+                status: 'Realizado',
+                compliance: 100,
+                executedDate: newRecord.date
+            };
+        } else {
+            // OPCIONAL: Si no existe, ¿La agregamos como no programada? 
+            // Por ahora solo validamos el cumplimiento de lo programado.
+            // O podemos agregarla al historial como cumplimiento extra.
+        }
+
+        // 4. Guardamos la actualización
+        currentProgram['obj2'] = obj2Activities;
+        localStorage.setItem('annual_program_data', JSON.stringify(currentProgram));
+        setProgramData(currentProgram);
+
+        // --- SINCRONIZACIÓN CON DASHBOARD GENERAL (dashboard_data_v1) ---
+        try {
+            const dashboardData = JSON.parse(localStorage.getItem('dashboard_data_v1') || 'null');
+            if (dashboardData && dashboardData.sections) {
+                let updated = false;
+
+                // Barrer todas las secciones relevantes (training, scsst, health, etc.)
+                dashboardData.sections.forEach((section: any) => {
+                    if (section.activities) {
+                        section.activities.forEach((act: any) => {
+                            // Coincidencia laxa: Si el nombre de la actividad contiene el tema registrado
+                            // O si es especificamente una induccion/capacitacion general
+                            const isMatch = act.name.toLowerCase().includes(newRecord.tema.toLowerCase()) ||
+                                (newRecord.tipo.includes('induccion') && act.name.toLowerCase().includes('inducción'));
+
+                            if (isMatch) {
+                                // Actualizar el mes correspondiente
+                                const monthIdx = new Date(newRecord.date).getMonth();
+                                if (act.data && act.data.executed) {
+                                    // Asumimos cumplimiento al 100% si se registra
+                                    // O sumamos? Para simplificar, si hay registro, marcamos cumplimiento.
+                                    // Pero idealmente debería ser aditivo si es contador, o 100% si es hito.
+                                    // Dado que el dashboard general suele usar porcentajes de cumplimiento o conteos:
+
+                                    // Estrategia: Si el plan es > 0, ponemos executed = plan (cumplimiento total)
+                                    // Si plan es 0, simplemente incrementamos executed (actividad no programada pero realizada)
+                                    const planVal = act.data.plan[monthIdx] || 0;
+                                    const currentExec = act.data.executed[monthIdx] || 0;
+
+                                    if (planVal > 0) {
+                                        act.data.executed[monthIdx] = planVal; // Cumplió la meta
+                                    } else {
+                                        act.data.executed[monthIdx] = currentExec + 1; // Registro adicional
+                                    }
+                                    updated = true;
+                                }
+                            }
+                        });
+                    }
+                });
+
+                if (updated) {
+                    localStorage.setItem('dashboard_data_v1', JSON.stringify(dashboardData));
+                    // Disparar evento para que DashboardClient se entere si está montado
+                    window.dispatchEvent(new Event('storage'));
+                }
+            }
+        } catch (e) {
+            console.error("Error sincronizando con dashboard general", e);
+        }
+        // --- FIN SINCRONIZACIÓN ---
+
+        // --- FIN AUTOPILOT ---
+
+        if (editingIndex !== null) {
+            setHhcRecords(prev => {
+                const updated = [...prev];
+                updated[editingIndex] = newRecord;
+                return updated;
+            });
+            setEditingIndex(null);
+        } else {
+            setHhcRecords(prev => [...prev, newRecord]);
+        }
+
+        // Limpiar
+        setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [], evidencePdf: '', lugar: '' });
+        alert("✅ Registro guardado y sincronizado con el Programa Anual.");
+    };
+
+
+
+
+
+
+
+
+    // Helper to upload images/PDFs and get URLs
+    const handleFileUpload = async (file: File, type: 'IMAGE' | 'PDF'): Promise<string> => {
+        // Validar que el contexto esté completo para el renombrado
+        if (!newHHC.area || !newHHC.tipo || !newHHC.tema || !newHHC.responsable || !newHHC.lugar) {
+            alert("⚠️ Por favor completa ÁREA, TIPO (Inducción, Charla, etc.), TEMA, RESPONSABLE y LUGAR antes de subir archivos.\n\nEsto es necesario para que el archivo se guarde con el nombre correcto en Drive.");
+            return '';
+        }
+
+        try {
+            const { uploadEvidence } = await import('@/lib/uploadClient');
+
+            // Usar la utilidad de carga que incluye compresión para imágenes
+            const url = await uploadEvidence(
+                file,
+                'Actividad',
+                newHHC.tema || 'Actividad_Pisco',
+                newHHC.date || new Date().toISOString().split('T')[0],
+                newHHC.responsable || user?.name || 'Supervisor',
+                newHHC.tipo, // Pasamos el tipo
+                newHHC.area, // Pasamos el área (seguridad, salud, etc.)
+                newHHC.lugar // Pasamos el lugar
+            );
+
+            if (url) {
+                alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
+            }
+
+            return url;
+        } catch (e: any) {
+            console.error("Error en carga de archivo:", e);
+            alert(`❌ Error subiendo archivo: ${e.message}`);
+            return '';
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        const fileArray = Array.from(files);
+        if (fileArray.length + newHHC.evidenceImgs.length > 4) {
+            alert("⚠️ Máximo 4 imágenes permitidas por registro.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            for (const file of fileArray) {
+                const url = await handleFileUpload(file, 'IMAGE');
+                if (url) {
+                    setNewHHC(prev => ({
+                        ...prev,
+                        evidenceImgs: [...prev.evidenceImgs, url]
+                    }));
+                }
+            }
+        } finally {
+            setIsUploading(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== 'application/pdf') {
+            alert("⚠️ Solo se permiten archivos PDF.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const url = await handleFileUpload(file, 'PDF');
+            if (url) {
+                setNewHHC(prev => ({ ...prev, evidencePdf: url }));
+            }
+        } finally {
+            setIsUploading(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleDeleteHHC = (globalIndex: number) => {
+        if (globalIndex === -1) return;
+
+        const record = hhcRecords[globalIndex];
+        // const isOwner = record.responsable === user?.name;
+
+        // if (!isDeveloper && !isOwner) {
+        //     alert("⛔ No tienes permiso para eliminar registros de otros usuarios.");
+        //     return;
+        // }
+
+        // Confirmación eliminada temporalmente para prueba
+        // if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+
+        setHhcRecords(prev => prev.filter((_, i) => i !== globalIndex));
+        if (editingIndex === globalIndex) setEditingIndex(null);
+    };
+
+    const handleEditHHC = (index: number) => {
+        const record = hhcRecords[index];
+        const isOwner = record.responsable === user?.name;
+
+        if (!isDeveloper && !isOwner) {
+            alert("⛔ No tienes permiso para editar registros de otros usuarios.");
+            return;
+        }
+
+        setEditingIndex(index);
+        setNewHHC({
+            date: record.date,
+            hhc: String(record.hhc),
+            hht: String(record.hht),
+            hombres: String(record.hombres),
+            mujeres: String(record.mujeres),
+            area: record.area,
+            tipo: record.tipo,
+            tema: record.tema,
+            evidenceImgs: record.evidenceImgs || (record.evidence ? [record.evidence] : []) || [],
+            evidencePdf: record.evidencePdf || '',
+            responsable: record.responsable || '',
+            lugar: record.lugar || ''
+        });
+    };
+
+    // Agrupación de datos HHC por MES para el Gráfico
+    const getMonthlyHHCData = () => {
+        const monthlyApi: Record<string, { hhc: number, hht: number, date: string }> = {};
+
+        hhcRecords.forEach(rec => {
+            if (!rec || !rec.date) return;
+            const monthKey = String(rec.date).substring(0, 7); // "2025-01"
+            if (!monthlyApi[monthKey]) {
+                monthlyApi[monthKey] = { hhc: 0, hht: 0, date: monthKey };
+            }
+            monthlyApi[monthKey].hhc += (Number(rec.hhc) || 0);
+            monthlyApi[monthKey].hht += (Number(rec.hht) || 0);
+        });
+
+        // Convertir a array y calcular índice
+        return Object.values(monthlyApi)
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map(m => ({
+                ...m,
+                index: m.hht > 0 ? ((m.hhc / m.hht) * 100).toFixed(2) : 0
+            }));
+    };
+
+    const FORMATION_DURATIONS: Record<string, number> = {
+        'induccion_gen': 4,
+        'induccion_esp': 8,
+        'capacitacion': 1,
+        'difusion': 0.5,
+        'entrenamiento': 0.5,
+        'charla': 0.25
+    };
+
+    const handleDateChange = (selectedDate: string) => {
+        const programMatch = trainingProgram.find(p => p.date === selectedDate);
+
+        // Si es inducción, respetamos la selección manual y NO sobrescribimos con el programa
+        if (newHHC.tipo.includes('induccion')) {
+            setNewHHC(prev => ({ ...prev, date: selectedDate }));
+            return;
+        }
+
+        if (programMatch) {
+            setNewHHC(prev => ({
+                ...prev,
+                date: selectedDate,
+                tema: programMatch.tema,
+                area: programMatch.area,
+                tipo: programMatch.tipo
+            }));
+        } else {
+            setNewHHC(prev => ({ ...prev, date: selectedDate }));
+        }
+    };
+
+    const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                if (!event.target?.result) throw new Error("No se pudo leer el archivo.");
+
+                const data = new Uint8Array(event.target.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                if (!workbook.SheetNames.length) throw new Error("El archivo no tiene hojas.");
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+
+                if (!jsonData || jsonData.length === 0) throw new Error("La hoja está vacía.");
+
+                const importedProgram: any[] = [];
+
+                // --- HELPER: Parseo de Fechas ---
+                const parseDate = (val: any) => {
+                    if (!val) return null;
+                    try {
+                        // Excel serial number
+                        if (typeof val === 'number') {
+                            const date = XLSX.SSF.parse_date_code(val);
+                            if (date) return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+                        }
+                        // String dates
+                        if (typeof val === 'string') {
+                            const txt = val.trim();
+                            // DD/MM/YYYY
+                            if (txt.includes('/')) {
+                                const parts = txt.split('/');
+                                if (parts.length === 3) {
+                                    // Asumimos DD/MM/YYYY
+                                    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                }
+                            }
+                            // YYYY-MM-DD
+                            if (txt.includes('-') && txt.length === 10) return txt;
+                        }
+                    } catch (e) { return null; }
+                    return null;
+                };
+
+                const mapArea = (val: any): 'seguridad' | 'salud' | 'ambiente' => {
+                    const s = String(val || '').toLowerCase();
+                    if (s.includes('salud')) return 'salud';
+                    if (s.includes('ambiente') || s.includes('ambi')) return 'ambiente';
+                    return 'seguridad';
+                };
+
+                const mapType = (val: any): any => {
+                    const s = String(val || '').toLowerCase();
+                    if (s.includes('charla')) return 'charla';
+                    if (s.includes('difusion') || s.includes('difusión')) return 'difusion';
+                    if (s.includes('entra') || s.includes('entrenamiento')) return 'entrenamiento';
+                    if (s.includes('induc')) return s.includes('espec') ? 'induccion_esp' : 'induccion_gen';
+                    return 'capacitacion';
+                };
+
+                // --- ESTRATEGIA: LISTA VERTICAL ---
+                // Buscamos la fila de encabezados
+                let headerIndex = -1;
+                let colMap = { date: -1, theme: -1, type: -1, area: -1 };
+
+                // Buscar encabezados en las primeras 20 filas
+                for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
+                    const row = jsonData[i].map(c => String(c || '').toLowerCase().trim());
+
+                    if (row.includes('fecha') && (row.includes('tema') || row.includes('temas'))) {
+                        headerIndex = i;
+                        colMap.date = row.findIndex(c => c === 'fecha' || c === 'fechas');
+                        colMap.theme = row.findIndex(c => c === 'tema' || c === 'temas');
+                        // Tipo y Área son opcionales o buscables parcialmente
+                        colMap.type = row.findIndex(c => c === 'tipo');
+                        colMap.area = row.findIndex(c => c === 'area' || c === 'área');
+                        break;
+                    }
+                }
+
+                if (headerIndex !== -1) {
+                    // Iterar desde la fila siguiente a los encabezados
+                    for (let i = headerIndex + 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!Array.isArray(row) || row.length === 0) continue;
+
+                        const valTema = row[colMap.theme];
+                        // Ignorar filas vacías o "No programado"
+                        if (!valTema || String(valTema).toLowerCase().includes('no programado') || String(valTema).trim() === '-') continue;
+
+                        const valDate = row[colMap.date];
+                        const dateStr = parseDate(valDate);
+
+                        if (dateStr) {
+                            importedProgram.push({
+                                date: dateStr,
+                                tema: String(valTema).trim(),
+                                area: colMap.area !== -1 ? mapArea(row[colMap.area]) : 'seguridad',
+                                tipo: colMap.type !== -1 ? mapType(row[colMap.type]) : 'capacitacion'
+                            });
+                        }
+                    }
+
+                    if (importedProgram.length > 0) {
+                        setTrainingProgram(prev => {
+                            const existing = new Set(prev.map(p => `${p.date}-${p.tema}`));
+                            const unique = importedProgram.filter(p => !existing.has(`${p.date}-${p.tema}`));
+                            return [...prev, ...unique].sort((a, b) => a.date.localeCompare(b.date));
+                        });
+                        alert(`✅ IMPORTACIÓN EXITOSA\n\nSe cargaron ${importedProgram.length} actividades.`);
+                    } else {
+                        alert('⚠️ NO SE IMPORTARON DATOS\n\nSe encontró la estructura pero ninguna fila contenía datos válidos (quizás todos eran "No programado" o fechas inválidas).');
+                    }
+
+                } else {
+                    alert('⚠️ ESTRUCTURA NO RECONOCIDA\n\nNo se encontró la fila de encabezados.\n\nAsegúrese de que la primera fila de la tabla contenga:\n"Fecha", "Tema", "Tipo", "Área"');
+                }
+
+            } catch (error: any) {
+                console.error(error);
+                alert(`❌ ERROR DE LECTURA: ${error.message}`);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+    };
+
+
+
+    const removeImage = (index: number) => {
+        setNewHHC(prev => ({
+            ...prev,
+            evidenceImgs: prev.evidenceImgs.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateStat = (key: string, value: string) => {
+        setNewHHC(prev => {
+            const updated = { ...prev, [key]: value };
+
+            // AUTOPILOT: Tema automático para inducciones
+            if (key === 'tipo') {
+                if (value === 'induccion_gen') updated.tema = 'Inducción Hombre Nuevo';
+                else if (value === 'induccion_esp') updated.tema = 'Inducción Específica';
+            }
+
+            // Recalcular H. Capacitadas automáticamente
+            if (['tipo', 'hombres', 'mujeres'].includes(key)) {
+                const totalPersonnel = (Number(updated.hombres) || 0) + (Number(updated.mujeres) || 0);
+                const duration = FORMATION_DURATIONS[updated.tipo as string] || 0;
+                updated.hhc = String(totalPersonnel * duration);
+            }
+
+            return updated;
+        });
+    };
+
+    // Data por Objetivo
+    // Data por Objetivo (Asegurando visualizar TODOS, incluso con 0 data)
+    // Data por Objetivo (CONECTADO AL PROGRAMA ANUAL)
+    const objectivesData = OBJECTIVES_LIST.map(obj => {
+        const stats = getObjectiveMonthlyStats(obj.id);
+
+        let totalPlan = 0;
+        let totalExec = 0;
+
+        if (currentMonth === -1) {
+            // Accumulate all months
+            totalPlan = stats.reduce((acc, curr) => acc + curr.P, 0);
+            totalExec = stats.reduce((acc, curr) => acc + curr.E, 0);
+        } else {
+            // Specific month
+            if (stats[currentMonth]) {
+                totalPlan = stats[currentMonth].P;
+                totalExec = stats[currentMonth].E;
+            }
+        }
+
+        let percent = 0;
+        if (totalPlan > 0) {
+            percent = Math.round((totalExec / totalPlan) * 100);
+        } else if (totalExec > 0) {
+            percent = 100;
+        }
+
+        // Color Logic
+        let fill = '#10b981'; // Green (Security)
+        const labelLower = obj.label.toLowerCase();
+        if (labelLower.includes('salud') || labelLower.includes('emo')) fill = '#ec4899'; // Pink (Health)
+        else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('segregación') || labelLower.includes('residuos')) fill = '#3b82f6'; // Blue (Env)
+
+        if (obj.id === 'obj10' || obj.id === 'obj11') fill = '#3b82f6';
+
+        return {
+            name: obj.id.replace('obj', 'Obj '),
+            fullName: obj.label,
+            percent: percent > 100 ? 100 : percent,
+            fill: fill
+        };
+    });
+
+    // Custom Bar Shape for 3D Effect
+    const CustomBar = (props: any) => {
+        const { fill, x, y, width, height } = props;
+        return (
+            <g>
+                <rect x={x} y={y} width={width} height={height} fill={fill} rx={4} ry={4} style={{ filter: 'drop-shadow(4px 4px 6px rgba(0,0,0,0.3))' }} />
+                <rect x={x} y={y} width={width} height={height} fill="url(#gloss)" opacity={0.3} rx={4} ry={4} />
+            </g>
+        );
+    };
+
+    // Calculate monthly data by management area
+    const calculateMonthlyData = () => {
+        const monthsToProcess = currentMonth === -1 ? MONTHS : [MONTHS[currentMonth]];
+
+        const monthlyData = monthsToProcess.map((month, mIdx) => {
+            const actualIdx = currentMonth === -1 ? mIdx : currentMonth;
+            const safety = { plan: 0, exec: 0 };
+            const health = { plan: 0, exec: 0 };
+            const environment = { plan: 0, exec: 0 };
+
+            activities.forEach(activity => {
+                const area = activity.managementArea || 'safety';
+                const plan = activity.data.plan[actualIdx] || 0;
+                const exec = activity.data.executed[actualIdx] || 0;
+
+                if (area === 'safety') {
+                    safety.plan += plan;
+                    safety.exec += exec;
+                } else if (area === 'health') {
+                    health.plan += plan;
+                    health.exec += exec;
+                } else if (area === 'environment') {
+                    environment.plan += plan;
+                    environment.exec += exec;
+                }
+            });
+
+            return {
+                month,
+                seguridad: safety.plan > 0 ? Math.round((safety.exec / safety.plan) * 100) : 0,
+                salud: health.plan > 0 ? Math.round((health.exec / health.plan) * 100) : 0,
+                ambiente: environment.plan > 0 ? Math.round((environment.exec / environment.plan) * 100) : 0,
+            };
+        });
+
+        return monthlyData;
+    };
+
+    // Calculate overall achievement by area based on OBJECTIVES GROUPS
+    const calculateOverallAchievement = () => {
+        const areas = { safety: { plan: 0, exec: 0 }, health: { plan: 0, exec: 0 }, environment: { plan: 0, exec: 0 } };
+
+        // Group activities by objective to follow specific rules
+        const grouped = categorizeActivitiesByObjective(activities);
+
+        grouped.forEach(group => {
+            const gid = group.id; // 'obj1', 'obj2', ...
+
+            // Calculate totals for this group
+            let groupPlan = 0;
+            let groupExec = 0;
+
+            group.activities.forEach(activity => {
+                if (currentMonth === -1) {
+                    groupPlan += activity.data.plan.reduce((a, b) => a + b, 0);
+                    groupExec += activity.data.executed.reduce((a, b) => a + b, 0);
+                } else {
+                    groupPlan += activity.data.plan[currentMonth] || 0;
+                    groupExec += activity.data.executed[currentMonth] || 0;
+                }
+            });
+
+            // Assign to Area based on user rules
+            // Seguridad: obj 1, 2, 3, 4
+            // Seguridad: obj 1, 2, 3, 4
+            if (['obj-1', 'obj-2', 'obj-3', 'obj-4'].includes(gid)) {
+                areas.safety.plan += groupPlan;
+                areas.safety.exec += groupExec;
+            }
+            // Salud: obj 5, 6, 7
+            else if (['obj-5', 'obj-6', 'obj-7'].includes(gid)) {
+                areas.health.plan += groupPlan;
+                areas.health.exec += groupExec;
+            }
+            // Medio Ambiente: obj 8, 9, 10
+            else if (['obj-8', 'obj-9', 'obj-10'].includes(gid)) {
+                areas.environment.plan += groupPlan;
+                areas.environment.exec += groupExec;
+            }
+        });
+
+        return [
+            {
+                name: 'Seguridad',
+                value: areas.safety.plan > 0 ? Math.round((areas.safety.exec / areas.safety.plan) * 100) : 0,
+                color: '#10b981'
+            },
+            {
+                name: 'Salud',
+                value: areas.health.plan > 0 ? Math.round((areas.health.exec / areas.health.plan) * 100) : 0,
+                color: '#ec4899'
+            },
+            {
+                name: 'Medio Ambiente',
+                value: areas.environment.plan > 0 ? Math.round((areas.environment.exec / areas.environment.plan) * 100) : 0,
+                color: '#3b82f6'
+            }
+        ];
+    };
+
+    const monthlyData = calculateMonthlyData();
+
+
+    // Calculate Overall Achievement for General Dashboard (used below)
+    const overallAchievement = calculateOverallAchievement();
+
+    // --- INSPECTION GAUGE CALC ---
+    const inspStats = getObjectiveMonthlyStats('obj3');
+    const totalInspP = inspStats.reduce((a, b) => a + b.P, 0);
+    const totalInspE = inspStats.reduce((a, b) => a + b.E, 0);
+    const inspectionIndex = totalInspP > 0 ? Math.round((totalInspE / totalInspP) * 100) : 0;
+
+    // --- ACCIDENTABILITY STATS LOGIC ---
+    const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
+    useEffect(() => {
+        const saved = localStorage.getItem('accidentability_stats_2026');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // Calculate YTD totals
+                const getTotal = (key: string) => (data[key] || []).reduce((a: number, b: number) => a + b, 0);
+
+                const totalHP = getTotal('HP');
+                const totalT = getTotal('T');
+                // Average Workers (Accumulated T / 12 for Annual Rate usually, or Average of non-zero months? 
+                // Standard: Sum(Monthly T) / 12.
+                const avgT = totalT > 0 ? totalT / 12 : 0;
+
+                // For Frequency/Severity Rates, we usually use Total Hours worked in period.
+                // For Incidence Rates, we use Average Workers in period.
+
+                const totalACDP = getTotal('ATT') + getTotal('APP') + getTotal('ATP') + getTotal('AM');
+                const totalTDP = getTotal('TDP');
+                const totalEO = getTotal('EO');
+                const totalEP = getTotal('EP');
+
+                const IF = totalHP > 0 ? (totalACDP * 1000000) / totalHP : 0;
+                const IS = totalHP > 0 ? (totalTDP * 1000000) / totalHP : 0;
+                const IA = (IF * IS) / 1000;
+
+                // Updated Formulas per user request (Base 1000)
+                const TasaInc = avgT > 0 ? (totalEO * 1000) / avgT : 0;
+                const FreqPrePat = avgT > 0 ? (totalEP * 1000) / avgT : 0;
+
+                setAccidentabilityStats({
+                    IF: Number(IF.toFixed(2)),
+                    IS: Number(IS.toFixed(2)),
+                    IA: Number(IA.toFixed(2)),
+                    TasaInc: Number(TasaInc.toFixed(2)),
+                    FreqPrePat: Number(FreqPrePat.toFixed(2)),
+                    totalHHT: totalHP
+                });
+            } catch (e) { console.error(e); }
+        }
+    }, [mode]); // Re-run if mode changes (or mounting)
+
+    return (
+        <div className="space-y-8 p-2 md:p-6" >
+            {mode === 'general' && (
+                <div className="flex flex-col gap-6 animate-in fade-in zoom-in duration-500">
+                    {/* 1. TOP ROW: GAUGES + OVERALL SUMMARY */}
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                        {/* KPI VELOCÍMETRO - CAPACITACIÓN */}
+                        <div className="xl:col-span-1 h-full min-h-[280px]">
+                            <ComplianceGauge
+                                value={Number(annualIndex)}
+                                title="ÍNDICE DE CAPACITACIÓN"
+                                height={220}
+                            />
+                        </div>
+
+                        {/* KPI VELOCÍMETRO - INSPECCIONES (NUEVO) */}
+                        <div className="xl:col-span-1 h-full min-h-[280px]">
+                            <ComplianceGauge
+                                value={inspectionIndex}
+                                title="AVANCE DE INSPECCIONES"
+                                height={220}
+                            />
+                        </div>
+
+                        {/* OVERALL CARDS - Centered & Premium Design */}
+                        <div className="xl:col-span-2 h-full">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                                {overallAchievement.map((area, idx) => (
+                                    <div key={idx} className="bg-slate-900 border border-slate-800 rounded-[2rem] p-4 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center group hover:border-slate-600 hover:scale-[1.02] transition-all duration-300">
+                                        {/* Background Glow */}
+                                        <div className="absolute top-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <div className="absolute -top-10 -right-10 w-32 h-32 blur-3xl rounded-full opacity-20 transition-all group-hover:opacity-40" style={{ backgroundColor: area.color }}></div>
+
+                                        <div className="relative z-10 flex flex-col items-center gap-3 w-full">
+                                            {/* Icon with Glow Ring */}
+                                            <div className="relative">
+                                                <div className="absolute inset-0 blur-lg opacity-40 animate-pulse" style={{ backgroundColor: area.color }}></div>
+                                                <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 shadow-xl relative z-10">
+                                                    {idx === 0 && <ShieldCheck size={24} style={{ color: area.color }} />}
+                                                    {idx === 1 && <ActivityIcon size={24} style={{ color: area.color }} />}
+                                                    {idx === 2 && <Leaf size={24} style={{ color: area.color }} />}
+                                                </div>
+                                            </div>
+
+                                            {/* Text Content */}
+                                            <div className="text-center space-y-1">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{area.name}</p>
+                                                <div className="flex items-baseline justify-center gap-0.5">
+                                                    <span className="text-4xl font-black text-white tracking-tighter" style={{ textShadow: `0 0 20px ${area.color}40` }}>
+                                                        {area.value}
+                                                    </span>
+                                                    <span className="text-sm font-bold text-slate-600">%</span>
+                                                </div>
+                                                <p className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">Cumplimiento Global</p>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-2">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_currentColor]"
+                                                    style={{ width: `${area.value}%`, backgroundColor: area.color, color: area.color }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- SECCIÓN DE ESTADÍSTICAS DE ACCIDENTABILIDAD (KPIs) --- */}
+                    <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-slate-700 relative overflow-hidden">
+                        <div className="flex items-center gap-4 mb-6 relative z-10">
+                            <div className="p-3 bg-rose-500/20 rounded-2xl">
+                                <ActivityIcon size={24} className="text-rose-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight">Indicadores de Accidentabilidad</h3>
+                                <p className="text-sm text-slate-400 font-bold">Resumen Estadístico Anual 2026</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 relative z-10">
+                            {[
+                                { label: 'HHT Acumuladas', val: accidentabilityStats.totalHHT.toLocaleString(), color: 'text-indigo-400', sub: 'Horas Hombre Totales' },
+                                { label: 'Índice Frecuencia (IF)', val: accidentabilityStats.IF, color: 'text-emerald-400', sub: 'Accidentes / Horas Hombre' },
+                                { label: 'Índice Severidad (IS)', val: accidentabilityStats.IS, color: 'text-blue-400', sub: 'Días Perdidos / Horas Hombre' },
+                                { label: 'Índice Accidentabilidad (IA)', val: accidentabilityStats.IA, color: 'text-purple-400', sub: '(IF x IS) / 1000' },
+                                { label: 'Tasa Incidencia Enf.', val: accidentabilityStats.TasaInc, color: 'text-orange-400', sub: 'Enfermedades / Trabajadores' },
+                                { label: 'Freq. Estados Pre-Pat.', val: accidentabilityStats.FreqPrePat, color: 'text-rose-400', sub: 'Estados Pre-Pat. / Trabajadores' },
+                            ].map((kpi, idx) => (
+                                <div key={idx} className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 hover:bg-slate-800 transition-colors group">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2">{kpi.label}</p>
+                                    <div className="flex items-end gap-2">
+                                        <span className={`text-3xl font-black ${kpi.color} group-hover:scale-105 transition-transform`}>{kpi.val}</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 font-mono mt-2 truncate" title={kpi.sub}>{kpi.sub}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2. 3D OBJECTIVES CHARTS ROW */}
+                    <div className="flex gap-4 overflow-x-auto pb-6 px-4 -mx-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent snap-x snap-mandatory">
+                        {objectivesData.map((obj, idx) => {
+                            const donutData = [
+                                { name: 'Cumplimiento', value: obj.percent, fill: obj.fill },
+                                { name: 'Pendiente', value: 100 - obj.percent, fill: '#f1f5f9' }
+                            ];
+                            let Icon = Target;
+                            if (obj.fill === '#10b981') Icon = ShieldCheck;
+                            if (obj.fill === '#ec4899') Icon = ActivityIcon;
+                            if (obj.fill === '#3b82f6') Icon = Leaf;
+
+                            return (
+                                <div key={idx} className="min-w-[200px] w-[200px] bg-white rounded-[2rem] p-5 shadow-lg border border-slate-100 flex flex-col items-center relative overflow-hidden h-[240px] flex-shrink-0 snap-center">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
+                                        <div className="h-full transition-all duration-1000" style={{ width: `${obj.percent}%`, backgroundColor: obj.fill }}></div>
+                                    </div>
+                                    <div className="text-center mb-1 z-10 w-full px-1">
+                                        <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center justify-center gap-1 truncate">
+                                            <Icon size={12} style={{ color: obj.fill }} />
+                                            {obj.name}
+                                        </h4>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5 truncate max-w-full" title={obj.fullName}>{obj.fullName}</p>
+                                    </div>
+                                    <div className="flex-1 w-full relative flex items-center justify-center">
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="text-center">
+                                                <span className="text-2xl font-black text-slate-800 tracking-tighter">{obj.percent}%</span>
+                                            </div>
+                                        </div>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={donutData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={45}
+                                                    outerRadius={60}
+                                                    startAngle={90}
+                                                    endAngle={-270}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    stroke="none"
+                                                >
+                                                    {donutData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
+                                                    ))}
+                                                </Pie>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* 3. PERFORMANCE BY RESPONSIBLE (NEW SECTION) */}
+                    <div className="bg-slate-900 rounded-[2rem] p-8 shadow-2xl border border-slate-800 relative overflow-hidden mt-8">
+                        {/* Background Decoration */}
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+
+                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20">
+                                <Users size={24} className="text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight">Rendimiento por Responsable</h3>
+                                <p className="text-sm text-slate-400 font-medium">Eficacia de Ejecución (Ejecutado / Programado) del Año {currentYear}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative z-10 w-full">
+                            {USER_LIST.filter(u => u.username !== 'jose.cancino' && u.username !== 'gerencia').map((userObj, idx) => {
+                                const user = userObj.name;
+                                const userActs = activities.filter(a => a.responsible === user);
+                                const planned = userActs.reduce((acc, act) => acc + act.data.plan.reduce((a, b) => a + b, 0), 0);
+                                const executed = userActs.reduce((acc, act) => acc + act.data.executed.reduce((a, b) => a + b, 0), 0);
+                                const performance = planned > 0 ? Math.round((executed / planned) * 100) : 0;
+
+                                return (
+                                    <div key={idx} className="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50 flex flex-col items-center hover:bg-slate-800 transition-colors group">
+
+                                        {/* Header Compacto */}
+                                        <div className="flex items-center justify-between w-full mb-2 gap-2">
+                                            <div className="w-8 h-8 min-w-[32px] rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-white border border-slate-600 shadow-sm">
+                                                {getInitials(user)}
+                                            </div>
+                                            <h4 className="text-[10px] font-bold text-slate-300 text-right leading-tight truncate" title={user}>{user}</h4>
+                                        </div>
+
+                                        {/* Gauge Compacto (Fixed Size) */}
+                                        <div className="flex justify-center mb-1 py-2">
+                                            <ComplianceGauge value={performance} width={110} height={60} title="" />
+                                        </div>
+
+                                        {/* Footer Stats */}
+                                        <div className="flex justify-between w-full px-2 text-[9px] font-mono bg-slate-950/50 py-1.5 rounded-lg border border-slate-800 mt-1">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-slate-500 font-bold">P:</span>
+                                                <span className="text-white font-black">{planned}</span>
+                                            </div>
+                                            <div className="w-px bg-slate-800 h-full"></div>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-emerald-500 font-bold">E:</span>
+                                                <span className="text-white font-black">{executed}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* INDICADORES DE GESTIÓN (PERSONAL & HHC AVANZADO) */}
+            {mode === 'hhc' && (
+                <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-700 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 relative z-10 border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20">
+                                <Calculator size={20} className="text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-white">Centro de Control HHC</h3>
+                                <p className="text-xs text-slate-400 font-medium">Gestión de Horas Hombre Capacitadas e Indicadores</p>
+                            </div>
+                        </div>
+
+                        <div className="flex bg-slate-950/50 p-1 rounded-xl border border-slate-700">
+                            {[
+                                { id: 'todos', label: 'TODOS', color: 'text-white' },
+                                { id: 'seguridad', label: 'SEGURIDAD', color: 'text-emerald-400' },
+                                { id: 'salud', label: 'SALUD', color: 'text-pink-400' },
+                                { id: 'ambiente', label: 'MEDIO AMBIENTE', color: 'text-blue-400' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setSelectedArea(tab.id as any)}
+                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all ${selectedArea === tab.id
+                                        ? 'bg-slate-800 text-white shadow-lg border border-slate-600'
+                                        : 'text-slate-500 hover:text-slate-300'
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-6 relative z-10">
+                        {/* 1. KPIs RESUMEN */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Meta Anual</p>
+                                <div className="flex items-end gap-2">
+                                    <span className="text-2xl font-black text-white">{complianceGoal}%</span>
+                                    <span className="text-[10px] text-slate-500 mb-1">KPI Objetivo</span>
+                                </div>
+                                <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
+                                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-full" style={{ width: '75%' }}></div>
+                                </div>
+                            </div>
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Indice HHC</p>
+                                    <select
+                                        value={hhcMonthFilter}
+                                        onChange={(e) => setHhcMonthFilter(Number(e.target.value))}
+                                        className="bg-slate-900 border border-slate-700 text-[9px] text-white rounded px-1 py-0.5 outline-none focus:border-emerald-500"
+                                    >
+                                        {MONTHS.map((m, i) => <option key={i} value={i}>{m.substring(0, 3).toUpperCase()}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-end gap-2">
+                                        <span className={`text-2xl font-black ${Number(indiceHHCValue) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{indiceHHCValue}%</span>
+                                        <span className="text-[10px] text-slate-500 mb-1">Del Mes</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <label className="text-[8px] text-slate-500 uppercase font-bold">H. Trab:</label>
+                                        <input
+                                            type="number"
+                                            placeholder="HHT Mes"
+                                            value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
+                                            onChange={(e) => handleHHTInputChange(e.target.value)}
+                                            className="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-white font-mono outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado</p>
+                                <div className="flex items-end gap-2">
+                                    <span className={`text-2xl font-black ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
+                                    <span className="text-[10px] text-slate-500 mb-1">{MONTHS[hhcMonthFilter]} (Prom.)</span>
+                                </div>
+                            </div>
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado Anual</p>
+                                <div className="flex items-end gap-2">
+                                    <span className={`text-2xl font-black ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
+                                    <span className="text-[10px] text-slate-500 mb-1">Acumulado {currentYear}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col xl:flex-row gap-6 items-start">
+                            {/* 2. PANEL DE REGISTRO (35%) */}
+                            <div className="w-full xl:w-[35%] bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 shadow-xl">
+                                <div className="flex flex-col gap-4 mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-emerald-400 font-bold flex items-center gap-2 text-sm">
+                                            <Edit size={16} /> Panel de Registro
+                                            {isSyncing && (
+                                                <span className="flex items-center gap-1 text-[8px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full animate-pulse border border-blue-700/30">
+                                                    <span className="w-1 h-1 bg-blue-400 rounded-full animate-ping"></span>
+                                                    SINCRONIZANDO...
+                                                </span>
+                                            )}
+                                            {isUploading && (
+                                                <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
+                                                    <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
+                                                    SUBIENDO ARCHIVOS...
+                                                </span>
+                                            )}
+                                        </h4>
+                                        <button
+                                            onClick={() => {
+                                                setEditingIndex(null);
+                                                setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad', tipo: 'capacitacion', tema: '', evidenceImgs: [], evidencePdf: '', lugar: '' });
+                                            }}
+                                            className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-2 py-1 rounded transition-colors"
+                                        >
+                                            Limpiar
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 relative">
+                                        {/* IMPORT MENU */}
+                                        <div className="relative flex-1 group">
+                                            <button
+                                                onClick={() => setImportMenuOpen(!importMenuOpen)}
+                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                                            >
+                                                📊 Importar / Gestión
+                                            </button>
+
+                                            {importMenuOpen && (
+                                                <div className="absolute top-full left-0 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                                    {/* Option 1: Import for current month */}
+                                                    <div className="relative border-b border-slate-800 hover:bg-slate-800 transition-colors">
+                                                        <input
+                                                            type="file"
+                                                            accept=".xlsx,.xls"
+                                                            onChange={(e) => {
+                                                                handleHhcExcelImport(e);
+                                                                setImportMenuOpen(false);
+                                                            }}
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                        />
+                                                        <div className="px-3 py-2 flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <Download size={12} className="text-emerald-400" />
+                                                                <span className="text-[9px] font-bold text-slate-300">
+                                                                    Importar {MONTHS[hhcMonthFilter]}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Option 2: Delete current month */}
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm(`⚠️ ¿Estás seguro de ELIMINAR todos los registros de ${MONTHS[hhcMonthFilter]} del año ${currentYear}?`)) {
+                                                                handleDeleteMonthHhc();
+                                                            }
+                                                            setImportMenuOpen(false);
+                                                        }}
+                                                        className="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-800 transition-colors text-left"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <Trash2 size={12} className="text-red-400" />
+                                                            <span className="text-[9px] font-bold text-red-400">
+                                                                Eliminar {MONTHS[hhcMonthFilter]}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button onClick={() => setShowProgramModal(true)} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+                                            📅 Ver Calendario
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Backdrop for menu */}
+                                {importMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setImportMenuOpen(false)}></div>}
+
+                                <div className="grid grid-cols-1 gap-3 mb-4">
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Fecha</label>
+                                        <input type="date" value={newHHC.date} onChange={(e) => handleDateChange(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Responsable</label>
+                                        <select
+                                            value={newHHC.responsable}
+                                            onChange={(e) => setNewHHC({ ...newHHC, responsable: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">-- Seleccione --</option>
+                                            {USER_LIST.map(u => (
+                                                <option key={u.username} value={u.name}>{u.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
+                                            <select value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
+                                                <option value="seguridad">SEGURIDAD</option>
+                                                <option value="salud">SALUD</option>
+                                                <option value="ambiente">MEDIO AMBIENTE</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Tipo</label>
+                                            <select value={newHHC.tipo} onChange={(e) => updateStat('tipo', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-[10px] font-bold outline-none focus:border-emerald-500">
+                                                <option value="induccion_gen">INDUCCIÓN (4H)</option>
+                                                <option value="induccion_esp">IND. ESPECÍFICA (8H)</option>
+                                                <option value="capacitacion">CAPACITACIÓN (1H)</option>
+                                                <option value="difusion">DIFUSIÓN (30 MIN)</option>
+                                                <option value="entrenamiento">ENTRENAMIENTO (30 MIN)</option>
+                                                <option value="charla">CHARLA (15 MIN)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Lugar</label>
+                                        <select
+                                            value={newHHC.lugar || ''}
+                                            onChange={(e) => setNewHHC({ ...newHHC, lugar: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="">-- Seleccione --</option>
+                                            {SSOMA_LOCATIONS.map(loc => (
+                                                <option key={loc} value={loc}>{loc}</option>
+                                            ))}
+
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Tema / Actividad</label>
+                                        <input type="text" placeholder="Nombre del tema..." value={newHHC.tema} onChange={(e) => updateStat('tema', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">N° Planilla</label>
+                                        <input type="number" placeholder="Total Pers." value={newHHC.hht} onChange={(e) => updateStat('hht', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
+                                        <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Hombres</label>
+                                        <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Mujeres</label>
+                                        <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {/* Carga de Archivos */}
+                                    <div className="col-span-2">
+                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Evidencias</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                                id="img-upload-hhc"
+                                            />
+                                            <label
+                                                htmlFor="img-upload-hhc"
+                                                className={`flex items-center justify-center gap-1 bg-slate-800 border ${newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer'} rounded-lg p-2 transition-colors flex-1`}
+                                            >
+                                                <ImageIcon size={14} />
+                                                <span className="text-[9px] font-bold">FOTOS ({newHHC.evidenceImgs.length}/4)</span>
+                                            </label>
+
+                                            <input
+                                                type="file"
+                                                accept="application/pdf"
+                                                onChange={handlePdfUpload}
+                                                className="hidden"
+                                                id="pdf-upload-hhc"
+                                            />
+                                            <label
+                                                htmlFor="pdf-upload-hhc"
+                                                className={`flex items-center justify-center gap-1 bg-slate-800 border ${newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500'} rounded-lg p-2 transition-colors flex-1 cursor-pointer`}
+                                            >
+                                                <FileText size={14} />
+                                                <span className="text-[9px] font-bold">{newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}</span>
+                                            </label>
+                                        </div>
+
+                                        {/* Thumbnails */}
+                                        {newHHC.evidenceImgs.length > 0 && (
+                                            <div className="flex gap-2 mt-2">
+                                                {newHHC.evidenceImgs.map((img, idx) => (
+                                                    <div key={idx} className="relative w-10 h-10 group">
+                                                        <img src={img} alt="Thumb" className="w-full h-full object-cover rounded border border-slate-600" />
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={8} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button onClick={handleAddHHCRecord} className={`${editingIndex !== null ? 'bg-orange-500 hover:bg-orange-400' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-black uppercase text-xs py-3 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2`}>
+                                    {editingIndex !== null ? <><Edit size={16} /> Actualizar Registro</> : <><Plus size={16} /> Registrar Actividad</>}
+                                </button>
+                            </div>
+
+                            {/* 3. HISTORIAL (65%) */}
+                            <div className="w-full xl:w-[65%]">
+
+                                {/* 3. HISTORIAL */}
+                                <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+                                    <div className="flex flex-col gap-4 mb-6">
+                                        <h4 className="text-white font-bold flex items-center gap-2 text-sm">
+                                            <History size={18} className="text-blue-400" /> Historial de Formación
+                                        </h4>
+                                        <button
+                                            onClick={generateBulkHHCPDF}
+                                            className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ml-auto shadow-lg shadow-red-900/20"
+                                        >
+                                            <Download size={12} /> Exportar PDF (.pdf)
+                                        </button>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Responsable</label>
+                                                <input type="text" placeholder="Buscar..." value={filters.responsable} onChange={(e) => setFilters(prev => ({ ...prev, responsable: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Desde</label>
+                                                <input type="date" value={filters.startDate} onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Hasta</label>
+                                                <input type="date" value={filters.endDate} onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Tema</label>
+                                                <input type="text" placeholder="Buscar tema..." value={filters.tema} onChange={(e) => setFilters(prev => ({ ...prev, tema: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Tipo</label>
+                                                <select value={filters.type} onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none">
+                                                    <option value="todos">TODOS</option>
+                                                    <option value="induccion_gen">INDUCCIÓN GENERAL</option>
+                                                    <option value="induccion_esp">INDUCCIÓN ESPECÍFICA</option>
+                                                    <option value="capacitacion">CAPACITACIÓN</option>
+                                                    <option value="difusion">DIFUSIÓN</option>
+                                                    <option value="entrenamiento">ENTRENAMIENTO</option>
+                                                    <option value="charla">CHARLA</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                                        <table className="w-full text-left text-xs text-slate-400 relative border-collapse">
+                                            <thead>
+                                                <tr className="text-slate-500 border-b border-slate-800 text-[10px] uppercase font-bold">
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 pl-4 pr-2 w-[110px] text-left pt-2">Fecha</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[150px] pt-2">Responsable</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[100px] pt-2">Area</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-auto min-w-[220px] pt-2">Tema / Actividad</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-center w-[120px] pt-2">Tipo</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Planilla</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Pers. Cap.</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[90px] pt-2">Indice</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[120px] pt-2">Archivo</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 pl-2 pr-4 text-right pt-2">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {filteredRecords
+                                                    .filter(r => {
+                                                        const matchResp = !filters.responsable || (r.responsable || '').toLowerCase().includes(filters.responsable.toLowerCase());
+                                                        const matchTema = !filters.tema || (r.tema || '').toLowerCase().includes(filters.tema.toLowerCase());
+                                                        const matchDateStart = !filters.startDate || (r.date || '') >= filters.startDate;
+                                                        const matchDateEnd = !filters.endDate || (r.date || '') <= filters.endDate;
+                                                        const matchType = filters.type === 'todos' || r.type === filters.type;
+
+                                                        // OCULTAR "ACTIVIDAD IMPORTADA" PARA OPTIMIZAR ESPACIO VISUAL
+                                                        const notImported = (r.tema || '') !== 'Actividad Importada';
+
+                                                        return matchResp && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
+                                                    })
+                                                    .slice().reverse()
+                                                    .map((r, i) => {
+                                                        const realRecordIndex = hhcRecords.findIndex(rec => rec === r);
+                                                        return (
+                                                            <tr key={i} className="hover:bg-slate-800/50 transition-colors group text-[11px]">
+                                                                <td className="py-2 pl-4 pr-2 font-medium text-slate-300 w-[110px] whitespace-nowrap">{r.date}</td>
+                                                                <td className="py-2 px-2 max-w-[150px] truncate text-slate-400" title={r.responsable || 'Sin asignar'}>{getInitials(r.responsable) || '-'}</td>
+                                                                <td className="py-2 px-2 text-slate-500 uppercase text-[9px] font-bold">{r.area}</td>
+                                                                <td className="py-2 px-2 font-medium text-white max-w-[220px] truncate" title={r.tema}>{r.tema}</td>
+                                                                <td className="py-2 px-2 text-center w-[120px]">
+                                                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${r.tipo === 'charla' ? 'bg-slate-700 text-slate-300' : 'bg-blue-900/40 text-blue-300 border border-blue-800/30'}`}>
+                                                                        {(r.tipo || '').replace('_', ' ')}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-2 px-2 text-right text-slate-500 font-mono text-[10px] w-[80px]">{r.hht}</td>
+                                                                <td className="py-2 px-2 text-right text-blue-400 font-bold font-mono text-[10px] w-[80px]">{(Number(r.hombres) || 0) + (Number(r.mujeres) || 0)}</td>
+                                                                <td className="py-2 px-2 text-right text-emerald-400 font-bold font-mono text-[10px] w-[90px]">
+                                                                    {(() => {
+                                                                        const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
+                                                                        const planilla = Number(r.hht) || 1;
+                                                                        return planilla > 0 ? ((assistants / planilla) * 100).toFixed(2) : "0.00";
+                                                                    })()}%
+                                                                </td>
+                                                                <td className="py-2 px-2 text-left w-[120px]">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        {r.evidencePdf ? (
+                                                                            <span className="text-[9px] text-slate-400 truncate w-[110px] block" title={generateFilename(r.tema, r.date, r.responsable, 'pdf', r.tipo, undefined, r.area)}>
+                                                                                {generateFilename(r.tema, r.date, r.responsable, 'pdf', r.tipo, undefined, r.area)}
+                                                                            </span>
+                                                                        ) : r.evidenceImgs && r.evidenceImgs.length > 0 ? (
+                                                                            <span className="text-[9px] text-slate-400 truncate w-[110px] block" title={generateFilename(r.tema, r.date, r.responsable, 'jpg', r.tipo, undefined, r.area)}>
+                                                                                {generateFilename(r.tema, r.date, r.responsable, 'jpg', r.tipo, undefined, r.area)} (Img)
+                                                                            </span>
+                                                                        ) : <span className="text-slate-600 text-[9px]">-</span>}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 text-right pr-2">
+                                                                    <div className="flex justify-end gap-2 transition-opacity">
+                                                                        {/* PDF EVIDENCE DOWNLOAD */}
+                                                                        {r.evidencePdf && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const link = document.createElement('a');
+                                                                                    link.href = r.evidencePdf;
+                                                                                    link.download = generateFilename(r.tema, r.date, r.responsable, 'pdf', r.tipo, undefined, r.area);
+                                                                                    document.body.appendChild(link);
+                                                                                    link.click();
+                                                                                    document.body.removeChild(link);
+                                                                                }}
+                                                                                className="text-red-400 hover:bg-red-500/10 p-1 rounded" title="Descargar Evidencia PDF"
+                                                                            >
+                                                                                <FileText size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                        {/* IMG EVIDENCE VIEW */}
+                                                                        {r.evidenceImgs && r.evidenceImgs.length > 0 && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const w = window.open("");
+                                                                                    w?.document.write(`
+                                                                                         <html>
+                                                                                             <head><title>Evidencia Fotográfica HHC</title></head>
+                                                                                             <body style="background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 20px;">
+                                                                                                 <h2 style="font-family: sans-serif;">Evidencia Actividad: ${r.tema}</h2>
+                                                                                                 ${r.evidenceImgs.map((img: string) => `<img src="${img}" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);" />`).join('')}
+                                                                                             </body>
+                                                                                         </html>
+                                                                                     `);
+                                                                                }}
+                                                                                className="text-purple-400 hover:bg-purple-500/10 p-1 rounded" title="Ver Imágenes"
+                                                                            >
+                                                                                <ImageIcon size={14} />
+                                                                            </button>
+                                                                        )}
+
+                                                                        <button onClick={() => generateRecordPDF(r)} className="text-emerald-400 hover:bg-emerald-500/10 p-1 rounded" title="Exportar PDF"><Download size={14} /></button>
+
+                                                                        <button type="button" onClick={() => handleEditHHC(realRecordIndex)} className="text-blue-400 hover:bg-blue-500/10 p-1 rounded" title="Editar"><Edit size={14} /></button>
+                                                                        <button type="button" onClick={() => handleDeleteHHC(realRecordIndex)} className="text-red-400 hover:bg-red-500/10 p-1 rounded" title="Eliminar"><Trash2 size={14} /></button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        {/* Modal de Programa Mensual */}
+                        {showProgramModal && (
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                                    <div className="p-6 border-b border-slate-700">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="text-xl font-black text-white">📅 Programa Mensual de Capacitaciones</h3>
+                                            <button
+                                                onClick={() => setShowProgramModal(false)}
+                                                className="text-slate-400 hover:text-white transition-colors"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-2">Gestiona las actividades programadas para autocompletar el registro</p>
+                                    </div>
+
+                                    <div className="p-6 overflow-y-auto flex-1">
+                                        {isDeveloper && (
+                                            <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+                                                <h4 className="text-sm font-bold text-emerald-400 mb-3">Agregar Actividad Programada</h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Fecha</label>
+                                                        <input
+                                                            type="date"
+                                                            value={newProgram.date}
+                                                            onChange={(e) => setNewProgram({ ...newProgram, date: e.target.value })}
+                                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Tema</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Nombre del tema..."
+                                                            value={newProgram.tema}
+                                                            onChange={(e) => setNewProgram({ ...newProgram, tema: e.target.value })}
+                                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Área</label>
+                                                        <select
+                                                            value={newProgram.area}
+                                                            onChange={(e) => setNewProgram({ ...newProgram, area: e.target.value as any })}
+                                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500"
+                                                        >
+                                                            <option value="seguridad">SEGURIDAD</option>
+                                                            <option value="salud">SALUD</option>
+                                                            <option value="ambiente">MEDIO AMBIENTE</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Tipo</label>
+                                                        <select
+                                                            value={newProgram.tipo}
+                                                            onChange={(e) => setNewProgram({ ...newProgram, tipo: e.target.value as any })}
+                                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-emerald-500"
+                                                        >
+                                                            <option value="induccion_gen">INDUCCIÓN GENERAL</option>
+                                                            <option value="induccion_esp">INDUCCIÓN ESPECÍFICA</option>
+                                                            <option value="capacitacion">CAPACITACIÓN</option>
+                                                            <option value="difusion">DIFUSIÓN</option>
+                                                            <option value="entrenamiento">ENTRENAMIENTO</option>
+                                                            <option value="charla">CHARLA</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                                    <div>
+                                                        <input
+                                                            type="file"
+                                                            accept=".xlsx,.xls"
+                                                            onChange={handleExcelImport}
+                                                            className="hidden"
+                                                            id="excel-upload"
+                                                        />
+                                                        <label
+                                                            htmlFor="excel-upload"
+                                                            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 rounded-lg transition-colors cursor-pointer"
+                                                        >
+                                                            📊 Importar Excel
+                                                        </label>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (newProgram.date && newProgram.tema) {
+                                                                setTrainingProgram([...trainingProgram, newProgram].sort((a, b) => a.date.localeCompare(b.date)));
+                                                                setNewProgram({ date: '', tema: '', area: 'seguridad', tipo: 'capacitacion' });
+                                                            }
+                                                        }}
+                                                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-lg transition-colors"
+                                                    >
+                                                        ➕ Agregar Manual
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                                            <h4 className="text-sm font-bold text-blue-400 mb-3">Actividades Programadas</h4>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-[10px]">
+                                                    <thead>
+                                                        <tr className="text-slate-500 border-b border-slate-700">
+                                                            <th className="pb-2">MES</th>
+                                                            <th className="pb-2">FECHA</th>
+                                                            <th className="pb-2">TEMA</th>
+                                                            <th className="pb-2">ÁREA</th>
+                                                            <th className="pb-2">TIPO</th>
+                                                            <th className="pb-2 text-right">ACCIÓN</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="text-slate-300">
+                                                        {trainingProgram.map((prog, idx) => (
+                                                            <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30 group">
+                                                                <td className="py-2 text-xs font-bold text-slate-400">
+                                                                    {new Date(prog.date + 'T12:00:00').toLocaleString('es-ES', { month: 'long' }).toUpperCase()}
+                                                                </td>
+                                                                <td className="py-2 font-bold">{prog.date}</td>
+                                                                <td className="py-2">{prog.tema}</td>
+                                                                <td className="py-2">
+                                                                    <span className={`text-[8px] uppercase px-1 rounded-sm ${prog.area === 'seguridad' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                                        prog.area === 'salud' ? 'bg-pink-500/20 text-pink-400' :
+                                                                            'bg-blue-500/20 text-blue-400'
+                                                                        }`}>{prog.area}</span>
+                                                                </td>
+                                                                <td className="py-2 text-slate-400">{prog.tipo.replace('_', ' ').toUpperCase()}</td>
+                                                                <td className="py-2 text-right">
+                                                                    <button
+                                                                        onClick={() => setTrainingProgram(trainingProgram.filter((_, i) => i !== idx))}
+                                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded text-red-400 transition-opacity"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+
+        </div >
+    );
+}
