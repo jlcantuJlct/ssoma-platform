@@ -84,7 +84,7 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
             // Si nos pasan un path explícito, lo enviamos. Si no, usamos folderName original o undefined si hay override.
             folderPath: folderName,
-            folderName: folderName // Enviamos siempre para compatibilidad con versiones viejas del script
+            folderName: folderName // FIX: Enviar SIEMPRE, incluso si hay Override (para que el Bridge cree carpetas dentro del ID)
         };
 
         // LLAMADA DIRECTA (Server-side fetch no tiene CORS)
