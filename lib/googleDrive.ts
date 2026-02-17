@@ -207,28 +207,23 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
         try {
             const drive = await getDriveService();
 
-            // 1. Optimización de Ruta (Check Root Name)
-            try {
-                const rootFolderMeta = await drive.files.get({
-                    fileId: rootFolderId,
-                    fields: 'name',
-                    supportsAllDrives: true
-                });
-                const rootName = rootFolderMeta.data.name;
-                const pathParts = relativePath.split('/').filter(p => p.trim() !== '');
-                if (pathParts.length > 0 && rootName && pathParts[0].trim().toUpperCase() === rootName.trim().toUpperCase()) {
-                    relativePath = pathParts.slice(1).join('/');
-                }
-            } catch (ignore) { }
+            // 1. Optimización de Ruta REMOVED (Often causes issues with partial matches)
+            // if (pathParts[0] == rootName) ... skipped.
 
             // 2. Navegar/Crear Carpetas
             if (relativePath && relativePath.trim() !== '') {
-                finalTargetFolderId = await ensureDriveFolderHierarchy(drive, rootFolderId, relativePath);
+                try {
+                    finalTargetFolderId = await ensureDriveFolderHierarchy(drive, rootFolderId, relativePath);
+                } catch (navErr: any) {
+                    console.error("⚠️ Error navegando carpetas:", navErr);
+                    // Capturar el error para mostrarlo en debug
+                    throw new Error(`Fallo Estructura: ${navErr.message}`);
+                }
             }
 
             console.log(`✅ ID FINAL DESTINO (Post-Estructura): ${finalTargetFolderId}`);
 
-            // 3. Compartir carpeta final (para que el Bridge/Usuario pueda ver/escribir)
+            // 3. Compartir carpeta final
             if (finalTargetFolderId !== rootFolderId) {
                 try {
                     await drive.permissions.create({
@@ -241,15 +236,20 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
 
         } catch (structureError: any) {
             console.error("⚠️ Falló gestión de estructura Robot:", structureError.message);
-            // Si falla estructura, seguimos usando rootFolderId (mejor guardar en Root que no guardar)
+            // CRITICAL: Propagate this error to the debug info if possible, or throw if we want to force Bridge.
+            // Let's THROW so the outer catch can handle it or we explicitly decide to fallback.
+            // But wait, we want to try upload even if structure fails? 
+            // User says "Files in Root" -> This means structure failed, but upload worked.
+            // We want to STOP that. We want to FORCE Correct Folder.
+
+            // If structure failed, DO NOT UPLOAD TO ROOT.
+            throw new Error(`ABORTANDO: No se pudo crear carpeta destino. ${structureError.message}`);
         }
     }
 
-    // 4. VERIFICACIÓN CRÍTICA: SI EL ROBOT NO PUDO CREAR LA CARPETA, NO SUBIR AL ROOT.
-    // Si la carpeta destino sigue siendo el Root, pero habíamos pedido una subcarpeta...
-    if (finalTargetFolderId === rootFolderId && folderName.length > 0 && folderName.trim() !== "") {
-        console.warn("⚠️ El Robot no pudo crear la estructura de carpetas. Forzando Fallback al Bridge.");
-        throw new Error("Robot failed to create folder structure. Handing over to Bridge.");
+    // 4. VERIFICACIÓN CRÍTICA
+    if (finalTargetFolderId === rootFolderId && folderName.length > 0) {
+        throw new Error("ABORTANDO: El Robot devolvió ID Raíz aunque se pidió subcarpeta.");
     }
 
     // 5. INTENTO DE SUBIDA NATIVA (ROBOT)
