@@ -140,145 +140,120 @@ async function ensureDriveFolderHierarchy(drive: any, parentId: string, path: st
 
     console.log(`🔍 Iniciando navegación de carpetas. Raíz: ${parentId}, Ruta: ${path}`);
 
+    // VALIDACIÓN CRÍTICA: Si parentId no existe o es inválido, abortar para evitar bucles
+    if (!parentId) throw new Error("Parent ID es nulo en ensureDriveFolderHierarchy");
+
     for (const part of parts) {
         // Buscar si existe carpeta con este nombre en el padre actual
         const query = `mimeType='application/vnd.google-apps.folder' and name='${part}' and '${currentParentId}' in parents and trashed=false`;
 
-        console.log(`🔎 Buscando carpeta: '${part}' en '${currentParentId}'`);
+        try {
+            const res = await drive.files.list({
+                q: query,
+                fields: 'files(id, name)',
+                spaces: 'drive',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true
+            });
 
-        const res = await drive.files.list({
-            q: query,
-            fields: 'files(id, name)',
-            spaces: 'drive',
-            supportsAllDrives: true,
-            includeItemsFromAllDrives: true
-        });
+            if (res.data.files && res.data.files.length > 0) {
+                // Existe, entramos
+                console.log(`✅ Carpeta encontrada: ${part} -> ID: ${res.data.files[0].id}`);
+                currentParentId = res.data.files[0].id;
+            } else {
+                // No existe, crearla
+                console.log(`📂 Carpeta NO encontrada. Creando: ${part} en ${currentParentId}`);
+                const folderMetadata = {
+                    name: part,
+                    mimeType: 'application/vnd.google-apps.folder',
+                    parents: [currentParentId]
+                };
 
-        if (res.data.files && res.data.files.length > 0) {
-            // Existe, entramos
-            console.log(`✅ Carpeta encontrada: ${part} -> ID: ${res.data.files[0].id}`);
-            currentParentId = res.data.files[0].id;
-        } else {
-            // No existe, crearla
-            console.log(`📂 Carpeta NO encontrada. Creando: ${part} en ${currentParentId}`);
-            const folderMetadata = {
-                name: part,
-                mimeType: 'application/vnd.google-apps.folder',
-                parents: [currentParentId]
-            };
-            try {
                 const newFolder = await drive.files.create({
                     requestBody: folderMetadata,
                     fields: 'id',
                     supportsAllDrives: true
                 });
                 console.log(`✨ Carpeta CREADA: ${part} -> ID: ${newFolder.data.id}`);
-                currentParentId = newFolder.data.id;
-            } catch (createErr: any) {
-                console.error(`❌ ERROR CREANDO CARPETA ${part}:`, createErr.message);
-                // Si falla crear, probablemente falla todo lo demás. Lanzamos error.
-                throw createErr;
+                currentParentId = newFolder.data.id!; // Force non-null assertion
             }
+        } catch (opErr: any) {
+            console.error(`❌ Error operando carpeta '${part}':`, opErr.message);
+            throw opErr; // Re-lanzar para manejar arriba
         }
     }
     return currentParentId;
 }
 
 export async function uploadToDrive(file: File, folderName: string, fileName: string) {
-    // ESTRATEGIA: PRIORIDAD ROBOT (NATIVO)
-    // Para garantizar que el archivo termine EXACTAMENTE en la carpeta creada por el robot,
-    // usamos el mismo robot para la subida.
-    // El Bridge (Apps Script) queda solo como fallback si no tenemos credenciales del robot.
+    // ESTRATEGIA HÍBRIDA ROBUSTA:
+    // 1. Robot: Gestiona ESTRUCTURA DE CARPETAS (Crear/Buscar).
+    // 2. Robot: Intenta subir archivo.
+    // 3. Fallback (Bridge): Sube archivo SI Robot falla, PERO usando el ID de carpeta que el Robot encontró/creó.
 
-    let targetFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // NUEVO ID (Updated by User)
+    let rootFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // NUEVO ID (Updated by User)
+    let finalTargetFolderId = rootFolderId; // Por defecto Root
+
     const hasCreds = !!getCredentials();
 
     console.log(`🔐 ¿Tiene Credenciales Robot? ${hasCreds ? 'SI' : 'NO'}`);
-    if (!hasCreds) console.warn("⚠️ ALERTA: No hay credenciales. Se usará el Bridge (Apps Script).");
 
-    // GLOBAL PATH CORRECTION: Remove prefix to avoid duplication if Root IS that folder
+    // GLOBAL PATH CORRECTION
     let relativePath = folderName;
 
-    // 1. INTENTO NATIVO (ROBOT) - Prioridad Absoluta
+    // A. GESTIÓN DE ESTRUCTURA (SOLO SI HAY CREDENCIALES ROBOT)
     if (hasCreds) {
         try {
             const drive = await getDriveService();
-            // FIX: Ignorar variable de entorno antigua que esta sobreescribiendo el ID
-            // const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID || targetFolderId;
-            const rootFolderId = targetFolderId;
 
-            // --- DYNAMIC ROOT CHECK (RE-APPLIED) ---
-            // Check if we are incorrectly nesting (e.g. putting 'EVIDENCIAS...' inside 'EVIDENCIAS...')
+            // 1. Optimización de Ruta (Check Root Name)
             try {
                 const rootFolderMeta = await drive.files.get({
                     fileId: rootFolderId,
                     fields: 'name',
                     supportsAllDrives: true
                 });
-
                 const rootName = rootFolderMeta.data.name;
-                console.log(`📂 Nombre Real de Carpeta Root (${rootFolderId}): '${rootName}'`);
-
                 const pathParts = relativePath.split('/').filter(p => p.trim() !== '');
-                if (pathParts.length > 0 && rootName) {
-                    // Check if the FIRST part of the path matches the Root Folder Name
-                    if (pathParts[0].trim().toUpperCase() === rootName.trim().toUpperCase()) {
-                        console.log(`✂️ Ajuste: Root es '${rootName}', eliminando prefijo redundante.`);
-                        relativePath = pathParts.slice(1).join('/');
-                    }
+                if (pathParts.length > 0 && rootName && pathParts[0].trim().toUpperCase() === rootName.trim().toUpperCase()) {
+                    relativePath = pathParts.slice(1).join('/');
                 }
-            } catch (metaErr) {
-                console.warn("⚠️ Advertencia: No se pudo verificar nombre del Root. Se usará la ruta completa.", metaErr);
-                // Si falla, NO tocamos relativePath. Asumimos que hay que crear toda la estructura.
+            } catch (ignore) { }
+
+            // 2. Navegar/Crear Carpetas
+            if (relativePath && relativePath.trim() !== '') {
+                finalTargetFolderId = await ensureDriveFolderHierarchy(drive, rootFolderId, relativePath);
             }
 
-            console.log(`🤖 Robot gestionando estructura: ${relativePath}`);
+            console.log(`✅ ID FINAL DESTINO (Post-Estructura): ${finalTargetFolderId}`);
 
-            // Handle Case: Uploading to Root directly (relativePath became empty)
-            if (!relativePath || relativePath.trim() === '') {
-                targetFolderId = rootFolderId;
-            } else {
-                targetFolderId = await ensureDriveFolderHierarchy(drive, rootFolderId, relativePath);
-            }
-
-            console.log(`✅ ID Carpeta destino: ${targetFolderId}`);
-
-            // [FIX CRITICO BRIDGE] Compartir carpeta destino para que el Bridge pueda escribir
-            // Si el Robot crea la carpeta, es privado. El Bridge falla al intentar subir ahí.
-            // Solución: Dar permisos de 'writer' a 'anyone' en la carpeta final.
-            if (targetFolderId !== rootFolderId) {
+            // 3. Compartir carpeta final (para que el Bridge/Usuario pueda ver/escribir)
+            if (finalTargetFolderId !== rootFolderId) {
                 try {
-                    console.log(`🔓 Habilitando escritura pública en carpeta ${targetFolderId} (para Bridge)...`);
                     await drive.permissions.create({
-                        fileId: targetFolderId,
+                        fileId: finalTargetFolderId,
                         requestBody: { role: 'writer', type: 'anyone' },
                         supportsAllDrives: true
                     });
-                } catch (pErr) {
-                    // Ignoramos si ya tiene permisos
-                    console.warn("ℹ️ Aviso permisos carpeta:", pErr.message);
-                }
+                } catch (ignore) { }
             }
 
-            // TRAMPA DE DEBUG (TEMPORAL): Si termina en la Raíz pero pidió subcarpetas, ¡GRITA!
-            if (targetFolderId === rootFolderId && relativePath.length > 5) {
-                console.log("ℹ️ Archivo se subirá al Root ID (validado por lógica dinámica).");
-            }
+        } catch (structureError: any) {
+            console.error("⚠️ Falló gestión de estructura Robot:", structureError.message);
+            // Si falla estructura, seguimos usando rootFolderId (mejor guardar en Root que no guardar)
+        }
+    }
 
-            // B. Subir Archivo (Nativo)
-            console.log(`📤 Robot subiendo archivo a: ${targetFolderId}`);
+    // B. INTENTO DE SUBIDA (PRIORIDAD ROBOT)
+    if (hasCreds) {
+        try {
+            console.log(`📤 Robot intentando subir a: ${finalTargetFolderId}`);
+            const drive = await getDriveService();
             const buffer = Buffer.from(await file.arrayBuffer());
             const stream = Readable.from(buffer);
 
-            const fileMetadata = {
-                name: fileName,
-                parents: [targetFolderId]
-            };
-
-            const media = {
-                mimeType: file.type,
-                body: stream,
-            };
+            const media = { mimeType: file.type, body: stream };
+            const fileMetadata = { name: fileName, parents: [finalTargetFolderId] };
 
             const response = await drive.files.create({
                 requestBody: fileMetadata,
@@ -289,49 +264,36 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
 
             const fileId = response.data.id!;
 
-            // C. Compartir (Asegurar visibilidad para el usuario)
+            // Permisos archivo
             try {
                 await drive.permissions.create({
                     fileId: fileId,
                     requestBody: { role: 'reader', type: 'anyone' },
                     supportsAllDrives: true
                 });
-            } catch (permErr: any) {
-                // Ignorar warnings comunes ("already shared")
-                console.warn("⚠️ Advertencia permisos:", permErr.message);
-            }
+            } catch (ignore) { }
 
             return {
                 id: fileId,
                 url: `https://lh3.googleusercontent.com/d/${fileId}`,
                 downloadUrl: response.data.webContentLink,
-                debug: {
-                    rootUsed: rootFolderId,
-                    targetUsed: targetFolderId
-                }
+                debug: { rootUsed: rootFolderId, targetUsed: finalTargetFolderId }
             };
 
-        } catch (nativeError: any) {
-            console.error("❌ Falló subida Nativa (Robot). Intentando Fallback...", nativeError?.message);
-            // DEBUG: LANZAR ERROR PARA QUE EL USUARIO LO VEA
-            throw new Error(`Error Robot: ${nativeError.message}`);
-            // NO lanzamos error aquí. Dejamos que el código siga y ejecute el bloque del Bridge.
+        } catch (uploadError: any) {
+            console.error("❌ Falló subida Robot (Storage/Red). Activando Bridge...", uploadError.message);
+            // NO lanzamos error. Dejamos caer al bloque Fallback.
         }
     }
 
-    // 2. FALLBACK: BRIDGE (APPS SCRIPT)
-    // TEMPORAL DEBUG: DESACTIVAR BRIDGE PARA VER EL ERROR REAL DEL ROBOT
+    // C. FALLBACK: BRIDGE (APPS SCRIPT)
     try {
-        console.log(`⚠️ Usando Fallback Bridge para: ${fileName} en ID: ${targetFolderId}`);
-        // return await uploadViaAppsScript(file, relativePath, fileName, targetFolderId);
-        throw new Error("FALLBACK DESACTIVADO PARA DEBUG. Error Original: " + (hasCreds ? "Credenciales Fallaron" : "Sin Credenciales"));
-    } catch (error: any) {
-        console.error("❌ Falló también el Bridge:", error.message);
-        return {
-            id: null,
-            url: '',
-            error: true,
-            errorMessage: error.message
-        };
+        console.log(`🌉 Bridge activado. Subiendo a ID Específico: ${finalTargetFolderId}`);
+        // IMPORTANTE: Pasamos finalTargetFolderId. El Bridge usará este ID para subir.
+        // Si el Robot logró crear la carpeta, el Bridge subirá ahí. Si no, subirá al Root.
+        return await uploadViaAppsScript(file, relativePath, fileName, finalTargetFolderId);
+    } catch (bridgeError: any) {
+        console.error("❌ Falló TODO (Robot + Bridge):", bridgeError.message);
+        throw bridgeError; // Ahora sí, error fatal.
     }
 }
