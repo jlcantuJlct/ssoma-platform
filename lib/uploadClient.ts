@@ -213,7 +213,7 @@ export async function uploadEvidence(
     // Evidencias SSOMA 2026 > [Nombre de Categoría PMA] > [Mes] > [Lugar]
     if (context === 'PMA' && objective) {
         const safeCategory = objective.replace(/[^a-zA-Z0-9\s\-\_]/g, '').trim().toUpperCase();
-        folderName = `EVIDENCIAS SSOMA 2026/${safeCategory}/${monthName}/${safeLugar}`;
+        folderName = `${safeCategory}/${monthName}/${safeLugar}`;
     }
     // LOGICA 2: ESTRUCTURA PARA OBJETIVOS GENERICOS
     // Nombre del Objetivo Estratégico > Nombre de la Actividad > Mes > lugar > y el archivo
@@ -222,7 +222,7 @@ export async function uploadEvidence(
         // Activity Name is passed in 'title' for Evidence Center uploads
         const safeActivity = title.replace(/[^a-zA-Z0-9\s\-\_]/g, '').substring(0, 50).trim().toUpperCase();
 
-        folderName = `EVIDENCIAS SSOMA 2026/${safeObjective}/${safeActivity}/${monthName}/${safeLugar}`;
+        folderName = `${safeObjective}/${safeActivity}/${monthName}/${safeLugar}`;
     }
     // LOGICA 3: ESTRUCTURA PARA INSPECCIONES (Logica Anterior)
     // Area > Mes > Tipo > Lugar
@@ -245,7 +245,7 @@ export async function uploadEvidence(
         else if (activityCategory.toLowerCase().includes('inspecc')) activityCategory = 'INSPECCIONES';
         else activityCategory = activityCategory.replace(/[^a-zA-Z0-9\s]/g, '').toUpperCase();
 
-        folderName = `EVIDENCIAS SSOMA 2026/${safeArea}/${monthName}/${activityCategory}/${safeLugar}`;
+        folderName = `${safeArea}/${monthName}/${activityCategory}/${safeLugar}`;
     }
 
     // Mapeo de tipos a abreviaturas (Sincronizado con utils.ts)
@@ -301,9 +301,9 @@ export async function uploadEvidence(
 
     console.log(`📤 Iniciando subida (${sizeMB}MB): ${fileName}`);
 
-    // A. INTENTO VIA API SERVIDOR (ROBOT) - DESACTIVADO POR SOLICITUD DEL USUARIO ("Cambia el Robot")
-    // Forzamos el uso del BRIDGE (Apps Script) para todo, ya que es el único que está enrutando bien las carpetas ahora.
-    if (false && fileToUpload.size < 4 * 1024 * 1024) {
+    // A. INTENTO VIA API SERVIDOR (ROBOT) - RE-ACTIVADO
+    // El Robot es necesario para crear la estructura de carpetas. El Bridge solo sube archivos.
+    if (fileToUpload.size < 4 * 1024 * 1024) {
         try {
             console.log("⚡ Intentando subida vía Servidor (Mejor Estructura)...");
             // DEBUG
