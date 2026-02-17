@@ -293,12 +293,18 @@ export async function uploadEvidence(
     // Para garantizar que se respeten los permisos y la estructura de carpetas del Robot.
     // Solo usamos el Bridge si el archivo es muy grande (> 4MB) o el servidor falla.
 
-    console.log(`📤 Iniciando subida (${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB): ${fileName}`);
+    // DEBUG: Alertar inicio de proceso
+    const sizeMB = (fileToUpload.size / 1024 / 1024).toFixed(2);
+    alert(`DEBUG: Iniciando Subida...\nArchivo: ${fileName}\nTamaño: ${sizeMB} MB`);
+
+    console.log(`📤 Iniciando subida (${sizeMB}MB): ${fileName}`);
 
     // A. INTENTO VIA API SERVIDOR (Preferido para archivos < 4MB)
     if (fileToUpload.size < 4 * 1024 * 1024) {
         try {
             console.log("⚡ Intentando subida vía Servidor (Mejor Estructura)...");
+            // DEBUG
+            alert(`Intentando SUBIDA POR SERVIDOR (Tamaño: ${sizeMB} MB)`);
 
             const formData = new FormData();
             formData.append('file', fileToUpload);
@@ -314,25 +320,26 @@ export async function uploadEvidence(
             if (response.ok) {
                 const data = await response.json();
                 console.log(`✅ Subida Exitosa por Servidor: ${data.path}`);
+                alert(`Exito! URL: ${data.path}`);
                 return data.path;
             } else {
                 // ERRORES DEL SERVIDOR: NO HACER FALLBACK SILENCIOSO
-                // Queremos ver el error real (Permisos, Auth, etc)
                 const errorData = await response.json().catch(() => ({}));
                 const errorMessage = errorData.error || `Error del servidor: ${response.status}`;
                 console.error(`❌ Error Crítico del Servidor: ${errorMessage}`);
-
-                // LANZAR ERROR PARA QUE EL USUARIO LO VEA EN PANTALLA
+                alert(`DEBUG: ❌ FALLÓ SERVIDOR: ${errorMessage}`);
                 throw new Error(errorMessage);
             }
 
         } catch (serverError: any) {
             console.error("❌ Error de Conexión/Servidor:", serverError);
+            alert(`DEBUG: ❌ FALLÓ SERVIDOR: ${serverError.message}`);
             // Si ya lanzamos el error arriba, esto lo re-lanza.
             // Si es un error de red (fetch falló), también lo lanzamos para no ocultarlo.
             throw serverError;
         }
     } else {
+        alert(`Intentando SUBIDA POR BRIDGE (Archivo Grande o Fallback)`);
         console.log("📦 Archivo > 4MB. Saltando servidor y usando Bridge directo.");
     }
 
@@ -341,9 +348,11 @@ export async function uploadEvidence(
         console.log("🌐 Intentando subida directa (Bridge Apps Script)...");
         const directUrl = await uploadDirectToDrive(fileToUpload, folderName, fileName);
         console.log('✅ Subida directa exitosa');
+        alert(`Exito! URL: ${directUrl}`);
         return directUrl;
     } catch (directError: any) {
         console.error("❌ Falló subida directa:", directError.message);
+        alert(`DEBUG: ❌ FALLÓ BRIDGE: ${directError.message}`);
         throw new Error(`Error: No se pudo subir el archivo por ningún método. ${directError.message}`);
     }
 }
