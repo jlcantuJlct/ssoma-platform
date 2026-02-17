@@ -39,11 +39,25 @@ async function findRecentFiles() {
         } else {
             console.log(`\n🔍 Encontrados ${files.length} archivos recientes:\n`);
             for (const f of files) {
+                let parentName = 'RAÍZ (Sin padre)';
+                if (f.parents && f.parents.length > 0) {
+                    try {
+                        const parent = await drive.files.get({
+                            fileId: f.parents[0],
+                            fields: 'name',
+                            supportsAllDrives: true
+                        });
+                        parentName = `${parent.data.name} (${f.parents[0]})`;
+                    } catch (e) {
+                        parentName = `Error obteniendo nombre (${f.parents[0]})`;
+                    }
+                }
+
                 console.log(`📄 [${f.name}]`);
                 console.log(`   ID: ${f.id}`);
                 console.log(`   Creado: ${f.createdTime}`);
                 console.log(`   Tipo: ${f.mimeType}`);
-                console.log(`   Carpeta Padre (Donde está): ${f.parents ? f.parents.join(', ') : 'RAÍZ (Sin padre)'}`);
+                console.log(`   Carpeta Padre: ${parentName}`);
                 console.log(`   Link: ${f.webViewLink}`);
                 console.log("---------------------------------------------------");
             }
