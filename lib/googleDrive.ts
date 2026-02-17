@@ -245,7 +245,14 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
         }
     }
 
-    // B. INTENTO DE SUBIDA (PRIORIDAD ROBOT)
+    // 4. VERIFICACIÓN CRÍTICA: SI EL ROBOT NO PUDO CREAR LA CARPETA, NO SUBIR AL ROOT.
+    // Si la carpeta destino sigue siendo el Root, pero habíamos pedido una subcarpeta...
+    if (finalTargetFolderId === rootFolderId && folderName.length > 0 && folderName.trim() !== "") {
+        console.warn("⚠️ El Robot no pudo crear la estructura de carpetas. Forzando Fallback al Bridge.");
+        throw new Error("Robot failed to create folder structure. Handing over to Bridge.");
+    }
+
+    // 5. INTENTO DE SUBIDA NATIVA (ROBOT)
     if (hasCreds) {
         try {
             console.log(`📤 Robot intentando subir a: ${finalTargetFolderId}`);
