@@ -1,6 +1,6 @@
 
 // Credenciales del Robot (Service Account) para Producción
-// Esto asegura que el robot funcione en Vercel sin depender de variables de entorno manuales.
+// Sincronizado automáticamente desde service-account.json (Fixed Version)
 
 export const ROBOT_CREDENTIALS = {
     client_email: "obot-ssoma-nuevo@ssoma-app-485301.iam.gserviceaccount.com",

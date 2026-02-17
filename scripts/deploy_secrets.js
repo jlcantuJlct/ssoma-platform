@@ -1,72 +1,34 @@
 
 const fs = require('fs');
-const { execSync, spawn } = require('child_process');
 const path = require('path');
 
-// 1. Leer credenciales
-const keyPath = path.join(process.cwd(), 'service-account.json');
-if (!fs.existsSync(keyPath)) {
-    console.error("❌ No encuentro service-account.json");
+const jsonPath = path.join(__dirname, '../service-account.json');
+const tsPath = path.join(__dirname, '../lib/credentials.ts');
+
+if (!fs.existsSync(jsonPath)) {
+    console.error("❌ No existe service-account.json");
     process.exit(1);
 }
 
-const creds = JSON.parse(fs.readFileSync(keyPath, 'utf-8'));
-const SHEETS_ID = '1V-oOFEgt1WBsKp29CHIKN7F3zSXeF0yyG566wOzL5yg'; // Hardcoded from chat
+const creds = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
-const envVars = {
-    'GOOGLE_CLIENT_EMAIL': creds.client_email,
-    'GOOGLE_PRIVATE_KEY': creds.private_key,
-    'GOOGLE_SHEET_ID': SHEETS_ID
+// Escapar newlines para que sean literales en el string TS si es necesario, 
+// o simplemente usarlos.
+// JSON.stringify will escape \n to \\n automatically for the string representation.
+const cleanKey = creds.private_key;
+
+const fileContent = `
+// Credenciales del Robot (Service Account) para Producción
+// Sincronizado automáticamente desde service-account.json
+// Fecha: ${new Date().toISOString()}
+
+export const ROBOT_CREDENTIALS = {
+    client_email: "${creds.client_email}",
+    private_key: ${JSON.stringify(cleanKey)}
 };
+`;
 
-console.log("🚀 Iniciando configuración automática de variables en Vercel...");
-
-async function setEnv(key, value) {
-    return new Promise((resolve) => {
-        console.log(`\n🔹 Configurando ${key}...`);
-
-        // Primero intentamos borrarla por si existe mal configurada
-        try {
-            execSync(`npx vercel env rm ${key} production -y`, { stdio: 'ignore' });
-        } catch (e) { /* Ignorar si no existe */ }
-
-        // Ahora la agregamos
-        const child = spawn('npx', ['vercel', 'env', 'add', key, 'production'], {
-            shell: true
-        });
-
-        child.stdout.on('data', (data) => {
-            const str = data.toString();
-            // Vercel pregunta por el valor
-            if (str.includes('What\'s the value')) {
-                child.stdin.write(value + '\n');
-                child.stdin.end();
-            }
-        });
-
-        child.on('close', (code) => {
-            if (code === 0) {
-                console.log(`✅ ${key} configurada correctamente.`);
-            } else {
-                console.error(`❌ Error configurando ${key}.`);
-            }
-            resolve();
-        });
-    });
-}
-
-async function run() {
-    for (const [key, val] of Object.entries(envVars)) {
-        await setEnv(key, val);
-    }
-    console.log("\n✨ Todas las variables configuradas.");
-    console.log("⏳ Iniciando despliegue final...");
-    try {
-        execSync('npx vercel --prod', { stdio: 'inherit' });
-        console.log("\n🎉 ¡SISTEMA REPARADO! Ahora Drive y la Base de Datos funcionarán.");
-    } catch (e) {
-        console.error("Error en despliegue", e);
-    }
-}
-
-run();
+fs.writeFileSync(tsPath, fileContent);
+console.log("✅ lib/credentials.ts actualizado correctamente desde service-account.json");
+console.log(`   Email: ${creds.client_email}`);
+console.log(`   Key Length: ${cleanKey.length}`);
