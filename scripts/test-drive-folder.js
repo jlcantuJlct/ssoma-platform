@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 
-const FOLDER_ID = '1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I'; // ID proporcionado por el usuario
+const FOLDER_ID = '1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5'; // ID proporcionado por el usuario
 
 async function testDriveFolderAccess() {
     try {

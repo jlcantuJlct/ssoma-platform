@@ -81,7 +81,7 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             filename: fileName,
             mimetype: file.type || 'application/octet-stream',
             fileBase64: base64Info,
-            folderId: folderIdOverride || "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I", // Use specific ID if provided, else Root
+            let targetFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // Default Root (Updated by User)
             // IMPORTANT: Send the full path structure for the script to handle!
             folderPath: folderName,
             folderName: folderIdOverride ? undefined : folderName // Legacy support

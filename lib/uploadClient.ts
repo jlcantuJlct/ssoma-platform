@@ -109,7 +109,7 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             filename: fileName,
             mimeType: file.type || 'application/octet-stream',
             fileBase64: base64,
-            folderId: "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I", // Carpeta raíz SSOMA (Original Request)
+            folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA (Updated by User)
             folderName: folderName
         };
 
