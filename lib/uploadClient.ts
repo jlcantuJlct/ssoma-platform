@@ -289,82 +289,52 @@ export async function uploadEvidence(
 
     const fileName = `${parts.join('_')}.${ext}`;
 
-    // 5. Upload Strategy: SIEMPRE intentar subida directa a Apps Script primero
-    // Esto evita el límite de 4.5MB de Vercel completamente
-    console.log(`📤 Subiendo archivo (${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB): ${fileName}`);
+    // 5. Estrategia de Subida: PRIORIDAD SERVIDOR (ROBOT)
+    // Para garantizar que se respeten los permisos y la estructura de carpetas del Robot.
+    // Solo usamos el Bridge si el archivo es muy grande (> 4MB) o el servidor falla.
 
+    console.log(`📤 Iniciando subida (${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB): ${fileName}`);
+
+    // A. INTENTO VIA API SERVIDOR (Preferido para archivos < 4MB)
+    if (fileToUpload.size < 4 * 1024 * 1024) {
+        try {
+            console.log("⚡ Intentando subida vía Servidor (Mejor Estructura)...");
+
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+            formData.append('folderName', folderName);
+            formData.append('fileName', fileName);
+
+            const response = await fetch('/api/upload-evidence', {
+                method: 'POST',
+                body: formData,
+            });
+
+            // Si es exitoso, retornamos inmediatamente
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ Subida Exitosa por Servidor: ${data.path}`);
+                return data.path;
+            } else {
+                console.warn(`⚠️ Servidor respondió error ${response.status}. Intentando Fallback Bridge...`);
+            }
+
+        } catch (serverError: any) {
+            console.warn("⚠️ Error conectando al servidor:", serverError);
+            // Continuamos al bloque de abajo (Bridge)
+        }
+    } else {
+        console.log("📦 Archivo > 4MB. Saltando servidor y usando Bridge directo.");
+    }
+
+    // B. INTENTO VIA BRIDGE APPS SCRIPT (Fallback o Archivos Grandes)
     try {
-        // Intentar subida directa a Google Drive via Apps Script
+        console.log("🌐 Intentando subida directa (Bridge Apps Script)...");
         const directUrl = await uploadDirectToDrive(fileToUpload, folderName, fileName);
         console.log('✅ Subida directa exitosa');
         return directUrl;
     } catch (directError: any) {
-        console.warn("⚠️ Subida directa falló, intentando via Vercel:", directError.message);
-
-        // Fallback: Solo intentar via Vercel si el archivo es pequeño (< 4MB)
-        if (fileToUpload.size > 4 * 1024 * 1024) {
-            throw new Error(`Error: El archivo es muy grande y no se pudo subir directamente. ${directError.message}`);
-        }
-    }
-
-    // 6. Fallback: Upload via Vercel API (solo para archivos pequeños cuando falla la subida directa)
-    const formData = new FormData();
-    formData.append('file', fileToUpload);
-    formData.append('folderName', folderName);
-    formData.append('fileName', fileName);
-
-    try {
-        const response = await fetch('/api/upload-evidence', {
-            method: 'POST',
-            body: formData,
-        });
-
-        // First check if response is ok
-        if (!response.ok) {
-            // Handle specific HTTP errors
-            if (response.status === 413) {
-                throw new Error('El archivo es demasiado grande para el servidor (Límite Vercel Free 4.5MB). Por favor use archivos más pequeños o comprima el PDF.');
-            }
-            if (response.status === 500) {
-                throw new Error('Error interno del servidor. Verifique las credenciales de Google Drive.');
-            }
-            if (response.status === 502 || response.status === 504) {
-                throw new Error('El servidor tardó demasiado en responder. Intente con un archivo más pequeño.');
-            }
-        }
-
-        // Try to parse JSON, with fallback for non-JSON responses
-        let data;
-        const contentType = response.headers.get('content-type');
-        const responseText = await response.text();
-
-        try {
-            data = JSON.parse(responseText);
-        } catch (parseError) {
-            // Response is not JSON
-            console.error("Server returned non-JSON response:", responseText.substring(0, 200));
-
-            // Check for common error patterns
-            if (responseText.toLowerCase().includes('request entity too large') || responseText.includes('413')) {
-                throw new Error('El archivo es demasiado grande (límite 4.5MB). Comprima el archivo e intente nuevamente.');
-            }
-            if (responseText.toLowerCase().includes('timeout') || responseText.toLowerCase().includes('gateway')) {
-                throw new Error('Tiempo de espera agotado. Intente con un archivo más pequeño.');
-            }
-            if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-                throw new Error('Error de servidor. La función de subida puede estar deshabilitada o mal configurada.');
-            }
-
-            throw new Error(`Error del servidor: ${responseText.substring(0, 100)}...`);
-        }
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Error subiendo archivo');
-        }
-
-        return data.path;
-    } catch (error: any) {
-        console.error("Upload failed", error);
-        throw error;
+        console.error("❌ Falló subida directa:", directError.message);
+        throw new Error(`Error: No se pudo subir el archivo por ningún método. ${directError.message}`);
     }
 }
