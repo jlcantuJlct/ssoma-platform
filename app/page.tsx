@@ -58,7 +58,7 @@ export default async function Home() {
   return (
     <div className="p-8 space-y-8 min-h-screen bg-transparent">
       {/* Header Removed - Integrated into DashboardClient */}
-      <h1 className="text-center text-xs text-gray-500">v2.1 - FIX DRIVE FOLDER (VERIFICADO)</h1>
+      <h1 className="text-center text-xs text-gray-500 font-bold text-red-500">v2.2 - FINAL CREDENTIALS FIXED (ESPERAR 2 MIN)</h1>
 
       {/* Main Client Dashboard */}
       <DashboardClient initialData={dashboardData} />
