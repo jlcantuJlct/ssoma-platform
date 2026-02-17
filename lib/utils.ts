@@ -91,7 +91,7 @@ export function generateFolderName(
         'objetivo': 'OBJ'
     };
 
-    const yearMonth = date ? date.substring(0, 7) : new Date().toISOString().substring(0, 7);
+    const yearMonth = date ? date.substring(0, 7) : new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }).substring(0, 7);
     const tipoPrefix = tipo ? (tipoMap[tipo.toLowerCase()] || tipo.substring(0, 4).toUpperCase()) : 'DOC';
     const cleanDesc = (description || 'Sin_Descripcion').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').replace(/\s+/g, '_').substring(0, 40);
 

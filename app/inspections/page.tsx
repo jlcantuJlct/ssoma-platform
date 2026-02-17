@@ -149,7 +149,7 @@ export default function InspectionsPage() {
 
     // Estado para el formulario
     const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
         responsible: '',
         inspectionType: '',
         area: 'Seguridad',
