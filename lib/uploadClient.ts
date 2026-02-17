@@ -301,8 +301,9 @@ export async function uploadEvidence(
 
     console.log(`📤 Iniciando subida (${sizeMB}MB): ${fileName}`);
 
-    // A. INTENTO VIA API SERVIDOR (Preferido para archivos < 4MB)
-    if (fileToUpload.size < 4 * 1024 * 1024) {
+    // A. INTENTO VIA API SERVIDOR (ROBOT) - DESACTIVADO POR SOLICITUD DEL USUARIO ("Cambia el Robot")
+    // Forzamos el uso del BRIDGE (Apps Script) para todo, ya que es el único que está enrutando bien las carpetas ahora.
+    if (false && fileToUpload.size < 4 * 1024 * 1024) {
         try {
             console.log("⚡ Intentando subida vía Servidor (Mejor Estructura)...");
             // DEBUG
