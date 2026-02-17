@@ -109,7 +109,8 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             filename: fileName,
             mimeType: file.type || 'application/octet-stream',
             fileBase64: base64,
-            folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA (Updated by User)
+            folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA
+            folderPath: folderName, // NEW: Match 'folderPath' expected by Bridge
             folderName: folderName
         };
 
@@ -295,7 +296,8 @@ export async function uploadEvidence(
 
     // DEBUG: Alertar inicio de proceso
     const sizeMB = (fileToUpload.size / 1024 / 1024).toFixed(2);
-    alert(`DEBUG: Iniciando Subida...\nArchivo: ${fileName}\nTamaño: ${sizeMB} MB`);
+    const timeNow = new Date().toLocaleTimeString();
+    alert(`DEBUG [${timeNow}]:\n- Archivo: ${fileName}\n- Carpeta: ${folderName}\n- Tamaño: ${sizeMB} MB`);
 
     console.log(`📤 Iniciando subida (${sizeMB}MB): ${fileName}`);
 
