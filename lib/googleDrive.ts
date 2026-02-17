@@ -77,53 +77,55 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
         const buffer = Buffer.from(bytes);
         const base64Info = buffer.toString('base64');
 
-        fileBase64: base64Info,
-            folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Send the folder ID
-                // IMPORTANT: Send the full path structure for the script to handle!
-                folderPath: folderName,
-                    folderName: folderIdOverride ? undefined : folderName // Legacy support
-    };
-
-    // LLAMADA DIRECTA (Server-side fetch no tiene CORS)
-    const response = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        redirect: 'follow' // Importante para seguir los redirects de Google
-    });
-
-    // Intentar leer texto crudo primero para debug
-    const text = await response.text();
-
-    // Intentar parsear JSON
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch (e) {
-        console.error("❌ Respuesta no-JSON del Bridge:", text.substring(0, 500));
-        // Si devuelve HTML, probablemente es un error de Google o página de Login (Auth fallido)
-        throw new Error(`Google Script devolvió HTML/Error (status ${response.status}). Validar script 'Anyone' y URL.`);
-    }
-
-    if (data.result === 'success') {
-        console.log(`✅ Subida Exitosa: ${data.url}`);
-        return {
-            id: 'drive-bridge-file',
-            url: data.viewLink || data.url,
-            downloadUrl: data.url
+        const payload = {
+            filename: fileName,
+            mimetype: file.type || 'application/octet-stream',
+            fileBase64: base64Info,
+            folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
+            folderPath: folderName,
+            folderName: folderIdOverride ? undefined : folderName
         };
-    } else {
-        console.error("❌ Error lógico del Bridge:", data.error);
-        throw new Error(data.error || 'Error desconocido del Script');
-    }
 
-} catch (error: any) {
-    console.error("⚠️ Falló la subida Apps Script:", error.message);
-    // Lanzamos el error con mensaje claro para que llegue al frontend y NO haga fallback a disco D:
-    throw new Error(`Error Nube: ${error.message}`);
-}
+        // LLAMADA DIRECTA (Server-side fetch no tiene CORS)
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            redirect: 'follow' // Importante para seguir los redirects de Google
+        });
+
+        // Intentar leer texto crudo primero para debug
+        const text = await response.text();
+
+        // Intentar parsear JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("❌ Respuesta no-JSON del Bridge:", text.substring(0, 500));
+            // Si devuelve HTML, probablemente es un error de Google o página de Login (Auth fallido)
+            throw new Error(`Google Script devolvió HTML/Error (status ${response.status}). Validar script 'Anyone' y URL.`);
+        }
+
+        if (data.result === 'success') {
+            console.log(`✅ Subida Exitosa: ${data.url}`);
+            return {
+                id: 'drive-bridge-file',
+                url: data.viewLink || data.url,
+                downloadUrl: data.url
+            };
+        } else {
+            console.error("❌ Error lógico del Bridge:", data.error);
+            throw new Error(data.error || 'Error desconocido del Script');
+        }
+
+    } catch (error: any) {
+        console.error("⚠️ Falló la subida Apps Script:", error.message);
+        // Lanzamos el error con mensaje claro para que llegue al frontend y NO haga fallback a disco D:
+        throw new Error(`Error Nube: ${error.message}`);
+    }
 }
 
 
