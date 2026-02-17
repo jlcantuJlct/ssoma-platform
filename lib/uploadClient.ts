@@ -316,12 +316,21 @@ export async function uploadEvidence(
                 console.log(`✅ Subida Exitosa por Servidor: ${data.path}`);
                 return data.path;
             } else {
-                console.warn(`⚠️ Servidor respondió error ${response.status}. Intentando Fallback Bridge...`);
+                // ERRORES DEL SERVIDOR: NO HACER FALLBACK SILENCIOSO
+                // Queremos ver el error real (Permisos, Auth, etc)
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || `Error del servidor: ${response.status}`;
+                console.error(`❌ Error Crítico del Servidor: ${errorMessage}`);
+
+                // LANZAR ERROR PARA QUE EL USUARIO LO VEA EN PANTALLA
+                throw new Error(errorMessage);
             }
 
         } catch (serverError: any) {
-            console.warn("⚠️ Error conectando al servidor:", serverError);
-            // Continuamos al bloque de abajo (Bridge)
+            console.error("❌ Error de Conexión/Servidor:", serverError);
+            // Si ya lanzamos el error arriba, esto lo re-lanza.
+            // Si es un error de red (fetch falló), también lo lanzamos para no ocultarlo.
+            throw serverError;
         }
     } else {
         console.log("📦 Archivo > 4MB. Saltando servidor y usando Bridge directo.");
