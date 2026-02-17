@@ -41,11 +41,10 @@ export async function POST(req: NextRequest) {
             const driveFile = await uploadToDrive(file, folderName, fileName);
 
             if (!driveFile.error) {
-                return NextResponse.json({
-                    success: true,
+                success: true,
                     path: driveFile.url,
-                    message: `Archivo guardado en Google Drive`
-                });
+                        message: `Archivo guardado en Google Drive`,
+                            debug: driveFile.debug
             } else {
                 console.error("❌ Drive upload failed:", driveFile.errorMessage);
                 // CRITICAL DEBUG: Return error to user instead of silent fallback

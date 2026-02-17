@@ -320,7 +320,8 @@ export async function uploadEvidence(
             if (response.ok) {
                 const data = await response.json();
                 console.log(`✅ Subida Exitosa por Servidor: ${data.path}`);
-                alert(`Exito! URL: ${data.path}`);
+                const debugMsg = data.debug ? `\nID Raíz Usado: ${data.debug.rootUsed}\nID Destino: ${data.debug.targetUsed}` : '';
+                alert(`Exito! URL: ${data.path}${debugMsg}`);
                 return data.path;
             } else {
                 // ERRORES DEL SERVIDOR: NO HACER FALLBACK SILENCIOSO
