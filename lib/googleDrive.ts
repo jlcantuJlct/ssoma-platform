@@ -199,7 +199,9 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
     if (hasCreds) {
         try {
             const drive = await getDriveService();
-            const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID || targetFolderId;
+            // FIX: Ignorar variable de entorno antigua que esta sobreescribiendo el ID
+            // const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID || targetFolderId;
+            const rootFolderId = targetFolderId;
 
             // --- DYNAMIC ROOT CHECK (RE-APPLIED) ---
             // Check if we are incorrectly nesting (e.g. putting 'EVIDENCIAS...' inside 'EVIDENCIAS...')
