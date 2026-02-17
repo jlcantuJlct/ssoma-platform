@@ -192,7 +192,7 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
     // 2. Robot: Intenta subir archivo.
     // 3. Fallback (Bridge): Sube archivo SI Robot falla, PERO usando el ID de carpeta que el Robot encontró/creó.
 
-    let rootFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // NUEVO ID (Updated by User)
+    let rootFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // User Confirmed ID (1j6w...)
     let finalTargetFolderId = rootFolderId; // Por defecto Root
 
     const hasCreds = !!getCredentials();
