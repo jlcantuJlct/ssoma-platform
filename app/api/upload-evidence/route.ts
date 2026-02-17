@@ -47,12 +47,17 @@ export async function POST(req: NextRequest) {
                     message: `Archivo guardado en Google Drive`
                 });
             } else {
-                console.error("Drive upload failed, falling back to local if possible:", driveFile.errorMessage);
-                // Fallthrough to local check below
+                console.error("❌ Drive upload failed:", driveFile.errorMessage);
+                // CRITICAL DEBUG: Return error to user instead of silent fallback
+                return NextResponse.json({
+                    error: `Error subiendo a Drive: ${driveFile.errorMessage}`
+                }, { status: 500 });
             }
-        } catch (e) {
-            console.error("Error attempting Drive upload:", e);
-            // Fallthrough to local check below
+        } catch (e: any) {
+            console.error("❌ Error attempting Drive upload:", e);
+            return NextResponse.json({
+                error: `Excepción subiendo a Drive: ${e.message}`
+            }, { status: 500 });
         }
 
 
