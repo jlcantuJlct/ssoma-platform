@@ -305,15 +305,18 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
 
         } catch (nativeError: any) {
             console.error("❌ Falló subida Nativa (Robot). Intentando Fallback...", nativeError?.message);
+            // DEBUG: LANZAR ERROR PARA QUE EL USUARIO LO VEA
+            throw new Error(`Error Robot: ${nativeError.message}`);
             // NO lanzamos error aquí. Dejamos que el código siga y ejecute el bloque del Bridge.
         }
     }
 
     // 2. FALLBACK: BRIDGE (APPS SCRIPT)
+    // TEMPORAL DEBUG: DESACTIVAR BRIDGE PARA VER EL ERROR REAL DEL ROBOT
     try {
         console.log(`⚠️ Usando Fallback Bridge para: ${fileName} en ID: ${targetFolderId}`);
-        // USAR relativePath (limpia) en vez de folderName (sucia)
-        return await uploadViaAppsScript(file, relativePath, fileName, targetFolderId);
+        // return await uploadViaAppsScript(file, relativePath, fileName, targetFolderId);
+        throw new Error("FALLBACK DESACTIVADO PARA DEBUG. Error Original: " + (hasCreds ? "Credenciales Fallaron" : "Sin Credenciales"));
     } catch (error: any) {
         console.error("❌ Falló también el Bridge:", error.message);
         return {
