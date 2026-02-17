@@ -82,8 +82,9 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             mimetype: file.type || 'application/octet-stream',
             fileBase64: base64Info,
             folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
+            // Si nos pasan un path explícito, lo enviamos. Si no, usamos folderName original o undefined si hay override.
             folderPath: folderName,
-            folderName: folderIdOverride ? undefined : folderName
+            folderName: folderName // Enviamos siempre para compatibilidad con versiones viejas del script
         };
 
         // LLAMADA DIRECTA (Server-side fetch no tiene CORS)
@@ -288,10 +289,18 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
 
     // C. FALLBACK: BRIDGE (APPS SCRIPT)
     try {
-        console.log(`🌉 Bridge activado. Subiendo a ID Específico: ${finalTargetFolderId}`);
-        // IMPORTANTE: Pasamos finalTargetFolderId. El Bridge usará este ID para subir.
-        // Si el Robot logró crear la carpeta, el Bridge subirá ahí. Si no, subirá al Root.
-        return await uploadViaAppsScript(file, relativePath, fileName, finalTargetFolderId);
+        // Lógica Inteligente para el Bridge:
+        // Si el Robot NO cambió el ID (finalTargetFolderId === rootFolderId), significa que:
+        // 1. O falló la creación de estructura.
+        // 2. O era una subida al root.
+        // En cualquier caso, si hay un relativePath, se lo pasamos al Bridge para que ÉL cree las carpetas.
+
+        const structureFailed = (finalTargetFolderId === rootFolderId) && (relativePath.length > 0);
+        const pathForBridge = structureFailed ? relativePath : ""; // Si Robot cumplió, Bridge no debe crear nada extra.
+
+        console.log(`🌉 Bridge activado. Target: ${finalTargetFolderId}, Path extra: '${pathForBridge}'`);
+
+        return await uploadViaAppsScript(file, pathForBridge, fileName, finalTargetFolderId);
     } catch (bridgeError: any) {
         console.error("❌ Falló TODO (Robot + Bridge):", bridgeError.message);
         throw bridgeError; // Ahora sí, error fatal.
