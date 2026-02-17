@@ -2,7 +2,11 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const SCOPES = [
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive.readonly'
+];
 
 import { ROBOT_CREDENTIALS } from './credentials';
 
@@ -233,6 +237,23 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
             }
 
             console.log(`✅ ID Carpeta destino: ${targetFolderId}`);
+
+            // [FIX CRITICO BRIDGE] Compartir carpeta destino para que el Bridge pueda escribir
+            // Si el Robot crea la carpeta, es privado. El Bridge falla al intentar subir ahí.
+            // Solución: Dar permisos de 'writer' a 'anyone' en la carpeta final.
+            if (targetFolderId !== rootFolderId) {
+                try {
+                    console.log(`🔓 Habilitando escritura pública en carpeta ${targetFolderId} (para Bridge)...`);
+                    await drive.permissions.create({
+                        fileId: targetFolderId,
+                        requestBody: { role: 'writer', type: 'anyone' },
+                        supportsAllDrives: true
+                    });
+                } catch (pErr) {
+                    // Ignoramos si ya tiene permisos
+                    console.warn("ℹ️ Aviso permisos carpeta:", pErr.message);
+                }
+            }
 
             // TRAMPA DE DEBUG (TEMPORAL): Si termina en la Raíz pero pidió subcarpetas, ¡GRITA!
             if (targetFolderId === rootFolderId && relativePath.length > 5) {
