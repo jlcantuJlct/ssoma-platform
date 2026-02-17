@@ -114,7 +114,11 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             return {
                 id: 'drive-bridge-file',
                 url: data.viewLink || data.url,
-                downloadUrl: data.url
+                downloadUrl: data.url,
+                debug: {
+                    rootUsed: 'BRIDGE-MODE',
+                    targetUsed: folderIdOverride || "DEFAULT"
+                }
             };
         } else {
             console.error("❌ Error lógico del Bridge:", data.error);
