@@ -1,25 +1,41 @@
 @echo off
 echo ==========================================
-echo      FORZANDO ACTUALIZACION WEB
+echo      DIAGNOSTICO DE DESPLIEGUE
 echo ==========================================
+echo.
+echo 1. Verificando repositorio...
+git remote -v
+echo.
+echo 2. Verificando rama actual...
+git branch --show-current
+echo.
+echo 3. Probando conexion a GitHub...
+echo    (Saltando chequeo SSH porque usas HTTPS)
 
-echo 1. Guardando cambios de version...
+echo.
+echo 4. Guardando cambios (Commit)...
 git add .
-git commit -m "Deploy: Force Update v2.1 (Drive Folder Fix)"
+git commit -m "Deploy: FIX FINAL v2026.2 (Credentials + Sidebar)"
 
 echo.
-echo 2. Subiendo a Vercel/GitHub...
+echo 5. SUBIENDO A GITHUB (PUSH)...
+echo    Si pide credenciales, ingresalas.
+echo    Si sale ERROR rojo, avisame.
+echo.
 git push origin main
-
-echo.
-echo =========================================================
-echo      ENVIADO.
-echo =========================================================
-echo Por favor, espera 2 minutos.
-echo Luego entra a tu web y busca el texto chiquito abajo:
-echo "v2.1 - FIX DRIVE FOLDER (VERIFICADO)"
-echo.
-echo Si ves ese texto, SIGNIFICA QUE YA SE ACTUALIZO.
-echo Si NO lo ves, presiona CTRL + F5 para limpiar la cache.
-echo =========================================================
+if %errorlevel% neq 0 (
+    echo.
+    echo ==========================================
+    echo ERROR: FALLO LA SUBIDA (GIT PUSH FAILED)
+    echo ==========================================
+    echo.
+) else (
+    echo.
+    echo ==========================================
+    echo      EXITO: CODIGO ENVIADO CORRECTAMENTE
+    echo ==========================================
+    echo.
+    echo La plataforma deberia actualizarse en 2 minutos.
+    echo Version esperada: "v2026.2 - FIXED"
+)
 pause

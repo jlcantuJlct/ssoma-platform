@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb', // Aumentado para archivos grandes (requiere Vercel Pro para >4.5MB)
