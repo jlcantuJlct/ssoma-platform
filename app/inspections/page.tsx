@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
-import { saveMonthlyProgram, getMonthlyProgram, saveInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
+import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown } from 'lucide-react';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
@@ -24,7 +24,8 @@ import {
     Trash2,
     Settings,
     X,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Pencil
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -160,6 +161,9 @@ export default function InspectionsPage() {
     // Estado para evidencias
     const [newEvidence, setNewEvidence] = useState<{ pdf: string, imgs: string[] }>({ pdf: '', imgs: [] });
     const [isUploading, setIsUploading] = useState(false);
+
+    // Estado para Edición
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     // Estado para la lista de inspecciones (Datos de ejemplo iniciales)
     const [inspections, setInspections] = useState<InspectionRecord[]>([
@@ -596,7 +600,7 @@ export default function InspectionsPage() {
                 formData.zone // Pasamos el lugar (location del form)
             );
             setNewEvidence(prev => ({ ...prev, pdf: url }));
-            alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
+            console.log("✅ PDF subido con éxito:", url);
         } catch (error: any) {
             alert(`Error al subir PDF: ${error.message}`);
         } finally {
@@ -639,7 +643,7 @@ export default function InspectionsPage() {
 
                 setNewEvidence(prev => ({ ...prev, imgs: [...prev.imgs, url] }));
             }
-            alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
+            console.log("✅ Imágenes subidas con éxito");
         } catch (error: any) {
             alert(`Error subiendo imagen: ${error.message}`);
         } finally {
@@ -777,106 +781,172 @@ export default function InspectionsPage() {
             return;
         }
 
-        const newInspection: InspectionRecord = {
-            id: Date.now(),
-            date: formData.date,
-            responsible: formData.responsible,
-            inspectionType: formData.inspectionType,
-            area: formData.area as any,
-            zone: formData.zone,
-            status: 'Pendiente',
-            observations: formData.observations,
-            evidencePdf: newEvidence.pdf,
-            evidenceImgs: newEvidence.imgs
-        };
+        if (editingId) {
+            // ACTUALIZACIÓN
+            const updatedRecord: InspectionRecord = {
+                id: editingId,
+                date: formData.date,
+                responsible: formData.responsible,
+                inspectionType: formData.inspectionType,
+                area: formData.area as any,
+                zone: formData.zone,
+                status: 'Pendiente', // O mantener el status anterior si se desea, por ahora reseteamos o mantenemos? Mejor mantener status si es edit.
+                // Pero formData no tiene status. Vamos a buscar el original para mantener status.
+                // Simplificación: Mantenemos 'Pendiente' o agregamos campo status al form? 
+                // El usuario no pidió cambiar status, solo corregir datos.
+                // Vamos a buscar el record actual en inspections para preservar status si no esta en form.
+                observations: formData.observations,
+                evidencePdf: newEvidence.pdf,
+                evidenceImgs: newEvidence.imgs
+            };
 
-        setInspections(prev => [newInspection, ...prev]);
+            // Preservar Status original:
+            const original = inspections.find(i => i.id === editingId);
+            if (original) updatedRecord.status = original.status;
 
-        // Save to DB
-        saveInspection(newInspection).then(res => {
-            if (!res.success) {
-                console.error("Save error:", res.error);
-                alert(`Error al guardar en servidor: ${res.error || "Error desconocido"}`);
-            }
-        });
+            setInspections(prev => prev.map(i => i.id === editingId ? updatedRecord : i));
 
-        // --- AUTOPILOT: ACTUALIZAR PROGRAMA ANUAL (OBJ 3) ---
-        try {
-            let currentProgram = JSON.parse(localStorage.getItem('annual_program_data') || '{}');
-            let obj3Activities = currentProgram['obj3'] || [];
-
-            // Buscar coincidencia en el programa del objetivo 3 (Inspecciones)
-            const recordMonth = new Date(newInspection.date).getMonth();
-            let foundIndex = obj3Activities.findIndex((act: any) => {
-                const actDate = new Date(act.date);
-                // Coincide mes Y (la descripción coincide parcialmente o es fecha exacta)
-                return actDate.getMonth() === recordMonth && (
-                    act.description.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
-                    newInspection.inspectionType.toLowerCase().includes(act.description.toLowerCase())
-                );
+            updateInspection(updatedRecord).then(res => {
+                if (res.success) {
+                    console.log("✅ Inspección actualizada correctamente");
+                    setEditingId(null);
+                    // Reset form
+                    setFormData({
+                        date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
+                        responsible: user?.role === 'user' ? user.name : '',
+                        inspectionType: '',
+                        area: 'Seguridad',
+                        zone: '',
+                        observations: ''
+                    });
+                    setNewEvidence({ pdf: '', imgs: [] });
+                } else {
+                    alert("Error al actualizar: " + res.error);
+                }
             });
 
-            if (foundIndex !== -1) {
-                obj3Activities[foundIndex] = {
-                    ...obj3Activities[foundIndex],
-                    status: 'Realizado',
-                    compliance: 100,
-                    executedDate: newInspection.date
-                };
-                currentProgram['obj3'] = obj3Activities;
-                localStorage.setItem('annual_program_data', JSON.stringify(currentProgram));
-            }
-        } catch (e) {
-            console.error("Error sync Obj 3", e);
-        }
+        } else {
+            // CREACIÓN (Lógica Original)
+            const newInspection: InspectionRecord = {
+                id: Date.now(),
+                date: formData.date,
+                responsible: formData.responsible,
+                inspectionType: formData.inspectionType,
+                area: formData.area as any,
+                zone: formData.zone,
+                status: 'Pendiente',
+                observations: formData.observations,
+                evidencePdf: newEvidence.pdf,
+                evidenceImgs: newEvidence.imgs
+            };
 
-        // --- SINCRONIZACIÓN CON DASHBOARD GENERAL (dashboard_data_v1) ---
-        try {
-            const dashboardData = JSON.parse(localStorage.getItem('dashboard_data_v1') || 'null');
-            if (dashboardData && dashboardData.sections) {
-                let updated = false;
+            setInspections(prev => [newInspection, ...prev]);
 
-                // Buscar en secciones de inspecciones
-                dashboardData.sections.forEach((section: any) => {
-                    if (section.id === 'inspections' || section.activities) { // Check id or just act loop
-                        section.activities.forEach((act: any) => {
-                            const isMatch = act.name.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
-                                newInspection.inspectionType.toLowerCase().includes(act.name.toLowerCase());
+            // Save to DB
+            console.log("💾 Guardando inspección:", newInspection);
+            saveInspection(newInspection).then(res => {
+                if (!res.success) {
+                    console.error("Save error:", res.error);
+                    alert(`Error al guardar en servidor: ${res.error || "Error desconocido"}`);
+                }
+            });
+            // ... Logic for Auto-Pilot & Dashboard Sync (Only on Create) ...
+            // --- AUTOPILOT: ACTUALIZAR PROGRAMA ANUAL (OBJ 3) ---
+            try {
+                let currentProgram = JSON.parse(localStorage.getItem('annual_program_data') || '{}');
+                let obj3Activities = currentProgram['obj3'] || [];
 
-                            if (isMatch) {
-                                const monthIdx = new Date(newInspection.date).getMonth();
-                                if (act.data && act.data.executed) {
-                                    const planVal = act.data.plan[monthIdx] || 0;
-                                    const currentExec = act.data.executed[monthIdx] || 0;
-
-                                    // SIEMPRE SUMAR: Corrección solicitada por usuario
-                                    act.data.executed[monthIdx] = currentExec + 1;
-
-                                    updated = true;
-                                }
-                            }
-                        });
-                    }
+                const recordMonth = new Date(newInspection.date).getMonth();
+                let foundIndex = obj3Activities.findIndex((act: any) => {
+                    const actDate = new Date(act.date);
+                    return actDate.getMonth() === recordMonth && (
+                        act.description.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
+                        newInspection.inspectionType.toLowerCase().includes(act.description.toLowerCase())
+                    );
                 });
 
-                if (updated) {
-                    localStorage.setItem('dashboard_data_v1', JSON.stringify(dashboardData));
-                    window.dispatchEvent(new Event('storage'));
+                if (foundIndex !== -1) {
+                    obj3Activities[foundIndex] = {
+                        ...obj3Activities[foundIndex],
+                        status: 'Realizado',
+                        compliance: 100,
+                        executedDate: newInspection.date
+                    };
+                    currentProgram['obj3'] = obj3Activities;
+                    localStorage.setItem('annual_program_data', JSON.stringify(currentProgram));
                 }
-            }
-        } catch (e) {
-            console.error("Error sync dashboard general", e);
+            } catch (e) { console.error("Error sync Obj 3", e); }
+
+            // --- SINCRONIZACION DASHBOARD ---
+            try {
+                const dashboardData = JSON.parse(localStorage.getItem('dashboard_data_v1') || 'null');
+                if (dashboardData && dashboardData.sections) {
+                    let updated = false;
+                    dashboardData.sections.forEach((section: any) => {
+                        if (section.id === 'inspections' || section.activities) {
+                            section.activities.forEach((act: any) => {
+                                const isMatch = act.name.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
+                                    newInspection.inspectionType.toLowerCase().includes(act.name.toLowerCase());
+
+                                if (isMatch) {
+                                    const monthIdx = new Date(newInspection.date).getMonth();
+                                    if (act.data && act.data.executed) {
+                                        const currentExec = act.data.executed[monthIdx] || 0;
+                                        act.data.executed[monthIdx] = currentExec + 1;
+                                        updated = true;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    if (updated) {
+                        localStorage.setItem('dashboard_data_v1', JSON.stringify(dashboardData));
+                        window.dispatchEvent(new Event('storage'));
+                    }
+                }
+            } catch (e) { console.error("Dashboard sync error", e); }
+
+            // Reset form
+            setFormData(prev => ({
+                ...prev,
+                inspectionType: '',
+                observations: ''
+            }));
+            setNewEvidence({ pdf: '', imgs: [] });
+
+            alert("Inspección registrada correctamente");
         }
+    };
 
-        // Reset form
-        setFormData(prev => ({
-            ...prev,
+    const handleEdit = (record: InspectionRecord) => {
+        setEditingId(record.id);
+        setFormData({
+            date: record.date,
+            responsible: record.responsible,
+            inspectionType: record.inspectionType,
+            area: record.area,
+            zone: record.zone,
+            observations: record.observations
+        });
+        setNewEvidence({
+            pdf: record.evidencePdf || '',
+            imgs: record.evidenceImgs || []
+        });
+        // Scroll to form (optional but good UX)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setFormData({
+            date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
+            responsible: user?.role === 'user' ? user.name : '',
             inspectionType: '',
+            area: 'Seguridad',
+            zone: '',
             observations: ''
-        }));
+        });
         setNewEvidence({ pdf: '', imgs: [] });
-
-        alert("Inspección registrada correctamente");
     };
 
     const exportToExcel = () => {
@@ -1171,7 +1241,7 @@ export default function InspectionsPage() {
                                 <CardHeader className="border-b border-slate-800 pb-4">
                                     <CardTitle className="text-emerald-400 flex flex-wrap items-center gap-2 text-xl">
                                         <FileText size={24} />
-                                        Nueva Inspección
+                                        {editingId ? 'Editar Inspección' : 'Nueva Inspección'}
                                         {isUploading && (
                                             <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
                                                 <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
@@ -1327,8 +1397,18 @@ export default function InspectionsPage() {
                                             type="submit"
                                             className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-900/30 transition-all active:scale-[0.98] uppercase tracking-wide text-sm"
                                         >
-                                            Registrar Inspección
+                                            {editingId ? 'Actualizar Inspección' : 'Registrar Inspección'}
                                         </button>
+
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelEdit}
+                                                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition-all uppercase tracking-wide text-xs"
+                                            >
+                                                Cancelar Edición
+                                            </button>
+                                        )}
 
                                     </form>
                                 </CardContent>
@@ -1525,15 +1605,26 @@ export default function InspectionsPage() {
                                                                 >
                                                                     <Download size={16} />
                                                                 </button>
-                                                                {(user?.role === 'developer' || (user?.role === 'user' && user?.name === item.responsible)) && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => deleteInspection(item.id)}
-                                                                        className="text-slate-500 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
-                                                                        title="Eliminar registro"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
+
+                                                                {(user?.role === 'developer' || (user?.role === 'user' && user?.name === item.responsible) || user?.role === 'manager') && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleEdit(item)}
+                                                                            className="text-slate-500 hover:text-blue-400 transition-colors p-2 hover:bg-blue-500/10 rounded-lg"
+                                                                            title="Editar registro"
+                                                                        >
+                                                                            <Pencil size={16} />
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => deleteInspection(item.id)}
+                                                                            className="text-slate-500 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                                                                            title="Eliminar registro"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -1596,57 +1687,59 @@ export default function InspectionsPage() {
                         </div>
                     )}
                 </div>
-            </main>
+            </main >
 
             {/* MODAL DE EVIDENCIA DE INSPECCIÓN */}
-            {viewingEvidence && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingEvidence(null)}>
-                    <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
-                            <div>
-                                <h3 className="text-white font-bold flex items-center gap-2">
-                                    <ImageIcon size={20} className="text-emerald-400" />
-                                    Evidencia Fotográfica
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    {viewingEvidence.inspectionType} - {viewingEvidence.zone}
-                                </p>
-                            </div>
-                            <button onClick={() => setViewingEvidence(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-auto bg-black/50 p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
-                                    <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
-                                        <img
-                                            src={img}
-                                            alt={`Evidencia ${idx + 1}`}
-                                            className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
-                                        />
-                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform">
-                                            <a
-                                                href={img}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-emerald-400 transition-colors"
-                                            >
-                                                <Download size={14} /> Descargar Original
-                                            </a>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {(!viewingEvidence.evidenceImgs || viewingEvidence.evidenceImgs.length === 0) && (
-                                <div className="text-center py-20 text-slate-500 italic">
-                                    No hay imágenes adjuntas.
+            {
+                viewingEvidence && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingEvidence(null)}>
+                        <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                                <div>
+                                    <h3 className="text-white font-bold flex items-center gap-2">
+                                        <ImageIcon size={20} className="text-emerald-400" />
+                                        Evidencia Fotográfica
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        {viewingEvidence.inspectionType} - {viewingEvidence.zone}
+                                    </p>
                                 </div>
-                            )}
+                                <button onClick={() => setViewingEvidence(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-auto bg-black/50 p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
+                                        <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                                            <img
+                                                src={img}
+                                                alt={`Evidencia ${idx + 1}`}
+                                                className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
+                                            />
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+                                                <a
+                                                    href={img}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-emerald-400 transition-colors"
+                                                >
+                                                    <Download size={14} /> Descargar Original
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {(!viewingEvidence.evidenceImgs || viewingEvidence.evidenceImgs.length === 0) && (
+                                    <div className="text-center py-20 text-slate-500 italic">
+                                        No hay imágenes adjuntas.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 }

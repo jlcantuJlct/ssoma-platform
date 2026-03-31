@@ -15,7 +15,8 @@ import {
     Save,
     Activity,
     Clipboard,
-    Search
+    Search,
+    Pencil
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export default function PetarPage() {
     });
 
     const [file, setFile] = useState<{ url: string, name: string } | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     // LOAD RECORDS FROM DATABASE
     useEffect(() => {
@@ -138,7 +140,7 @@ export default function PetarPage() {
             return;
         }
 
-        if (!file) {
+        if (!file && !editingId) {
             alert("Es obligatorio subir el archivo PDF del PETAR firmado.");
             return;
         }
@@ -148,35 +150,89 @@ export default function PetarPage() {
             responsible: form.responsible,
             location: form.location,
             type: form.type,
-            fileUrl: file.url
+            fileUrl: file?.url || '' // Allow empty if editing
         };
 
-        try {
-            const res = await fetch('/api/petar-records', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'create', data: newRecord })
-            });
-            const result = await res.json();
+        if (editingId) {
+            // UPDATE MODE
+            const original = records.find(r => r.id === editingId);
+            if (!file?.url && original) {
+                newRecord.fileUrl = original.fileUrl;
+            }
 
-            if (result.success) {
-                // Add with the real ID from database
-                setRecords(prev => [{ ...newRecord, id: result.id } as PetarRecord, ...prev]);
+            try {
+                const res = await fetch('/api/petar-records', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'update', id: editingId, data: newRecord })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    setRecords(prev => prev.map(r => r.id === editingId ? { ...newRecord, id: editingId, fileUrl: newRecord.fileUrl } : r));
+                    alert("✅ PETAR actualizado correctamente.");
+                    cancelEdit();
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            } catch (error: any) {
+                console.error("Error updating API:", error);
+                alert(`Error al actualizar: ${error.message}`);
+            }
+
+        } else {
+            // CREATE MODE
+            if (!file) return;
+
+            try {
+                const res = await fetch('/api/petar-records', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'create', data: newRecord })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    // Add with the real ID from database
+                    setRecords(prev => [{ ...newRecord, id: result.id } as PetarRecord, ...prev]);
+                    setForm(prev => ({ ...prev, type: 'Caliente' }));
+                    setFile(null);
+                    alert("✅ PETAR registrado exitosamente.");
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            } catch (error: any) {
+                console.error("Error saving to API:", error);
+                // Fallback: save locally
+                const localRecord: PetarRecord = { ...newRecord, id: Date.now(), fileUrl: file.url };
+                setRecords(prev => [localRecord, ...prev]);
                 setForm(prev => ({ ...prev, type: 'Caliente' }));
                 setFile(null);
-                alert("✅ PETAR registrado exitosamente y sincronizado con la plataforma.");
-            } else {
-                throw new Error(result.error || 'Error desconocido');
+                alert("⚠️ PETAR guardado localmente (sin conexión).");
             }
-        } catch (error: any) {
-            console.error("Error saving to API:", error);
-            // Fallback: save locally
-            const localRecord: PetarRecord = { ...newRecord, id: Date.now() };
-            setRecords(prev => [localRecord, ...prev]);
-            setForm(prev => ({ ...prev, type: 'Caliente' }));
-            setFile(null);
-            alert("⚠️ PETAR guardado localmente. Se sincronizará cuando haya conexión.");
         }
+    };
+
+    const handleEdit = (record: PetarRecord) => {
+        setEditingId(record.id);
+        setForm({
+            date: record.date,
+            responsible: record.responsible,
+            location: record.location,
+            type: record.type
+        });
+        // Preserve file visual state not really needed, just allow update without file
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setForm({
+            date: new Date().toISOString().split('T')[0],
+            responsible: '',
+            location: '',
+            type: 'Caliente'
+        });
+        setFile(null);
     };
 
     const handleDelete = async (id: number) => {
@@ -234,7 +290,7 @@ export default function PetarPage() {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-white">
-                                        <Upload size={20} className="text-orange-400" /> Nuevo PETAR
+                                        <Upload size={20} className="text-orange-400" /> {editingId ? 'Editar PETAR' : 'Nuevo PETAR'}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -317,7 +373,7 @@ export default function PetarPage() {
 
                                                         <div className="space-y-1">
                                                             <p className={`text-xs font-bold ${file ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                                                {isUploading ? "Subiendo..." : (file ? "Archivo seleccionado" : "Click para subir PDF")}
+                                                                {isUploading ? "Subiendo..." : (file ? "Archivo seleccionado" : (editingId ? "Subir NUEVO archivo (Opcional)" : "Click para subir PDF"))}
                                                             </p>
                                                             {file && <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{file.name}</p>}
                                                         </div>
@@ -331,8 +387,18 @@ export default function PetarPage() {
                                             disabled={isUploading}
                                             className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
                                         >
-                                            <Save size={18} /> Registrar PETAR
+                                            <Save size={18} /> {editingId ? 'Actualizar PETAR' : 'Registrar PETAR'}
                                         </button>
+
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelEdit}
+                                                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition-all uppercase tracking-wide text-xs"
+                                            >
+                                                Cancelar Edición
+                                            </button>
+                                        )}
 
                                     </form>
                                 </CardContent>
@@ -408,6 +474,13 @@ export default function PetarPage() {
                                                             </a>
                                                         </td>
                                                         <td className="py-4 text-right pr-4">
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                                title="Editar"
+                                                            >
+                                                                <Pencil size={16} />
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleDelete(record.id)}
                                                                 className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"

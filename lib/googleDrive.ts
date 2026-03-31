@@ -66,7 +66,7 @@ async function getDriveService() {
 }
 
 // NUEVO: URL del Puente Apps Script (Actualizado para usar cuota del usuario de 2TB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxvAgdYNiYcklJs08N87wL4APgZ0fR-uTdP6m7naZGli3wzQ2oeLTgO52fqIg5pF5EwQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
 
 async function uploadViaAppsScript(file: File, folderName: string, fileName: string, folderIdOverride?: string) {
     try {
@@ -81,7 +81,7 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             filename: fileName,
             mimetype: file.type || 'application/octet-stream',
             fileBase64: base64Info,
-            folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
+            folderId: folderIdOverride || "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I",
             // Si nos pasan un path explícito, lo enviamos. Si no, usamos folderName original o undefined si hay override.
             folderPath: folderName,
             folderName: folderName // FIX: Enviar SIEMPRE, incluso si hay Override (para que el Bridge cree carpetas dentro del ID)
@@ -251,6 +251,35 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
     if (finalTargetFolderId === rootFolderId && folderName.length > 0) {
         throw new Error("ABORTANDO: El Robot devolvió ID Raíz aunque se pidió subcarpeta.");
     }
+
+    // --- NUEVO: PREVENCIÓN DE DUPLICADOS ---
+    if (hasCreds) {
+        try {
+            const drive = await getDriveService();
+            const query = `name = '${fileName}' and '${finalTargetFolderId}' in parents and trashed = false`;
+            const res = await drive.files.list({
+                q: query,
+                fields: 'files(id, webContentLink, webViewLink)',
+                spaces: 'drive',
+                supportsAllDrives: true,
+                includeItemsFromAllDrives: true
+            });
+
+            if (res.data.files && res.data.files.length > 0) {
+                const existingFile = res.data.files[0];
+                console.log(`♻️ Archivo YA EXISTE: ${fileName} -> ID: ${existingFile.id}`);
+                return {
+                    id: existingFile.id!,
+                    url: existingFile.webViewLink || `https://drive.google.com/file/d/${existingFile.id}/view`,
+                    downloadUrl: existingFile.webContentLink || `https://drive.google.com/uc?id=${existingFile.id}&export=download`,
+                    debug: { rootUsed: rootFolderId, targetUsed: finalTargetFolderId, status: 'EXISTING_FILE_RETURNED' }
+                };
+            }
+        } catch (checkErr: any) {
+            console.warn("⚠️ Error verificando duplicados (continuando con subida):", checkErr.message);
+        }
+    }
+    // ---------------------------------------
 
     // 5. INTENTO DE SUBIDA NATIVA (ROBOT)
     if (hasCreds) {

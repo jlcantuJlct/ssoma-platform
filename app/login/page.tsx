@@ -40,7 +40,8 @@ export default function LoginPage() {
 
         // ACCESO DIRECTO GERENCIA
         if (selectedUser === 'gerencia') {
-            if (login('gerencia', 'access-granted-manager')) {
+            // FIX: Envía la contraseña real definida en auth.tsx
+            if (login('gerencia', 'GerenciaSSO2026')) {
                 return; // Redirección ocurre en login()
             }
         }

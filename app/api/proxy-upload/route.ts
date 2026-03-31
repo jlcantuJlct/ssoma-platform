@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // URL DEL SCRIPT (TU ENLACE)
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_cQwAMwLmTMZn3QXRtAZHc1-YWK6m7Jr1oIQo9eavFAqTd_p77Dl5P57XtYOqoUVtbw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
 
         // Reenviar la petición a Google desde el servidor (Server-Side)
         // Esto evita bloqueos CORS que ocurren en el navegador

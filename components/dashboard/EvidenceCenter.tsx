@@ -18,9 +18,9 @@ import {
     User,
     File
 } from "lucide-react";
-import { DashboardData } from "@/lib/types";
+import { DashboardData, UploadContext } from "@/lib/types";
 import { generateFilename, getInitials } from "@/lib/utils";
-import { uploadEvidence, UploadContext } from "@/lib/uploadClient";
+import { uploadEvidence } from "@/lib/uploadClient";
 import jsPDF from 'jspdf';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { Save as SaveIcon } from "lucide-react"; // I noticed SaveIcon was missing or inconsistent

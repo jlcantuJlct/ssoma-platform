@@ -82,7 +82,7 @@ async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promis
 }
 
 // URL del puente Apps Script para subida directa (evita límite Vercel 4.5MB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxvAgdYNiYcklJs08N87wL4APgZ0fR-uTdP6m7naZGli3wzQ2oeLTgO52fqIg5pF5EwQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
 
 /**
  * Sube archivo directamente a Google Drive via Apps Script Bridge
@@ -109,7 +109,7 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             filename: fileName,
             mimeType: file.type || 'application/octet-stream',
             fileBase64: base64,
-            folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA
+            folderId: "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I", // Carpeta raíz SSOMA (Actualizado)
             folderPath: folderName, // NEW: Match 'folderPath' expected by Bridge
             folderName: folderName
         };
@@ -210,24 +210,18 @@ export async function uploadEvidence(
     let folderName = '';
 
     // LOGICA 1: ESTRUCTURA PARA PMA (Solicitud Específica)
-    // Evidencias SSOMA 2026 > [Nombre de Categoría PMA] > [Mes] > [Lugar]
     if (context === 'PMA' && objective) {
         const safeCategory = objective.replace(/[^a-zA-Z0-9\s\-\_]/g, '').trim().toUpperCase();
         folderName = `${safeCategory}/${monthName}/${safeLugar}`;
     }
     // LOGICA 2: ESTRUCTURA PARA OBJETIVOS GENERICOS
-    // Nombre del Objetivo Estratégico > Nombre de la Actividad > Mes > lugar > y el archivo
     else if (objective) {
         const safeObjective = objective.replace(/[^a-zA-Z0-9\s\-\_]/g, '').trim().toUpperCase();
-        // Activity Name is passed in 'title' for Evidence Center uploads
         const safeActivity = title.replace(/[^a-zA-Z0-9\s\-\_]/g, '').substring(0, 50).trim().toUpperCase();
-
         folderName = `${safeObjective}/${safeActivity}/${monthName}/${safeLugar}`;
     }
-    // LOGICA 3: ESTRUCTURA PARA INSPECCIONES (Logica Anterior)
-    // Area > Mes > Tipo > Lugar
+    // LOGICA 3: ESTRUCTURA PARA INSPECCIONES
     else {
-        // Determine 'Tipo' Folder (Charla, Capacitacion, Inspeccion, etc.)
         const contextMap: Record<string, string> = {
             'Formacion': 'FORMACION',
             'Inspeccion': 'INSPECCIONES',
@@ -236,8 +230,6 @@ export async function uploadEvidence(
         };
 
         let activityCategory = tipo || contextMap[context] || 'VARIOS';
-
-        // Heuristics to clean up the category name for the folder
         if (activityCategory.toLowerCase().includes('charla')) activityCategory = 'CHARLA';
         else if (activityCategory.toLowerCase().includes('capacitacion')) activityCategory = 'CAPACITACION';
         else if (activityCategory.toLowerCase().includes('induccion')) activityCategory = 'INDUCCION';
@@ -248,7 +240,6 @@ export async function uploadEvidence(
         folderName = `${safeArea}/${monthName}/${activityCategory}/${safeLugar}`;
     }
 
-    // Mapeo de tipos a abreviaturas (Sincronizado con utils.ts)
     const tipoMap: Record<string, string> = {
         'capacitacion': 'CAP',
         'induccion_gen': 'IND-G',
@@ -261,7 +252,6 @@ export async function uploadEvidence(
         'pma': 'PMA'
     };
 
-    // Mapeo de áreas a prefijos (Como pidió el usuario)
     const areaMap: Record<string, string> = {
         'seguridad': 'Seg.',
         'medio_ambiente': 'MA.',
@@ -273,41 +263,32 @@ export async function uploadEvidence(
     const tipoPrefix = tipo ? (tipoMap[tipo.toLowerCase()] || tipo.substring(0, 4).toUpperCase()) : 'DOC';
     const safeTitle = title.replace(/[^a-zA-Z0-9\s-_]/g, '').trim().replace(/\s+/g, '_');
     const ext = file.name.split('.').pop() || 'file';
-
     const cleanLugar = lugar ? lugar.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_').substring(0, 15) : '';
 
-    // Obtener iniciales del responsable (ej: Jesus Villalogos -> JV)
+    // Get Initials responsible
+    const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase();
     const initials = getInitials(responsible);
 
-    // Construct parts for the filename
     const parts: string[] = [];
     const fullPrefix = `${areaPrefix}${tipoPrefix}`;
     if (fullPrefix) parts.push(fullPrefix);
     if (safeTitle) parts.push(safeTitle);
-    if (initials) parts.push(initials); // Agregar iniciales del responsable
+    if (initials) parts.push(initials);
     if (cleanLugar) parts.push(cleanLugar);
     if (date) parts.push(date);
 
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('es-PE', { hour12: false }).replace(/:/g, '-');
+    parts.push(timeStr);
     const fileName = `${parts.join('_')}.${ext}`;
 
-    // 5. Estrategia de Subida: PRIORIDAD SERVIDOR (ROBOT)
-    // Para garantizar que se respeten los permisos y la estructura de carpetas del Robot.
-    // Solo usamos el Bridge si el archivo es muy grande (> 4MB) o el servidor falla.
-
-    // DEBUG: Alertar inicio de proceso
     const sizeMB = (fileToUpload.size / 1024 / 1024).toFixed(2);
-    const timeNow = new Date().toLocaleTimeString();
-    alert(`DEBUG [${timeNow}]:\n- Archivo: ${fileName}\n- Carpeta: ${folderName}\n- Tamaño: ${sizeMB} MB`);
-
     console.log(`📤 Iniciando subida (${sizeMB}MB): ${fileName}`);
 
     // A. INTENTO VIA API SERVIDOR (ROBOT) - RE-ACTIVADO
-    // El Robot es necesario para crear la estructura de carpetas. El Bridge solo sube archivos.
     if (fileToUpload.size < 4 * 1024 * 1024) {
         try {
-            console.log("⚡ Intentando subida vía Servidor (Mejor Estructura)...");
-            // DEBUG
-            alert(`Intentando SUBIDA POR SERVIDOR (Tamaño: ${sizeMB} MB)`);
+            console.log("⚡ Intentando subida vía Servidor...");
 
             const formData = new FormData();
             formData.append('file', fileToUpload);
@@ -319,31 +300,20 @@ export async function uploadEvidence(
                 body: formData,
             });
 
-            // Si es exitoso, retornamos inmediatamente
             if (response.ok) {
                 const data = await response.json();
                 console.log(`✅ Subida Exitosa por Servidor: ${data.path}`);
-                const debugMsg = data.debug ? `\nID Raíz Usado: ${data.debug.rootUsed}\nID Destino: ${data.debug.targetUsed}` : '';
-                alert(`Exito! URL: ${data.path}${debugMsg}`);
                 return data.path;
             } else {
-                // ERRORES DEL SERVIDOR: NO HACER FALLBACK SILENCIOSO
                 const errorData = await response.json().catch(() => ({}));
                 const errorMessage = errorData.error || `Error del servidor: ${response.status}`;
                 console.error(`❌ Error Crítico del Servidor: ${errorMessage}`);
-                alert(`DEBUG: ❌ FALLÓ SERVIDOR: ${errorMessage}`);
                 throw new Error(errorMessage);
             }
-
         } catch (serverError: any) {
-            console.error("❌ Error de Conexión/Servidor:", serverError);
-            alert(`DEBUG: ❌ FALLÓ SERVIDOR: ${serverError.message}`);
-            // Si ya lanzamos el error arriba, esto lo re-lanza.
-            // Si es un error de red (fetch falló), también lo lanzamos para no ocultarlo.
-            throw serverError;
+            console.warn("⚠️ Reintentando por Bridge debido a error de servidor.");
         }
     } else {
-        alert(`Intentando SUBIDA POR BRIDGE (Archivo Grande o Fallback)`);
         console.log("📦 Archivo > 4MB. Saltando servidor y usando Bridge directo.");
     }
 
@@ -351,12 +321,10 @@ export async function uploadEvidence(
     try {
         console.log("🌐 Intentando subida directa (Bridge Apps Script)...");
         const directUrl = await uploadDirectToDrive(fileToUpload, folderName, fileName);
-        console.log('✅ Subida directa exitosa');
-        alert(`Exito! URL: ${directUrl}`);
+        console.log(`✅ Exito Bridge! URL: ${directUrl}`);
         return directUrl;
     } catch (directError: any) {
         console.error("❌ Falló subida directa:", directError.message);
-        alert(`DEBUG: ❌ FALLÓ BRIDGE: ${directError.message}`);
         throw new Error(`Error: No se pudo subir el archivo por ningún método. ${directError.message}`);
     }
 }

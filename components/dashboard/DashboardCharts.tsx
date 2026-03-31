@@ -1213,22 +1213,29 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                     try {
                         // Excel serial number
                         if (typeof val === 'number') {
-                            const date = XLSX.SSF.parse_date_code(val);
+                            let dateVal = val;
+                            // En caso de que se haya leído de forma incorrecta como string/number mixto
+                            const date = XLSX.SSF.parse_date_code(dateVal);
                             if (date) return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
                         }
                         // String dates
                         if (typeof val === 'string') {
                             const txt = val.trim();
-                            // DD/MM/YYYY
-                            if (txt.includes('/')) {
-                                const parts = txt.split('/');
+                            // DD/MM/YYYY or DD-MM-YYYY
+                            if (txt.includes('/') || txt.includes('-')) {
+                                const separator = txt.includes('/') ? '/' : '-';
+                                const parts = txt.split(separator).slice(0, 3);
                                 if (parts.length === 3) {
-                                    // Asumimos DD/MM/YYYY
-                                    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                    // YYYY-MM-DD
+                                    if (parts[0].length === 4) {
+                                        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].substring(0, 2).padStart(2, '0')}`;
+                                    }
+                                    // DD/MM/YYYY
+                                    let year = parts[2];
+                                    if (year.length > 4) year = year.substring(0, 4); // Strip time if exists
+                                    return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                                 }
                             }
-                            // YYYY-MM-DD
-                            if (txt.includes('-') && txt.length === 10) return txt;
                         }
                     } catch (e) { return null; }
                     return null;
@@ -1259,13 +1266,12 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                 for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
                     const row = jsonData[i].map(c => String(c || '').toLowerCase().trim());
 
-                    if (row.includes('fecha') && (row.includes('tema') || row.includes('temas'))) {
+                    if (row.some(c => c.includes('fecha')) && row.some(c => c.includes('tema'))) {
                         headerIndex = i;
-                        colMap.date = row.findIndex(c => c === 'fecha' || c === 'fechas');
-                        colMap.theme = row.findIndex(c => c === 'tema' || c === 'temas');
-                        // Tipo y Área son opcionales o buscables parcialmente
-                        colMap.type = row.findIndex(c => c === 'tipo');
-                        colMap.area = row.findIndex(c => c === 'area' || c === 'área');
+                        colMap.date = row.findIndex(c => c.includes('fecha'));
+                        colMap.theme = row.findIndex(c => c.includes('tema'));
+                        colMap.type = row.findIndex(c => c.includes('tipo'));
+                        colMap.area = row.findIndex(c => c.includes('area') || c.includes('área'));
                         break;
                     }
                 }
@@ -1277,8 +1283,8 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                         if (!Array.isArray(row) || row.length === 0) continue;
 
                         const valTema = row[colMap.theme];
-                        // Ignorar filas vacías o "No programado"
-                        if (!valTema || String(valTema).toLowerCase().includes('no programado') || String(valTema).trim() === '-') continue;
+                        // Ignorar filas vacías, "No programado" o "Sin actividad"
+                        if (!valTema || String(valTema).toLowerCase().includes('no programado') || String(valTema).toLowerCase().includes('sin actividad') || String(valTema).trim() === '-') continue;
 
                         const valDate = row[colMap.date];
                         const dateStr = parseDate(valDate);

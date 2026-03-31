@@ -16,7 +16,8 @@ import {
     Activity,
     Clipboard,
     Search,
-    Shield
+    Shield,
+    Pencil
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ export default function AtsPage() {
     });
 
     const [file, setFile] = useState<{ url: string, name: string } | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     // LOAD RECORDS FROM DATABASE
     useEffect(() => {
@@ -129,7 +131,7 @@ export default function AtsPage() {
             return;
         }
 
-        if (!file) {
+        if (!file && !editingId) {
             alert("Es obligatorio subir el archivo PDF del ATS firmado.");
             return;
         }
@@ -138,33 +140,92 @@ export default function AtsPage() {
             date: form.date,
             responsible: form.responsible,
             location: form.location,
-            fileUrl: file.url
+            fileUrl: file?.url || '' // Allow empty if editing and keeping previous file
         };
 
-        try {
-            const res = await fetch('/api/ats-records', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'create', data: newRecord })
-            });
-            const result = await res.json();
-
-            if (result.success) {
-                // Add with the real ID from database
-                setRecords(prev => [{ ...newRecord, id: result.id }, ...prev]);
-                setFile(null);
-                alert("✅ ATS registrado exitosamente y sincronizado con la plataforma.");
-            } else {
-                throw new Error(result.error || 'Error desconocido');
+        if (editingId) {
+            // UPDATE MODE
+            // Find original to keep file if not changed
+            const original = records.find(r => r.id === editingId);
+            if (!file?.url && original) {
+                newRecord.fileUrl = original.fileUrl;
             }
-        } catch (error: any) {
-            console.error("Error saving to API:", error);
-            // Fallback: save locally
-            const localRecord: AtsRecord = { ...newRecord, id: Date.now() };
-            setRecords(prev => [localRecord, ...prev]);
-            setFile(null);
-            alert("⚠️ ATS guardado localmente. Se sincronizará cuando haya conexión.");
+
+            try {
+                const res = await fetch('/api/ats-records', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'update', id: editingId, data: newRecord })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    setRecords(prev => prev.map(r => r.id === editingId ? { ...newRecord, id: editingId, fileUrl: newRecord.fileUrl } : r));
+                    alert("✅ ATS actualizado correctamente.");
+                    cancelEdit();
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            } catch (error: any) {
+                console.error("Error updating API:", error);
+                alert(`Error al actualizar: ${error.message}`);
+            }
+
+        } else {
+            // CREATE MODE
+            if (!file) return; // Should be caught above but TS check
+
+            try {
+                const res = await fetch('/api/ats-records', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'create', data: newRecord })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    setRecords(prev => [{ ...newRecord, id: result.id, fileUrl: file!.url }, ...prev]);
+                    setFile(null);
+                    setForm({
+                        date: new Date().toISOString().split('T')[0],
+                        responsible: '',
+                        location: ''
+                    });
+                    alert("✅ ATS registrado exitosamente.");
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
+            } catch (error: any) {
+                console.error("Error saving to API:", error);
+                // Fallback: save locally
+                const localRecord: AtsRecord = { ...newRecord, id: Date.now(), fileUrl: file.url };
+                setRecords(prev => [localRecord, ...prev]);
+                setFile(null);
+                alert("⚠️ ATS guardado localmente (sin conexión).");
+            }
         }
+    };
+
+    const handleEdit = (record: AtsRecord) => {
+        setEditingId(record.id);
+        setForm({
+            date: record.date,
+            responsible: record.responsible,
+            location: record.location
+        });
+        // We don't set file object because we don't have the File object, just URL. 
+        // We indicate visually that a file exists.
+        // If user wants to change it, they upload a new one.
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setForm({
+            date: new Date().toISOString().split('T')[0],
+            responsible: '',
+            location: ''
+        });
+        setFile(null);
     };
 
     const handleDelete = async (id: number) => {
@@ -222,7 +283,7 @@ export default function AtsPage() {
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-white">
-                                        <Upload size={20} className="text-teal-400" /> Nuevo ATS
+                                        <Upload size={20} className="text-teal-400" /> {editingId ? 'Editar ATS' : 'Nuevo ATS'}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
@@ -291,7 +352,7 @@ export default function AtsPage() {
 
                                                         <div className="space-y-1">
                                                             <p className={`text-xs font-bold ${file ? 'text-teal-400' : 'text-slate-300'}`}>
-                                                                {isUploading ? "Subiendo..." : (file ? "Archivo seleccionado" : "Click para subir PDF")}
+                                                                {isUploading ? "Subiendo..." : (file ? "Archivo seleccionado" : (editingId ? "Subir NUEVO archivo (Opcional)" : "Click para subir PDF"))}
                                                             </p>
                                                             {file && <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{file.name}</p>}
                                                         </div>
@@ -305,8 +366,18 @@ export default function AtsPage() {
                                             disabled={isUploading}
                                             className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
                                         >
-                                            <Save size={18} /> Registrar ATS
+                                            <Save size={18} /> {editingId ? 'Actualizar ATS' : 'Registrar ATS'}
                                         </button>
+
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelEdit}
+                                                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition-all uppercase tracking-wide text-xs"
+                                            >
+                                                Cancelar Edición
+                                            </button>
+                                        )}
 
                                     </form>
                                 </CardContent>
@@ -376,6 +447,13 @@ export default function AtsPage() {
                                                             </a>
                                                         </td>
                                                         <td className="py-4 text-right pr-4">
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                                title="Editar"
+                                                            >
+                                                                <Pencil size={16} />
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleDelete(record.id)}
                                                                 className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"

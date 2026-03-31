@@ -232,6 +232,7 @@ async function ensureInspectionTable() {
     }
 }
 
+
 export async function saveInspection(record: any) {
     try {
         await ensureInspectionTable();
@@ -280,6 +281,36 @@ export async function saveInspection(record: any) {
     }
 
 }
+
+export async function updateInspection(record: any) {
+    try {
+        await ensureInspectionTable();
+
+        await db.execute(`
+            UPDATE inspection_records 
+            SET date = ?, responsible = ?, inspection_type = ?, area = ?, zone = ?, status = ?, observations = ?, evidence_pdf = ?, evidence_imgs = ?
+            WHERE id = ?
+        `, [
+            record.date,
+            record.responsible,
+            record.inspectionType,
+            record.area,
+            record.zone,
+            record.status,
+            record.observations,
+            record.evidencePdf || '',
+            JSON.stringify(record.evidenceImgs || []),
+            record.id
+        ]);
+
+        revalidatePath('/inspections');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Error updating inspection:", e);
+        return { success: false, error: 'Error al actualizar inspección: ' + (e.message || String(e)) };
+    }
+}
+
 
 export async function getInspections() {
     try {

@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import jsPDF from 'jspdf';
-import { uploadEvidence, UploadContext } from "@/lib/uploadClient";
+import { uploadEvidence } from "@/lib/uploadClient";
+import { UploadContext } from "@/lib/types";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { USER_LIST } from "@/lib/auth";
 
@@ -30,7 +31,7 @@ type PMAEvidenceRecord = {
     category: string;
     description: string;
     location: string;
-    images: string[]; // URLs
+    images: string[]; // Se mantienen como 'images' por compatibilidad con el backend, pero pueden ser URLs de PDFs.
 };
 
 type PMACategory = {
@@ -84,7 +85,7 @@ export default function PMAPage() {
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -152,20 +153,20 @@ export default function PMAPage() {
     }, [records, isLoaded]);
 
     // --- HANDLERS ---
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
 
         // Validar datos antes de subir
         if (!form.responsible || !form.location || !form.category) {
-            alert("⚠️ Por favor completa Responsable, Lugar y Categoría antes de subir imágenes.\n\nEsto asegura que los archivos se guarden con el nombre correcto.");
+            alert("⚠️ Por favor completa Responsable, Lugar y Categoría antes de subir archivos.\n\nEsto asegura que los archivos se guarden con el nombre correcto.");
             e.target.value = '';
             return;
         }
 
-        // Validar límite total de 9 imágenes
+        // Validar límite total de 9 archivos
         if (images.length + files.length > 9) {
-            alert(`Solo puedes cargar hasta 9 imágenes por registro. Actualmente tienes ${images.length} y elegiste ${files.length}.`);
+            alert(`Solo puedes cargar hasta 9 archivos por registro. Actualmente tienes ${images.length} y elegiste ${files.length}.`);
             e.target.value = '';
             return;
         }
@@ -190,13 +191,13 @@ export default function PMAPage() {
                     'pma',
                     'medio_ambiente',
                     form.location,
-                    catLabel // Usamos el 9no arg (objective) para pasar el Nombre de la Categoría
+                    catLabel
                 );
                 uploadedUrls.push(url);
             }
 
             setImages(prev => [...prev, ...uploadedUrls]);
-            alert(`✅ Se subieron ${uploadedUrls.length} imágenes con éxito.`);
+            alert(`✅ Se subieron ${uploadedUrls.length} archivos con éxito.`);
         } catch (error: any) {
             alert(`Error al subir: ${error.message}`);
         } finally {
@@ -205,7 +206,7 @@ export default function PMAPage() {
         }
     };
 
-    const removeImage = (index: number) => {
+    const removeFile = (index: number) => {
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
@@ -223,7 +224,7 @@ export default function PMAPage() {
         }
 
         if (images.length === 0) {
-            alert("Debe subir al menos una imagen como evidencia.");
+            alert("Debe subir al menos un archivo (PDF o Imagen) como evidencia.");
             return;
         }
 
@@ -297,12 +298,29 @@ export default function PMAPage() {
             y += (descLines.length * 5) + 5;
         }
 
-        // Images
+        // Separate images and PDFs
+        const imageFiles = record.images.filter(img => !img.toLowerCase().includes('.pdf'));
+        const pdfFiles = record.images.filter(img => img.toLowerCase().includes('.pdf'));
+
+        // Evidence section
         doc.setFont("helvetica", "bold");
-        doc.text(`Evidencia Fotográfica (${record.images.length} imágenes):`, 20, y);
+        doc.text(`Registro de Evidencia (${record.images.length} archivos):`, 20, y);
         y += 10;
 
-        record.images.forEach((img, index) => {
+        if (pdfFiles.length > 0) {
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 255);
+            pdfFiles.forEach((pdf, idx) => {
+                doc.text(`Archivo PDF Adjunto: [Ver PDF ${idx + 1}]`, 25, y);
+                doc.link(25, y - 4, 100, 5, { url: pdf });
+                y += 6;
+            });
+            y += 4;
+            doc.setTextColor(0);
+            doc.setFontSize(10);
+        }
+
+        imageFiles.forEach((img, index) => {
             if (y > 230) {
                 doc.addPage();
                 y = 20;
@@ -356,7 +374,7 @@ export default function PMAPage() {
                                     {isUploading && (
                                         <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
                                             <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
-                                            SUBIENDO IMÁGENES...
+                                            SUBIENDO ARCHIVOS...
                                         </span>
                                     )}
                                 </h3>
@@ -452,39 +470,48 @@ export default function PMAPage() {
                                     {/* Descripción (Opcional) */}
 
 
-                                    {/* Upload Images */}
+                                    {/* Upload Files */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Imágenes de Evidencia (Max 9)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Archivos de Evidencia (PDF o Imagen, Max 9)</label>
                                         <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative">
                                             <input
                                                 type="file"
-                                                onChange={handleImageUpload}
-                                                accept="image/*"
+                                                onChange={handleFileUpload}
+                                                accept="image/*,.pdf"
                                                 multiple
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                                             />
                                             <div className="flex flex-col items-center gap-2 text-slate-400 group-hover:text-emerald-400">
-                                                <ImageIcon size={24} />
-                                                <span className="text-xs font-medium">Click para agregar fotos (Máx 9 en total)</span>
+                                                <Upload size={24} />
+                                                <span className="text-xs font-medium">Click para agregar PDF o Fotos (Máx 9 en total)</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Image Previews */}
+                                    {/* File Previews */}
                                     {images.length > 0 && (
                                         <div className="grid grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-40 overflow-y-auto">
-                                            {images.map((img, idx) => (
-                                                <div key={idx} className="relative aspect-square group">
-                                                    <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover rounded-md border border-slate-700" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeImage(idx)}
-                                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <X size={10} />
-                                                    </button>
-                                                </div>
-                                            ))}
+                                            {images.map((img, idx) => {
+                                                const isPdf = img.toLowerCase().includes('.pdf');
+                                                return (
+                                                    <div key={idx} className="relative aspect-square group">
+                                                        {isPdf ? (
+                                                            <div className="w-full h-full flex items-center justify-center bg-slate-900 border border-slate-700 rounded-md">
+                                                                <FileText className="text-red-400" size={24} />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover rounded-md border border-slate-700" />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFile(idx)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
 
@@ -514,9 +541,8 @@ export default function PMAPage() {
                                                 <th className="pb-3 pl-2">Fecha</th>
                                                 <th className="pb-3">Responsable</th>
                                                 <th className="pb-3">Categoría</th>
-                                                <th className="pb-3">Archivo</th>
                                                 <th className="pb-3">Lugar</th>
-                                                <th className="pb-3 text-center">Fotos</th>
+                                                <th className="pb-3 text-center">Archivos</th>
                                                 <th className="pb-3 text-center">Acciones</th>
                                             </tr>
                                         </thead>
@@ -549,25 +575,27 @@ export default function PMAPage() {
                                                                 </span>
                                                             </td>
                                                             <td className="py-4 align-top">
-                                                                <span className="text-[10px] text-blue-400 font-mono truncate max-w-[150px] block" title={`${getFileName(record)}.pdf`}>
-                                                                    {getFileName(record)}.pdf
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-4 align-top">
                                                                 <span className="text-[11px] text-slate-300 font-medium">{record.location || '-'}</span>
                                                             </td>
 
                                                             <td className="py-4 align-top">
                                                                 <div className="flex justify-center -space-x-2">
-                                                                    {record.images.slice(0, 4).map((img, i) => (
-                                                                        <div
-                                                                            key={i}
-                                                                            className="w-8 h-8 rounded-full border-2 border-slate-900 overflow-hidden cursor-pointer hover:scale-110 hover:z-10 transition-transform bg-slate-800"
-                                                                            onClick={() => setPreviewImage(img)}
-                                                                        >
-                                                                            <img src={img} className="w-full h-full object-cover" alt="" />
-                                                                        </div>
-                                                                    ))}
+                                                                    {record.images.slice(0, 4).map((img, i) => {
+                                                                        const isPdf = img.toLowerCase().includes('.pdf');
+                                                                        return (
+                                                                            <div
+                                                                                key={i}
+                                                                                className="w-8 h-8 rounded-full border-2 border-slate-900 overflow-hidden cursor-pointer hover:scale-110 hover:z-10 transition-transform bg-slate-800 flex items-center justify-center"
+                                                                                onClick={() => setPreviewFile({ url: img, type: isPdf ? 'pdf' : 'image' })}
+                                                                            >
+                                                                                {isPdf ? (
+                                                                                    <FileText size={14} className="text-red-400" />
+                                                                                ) : (
+                                                                                    <img src={img} className="w-full h-full object-cover" alt="" />
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                     {record.images.length > 4 && (
                                                                         <div className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-700 flex items-center justify-center text-[9px] font-bold text-white z-10">
                                                                             +{record.images.length - 4}
@@ -607,18 +635,30 @@ export default function PMAPage() {
                 </div>
             </main>
 
-            {/* Image Preview Modal */}
-            {previewImage && (
+            {/* File Preview Modal */}
+            {previewFile && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-                    onClick={() => setPreviewImage(null)}
+                    onClick={() => setPreviewFile(null)}
                 >
-                    <div className="relative max-w-5xl w-full flex flex-col items-center">
-                        <img src={previewImage} alt="Full Preview" className="max-h-[85vh] rounded-lg shadow-2xl" />
-                        <button className="absolute -top-12 right-0 text-white hover:text-red-500 transition-colors p-2 bg-black/50 rounded-full">
-                            <X size={24} />
-                        </button>
-                        <p className="mt-4 text-slate-400 text-sm font-medium">Click fuera de la imagen para cerrar</p>
+                    <div className="relative max-w-5xl w-full flex flex-col items-center bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="w-full p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                            <h3 className="text-white font-bold flex items-center gap-2 italic">
+                                {previewFile.type === 'pdf' ? <FileText size={20} className="text-red-400" /> : <ImageIcon size={20} className="text-emerald-400" />}
+                                Vista Previa de Evidencia
+                            </h3>
+                            <button onClick={() => setPreviewFile(null)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-full">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="w-full h-[70vh] flex items-center justify-center bg-black/20 p-4">
+                            {previewFile.type === 'pdf' ? (
+                                <iframe src={previewFile.url} className="w-full h-full rounded-lg border border-slate-700 shadow-2xl" />
+                            ) : (
+                                <img src={previewFile.url} alt="Full Preview" className="max-h-full max-w-full rounded-lg shadow-2xl object-contain" />
+                            )}
+                        </div>
+                        <p className="py-3 text-slate-500 text-[10px] font-bold tracking-widest uppercase">Click fuera de la vista para cerrar</p>
                     </div>
                 </div>
             )}
