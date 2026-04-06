@@ -22,6 +22,18 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ activities, mode = 'general', currentMonth = -1, currentYear = 2026 }: DashboardChartsProps) {
+    // Helper para convertir urls de vista de Google Drive a URLs directas de imagen
+    const getDirectImageUrl = (url: string) => {
+        if (!url) return url;
+        if (url.includes('drive.google.com/file/d/')) {
+            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                return `https://drive.google.com/uc?id=${match[1]}&export=view`;
+            }
+        }
+        return url;
+    };
+
     // --- DATA LOADING FOR ANNUAL PROGRAM ---
     const [programData, setProgramData] = useState<Record<string, any[]>>({});
     const [executedInspections, setExecutedInspections] = useState<any[]>([]);
@@ -2491,7 +2503,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                         </div>
                         <div className="flex-1 overflow-auto bg-black/50 flex flex-col items-center p-4 gap-4">
                             {viewingImages.imgs.map((img, idx) => (
-                                <img key={idx} src={img} alt={`Evidencia ${idx + 1}`} className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800" />
+                                <img key={idx} src={getDirectImageUrl(img)} alt={`Evidencia ${idx + 1}`} className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800" />
                             ))}
                         </div>
                     </div>
