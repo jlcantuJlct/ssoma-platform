@@ -102,6 +102,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
 
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
     useEffect(() => {
@@ -2264,18 +2265,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                                                         {/* IMG EVIDENCE VIEW */}
                                                                         {r.evidenceImgs && r.evidenceImgs.length > 0 && (
                                                                             <button
-                                                                                onClick={() => {
-                                                                                    const w = window.open("");
-                                                                                    w?.document.write(`
-                                                                                         <html>
-                                                                                             <head><title>Evidencia Fotográfica HHC</title></head>
-                                                                                             <body style="background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 20px;">
-                                                                                                 <h2 style="font-family: sans-serif;">Evidencia Actividad: ${r.tema}</h2>
-                                                                                                 ${r.evidenceImgs.map((img: string) => `<img src="${img}" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);" />`).join('')}
-                                                                                             </body>
-                                                                                         </html>
-                                                                                     `);
-                                                                                }}
+                                                                                onClick={() => setViewingImages({tema: r.tema || '', imgs: r.evidenceImgs})}
                                                                                 className="text-purple-400 hover:bg-purple-500/10 p-1 rounded" title="Ver Imágenes"
                                                                             >
                                                                                 <ImageIcon size={14} />
@@ -2482,6 +2472,28 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* PREVIEW MODAL PARA IMAGENES DE FORMACION */}
+            {viewingImages && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingImages(null)}>
+                    <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                                <ImageIcon size={20} className="text-blue-400" />
+                                Evidencia Fotográfica: {viewingImages.tema}
+                            </h3>
+                            <button onClick={() => setViewingImages(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-auto bg-black/50 flex flex-col items-center p-4 gap-4">
+                            {viewingImages.imgs.map((img, idx) => (
+                                <img key={idx} src={img} alt={`Evidencia ${idx + 1}`} className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800" />
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
