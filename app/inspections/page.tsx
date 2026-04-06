@@ -27,6 +27,7 @@ import {
     Image as ImageIcon,
     Pencil
 } from "lucide-react";
+import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { generateFilename, getInitials } from '@/lib/utils';
@@ -1713,7 +1714,7 @@ export default function InspectionsPage() {
                                     {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
                                         <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
                                             <img
-                                                src={img}
+                                                src={getDriveViewerUrl(img, true)}
                                                 alt={`Evidencia ${idx + 1}`}
                                                 className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
                                             />

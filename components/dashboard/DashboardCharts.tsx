@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { FileText, Image as ImageIcon, Download, Eye, X } from 'lucide-react';
-import { generateFilename, getInitials } from '@/lib/utils';
+import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 
 
@@ -22,17 +22,7 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ activities, mode = 'general', currentMonth = -1, currentYear = 2026 }: DashboardChartsProps) {
-    // Helper para convertir urls de vista de Google Drive a URLs directas de imagen
-    const getDirectImageUrl = (url: string) => {
-        if (!url) return url;
-        if (url.includes('drive.google.com/file/d/')) {
-            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1]) {
-                return `https://drive.google.com/uc?id=${match[1]}&export=view`;
-            }
-        }
-        return url;
-    };
+
 
     // --- DATA LOADING FOR ANNUAL PROGRAM ---
     const [programData, setProgramData] = useState<Record<string, any[]>>({});
@@ -2123,7 +2113,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                             <div className="flex gap-2 mt-2">
                                                 {newHHC.evidenceImgs.map((img, idx) => (
                                                     <div key={idx} className="relative w-10 h-10 group">
-                                                        <img src={img} alt="Thumb" className="w-full h-full object-cover rounded border border-slate-600" />
+                                                        <img src={getDriveViewerUrl(img, true)} alt="Thumb" className="w-full h-full object-cover rounded border border-slate-600" />
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
                                                             className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -2503,7 +2493,12 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                         </div>
                         <div className="flex-1 overflow-auto bg-black/50 flex flex-col items-center p-4 gap-4">
                             {viewingImages.imgs.map((img, idx) => (
-                                <img key={idx} src={getDirectImageUrl(img)} alt={`Evidencia ${idx + 1}`} className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800" />
+                                <iframe 
+                                    key={idx} 
+                                    src={getDriveViewerUrl(img, false)} 
+                                    title={`Evidencia ${idx + 1}`} 
+                                    className="w-full h-full min-h-[60vh] object-contain rounded-lg shadow-2xl border border-slate-800" 
+                                />
                             ))}
                         </div>
                     </div>

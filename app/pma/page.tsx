@@ -15,7 +15,7 @@ import {
     Target,
     Filter
 } from "lucide-react";
-import { getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { UploadContext } from "@/lib/types";
@@ -500,7 +500,7 @@ export default function PMAPage() {
                                                                 <FileText className="text-red-400" size={24} />
                                                             </div>
                                                         ) : (
-                                                            <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover rounded-md border border-slate-700" />
+                                                            <img src={getDriveViewerUrl(img, true)} alt={`preview-${idx}`} className="w-full h-full object-cover rounded-md border border-slate-700" />
                                                         )}
                                                         <button
                                                             type="button"
@@ -591,7 +591,7 @@ export default function PMAPage() {
                                                                                 {isPdf ? (
                                                                                     <FileText size={14} className="text-red-400" />
                                                                                 ) : (
-                                                                                    <img src={img} className="w-full h-full object-cover" alt="" />
+                                                                                    <img src={getDriveViewerUrl(img, true)} className="w-full h-full object-cover" alt="" />
                                                                                 )}
                                                                             </div>
                                                                         );
@@ -652,11 +652,11 @@ export default function PMAPage() {
                             </button>
                         </div>
                         <div className="w-full h-[70vh] flex items-center justify-center bg-black/20 p-4">
-                            {previewFile.type === 'pdf' ? (
-                                <iframe src={previewFile.url} className="w-full h-full rounded-lg border border-slate-700 shadow-2xl" />
-                            ) : (
-                                <img src={previewFile.url} alt="Full Preview" className="max-h-full max-w-full rounded-lg shadow-2xl object-contain" />
-                            )}
+                            <iframe 
+                                src={getDriveViewerUrl(previewFile.url, false)} 
+                                className="w-full h-full min-h-[60vh] rounded-lg border border-slate-700 shadow-2xl" 
+                                title="File Preview" 
+                            />
                         </div>
                         <p className="py-3 text-slate-500 text-[10px] font-bold tracking-widest uppercase">Click fuera de la vista para cerrar</p>
                     </div>

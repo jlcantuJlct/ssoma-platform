@@ -194,7 +194,16 @@ export async function uploadEvidence(
     }
 
     // 3. Folder Selection mapping (Hierarchical)
-    const safeArea = area ? area.replace(/[^a-zA-Z0-9\s]/g, '').trim().toUpperCase() : 'GENERAL';
+    let standardArea = area ? area.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().toUpperCase() : 'GENERAL';
+    if (standardArea.includes('MEDIO') || standardArea.includes('AMBIENTE')) {
+        standardArea = 'MEDIO AMBIENTE';
+    } else if (standardArea.includes('SEGURIDAD')) {
+        standardArea = 'SEGURIDAD';
+    } else if (standardArea.includes('SALUD')) {
+        standardArea = 'SALUD';
+    }
+    const safeArea = standardArea;
+    
     const safeLugar = lugar ? lugar.replace(/[^a-zA-Z0-9\s]/g, '').trim().toUpperCase() : 'SIN LUGAR';
 
     // Get Month Name

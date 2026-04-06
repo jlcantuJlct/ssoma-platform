@@ -19,7 +19,7 @@ import {
     File
 } from "lucide-react";
 import { DashboardData, UploadContext } from "@/lib/types";
-import { generateFilename, getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
 import { uploadEvidence } from "@/lib/uploadClient";
 import jsPDF from 'jspdf';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -603,7 +603,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                                     onClick={() => handleView(r)}
                                                                     title="Click para ver"
                                                                 >
-                                                                    <img src={r.fileUrl} alt="preview" className="w-full h-full object-cover" />
+                                                                    <img src={getDriveViewerUrl(r.fileUrl, true)} alt="preview" className="w-full h-full object-cover" />
                                                                 </div>
                                                             ) : (
                                                                 <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto">
@@ -698,12 +698,12 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-auto bg-black/50 flex items-center justify-center p-4">
-                            {viewingFile.fileType === 'pdf' ? (
-                                <iframe src={viewingFile.fileUrl} className="w-full h-full min-h-[60vh] rounded-lg border border-slate-800" title="PDF Preview"></iframe>
-                            ) : (
-                                <img src={viewingFile.fileUrl} alt="Preview" className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl" />
-                            )}
+                        <div className="w-full h-[75vh] flex items-center justify-center p-4">
+                            <iframe 
+                                src={getDriveViewerUrl(viewingFile.fileUrl, false)} 
+                                className="w-full h-full min-h-[60vh] rounded-lg border border-slate-800 shadow-2xl" 
+                                title="File Preview">
+                            </iframe>
                         </div>
                     </div>
                 </div>

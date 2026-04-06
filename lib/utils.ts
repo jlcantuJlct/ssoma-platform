@@ -97,3 +97,23 @@ export function generateFolderName(
 
     return `${yearMonth}_${tipoPrefix}_${cleanDesc}`;
 }
+
+/**
+ * Standardizes Google Drive URLs.
+ * If isThumbnail is true, returns a direct image link via the thumbnail API (useful for <img> tags).
+ * If isThumbnail is false, returns the /preview URL (useful for <iframe> native viewer).
+ */
+export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: boolean = false): string {
+    if (!url) return '';
+    if (url.includes('drive.google.com/file/d/')) {
+        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            if (isThumbnail) {
+                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            } else {
+                return `https://drive.google.com/file/d/${match[1]}/preview`;
+            }
+        }
+    }
+    return url;
+}
