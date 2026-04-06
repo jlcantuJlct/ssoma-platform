@@ -2113,7 +2113,9 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                             <div className="flex gap-2 mt-2">
                                                 {newHHC.evidenceImgs.map((img, idx) => (
                                                     <div key={idx} className="relative w-10 h-10 group">
-                                                        <img src={getDriveViewerUrl(img, true)} alt="Thumb" className="w-full h-full object-cover rounded border border-slate-600" />
+                                                        <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded border border-slate-600">
+                                                            <ImageIcon size={16} className="text-blue-400" />
+                                                        </div>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
                                                             className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -2492,7 +2494,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                             </button>
                         </div>
                         <div className="flex-1 overflow-auto bg-black/50 flex flex-col items-center p-4 gap-4">
-                            {viewingImages.imgs.map((img, idx) => (
+                            {viewingImages.imgs.map((img: string, idx: number) => (
                                 <iframe 
                                     key={idx} 
                                     src={getDriveViewerUrl(img, false)} 

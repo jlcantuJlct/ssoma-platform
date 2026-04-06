@@ -603,7 +603,10 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                                     onClick={() => handleView(r)}
                                                                     title="Click para ver"
                                                                 >
-                                                                    <img src={getDriveViewerUrl(r.fileUrl, true)} alt="preview" className="w-full h-full object-cover" />
+                                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800">
+                                                                        <ImageIcon size={14} className="text-blue-400 mb-0.5" />
+                                                                        <span className="text-[7px]">FOTO</span>
+                                                                    </div>
                                                                 </div>
                                                             ) : (
                                                                 <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto">

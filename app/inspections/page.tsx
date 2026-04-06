@@ -1712,13 +1712,14 @@ export default function InspectionsPage() {
                             <div className="flex-1 overflow-auto bg-black/50 p-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
-                                        <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
-                                            <img
-                                                src={getDriveViewerUrl(img, true)}
-                                                alt={`Evidencia ${idx + 1}`}
-                                                className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
+                                        <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 h-64">
+                                            <iframe
+                                                src={getDriveViewerUrl(img, false)}
+                                                title={`Evidencia ${idx + 1}`}
+                                                className="w-full h-full border-0"
+                                                allow="autoplay"
                                             />
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform pointer-events-none">
                                                 <a
                                                     href={img}
                                                     target="_blank"

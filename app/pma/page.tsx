@@ -500,7 +500,14 @@ export default function PMAPage() {
                                                                 <FileText className="text-red-400" size={24} />
                                                             </div>
                                                         ) : (
-                                                            <img src={getDriveViewerUrl(img, true)} alt={`preview-${idx}`} className="w-full h-full object-cover rounded-md border border-slate-700" />
+                                                            <div className="w-full h-full rounded-md border border-slate-700 overflow-hidden relative">
+                                                                <iframe 
+                                                                    src={getDriveViewerUrl(img, false)} 
+                                                                    title="Evidencia adjunta" 
+                                                                    className="w-full h-full min-h-[150px] border-0" 
+                                                                />
+                                                                <div className="absolute inset-0 z-10"></div> {/* Protector para clicks */}
+                                                            </div>
                                                         )}
                                                         <button
                                                             type="button"
@@ -591,7 +598,10 @@ export default function PMAPage() {
                                                                                 {isPdf ? (
                                                                                     <FileText size={14} className="text-red-400" />
                                                                                 ) : (
-                                                                                    <img src={getDriveViewerUrl(img, true)} className="w-full h-full object-cover" alt="" />
+                                                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-700 overflow-hidden">
+                                                                                        <ImageIcon size={14} className="text-blue-400 mb-1" />
+                                                                                        <span className="text-[7px]">FOTO</span>
+                                                                                    </div>
                                                                                 )}
                                                                             </div>
                                                                         );
