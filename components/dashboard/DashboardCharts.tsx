@@ -703,21 +703,27 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     };
 
     const generateBulkHHCPDF = async () => {
-        if (filteredRecords.length === 0) {
+        if (finalFilteredHistory.length === 0) {
             alert("⚠️ No hay registros filtrados para exportar.");
             return;
         }
 
         // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
         const finalPdfDoc = await PDFDocument.create();
-        const recordsToExport = filteredRecords.slice().reverse();
+        const recordsToExport = finalFilteredHistory.slice().reverse();
+
+        // Determinar título dinámico si hay filtros
+        let reportTitle = "Reporte de Actividades HHC";
+        if (filters.startDate || filters.endDate) {
+            reportTitle += ` (${filters.startDate || 'Inicio'} a ${filters.endDate || 'Fin'})`;
+        }
 
         for (const record of recordsToExport) {
             const doc = new jsPDF();
             // Encabezado
             doc.setFontSize(16);
             doc.setTextColor(40);
-            doc.text("Reporte de Actividad HHC", 105, 20, { align: "center" });
+            doc.text(reportTitle, 105, 20, { align: "center" });
 
             doc.setFontSize(11);
             doc.setTextColor(60);
@@ -789,18 +795,37 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             }
         }
 
+        const filename = (filters.startDate || filters.endDate) 
+            ? `Reporte_HHC_Filtrado_${filters.startDate || ''}_${filters.endDate || ''}.pdf`
+            : "Reporte_Mensual_HHC_Completo.pdf";
+
         const mergedPdfBytes = await finalPdfDoc.save();
         const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `Reporte_Mensual_HHC_Completo.pdf`;
+        link.download = filename;
         link.click();
     };
 
 
 
     const filteredRecords = hhcRecords.filter(r => selectedArea === 'todos' || r.area === selectedArea);
+
+    const finalFilteredHistory = useMemo(() => {
+        return filteredRecords.filter(r => {
+            const matchResp = !filters.responsable || (r.responsable || '').toLowerCase().includes(filters.responsable.toLowerCase());
+            const matchTema = !filters.tema || (r.tema || '').toLowerCase().includes(filters.tema.toLowerCase());
+            const matchDateStart = !filters.startDate || (r.date || '') >= filters.startDate;
+            const matchDateEnd = !filters.endDate || (r.date || '') <= filters.endDate;
+            const matchType = filters.type === 'todos' || r.tipo === filters.type; // Nota: r.tipo no r.type based on table mapping
+
+            // OCULTAR "ACTIVIDAD IMPORTADA" PARA OPTIMIZAR ESPACIO VISUAL
+            const notImported = (r.tema || '') !== 'Actividad Importada';
+
+            return matchResp && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
+        });
+    }, [filteredRecords, filters]);
 
     // Helper para obtener el lunes de la semana (Lunes a Domingo)
     const getWeekMonday = (dateStr: string) => {
@@ -2317,19 +2342,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-800">
-                                                {filteredRecords
-                                                    .filter(r => {
-                                                        const matchResp = !filters.responsable || (r.responsable || '').toLowerCase().includes(filters.responsable.toLowerCase());
-                                                        const matchTema = !filters.tema || (r.tema || '').toLowerCase().includes(filters.tema.toLowerCase());
-                                                        const matchDateStart = !filters.startDate || (r.date || '') >= filters.startDate;
-                                                        const matchDateEnd = !filters.endDate || (r.date || '') <= filters.endDate;
-                                                        const matchType = filters.type === 'todos' || r.type === filters.type;
-
-                                                        // OCULTAR "ACTIVIDAD IMPORTADA" PARA OPTIMIZAR ESPACIO VISUAL
-                                                        const notImported = (r.tema || '') !== 'Actividad Importada';
-
-                                                        return matchResp && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
-                                                    })
+                                                {finalFilteredHistory
                                                     .slice().reverse()
                                                     .map((r, i) => {
                                                         const realRecordIndex = hhcRecords.findIndex(rec => rec === r);
