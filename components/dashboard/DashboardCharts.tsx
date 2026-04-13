@@ -581,10 +581,19 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     }, [hhcRecords]);
 
 
+    const bufferToBase64 = (buffer: ArrayBuffer) => {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    };
+
     const fetchProxiedFile = async (url: string) => {
         try {
             const response = await fetch(`/api/proxy-file?url=${encodeURIComponent(url)}`);
-            if (!response.ok) throw new Error("Proxy error");
+            if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
             return await response.arrayBuffer();
         } catch (e) {
             console.error("Error fetching proxied file:", e);
@@ -635,21 +644,31 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
 
             for (let i = 0; i < record.evidenceImgs.length; i++) {
                 const imgUrl = record.evidenceImgs[i];
-                const thumbUrl = getDriveViewerUrl(imgUrl, true);
-                const buffer = await fetchProxiedFile(thumbUrl);
+                // Intentar obtener primero UC (direct download) para mejor compatibilidad con PDF
+                const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
+                
+                const buffer = await fetchProxiedFile(fetchUrl);
                 
                 if (buffer) {
                     try {
-                        const base64 = `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
-                        if (y > 220) { doc.addPage(); y = 20; }
-                        doc.addImage(base64, 'JPEG', 30, y, 150, 80);
-                        y += 90;
+                        const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
+                        if (y > 200) { doc.addPage(); y = 20; }
+                        
+                        // Diseño: 1 foto por fila, centrada
+                        doc.addImage(base64, 'JPEG', 40, y, 130, 75);
+                        y += 85;
                     } catch (e) {
                         doc.setFont("helvetica", "italic");
                         doc.setTextColor(255, 0, 0);
-                        doc.text(`[ Error al cargar imagen ${i+1} ]`, 20, y);
+                        doc.text(`[ Error al incrustar imagen ${i+1} no compatible ]`, 20, y);
                         y += 10;
                     }
+                } else {
+                    doc.setFont("helvetica", "italic");
+                    doc.setTextColor(255, 0, 0);
+                    doc.text(`[ Error al descargar imagen ${i+1} de la nube ]`, 20, y);
+                    y += 10;
                 }
             }
         }
@@ -735,15 +754,17 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
 
                 for (let i = 0; i < record.evidenceImgs.length; i++) {
                     const imgUrl = record.evidenceImgs[i];
-                    const thumbUrl = getDriveViewerUrl(imgUrl, true);
-                    const buffer = await fetchProxiedFile(thumbUrl);
+                    const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                    const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
+                    
+                    const buffer = await fetchProxiedFile(fetchUrl);
                     
                     if (buffer) {
                         try {
-                            const base64 = `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
-                            if (y > 220) { doc.addPage(); y = 20; }
-                            doc.addImage(base64, 'JPEG', 30, y, 150, 80);
-                            y += 90;
+                            const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
+                            if (y > 200) { doc.addPage(); y = 20; }
+                            doc.addImage(base64, 'JPEG', 40, y, 130, 75);
+                            y += 85;
                         } catch (e) {}
                     }
                 }
