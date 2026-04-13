@@ -11,12 +11,7 @@ const ALERT_USERS = [
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com' },
 ];
 
-const CC_EMAILS = [
-    'jlcantu.jlct@gmail.com',
-    'jcancino@casacontratistas.com',
-    'rguerra@casacontratistas.com',
-    'mescobar@casacontratistas.com',
-];
+// CC_EMAILS movidos a send-weekly-alerts/route.ts para evitar correos diarios a gerencia.
 
 // Cuántos días hacia atrás revisar (hoy + 4 anteriores)
 const DAYS_TO_CHECK = 5;
@@ -315,7 +310,6 @@ export async function GET(req: NextRequest) {
             await transporter.sendMail({
                 from: `"${fromName}" <${gmailUser}>`,
                 to: user.email,
-                cc: CC_EMAILS.join(', '),
                 subject: `${subjectPrefix} — ${user.name.split(' ')[0]} · ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
                 html: buildEmailHtml(user.name, historial, fecha),
             });

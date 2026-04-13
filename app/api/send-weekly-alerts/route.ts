@@ -1,0 +1,221 @@
+import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
+import db from '@/lib/db';
+
+// ─── CONFIGURACIÓN ───────────────────────────────────────────────────────────
+const MANAGEMENT_EMAILS = [
+    'rguerra@casacontratistas.com',
+    'mescobar@casacontratistas.com',
+    'jcancino@casacontratistas.com',
+    'jlcantu.jlct@gmail.com',
+];
+
+const TARGET_USERS = [
+    { username: 'jose.galliquio',     name: 'Jose Galliquio',     firstName: 'Jose' },
+    { username: 'adrian.suarez',      name: 'Adrian Suarez',      firstName: 'Adrian' },
+    { username: 'gladis.aroste',      name: 'Gladis Aroste',      firstName: 'Gladis' },
+    { username: 'jesus.villalovos',   name: 'Jesus Villalovos',   firstName: 'Jesus' },
+];
+
+const DAYS_TO_CHECK = 7; // Una semana completa
+
+// ─── COMPROBACIÓN DE PENDIENTES ──────────────────────────────────────────────
+async function getPendingForDate(firstName: string, dateStr: string): Promise<string[]> {
+    const pending: string[] = [];
+    const isGladys = firstName.toLowerCase() === 'gladys' || firstName.toLowerCase() === 'gladis';
+
+    try {
+        const rows = await db.fetchAll(
+            `SELECT id FROM inspection_records WHERE date LIKE ? AND responsible LIKE ?`,
+            [`${dateStr}%`, `%${firstName}%`]
+        );
+        if (!rows || rows.length === 0) pending.push('Inspecciones');
+    } catch { pending.push('Inspecciones'); }
+
+    if (!isGladys) {
+        try {
+            const rows = await db.fetchAll(
+                `SELECT id FROM ats_records WHERE date LIKE ? AND responsible LIKE ?`,
+                [`${dateStr}%`, `%${firstName}%`]
+            );
+            if (!rows || rows.length === 0) pending.push('ATS');
+        } catch { pending.push('ATS'); }
+
+        try {
+            const rows = await db.fetchAll(
+                `SELECT id FROM petar_records WHERE date LIKE ? AND responsible LIKE ?`,
+                [`${dateStr}%`, `%${firstName}%`]
+            );
+            if (!rows || rows.length === 0) pending.push('PETAR');
+        } catch { pending.push('PETAR'); }
+    }
+
+    try {
+        const rows = await db.fetchAll(
+            `SELECT id FROM hhc_records WHERE date LIKE ? AND responsable LIKE ?`,
+            [`${dateStr}%`, `%${firstName}%`]
+        );
+        if (!rows || rows.length === 0) pending.push('HHC');
+    } catch { pending.push('HHC'); }
+
+    if (!isGladys) {
+        try {
+            const rows = await db.fetchAll(
+                `SELECT p.id FROM progress p
+                 JOIN activities a ON p.activity_id = a.id
+                 WHERE DATE(p.created_at) = ? AND a.responsible LIKE ? AND p.executed_value > 0`,
+                [dateStr, `%${firstName}%`]
+            );
+            if (!rows || rows.length === 0) pending.push('Objetivos PMA');
+        } catch { pending.push('Objetivos PMA'); }
+
+        try {
+            const rows = await db.fetchAll(
+                `SELECT e.id FROM evidence e
+                 JOIN activities a ON e.activity_id = a.id
+                 WHERE DATE(e.created_at) = ? AND a.responsible LIKE ?`,
+                [dateStr, `%${firstName}%`]
+            );
+            if (!rows || rows.length === 0) pending.push('Evidencias PMA');
+        } catch { pending.push('Evidencias PMA'); }
+    }
+
+    return pending;
+}
+
+// ─── CONSTRUCCIÓN DEL REPORTE SEMANAL ────────────────────────────────────────
+async function buildWeeklyReport() {
+    const reportData: any[] = [];
+    const lima = { timeZone: 'America/Lima' };
+
+    for (const user of TARGET_USERS) {
+        const userStatus: any = { name: user.name, days: [] };
+        
+        for (let i = 0; i < DAYS_TO_CHECK; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            
+            // Solo días laborables (L-V)
+            const dow = d.getDay();
+            if (dow === 0 || dow === 6) continue;
+
+            const dateStr = d.toLocaleDateString('en-CA', lima);
+            const pending = await getPendingForDate(user.firstName, dateStr);
+            
+            if (pending.length > 0) {
+                userStatus.days.push({ 
+                    label: d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }),
+                    pending 
+                });
+            }
+        }
+        reportData.push(userStatus);
+    }
+    return reportData;
+}
+
+// ─── GENERAR HTML ────────────────────────────────────────────────────────────
+function buildHtml(reportData: any[], fecha: string) {
+    const userRows = reportData.map(user => {
+        const dayBadges = user.days.length === 0 
+            ? '✅ Todo al día' 
+            : user.days.map((d:any) => `
+                <div style="margin-bottom:8px; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px;">
+                    <strong style="font-size:11px; color:#64748b; text-transform:uppercase;">${d.label}:</strong><br>
+                    <span style="color:#ef4444; font-size:12px; font-weight:600;">${d.pending.join(', ')}</span>
+                </div>
+            `).join('');
+
+        return `
+            <tr>
+                <td style="padding:15px; border-bottom:1px solid #e2e8f0; vertical-align:top; width:200px;">
+                    <strong style="color:#1e293b; font-size:14px;">${user.name}</strong>
+                    ${user.days.length > 0 ? `<br><span style="background:#fef2f2; color:#ef4444; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:700;">${user.days.length} DÍAS PENDIENTES</span>` : ''}
+                </td>
+                <td style="padding:15px; border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+                    ${dayBadges}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"></head>
+    <body style="font-family:'Segoe UI',Arial,sans-serif; background:#f8fafc; padding:20px; color:#334155;">
+        <div style="max-width:700px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
+            <div style="background:#064e3b; padding:25px; text-align:center; color:#fff;">
+                <h1 style="margin:0; font-size:20px; font-weight:800; letter-spacing:1px;">REPORTE SEMANAL DE CUMPLIMIENTO</h1>
+                <p style="margin:5px 0 0; opacity:0.8; font-size:12px;">SSOMA PLATFORM · SEMANA AL ${fecha}</p>
+            </div>
+            <div style="padding:20px;">
+                <p style="font-size:14px; color:#64748b; margin-bottom:20px;">A continuación se detallan los registros pendientes de los últimos ${DAYS_TO_CHECK} días para el personal monitoreado:</p>
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead style="background:#f1f5f9;">
+                        <tr>
+                            <th style="padding:12px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Colaborador</th>
+                            <th style="padding:12px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Pendientes Detectados</th>
+                        </tr>
+                    </thead>
+                    <tbody>${userRows}</tbody>
+                </table>
+                <div style="margin-top:30px; text-align:center;">
+                    <a href="https://ssoma-platform.vercel.app" style="background:#059669; color:#fff; text-decoration:none; padding:12px 30px; border-radius:8px; font-weight:700; font-size:13px;">Revisar en la Plataforma</a>
+                </div>
+            </div>
+            <div style="background:#f1f5f9; padding:15px; text-align:center; color:#94a3b8; font-size:11px;">
+                Este es un reporte automático generado cada sábado a las 5:00 PM.
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+// ─── HANDLER ─────────────────────────────────────────────────────────────────
+export async function GET(req: NextRequest) {
+    const authHeader = req.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET || 'ssoma_cron_2026';
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+    if (!gmailUser || !gmailPass) {
+        return NextResponse.json({ error: 'Gmail no configurado' }, { status: 500 });
+    }
+
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailPass },
+    });
+
+    const limaDate = new Date().toLocaleDateString('es-PE', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        timeZone: 'America/Lima'
+    });
+
+    try {
+        const reportData = await buildWeeklyReport();
+        
+        await transporter.sendMail({
+            from: `"SSOMA - Reporte Semanal" <${gmailUser}>`,
+            to: MANAGEMENT_EMAILS.join(', '),
+            subject: `📊 [SSOMA] Reporte Semanal de Cumplimiento — ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
+            html: buildHtml(reportData, limaDate),
+        });
+
+        return NextResponse.json({ success: true, results: reportData });
+    } catch (err: any) {
+        console.error('Error enviando reporte semanal:', err);
+        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    }
+}
+
+export async function POST(req: NextRequest) {
+    return GET(req);
+}
