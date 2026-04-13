@@ -38,13 +38,13 @@ export const INITIAL_USERS: Record<string, { password: string, name: string, rol
         role: 'manager',
         email: 'gerencia@antigravity.com'
     },
-    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio', role: 'user', email: 'jgalliquio@example.com' },
-    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma', role: 'user', email: 'achuquispuma@example.com' },
-    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalovos', role: 'user', email: 'jvillalovos@example.com' },
-    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez', role: 'user', email: 'asuarez@example.com' },
-    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@example.com' },
-    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@example.com' },
-    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste', role: 'user', email: 'garoste@example.com' },
+    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com' },
+    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com' },
+    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com' },
+    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com' },
+    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com' },
+    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com' },
+    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladys Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com' },
 };
 
 // Exportar lista para el Login

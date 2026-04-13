@@ -9,7 +9,8 @@ import { USER_LIST, useAuth } from "@/lib/auth";
 import { useState, useEffect, useMemo } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import { FileText, Image as ImageIcon, Download, Eye, X } from 'lucide-react';
+import { PDFDocument } from 'pdf-lib';
+import { FileText, Image as ImageIcon, Download, Eye, X, ClipboardCheck, Calendar, Search, Shield, ChevronDown } from 'lucide-react';
 import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 
@@ -580,7 +581,18 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     }, [hhcRecords]);
 
 
-    const generateRecordPDF = (record: any) => {
+    const fetchProxiedFile = async (url: string) => {
+        try {
+            const response = await fetch(`/api/proxy-file?url=${encodeURIComponent(url)}`);
+            if (!response.ok) throw new Error("Proxy error");
+            return await response.arrayBuffer();
+        } catch (e) {
+            console.error("Error fetching proxied file:", e);
+            return null;
+        }
+    };
+
+    const generateRecordPDF = async (record: any) => {
         const doc = new jsPDF();
 
         // Encabezado
@@ -614,28 +626,75 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         doc.line(20, y, 190, y);
         y += 15;
 
-        // Evidencia PDF
+        // Evidencia Imágenes (Incrustadas)
+        if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(0, 0, 0);
+            doc.text("Evidencia Fotográfica:", 20, y);
+            y += 10;
+
+            for (let i = 0; i < record.evidenceImgs.length; i++) {
+                const imgUrl = record.evidenceImgs[i];
+                const thumbUrl = getDriveViewerUrl(imgUrl, true);
+                const buffer = await fetchProxiedFile(thumbUrl);
+                
+                if (buffer) {
+                    try {
+                        const base64 = `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
+                        if (y > 220) { doc.addPage(); y = 20; }
+                        doc.addImage(base64, 'JPEG', 30, y, 150, 80);
+                        y += 90;
+                    } catch (e) {
+                        doc.setFont("helvetica", "italic");
+                        doc.setTextColor(255, 0, 0);
+                        doc.text(`[ Error al cargar imagen ${i+1} ]`, 20, y);
+                        y += 10;
+                    }
+                }
+            }
+        }
+
+        // Si hay PDF, lo guardamos para unirlo después
         if (record.evidencePdf) {
-            doc.setFont("helvetica", "italic");
-            doc.setTextColor(0, 0, 255);
-            doc.text("[ DOCUMENTO PDF ADJUNTO EN PLATAFORMA ]", 20, y);
-            y += 15;
+            const pdfBuffer = await fetchProxiedFile(record.evidencePdf);
+            if (pdfBuffer) {
+                try {
+                    const mainPdfBytes = doc.output('arraybuffer');
+                    const mainPdfDoc = await PDFDocument.load(mainPdfBytes);
+                    const evidencePdfDoc = await PDFDocument.load(pdfBuffer);
+                    
+                    const pages = await mainPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
+                    pages.forEach(p => mainPdfDoc.addPage(p));
+                    
+                    const mergedPdfBytes = await mainPdfDoc.save();
+                    const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `Reporte_HHC_${record.date || 'S_F'}.pdf`;
+                    link.click();
+                    return;
+                } catch (e) {
+                    console.error("Error merging PDF evidence:", e);
+                }
+            }
         }
 
         doc.save(`Reporte_HHC_${record.date || 'S_F'}.pdf`);
     };
 
-    const generateBulkHHCPDF = () => {
+    const generateBulkHHCPDF = async () => {
         if (filteredRecords.length === 0) {
             alert("⚠️ No hay registros filtrados para exportar.");
             return;
         }
 
-        const doc = new jsPDF();
+        // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
+        const finalPdfDoc = await PDFDocument.create();
+        const recordsToExport = filteredRecords.slice().reverse();
 
-        filteredRecords.slice().reverse().forEach((record, index) => {
-            if (index > 0) doc.addPage();
-
+        for (const record of recordsToExport) {
+            const doc = new jsPDF();
             // Encabezado
             doc.setFontSize(16);
             doc.setTextColor(40);
@@ -667,17 +726,55 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             doc.line(20, y, 190, y);
             y += 15;
 
-            // Evidencia PDF
-            if (record.evidencePdf) {
-                doc.setFont("helvetica", "italic");
-                doc.setTextColor(0, 0, 255);
-                doc.text("[ DOCUMENTO PDF ADJUNTO EN PLATAFORMA ]", 20, y);
-                y += 15;
+            // Evidencia Imágenes (Incrustadas)
+            if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(0, 0, 0);
+                doc.text("Evidencia Fotográfica:", 20, y);
+                y += 10;
+
+                for (let i = 0; i < record.evidenceImgs.length; i++) {
+                    const imgUrl = record.evidenceImgs[i];
+                    const thumbUrl = getDriveViewerUrl(imgUrl, true);
+                    const buffer = await fetchProxiedFile(thumbUrl);
+                    
+                    if (buffer) {
+                        try {
+                            const base64 = `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
+                            if (y > 220) { doc.addPage(); y = 20; }
+                            doc.addImage(base64, 'JPEG', 30, y, 150, 80);
+                            y += 90;
+                        } catch (e) {}
+                    }
+                }
             }
 
-        });
+            // Convertir JS-PDF actual a PDF-Lib y añadir al final
+            const pagePdfBytes = doc.output('arraybuffer');
+            const pagePdfDoc = await PDFDocument.load(pagePdfBytes);
+            const copiedPages = await finalPdfDoc.copyPages(pagePdfDoc, pagePdfDoc.getPageIndices());
+            copiedPages.forEach(p => finalPdfDoc.addPage(p));
 
-        doc.save("Reporte_Masivo_HHC.pdf");
+            // Anexar PDF de evidencia si existe
+            if (record.evidencePdf) {
+                const evidenceBuffer = await fetchProxiedFile(record.evidencePdf);
+                if (evidenceBuffer) {
+                    try {
+                        const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
+                        const evidencePages = await finalPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
+                        evidencePages.forEach(p => finalPdfDoc.addPage(p));
+                    } catch (e) { console.error("Error merging bulk evidence PDF", e); }
+                }
+            }
+        }
+
+        const mergedPdfBytes = await finalPdfDoc.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Reporte_Mensual_HHC_Completo.pdf`;
+        link.click();
     };
 
 

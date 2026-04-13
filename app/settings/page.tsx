@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Settings, Plus, Trash2, Save, User, MapPin, Leaf, RotateCcw, CloudDownload, HardDrive, Loader2 } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, User, MapPin, Leaf, RotateCcw, CloudDownload, HardDrive, Loader2, Bell } from 'lucide-react';
+import AdminAlertas from '@/components/AdminAlertas';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 
 const INITIAL_ZONES = SSOMA_LOCATIONS;
@@ -617,6 +618,19 @@ export default function SettingsPage() {
                                         </label>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* ALERTAS EMAIL */}
+                        <Card className="bg-slate-900 border-slate-800 shadow-xl border-l-4 border-l-red-500">
+                            <CardHeader className="border-b border-slate-800 pb-4">
+                                <CardTitle className="text-red-400 font-bold flex items-center gap-2">
+                                    <Bell size={20} />
+                                    Sistema de Alertas por Email
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4 px-0 pb-0">
+                                <AdminAlertas />
                             </CardContent>
                         </Card>
 

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AlertaBanner from "@/components/AlertaBanner";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -33,6 +34,7 @@ export default function RootLayout({
               <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
               {children}
             </main>
+            <AlertaBanner />
           </ErrorBoundary>
         </Providers>
       </body>
