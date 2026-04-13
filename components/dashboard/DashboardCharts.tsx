@@ -797,82 +797,103 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         const summaryPages = await finalPdfDoc.copyPages(summaryPdfDoc, summaryPdfDoc.getPageIndices());
         summaryPages.forEach(p => finalPdfDoc.addPage(p));
 
-        for (const record of recordsToExport) {
+        // 3. AGRUPAR REGISTROS POR FECHA
+        const groupedByDate: Record<string, any[]> = {};
+        recordsToExport.forEach(r => {
+            const dStr = r.date || 'Sin Fecha';
+            if (!groupedByDate[dStr]) groupedByDate[dStr] = [];
+            groupedByDate[dStr].push(r);
+        });
+
+        // Ordenar fechas cronológicamente
+        const sortedDates = Object.keys(groupedByDate).sort();
+
+        for (const dateKey of sortedDates) {
+            const dailyRecords = groupedByDate[dateKey];
             const doc = new jsPDF();
-            // Encabezado
-            doc.setFontSize(16);
-            doc.setTextColor(40);
-            doc.text(reportTitle, 105, 20, { align: "center" });
+            let y = 20;
 
-            doc.setFontSize(11);
-            doc.setTextColor(60);
-            let y = 40;
-
-            // Reseña Narrativa
-            doc.setFont("helvetica", "normal");
-            const tipoStr = (record.tipo || 'actividad').toUpperCase().replace('_', ' ');
-            const splitText = doc.splitTextToSize(`Reseña: Se llevó a cabo la actividad de tipo "${tipoStr}" abordando el tema "${record.tema || 'Sin Tema'}". La sesión fue dirigida por ${record.responsable || 'el responsable asignado'} el día ${record.date || 'S/F'}.`, 170);
-            doc.text(splitText, 20, y);
-            y += (splitText.length * 7) + 10;
-
+            // Encabezado de Fecha
+            doc.setFillColor(30, 64, 175);
+            doc.rect(20, y, 170, 12, 'F');
+            doc.setFontSize(14);
+            doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
-            doc.text(`Detalles Técnicos:`, 20, y);
-            y += 7;
+            doc.text(`FECHA: ${dateKey}`, 105, y + 8, { align: "center" });
+            y += 20;
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.text(`Área: ${record.area.toUpperCase()} | HHT: ${record.hht} | HHC: ${record.hhc}`, 20, y);
-            y += 7;
-            doc.text(`Participantes: ${record.hombres} Hombres / ${record.mujeres} Mujeres`, 20, y);
-
-            y += 10;
-            doc.setLineWidth(0.5);
-            doc.line(20, y, 190, y);
-            y += 15;
-
-            // Evidencia Imágenes (Incrustadas)
-            if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+            // Listar todos los registros de ese día
+            for (let idx = 0; idx < dailyRecords.length; idx++) {
+                const record = dailyRecords[idx];
+                
+                doc.setFontSize(11);
+                doc.setTextColor(30, 64, 175);
                 doc.setFont("helvetica", "bold");
-                doc.setTextColor(0, 0, 0);
-                doc.text("Evidencia Fotográfica:", 20, y);
+                doc.text(`REGISTRO ${idx + 1}: ${record.tema || 'Sin Tema'}`, 20, y);
+                y += 6;
+
+                doc.setFontSize(9);
+                doc.setTextColor(60);
+                doc.setFont("helvetica", "normal");
+                const tipoStr = (record.tipo || 'actividad').toUpperCase().replace('_', ' ');
+                const resena = `Tipo: ${tipoStr} | Área: ${record.area?.toUpperCase()} | Resp: ${record.responsable} | Lugar: ${record.lugar || 'N/A'}`;
+                doc.text(resena, 20, y);
+                y += 5;
+                doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${(Number(record.hombres)||0)+(Number(record.mujeres)||0)} | HHC: ${record.hhc}`, 20, y);
                 y += 10;
 
-                for (let i = 0; i < record.evidenceImgs.length; i++) {
-                    const imgUrl = record.evidenceImgs[i];
-                    const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                    const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
-                    
-                    const buffer = await fetchProxiedFile(fetchUrl);
-                    
-                    if (buffer) {
-                        try {
-                            const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
-                            if (y > 200) { doc.addPage(); y = 20; }
-                            doc.addImage(base64, 'JPEG', 40, y, 130, 75);
-                            y += 85;
-                        } catch (e) {}
+                if (y > 270) { doc.addPage(); y = 20; }
+            }
+
+            doc.setDrawColor(200);
+            doc.line(20, y, 190, y);
+            y += 10;
+
+            // Evidencia Imágenes del Día (De todos los registros)
+            doc.setFontSize(11);
+            doc.setTextColor(0);
+            doc.setFont("helvetica", "bold");
+            doc.text("Evidencia Fotográfica del Día:", 20, y);
+            y += 10;
+
+            for (const record of dailyRecords) {
+                if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+                    for (const imgUrl of record.evidenceImgs) {
+                        const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                        const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
+                        const buffer = await fetchProxiedFile(fetchUrl);
+                        
+                        if (buffer) {
+                            try {
+                                const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
+                                if (y > 210) { doc.addPage(); y = 20; }
+                                doc.addImage(base64, 'JPEG', 40, y, 130, 75);
+                                y += 85;
+                            } catch (e) {}
+                        }
                     }
                 }
             }
 
-            // Convertir JS-PDF actual a PDF-Lib y añadir al final
+            // Convertir JS-PDF del día a PDF-Lib y añadir
             const pagePdfBytes = doc.output('arraybuffer');
             const pagePdfDoc = await PDFDocument.load(pagePdfBytes);
             const copiedPages = await finalPdfDoc.copyPages(pagePdfDoc, pagePdfDoc.getPageIndices());
             copiedPages.forEach(p => finalPdfDoc.addPage(p));
 
-            // Anexar PDF de evidencia si existe
-            if (record.evidencePdf) {
-                const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
-
-                const evidenceBuffer = await fetchProxiedFile(fetchUrl);
-                if (evidenceBuffer) {
-                    try {
-                        const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
-                        const evidencePages = await finalPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
-                        evidencePages.forEach(p => finalPdfDoc.addPage(p));
-                    } catch (e) { console.error("Error merging bulk evidence PDF", e); }
+            // Anexar todos los PDFs de evidencia del día
+            for (const record of dailyRecords) {
+                if (record.evidencePdf) {
+                    const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                    const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
+                    const evidenceBuffer = await fetchProxiedFile(fetchUrl);
+                    if (evidenceBuffer) {
+                        try {
+                            const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
+                            const evidencePages = await finalPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
+                            evidencePages.forEach(p => finalPdfDoc.addPage(p));
+                        } catch (e) { console.error("Error merging daily evidence PDF", e); }
+                    }
                 }
             }
         }
