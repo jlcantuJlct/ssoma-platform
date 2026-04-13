@@ -675,7 +675,9 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
 
         // Si hay PDF, lo guardamos para unirlo después
         if (record.evidencePdf) {
-            const pdfBuffer = await fetchProxiedFile(record.evidencePdf);
+            const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
+            const pdfBuffer = await fetchProxiedFile(fetchUrl);
             if (pdfBuffer) {
                 try {
                     const mainPdfBytes = doc.output('arraybuffer');
@@ -784,7 +786,10 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
 
             // Anexar PDF de evidencia si existe
             if (record.evidencePdf) {
-                const evidenceBuffer = await fetchProxiedFile(record.evidencePdf);
+                const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
+
+                const evidenceBuffer = await fetchProxiedFile(fetchUrl);
                 if (evidenceBuffer) {
                     try {
                         const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
