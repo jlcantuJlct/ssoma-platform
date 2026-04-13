@@ -720,6 +720,83 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             reportTitle += ` (${filters.startDate || 'Inicio'} a ${filters.endDate || 'Fin'})`;
         }
 
+        // 1. CALCULAR ESTADÍSTICAS GLOBALES PARA EL RESUMEN
+        const summaryStats = finalFilteredHistory.reduce((acc, curr) => {
+            const totalP = (Number(curr.hombres) || 0) + (Number(curr.mujeres) || 0);
+            acc.totalParticipants += totalP;
+            acc.totalHours += (Number(curr.hhc) || 0);
+            
+            const typeKey = curr.tipo || 'otros';
+            if (!acc.byType[typeKey]) acc.byType[typeKey] = 0;
+            acc.byType[typeKey] += totalP;
+            
+            return acc;
+        }, { totalParticipants: 0, totalHours: 0, byType: {} as Record<string, number> });
+
+        // 2. GENERAR PÁGINA DE RESUMEN EJECUTIVO
+        const summaryDoc = new jsPDF();
+        summaryDoc.setFillColor(245, 247, 251);
+        summaryDoc.rect(0, 0, 210, 297, 'F');
+
+        summaryDoc.setFontSize(22);
+        summaryDoc.setTextColor(30, 64, 175);
+        summaryDoc.setFont("helvetica", "bold");
+        summaryDoc.text("RESUMEN EJECUTIVO DE FORMACIÓN", 105, 40, { align: "center" });
+
+        summaryDoc.setDrawColor(30, 64, 175);
+        summaryDoc.setLineWidth(1);
+        summaryDoc.line(20, 45, 190, 45);
+
+        // Grid de Totales
+        summaryDoc.setFillColor(255, 255, 255);
+        summaryDoc.roundedRect(20, 60, 80, 40, 3, 3, 'FD');
+        summaryDoc.roundedRect(110, 60, 80, 40, 3, 3, 'FD');
+
+        summaryDoc.setFontSize(10);
+        summaryDoc.setTextColor(100);
+        summaryDoc.text("PARTICIPANTES TOTALES", 60, 75, { align: "center" });
+        summaryDoc.text("TIEMPO CAPACITADO (HHC)", 150, 75, { align: "center" });
+
+        summaryDoc.setFontSize(24);
+        summaryDoc.setTextColor(0, 0, 0);
+        summaryDoc.text(summaryStats.totalParticipants.toString(), 60, 90, { align: "center" });
+        summaryDoc.text(summaryStats.totalHours.toFixed(2), 150, 90, { align: "center" });
+
+        // Desglose por Tipo
+        summaryDoc.setFontSize(14);
+        summaryDoc.setTextColor(30, 64, 175);
+        summaryDoc.text("DESGLOSE DE PERSONAL POR TIPO DE ACTIVIDAD", 20, 120);
+
+        let sumY = 135;
+        const labels: Record<string, string> = {
+            'induccion_gen': 'INDUCCIÓN GENERAL',
+            'induccion_esp': 'INDUCCIÓN ESPECÍFICA',
+            'capacitacion': 'CAPACITACIÓN',
+            'difusion': 'DIFUSIÓN',
+            'entrenamiento': 'ENTRENAMIENTO',
+            'charla': 'CHARLA'
+        };
+
+        summaryDoc.setFontSize(10);
+        summaryDoc.setTextColor(60);
+        
+        Object.entries(summaryStats.byType).forEach(([type, count]) => {
+            summaryDoc.setFont("helvetica", "bold");
+            summaryDoc.text(labels[type] || type.toUpperCase().replace('_', ' '), 25, sumY);
+            summaryDoc.setFont("helvetica", "normal");
+            summaryDoc.text(`${count} personas`, 150, sumY);
+            
+            summaryDoc.setDrawColor(200);
+            summaryDoc.setLineWidth(0.1);
+            summaryDoc.line(20, sumY + 4, 190, sumY + 4);
+            sumY += 12;
+        });
+
+        const summaryBytes = summaryDoc.output('arraybuffer');
+        const summaryPdfDoc = await PDFDocument.load(summaryBytes);
+        const summaryPages = await finalPdfDoc.copyPages(summaryPdfDoc, summaryPdfDoc.getPageIndices());
+        summaryPages.forEach(p => finalPdfDoc.addPage(p));
+
         for (const record of recordsToExport) {
             const doc = new jsPDF();
             // Encabezado
