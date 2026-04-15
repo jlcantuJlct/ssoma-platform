@@ -158,21 +158,45 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
         hint: "Bloqueo y etiquetado (LOTO)." 
     },
     { 
-        id: "OPS_PPE_USE", 
+        id: "OPS_PPE_TAPONES", 
         group: "Seguridad y Control Operativo", 
-        label: "2. Foto de Uso de EPP", 
-        hint: "Uso correcto de EPP en campo." 
+        label: "2. Foto de Uso de EPP: Tapones", 
+        hint: "Uso correcto de tapones auditivos." 
+    },
+    { 
+        id: "OPS_PPE_GUANTES", 
+        group: "Seguridad y Control Operativo", 
+        label: "3. Foto de Uso de EPP: Guantes", 
+        hint: "Uso correcto de guantes de seguridad." 
+    },
+    { 
+        id: "OPS_PPE_LENTES", 
+        group: "Seguridad y Control Operativo", 
+        label: "4. Foto de Uso de EPP: Lentes", 
+        hint: "Uso correcto de lentes de seguridad." 
+    },
+    { 
+        id: "OPS_PPE_ARNES", 
+        group: "Seguridad y Control Operativo", 
+        label: "5. Foto de Uso de EPP: Arnés", 
+        hint: "Uso correcto de arnés de seguridad." 
+    },
+    { 
+        id: "OPS_PPE_RESPIRADOR", 
+        group: "Seguridad y Control Operativo", 
+        label: "6. Foto de Uso de EPP: Respirador", 
+        hint: "Uso correcto de respirador/mascarilla." 
     },
     { 
         id: "OPS_PPE_DELIVERY", 
         group: "Seguridad y Control Operativo", 
-        label: "3. Foto de Entrega de EPP", 
+        label: "7. Foto de Entrega de EPP", 
         hint: "Registro/entrega de EPP." 
     },
     { 
         id: "OPS_DOC_REVIEW", 
         group: "Seguridad y Control Operativo", 
-        label: "4. Foto de revisión Documentos", 
+        label: "8. Foto de revisión Documentos", 
         hint: "Revisión de ATS/PETAR/etc." 
     },
     // PROGRAMA SST Y EMERGENCIAS
