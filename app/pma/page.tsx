@@ -96,55 +96,55 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
     {
         id: "WASTE_RRSS_STATION",
         group: "Manejo de residuos",
-        label: "5. Estación de RRSS",
+        label: "5. Foto de estación de RRSS",
         hint: "Evidenciar la estación de RRSS (Residuos Sólidos) en el área."
     },
     {
         id: "DUST_CISTERN_HEAD",
         group: "Foto de control de Polvo",
-        label: "1. Las mangueras de las cisternas cuentan con cabezal.",
+        label: "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.",
         hint: "Verificar cabezal en mangueras de cisternas."
     },
     {
         id: "DUST_SPILL_KIT",
         group: "Foto de control de Polvo",
-        label: "2. Las cisternas cuentan con kit antiderrame",
+        label: "2. Foto de: Las cisternas cuentan con kit antiderrame",
         hint: "Verificar kit antiderrame operativo en cisterna."
     },
     {
         id: "DUST_WATER_COURSE",
         group: "Foto de control de Polvo",
-        label: "3. Los vehículos no ingresan al curso de agua",
+        label: "3. Foto de: Los vehículos no ingresan al curso de agua",
         hint: "Evidenciar que los vehículos respetan el curso de agua."
     },
     {
         id: "SST_EMERGENCY_VEHICLE",
         group: "Foto del Programa de SST",
-        label: "1. Vehículo de Emergencia",
+        label: "1. Foto de Vehículo de Emergencia",
         hint: "Evidenciar ambulancia o vehículo de rescate."
     },
     {
         id: "SST_HEALTH_SPECIALIST",
         group: "Foto del Programa de SST",
-        label: "2. Tópico y su especialista de Salud",
+        label: "2. Foto de Tópico y su especialista de Salud",
         hint: "Evidenciar área médica y personal de salud."
     },
     {
         id: "SST_TELEPHONE_DIRECTORY",
         group: "Foto del Programa de SST",
-        label: "3. Directorio telefónico de emergencia.",
+        label: "3. Foto de Directorio telefónico de emergencia.",
         hint: "Evidenciar directorio telefónico visible."
     },
     {
         id: "SST_COMMS_FLOW",
         group: "Foto del Programa de SST",
-        label: "4. Flujograma de Comunicación de emergencia",
+        label: "4. Foto de Flujograma de Comunicación de emergencia",
         hint: "Evidenciar flujograma de comunicaciones."
     },
     {
         id: "SST_CARE_FLOW",
         group: "Foto del Programa de SST",
-        label: "5. Flujograma de atención de emergencia",
+        label: "5. Foto de Flujograma de atención de emergencia",
         hint: "Evidenciar flujograma de atención médica."
     }
 ];
