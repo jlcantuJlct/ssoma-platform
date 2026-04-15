@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import db from '@/lib/db';
+import { sendAutomatedWhatsApp } from '@/lib/whatsappAutomation';
 
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────────────────
-const MANAGEMENT_EMAILS = [
-    'josegamontesinos@gmail.com',       // Jose Luis Galliquio
-    'jesusvillaloboslevano4@gmail.com', // Jesus Villalovos
-    '20173143@unica.edu.pe',            // Brayan Peña / Unica
-    'jlcantu.jlct@gmail.com',           // Jose Luis Cancino (CC)
+const MANAGEMENT_RECIPIENTS = [
+    { name: 'Jose Luis Galliquio', email: 'josegamontesinos@gmail.com', phone: '+51986103867' },
+    { name: 'Jesus Villalobos',    email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
+    { name: 'Brayan Peña',         email: '20173143@unica.edu.pe', phone: '' }, // No phone provided for Brayan yet
+    { name: 'Jose Luis Cancino',   email: 'jlcantu.jlct@gmail.com', phone: '' },
 ];
 
 const TARGET_USERS = [
@@ -166,12 +167,23 @@ export async function GET(req: NextRequest) {
     try {
         const reportData = await buildWeeklyReport();
         
+        const emailList = MANAGEMENT_RECIPIENTS.map(r => r.email).filter(Boolean).join(', ');
+
         await transporter.sendMail({
             from: `"SSOMA - Reporte Especializado" <${gmailUser}>`,
-            to: MANAGEMENT_EMAILS.join(', '),
+            to: emailList,
             subject: `📊 [SSOMA] Reporte de Fotos PMA y Desvíos — ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
             html: buildHtml(reportData, limaDate),
         });
+
+        // ─── ENVÍO DE WHATSAPP A GESTIÓN ───
+        for (const recipient of MANAGEMENT_RECIPIENTS) {
+            if (recipient.phone) {
+                const waMessage = `📊 *REPORTE SEMANAL SSOMA - Fotos PMA y Desvíos*\n\nHola *${recipient.name}*,\n\nSe ha generado el reporte semanal con el resumen de cumplimiento de Fotos PMA y Control de Desvíos. Puedes revisarlo en la plataforma:\nhttps://ssoma-platform.vercel.app\n\n_Este es un mensaje automático de gestión._`;
+                
+                await sendAutomatedWhatsApp(recipient.phone, waMessage);
+            }
+        }
 
         return NextResponse.json({ success: true, results: reportData });
     } catch (err: any) {

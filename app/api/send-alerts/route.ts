@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import db from '@/lib/db';
+import { sendAutomatedWhatsApp } from '@/lib/whatsappAutomation';
 
 // ─── CONFIGURACIÓN DE USUARIOS ────────────────────────────────────────────────
 const ALERT_USERS = [
-    { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51900000000' },
-    { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51900000000' },
-    { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51900000000' },
-    { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51900000000' },
-    { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51900000000' },
+    { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
+    { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51986103867' },
+    { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255' },
+    { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
+    { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173' },
 ];
 
 // Solo jlcantu.jlct recibe CC diario por solicitud propia. Los demás solo semanal.
@@ -295,6 +296,16 @@ export async function GET(req: NextRequest) {
                 subject: `${subjectPrefix} — ${user.name.split(' ')[0]} · ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
                 html: buildEmailHtml(user.name, historial, fecha),
             });
+
+            // ─── ENVÍO DE WHATSAPP (AUTOMÁTICO) ───
+            if (user.phone) {
+                const hoyPendientes = historial.find(h => h.isToday)?.pending || [];
+                if (hoyPendientes.length > 0) {
+                    const waMessage = `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${user.name.split(' ')[0]}*,\n\nAún tienes registros pendientes para el día de hoy en los siguientes módulos:\n\n${hoyPendientes.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros a la brevedad aquí:\nhttps://ssoma-platform.vercel.app\n\n_Este es un recordatorio automático del Sistema de Gestión SSOMA._`;
+                    
+                    await sendAutomatedWhatsApp(user.phone, waMessage);
+                }
+            }
 
             results.push({
                 user: user.name,
