@@ -118,7 +118,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<Clipboard size={16} />} label="Gestión PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<LayoutDashboard size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                         <SidebarItem icon={<CheckSquare size={16} />} label="Objetivos" href="/evidence" active={pathname === '/evidence'} />
-                        <SidebarItem icon={<Leaf size={16} />} label="Evidencias PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<Leaf size={16} />} label="Fotos PMA" href="/pma" active={pathname === '/pma'} />
                         <SidebarItem icon={<BarChart2 size={16} />} label="Estadística de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
