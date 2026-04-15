@@ -20,7 +20,8 @@ import {
     X,
     Settings,
     Leaf,
-    Clipboard
+    Clipboard,
+    ArrowUpRight
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -119,6 +120,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<LayoutDashboard size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                         <SidebarItem icon={<CheckSquare size={16} />} label="Objetivos" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<BarChart2 size={16} />} label="Estadística de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
