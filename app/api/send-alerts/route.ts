@@ -20,6 +20,13 @@ const DAILY_CC_EMAILS = [
 // Recibe copia de todos los WhatsApp enviados (Solicitud de administrador)
 const WHATSAPP_CC_PHONE = '+51949260281';
 
+// Lista de feriados nacionales en Perú (YYYY-MM-DD)
+const FERIADOS = [
+    '2026-01-01', '2026-04-02', '2026-04-03', '2026-05-01', '2026-06-07', 
+    '2026-06-29', '2026-07-23', '2026-07-28', '2026-07-29', '2026-08-06', 
+    '2026-08-30', '2026-10-08', '2026-11-01', '2026-12-08', '2026-12-09', '2026-12-25'
+];
+
 // Cuántos días hacia atrás revisar (hoy + 4 anteriores)
 const DAYS_TO_CHECK = 5;
 
@@ -243,6 +250,21 @@ export async function GET(req: NextRequest) {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+    const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: 'America/Lima', weekday: 'numeric' }); // 0=Sunday, 1=Monday...
+
+    const esDomingo = dayOfWeek === '0';
+    const esFeriado = FERIADOS.includes(todayStr);
+
+    if (esDomingo || esFeriado) {
+        return NextResponse.json({ 
+            success: true, 
+            message: `Hoy (${todayStr}) es ${esDomingo ? 'Domingo' : 'Feriado'}. No se envían alertas.` 
+        });
     }
 
     const gmailUser = process.env.GMAIL_USER;

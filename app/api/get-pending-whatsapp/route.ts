@@ -12,6 +12,26 @@ const ALERT_USERS = [
 
 const ADMIN_PHONE = '+51949260281';
 
+// Lista de feriados nacionales en Perú (YYYY-MM-DD)
+const FERIADOS = [
+    '2026-01-01', // Año Nuevo
+    '2026-04-02', // Jueves Santo
+    '2026-04-03', // Viernes Santo
+    '2026-05-01', // Día del Trabajo
+    '2026-06-07', // Batalla de Arica
+    '2026-06-29', // San Pedro y San Pablo
+    '2026-07-23', // Día del Capitán FAP José Abelardo Quiñones Gonzales
+    '2026-07-28', // Fiestas Patrias
+    '2026-07-29', // Fiestas Patrias
+    '2026-08-06', // Batalla de Junín
+    '2026-08-30', // Santa Rosa de Lima
+    '2026-10-08', // Combate de Angamos
+    '2026-11-01', // Todos los Santos
+    '2026-12-08', // Inmaculada Concepción
+    '2026-12-09', // Batalla de Ayacucho
+    '2026-12-25', // Navidad
+];
+
 // ─── LÓGICA DE VERIFICACIÓN ───────────────────────────────────────────────────
 async function getPendingToday(firstName: string): Promise<string[]> {
     const pending: string[] = [];
@@ -62,6 +82,23 @@ export async function GET(req: NextRequest) {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+    const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: 'America/Lima', weekday: 'numeric' }); // 0=Sunday, 1=Monday...
+
+    const esDomingo = dayOfWeek === '0';
+    const esFeriado = FERIADOS.includes(todayStr);
+
+    if (esDomingo || esFeriado) {
+        return NextResponse.json({ 
+            success: true, 
+            count: 0, 
+            data: [], 
+            message: `Hoy (${todayStr}) es ${esDomingo ? 'Domingo' : 'Feriado'}. No se envían alertas.` 
+        });
     }
 
     const results = [];
