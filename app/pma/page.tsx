@@ -38,6 +38,7 @@ type PMACategory = {
     id: string;
     label: string;
     hint: string;
+    group: string;
 };
 
 // --- CONSTANTS ---
@@ -45,24 +46,106 @@ const RESPONSIBLES = USER_LIST.map(user => user.name);
 
 const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
     {
-        id: "ACCESS_MAINTENANCE",
-        label: "Mantenimiento de Accesos (Cantera, DME, Plantas, Fuentes de Agua)",
-        hint: "Debe evidenciar: Señalización, Limpieza, Delimitación y Riego."
+        id: "SIGNAGE_SST",
+        group: "Foto señalización",
+        label: "1. Foto de señalización SST",
+        hint: "Evidenciar señalización de Seguridad y Salud en el Trabajo."
     },
     {
-        id: "PORTABLE_TOILETS",
-        label: "Alquiler y Mantenimiento de Sanitarios Portátiles",
-        hint: "Subir imágenes de los SSHH (hasta 9 fotos)."
+        id: "SIGNAGE_MA",
+        group: "Foto señalización",
+        label: "2. Foto de señalización MA",
+        hint: "Evidenciar señalización de Medio Ambiente."
     },
     {
-        id: "SOLID_WASTE",
-        label: "Batería de Residuos Sólidos con TPA + Reposición (10%)",
-        hint: "Fotos deben mostrar: Tapas de colores, techo y piso."
+        id: "SSHH_BATHROOMS",
+        group: "Foto de SSHH",
+        label: "1. Foto de baños",
+        hint: "Evidenciar estado de los baños."
     },
     {
-        id: "INTERNAL_COLLECTION",
-        label: "Recojo y Almacenamiento Interno",
-        hint: "Evidenciar: Retiro de residuos de cilindros, carguío al camión, pesado e ingreso a acopio."
+        id: "SSHH_CLEANING",
+        group: "Foto de SSHH",
+        label: "2. Foto de limpieza de baños",
+        hint: "Evidenciar la limpieza programada de los servicios higiénicos."
+    },
+    {
+        id: "WASTE_SEGREGATION",
+        group: "Manejo de residuos",
+        label: "1. Foto de segregación de residuos",
+        hint: "Evidenciar la correcta segregación en los contenedores."
+    },
+    {
+        id: "WASTE_VEHICLE",
+        group: "Manejo de residuos",
+        label: "2. Foto del vehículo de residuos",
+        hint: "Evidenciar el vehículo recolector de residuos."
+    },
+    {
+        id: "WASTE_STORAGE",
+        group: "Manejo de residuos",
+        label: "3. Foto de almacenamiento de residuos",
+        hint: "Evidenciar el área de almacenamiento temporal de residuos."
+    },
+    {
+        id: "WASTE_WEIGHING",
+        group: "Manejo de residuos",
+        label: "4. Foto de pesado de residuos",
+        hint: "Evidenciar el pesaje de los residuos generados."
+    },
+    {
+        id: "WASTE_RRSS_STATION",
+        group: "Manejo de residuos",
+        label: "5. Estación de RRSS",
+        hint: "Evidenciar la estación de RRSS (Residuos Sólidos) en el área."
+    },
+    {
+        id: "DUST_CISTERN_HEAD",
+        group: "Foto de control de Polvo",
+        label: "1. Las mangueras de las cisternas cuentan con cabezal.",
+        hint: "Verificar cabezal en mangueras de cisternas."
+    },
+    {
+        id: "DUST_SPILL_KIT",
+        group: "Foto de control de Polvo",
+        label: "2. Las cisternas cuentan con kit antiderrame",
+        hint: "Verificar kit antiderrame operativo en cisterna."
+    },
+    {
+        id: "DUST_WATER_COURSE",
+        group: "Foto de control de Polvo",
+        label: "3. Los vehículos no ingresan al curso de agua",
+        hint: "Evidenciar que los vehículos respetan el curso de agua."
+    },
+    {
+        id: "SST_EMERGENCY_VEHICLE",
+        group: "Foto del Programa de SST",
+        label: "1. Vehículo de Emergencia",
+        hint: "Evidenciar ambulancia o vehículo de rescate."
+    },
+    {
+        id: "SST_HEALTH_SPECIALIST",
+        group: "Foto del Programa de SST",
+        label: "2. Tópico y su especialista de Salud",
+        hint: "Evidenciar área médica y personal de salud."
+    },
+    {
+        id: "SST_TELEPHONE_DIRECTORY",
+        group: "Foto del Programa de SST",
+        label: "3. Directorio telefónico de emergencia.",
+        hint: "Evidenciar directorio telefónico visible."
+    },
+    {
+        id: "SST_COMMS_FLOW",
+        group: "Foto del Programa de SST",
+        label: "4. Flujograma de Comunicación de emergencia",
+        hint: "Evidenciar flujograma de comunicaciones."
+    },
+    {
+        id: "SST_CARE_FLOW",
+        group: "Foto del Programa de SST",
+        label: "5. Flujograma de atención de emergencia",
+        hint: "Evidenciar flujograma de atención médica."
     }
 ];
 
@@ -122,17 +205,9 @@ export default function PMAPage() {
             }
         }
 
-        // Load Categories
-        const storedCategories = localStorage.getItem('ssoma_pma_categories');
-        if (storedCategories) {
-            try {
-                setPmaCategories(JSON.parse(storedCategories));
-            } catch (e) {
-                console.error("Error parsing ssoma_pma_categories", e);
-            }
-        } else {
-            localStorage.setItem('ssoma_pma_categories', JSON.stringify(DEFAULT_PMA_CATEGORIES));
-        }
+        // Load Categories (Always reset to DEFAULT for this update)
+        setPmaCategories(DEFAULT_PMA_CATEGORIES);
+        localStorage.setItem('ssoma_pma_categories', JSON.stringify(DEFAULT_PMA_CATEGORIES));
 
         setIsLoaded(true);
     }, []);
@@ -442,7 +517,7 @@ export default function PMAPage() {
 
                                     {/* Categoría */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Categoría PMA</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Foto señalización</label>
                                         <div className="relative group">
                                             <Leaf className="absolute left-3 top-3 text-slate-500" size={16} />
                                             <select
@@ -452,8 +527,17 @@ export default function PMAPage() {
                                                 required
                                             >
                                                 <option value="">Seleccionar Actividad...</option>
-                                                {pmaCategories.map(cat => (
-                                                    <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                                {Array.from(new Set(pmaCategories.map(c => c.group))).map(groupName => (
+                                                    <optgroup key={groupName} label={groupName} className="bg-slate-900 text-emerald-400 font-bold">
+                                                        {pmaCategories
+                                                            .filter(c => c.group === groupName)
+                                                            .map(cat => (
+                                                                <option key={cat.id} value={cat.id} className="bg-slate-950 text-white font-normal">
+                                                                    {cat.label}
+                                                                </option>
+                                                            ))
+                                                        }
+                                                    </optgroup>
                                                 ))}
                                             </select>
                                         </div>
