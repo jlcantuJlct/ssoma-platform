@@ -77,51 +77,60 @@ async function getPendingToday(firstName: string): Promise<string[]> {
 
 // ─── HANDLER GET ──────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET || 'ssoma_cron_2026';
+    try {
+        const authHeader = req.headers.get('authorization');
+        const cronSecret = process.env.CRON_SECRET || 'ssoma_cron_2026';
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+        if (authHeader !== `Bearer ${cronSecret}`) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-    // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
-    const now = new Date();
-    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
-    const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: 'America/Lima', weekday: 'numeric' }); // 0=Sunday, 1=Monday...
+        // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+        const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: 'America/Lima', weekday: 'numeric' }); // 0=Sunday, 1=Monday...
 
-    const esDomingo = dayOfWeek === '0';
-    const esFeriado = FERIADOS.includes(todayStr);
+        const esDomingo = dayOfWeek === '0';
+        const esFeriado = FERIADOS.includes(todayStr);
 
-    if (esDomingo || esFeriado) {
-        return NextResponse.json({ 
-            success: true, 
-            count: 0, 
-            data: [], 
-            message: `Hoy (${todayStr}) es ${esDomingo ? 'Domingo' : 'Feriado'}. No se envían alertas.` 
-        });
-    }
-
-    const results = [];
-
-    for (const user of ALERT_USERS) {
-        const firstName = user.name.split(' ')[0];
-        const pending = await getPendingToday(firstName);
-
-        if (pending.length > 0) {
-            results.push({
-                name: user.name,
-                firstName: firstName,
-                phone: user.phone,
-                pendingModules: pending,
-                message: `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${firstName}*,\n\nAún tienes registros pendientes para el día de hoy en los siguientes módulos:\n\n${pending.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros a la brevedad aquí:\nhttps://ssoma-platform.vercel.app\n\n_Este es un recordatorio automático del Sistema de Gestión SSOMA._`
+        if (esDomingo || esFeriado) {
+            return NextResponse.json({ 
+                success: true, 
+                count: 0, 
+                data: [], 
+                message: `Hoy (${todayStr}) es ${esDomingo ? 'Domingo' : 'Feriado'}. No se envían alertas.` 
             });
         }
-    }
 
-    return NextResponse.json({ 
-        success: true, 
-        adminPhone: ADMIN_PHONE,
-        count: results.length,
-        data: results 
-    });
+        const results = [];
+
+        for (const user of ALERT_USERS) {
+            const firstName = user.name.split(' ')[0];
+            const pending = await getPendingToday(firstName);
+
+            if (pending.length > 0) {
+                results.push({
+                    name: user.name,
+                    firstName: firstName,
+                    phone: user.phone,
+                    pendingModules: pending,
+                    message: `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${firstName}*,\n\nAún tienes registros pendientes para el día de hoy en los siguientes módulos:\n\n${pending.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros a la brevedad aquí:\nhttps://ssoma-platform.vercel.app\n\n_Este es un recordatorio automático del Sistema de Gestión SSOMA._`
+                });
+            }
+        }
+
+        return NextResponse.json({ 
+            success: true, 
+            adminPhone: ADMIN_PHONE,
+            count: results.length,
+            data: results 
+        });
+    } catch (err: any) {
+        console.error('CRITICAL ERROR in get-pending-whatsapp:', err);
+        return NextResponse.json({ 
+            success: false, 
+            error: err.message,
+            stack: err.stack
+        }, { status: 500 });
+    }
 }
