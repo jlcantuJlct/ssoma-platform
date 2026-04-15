@@ -11,6 +11,7 @@ export interface User {
     name: string;
     role: UserRole;
     email?: string;
+    phone?: string;
 }
 
 // Interfaz para la lista pública de usuarios
@@ -25,26 +26,28 @@ export interface FullUser extends User {
     password?: string;
 }
 
-export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string }> = {
+export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone: string }> = {
     'jose.cancino': {
         password: '161976Jlct',
         name: 'Jose Luis Cancino',
         role: 'developer',
-        email: 'jlcancino@example.com'
+        email: 'jlcancino@example.com',
+        phone: '+51900000000'
     },
     'gerencia': {
         password: 'GerenciaSSO2026',
         name: 'Gerencia General',
         role: 'manager',
-        email: 'gerencia@antigravity.com'
+        email: 'gerencia@antigravity.com',
+        phone: '+51900000000'
     },
-    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com' },
-    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com' },
-    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com' },
-    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com' },
-    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com' },
-    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com' },
-    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladys Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com' },
+    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com', phone: '+51900000000' },
+    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com', phone: '+51900000000' },
+    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com', phone: '+51900000000' },
+    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51900000000' },
+    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000' },
+    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000' },
+    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladys Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51900000000' },
 };
 
 // Exportar lista para el Login

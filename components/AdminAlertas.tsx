@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Send, CheckCircle2, AlertTriangle, Loader2, Mail, Clock, Users } from 'lucide-react';
+import { Bell, Send, CheckCircle2, AlertTriangle, Loader2, Mail, Clock, Users, MessageCircle } from 'lucide-react';
 
 const USUARIOS = [
-    { name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com' },
-    { name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com' },
-    { name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com' },
-    { name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com' },
-    { name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com' },
+    { name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51900000000' },
+    { name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51900000000' },
+    { name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51900000000' },
+    { name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51900000000' },
+    { name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51900000000' },
 ];
 
 const CC = ['jlcantu.jlct@gmail.com', 'jcancino@casacontratistas.com', 'rguerra@casacontratistas.com', 'mescobar@casacontratistas.com'];
@@ -18,6 +18,7 @@ interface AlertResult {
     status: 'ok' | 'sent' | 'error';
     email?: string;
     pendingModules?: string[];
+    phone?: string;
     message?: string;
     error?: string;
 }
@@ -48,7 +49,12 @@ export default function AdminAlertas() {
             if (!res.ok || data.error) {
                 setError(data.error || 'Error al enviar alertas');
             } else {
-                setResults(data.results || []);
+                // Vincular teléfonos a los resultados
+                const enrichedResults = (data.results || []).map((r: any) => ({
+                    ...r,
+                    phone: USUARIOS.find(u => u.name === r.user)?.phone || ''
+                }));
+                setResults(enrichedResults);
                 setSent(true);
             }
         } catch (e: any) {
@@ -153,13 +159,27 @@ export default function AdminAlertas() {
                             </span>
                         </div>
                         {results.filter(r => r.pendingModules?.length).map((r, i) => (
-                            <div key={i} className="result-detail">
-                                <p className="result-user">{r.user}</p>
-                                <div className="result-modules">
-                                    {r.pendingModules?.map(m => (
-                                        <span key={m} className="result-module-chip">{m}</span>
-                                    ))}
+                            <div key={i} className="result-detail" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                    <p className="result-user">{r.user}</p>
+                                    <div className="result-modules">
+                                        {r.pendingModules?.map(m => (
+                                            <span key={m} className="result-module-chip">{m}</span>
+                                        ))}
+                                    </div>
                                 </div>
+                                {r.phone && (
+                                    <a 
+                                        href={`https://wa.me/${r.phone.replace(/\+/g, '')}?text=${encodeURIComponent(`Hola ${r.user.split(' ')[0]}, te recordamos que aún tienes registros pendientes en la plataforma SSOMA para el día de hoy: ${r.pendingModules?.join(', ')}. Por favor, complétalos a la brevedad: https://ssoma-platform.vercel.app`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-whatsapp"
+                                        title="Enviar recordatorio por WhatsApp"
+                                    >
+                                        <MessageCircle size={14} />
+                                        <span>Recordar</span>
+                                    </a>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -290,6 +310,17 @@ export default function AdminAlertas() {
                     color: #fca5a5; font-size: 11px; font-weight: 600;
                     padding: 3px 8px; border-radius: 999px;
                 }
+
+                .btn-whatsapp {
+                    display: flex; align-items: center; gap: 6px;
+                    background: #25d366; color: #fff;
+                    font-size: 11px; font-weight: 700;
+                    padding: 6px 12px; border-radius: 8px;
+                    text-decoration: none; transition: all 0.2s;
+                    box-shadow: 0 4px 12px rgba(37,211,102,0.2);
+                    flex-shrink: 0;
+                }
+                .btn-whatsapp:hover { background: #20ba5a; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,211,102,0.3); }
 
                 .btn-enviar {
                     width: 100%;
