@@ -10,6 +10,7 @@ const ALERT_USERS = [
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255' },
     { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173' },
+    { username: 'brayan.pena',         name: 'Brayan Jeanpool Peña Villafuerte', email: '20173143@unica.edu.pe',       phone: '+51971087023' },
 ];
 
 const DAILY_CC_EMAILS = [
@@ -31,8 +32,29 @@ async function getPendingForDate(firstName: string, dateStr: string, isToday: bo
     const pending: string[] = [];
     const nameLower = firstName.toLowerCase();
     const isGladys = nameLower === 'gladys' || nameLower === 'gladis';
+    const isBrayan = nameLower === 'brayan';
 
-    // 1. Tareas Diarias (Solo para No-Gladys)
+    // 1. Tareas de Brayan (SOLO Fotos PMA y Control Desvio)
+    if (isBrayan) {
+        try {
+            const row = await db.fetchOne(
+                `SELECT e.id FROM evidence e 
+                 JOIN activities a ON e.activity_id = a.id 
+                 WHERE e.created_at LIKE ? AND a.responsible LIKE ?`,
+                [`${dateStr}%`, `%${firstName}%`]
+            );
+            if (!row) pending.push('Fotos PMA');
+        } catch {}
+
+        try {
+            const row = await db.fetchOne(`SELECT id FROM desvio_evidence_records WHERE date = ? AND responsible LIKE ?`, [dateStr, `%${firstName}%`]);
+            if (!row) pending.push('Control de Desvíos');
+        } catch {}
+
+        return pending;
+    }
+
+    // 2. Tareas Diarias (Solo para No-Gladys ni Brayan)
     if (!isGladys) {
         try {
             const row = await db.fetchOne(`SELECT id FROM inspection_records WHERE date LIKE ? AND responsible LIKE ?`, [`${dateStr}%`, `%${firstName}%`]);
