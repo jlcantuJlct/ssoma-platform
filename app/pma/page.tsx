@@ -199,6 +199,12 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
         label: "8. Foto de revisión Documentos", 
         hint: "Revisión de ATS/PETAR/etc." 
     },
+    { 
+        id: "OPS_MACHINE_SILENCER", 
+        group: "Seguridad y Control Operativo", 
+        label: "9. Foto de Maquinarias con silenciador", 
+        hint: "Evidenciar uso de silenciadores en maquinaria." 
+    },
     // PROGRAMA SST Y EMERGENCIAS
     { 
         id: "SST_EMERGENCY_VEHICLE", 
