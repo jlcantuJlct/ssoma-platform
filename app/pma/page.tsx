@@ -57,6 +57,12 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
         label: "2. Foto de señalización MA",
         hint: "Evidenciar señalización de Medio Ambiente."
     },
+    {
+        id: "SIGNAGE_PERIMETERS",
+        group: "Foto señalización",
+        label: "3. Foto de Delimitación de áreas y Perímetros",
+        hint: "Evidenciar mallas, cintas o barreras de delimitación."
+    },
     // BIENESTAR E HIGIENE
     { 
         id: "WELLBEING_BATHROOMS", 
