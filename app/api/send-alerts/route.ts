@@ -17,6 +17,9 @@ const DAILY_CC_EMAILS = [
     'jlcantu.jlct@gmail.com'
 ];
 
+// Recibe copia de todos los WhatsApp enviados (Solicitud de administrador)
+const WHATSAPP_CC_PHONE = '+51949260281';
+
 // Cuántos días hacia atrás revisar (hoy + 4 anteriores)
 const DAYS_TO_CHECK = 5;
 
@@ -304,6 +307,10 @@ export async function GET(req: NextRequest) {
                     const waMessage = `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${user.name.split(' ')[0]}*,\n\nAún tienes registros pendientes para el día de hoy en los siguientes módulos:\n\n${hoyPendientes.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros a la brevedad aquí:\nhttps://ssoma-platform.vercel.app\n\n_Este es un recordatorio automático del Sistema de Gestión SSOMA._`;
                     
                     await sendAutomatedWhatsApp(user.phone, waMessage);
+
+                    // Enviar copia CC al administrador
+                    const ccMessage = `[COPIA CC] Para *${user.name}*:\n\n${waMessage}`;
+                    await sendAutomatedWhatsApp(WHATSAPP_CC_PHONE, ccMessage);
                 }
             }
 

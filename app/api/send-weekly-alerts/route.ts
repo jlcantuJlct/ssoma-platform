@@ -8,7 +8,7 @@ const MANAGEMENT_RECIPIENTS = [
     { name: 'Jose Luis Galliquio', email: 'josegamontesinos@gmail.com', phone: '+51986103867' },
     { name: 'Jesus Villalobos',    email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
     { name: 'Brayan Peña',         email: '20173143@unica.edu.pe', phone: '' }, // No phone provided for Brayan yet
-    { name: 'Jose Luis Cancino',   email: 'jlcantu.jlct@gmail.com', phone: '' },
+    { name: 'Jose Luis Cancino',   email: 'jlcantu.jlct@gmail.com', phone: '+51949260281' },
 ];
 
 const TARGET_USERS = [
