@@ -4,17 +4,18 @@ import db from '@/lib/db';
 
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────────────────
 const MANAGEMENT_EMAILS = [
-    'rguerra@casacontratistas.com',
-    'mescobar@casacontratistas.com',
-    'jcancino@casacontratistas.com',
-    'jlcantu.jlct@gmail.com',
+    'josegamontesinos@gmail.com',       // Jose Luis Galliquio
+    'jesusvillaloboslevano4@gmail.com', // Jesus Villalovos
+    '20173143@unica.edu.pe',            // Brayan Peña / Unica
+    'jlcantu.jlct@gmail.com',           // Jose Luis Cancino (CC)
 ];
 
 const TARGET_USERS = [
     { username: 'jose.galliquio',     name: 'Jose Galliquio',     firstName: 'Jose' },
-    { username: 'adrian.suarez',      name: 'Adrian Suarez',      firstName: 'Adrian' },
-    { username: 'gladis.aroste',      name: 'Gladis Aroste',      firstName: 'Gladis' },
     { username: 'jesus.villalovos',   name: 'Jesus Villalovos',   firstName: 'Jesus' },
+    { username: 'adrian.suarez',      name: 'Adrian Suarez',      firstName: 'Adrian' },
+    { username: 'albert.chuquispuma', name: 'Albert Chuquispuma', firstName: 'Albert' },
+    { username: 'gladis.aroste',      name: 'Gladis Aroste',      firstName: 'Gladis' },
 ];
 
 const DAYS_TO_CHECK = 7; // Una semana completa
@@ -22,63 +23,26 @@ const DAYS_TO_CHECK = 7; // Una semana completa
 // ─── COMPROBACIÓN DE PENDIENTES ──────────────────────────────────────────────
 async function getPendingForDate(firstName: string, dateStr: string): Promise<string[]> {
     const pending: string[] = [];
-    const isGladys = firstName.toLowerCase() === 'gladys' || firstName.toLowerCase() === 'gladis';
 
+    // 1. Fotos PMA (Evidencias PMA en el código se llama 'evidence')
     try {
         const rows = await db.fetchAll(
-            `SELECT id FROM inspection_records WHERE date LIKE ? AND responsible LIKE ?`,
-            [`${dateStr}%`, `%${firstName}%`]
+            `SELECT e.id FROM evidence e
+             JOIN activities a ON e.activity_id = a.id
+             WHERE DATE(e.created_at) = ? AND a.responsible LIKE ?`,
+            [dateStr, `%${firstName}%`]
         );
-        if (!rows || rows.length === 0) pending.push('Inspecciones');
-    } catch { pending.push('Inspecciones'); }
+        if (!rows || rows.length === 0) pending.push('Fotos PMA');
+    } catch { pending.push('Fotos PMA'); }
 
-    if (!isGladys) {
-        try {
-            const rows = await db.fetchAll(
-                `SELECT id FROM ats_records WHERE date LIKE ? AND responsible LIKE ?`,
-                [`${dateStr}%`, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('ATS');
-        } catch { pending.push('ATS'); }
-
-        try {
-            const rows = await db.fetchAll(
-                `SELECT id FROM petar_records WHERE date LIKE ? AND responsible LIKE ?`,
-                [`${dateStr}%`, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('PETAR');
-        } catch { pending.push('PETAR'); }
-    }
-
+    // 2. Control de Desvíos (Nueva tabla desvio_evidence_records)
     try {
         const rows = await db.fetchAll(
-            `SELECT id FROM hhc_records WHERE date LIKE ? AND responsable LIKE ?`,
-            [`${dateStr}%`, `%${firstName}%`]
+            `SELECT id FROM desvio_evidence_records WHERE date = ? AND responsible LIKE ?`,
+            [dateStr, `%${firstName}%`]
         );
-        if (!rows || rows.length === 0) pending.push('HHC');
-    } catch { pending.push('HHC'); }
-
-    if (!isGladys) {
-        try {
-            const rows = await db.fetchAll(
-                `SELECT p.id FROM progress p
-                 JOIN activities a ON p.activity_id = a.id
-                 WHERE DATE(p.created_at) = ? AND a.responsible LIKE ? AND p.executed_value > 0`,
-                [dateStr, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('Objetivos PMA');
-        } catch { pending.push('Objetivos PMA'); }
-
-        try {
-            const rows = await db.fetchAll(
-                `SELECT e.id FROM evidence e
-                 JOIN activities a ON e.activity_id = a.id
-                 WHERE DATE(e.created_at) = ? AND a.responsible LIKE ?`,
-                [dateStr, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('Evidencias PMA');
-        } catch { pending.push('Evidencias PMA'); }
-    }
+        if (!rows || rows.length === 0) pending.push('Control de Desvíos');
+    } catch { pending.push('Control de Desvíos'); }
 
     return pending;
 }
@@ -146,11 +110,11 @@ function buildHtml(reportData: any[], fecha: string) {
     <body style="font-family:'Segoe UI',Arial,sans-serif; background:#f8fafc; padding:20px; color:#334155;">
         <div style="max-width:700px; margin:0 auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
             <div style="background:#064e3b; padding:25px; text-align:center; color:#fff;">
-                <h1 style="margin:0; font-size:20px; font-weight:800; letter-spacing:1px;">REPORTE SEMANAL DE CUMPLIMIENTO</h1>
+                <h1 style="margin:0; font-size:20px; font-weight:800; letter-spacing:1px;">REPORTE SEMANAL DE FOTOS PMA Y DESVÍOS</h1>
                 <p style="margin:5px 0 0; opacity:0.8; font-size:12px;">SSOMA PLATFORM · SEMANA AL ${fecha}</p>
             </div>
             <div style="padding:20px;">
-                <p style="font-size:14px; color:#64748b; margin-bottom:20px;">A continuación se detallan los registros pendientes de los últimos ${DAYS_TO_CHECK} días para el personal monitoreado:</p>
+                <p style="font-size:14px; color:#64748b; margin-bottom:20px;">A continuación se detallan los registros pendientes de Fotos PMA y Control de Desvíos para el personal monitoreado:</p>
                 <table style="width:100%; border-collapse:collapse;">
                     <thead style="background:#f1f5f9;">
                         <tr>
@@ -165,7 +129,7 @@ function buildHtml(reportData: any[], fecha: string) {
                 </div>
             </div>
             <div style="background:#f1f5f9; padding:15px; text-align:center; color:#94a3b8; font-size:11px;">
-                Este es un reporte automático generado cada sábado a las 5:00 PM.
+                Este es un reporte automático especializado generado para el equipo de gestión.
             </div>
         </div>
     </body>
@@ -203,9 +167,9 @@ export async function GET(req: NextRequest) {
         const reportData = await buildWeeklyReport();
         
         await transporter.sendMail({
-            from: `"SSOMA - Reporte Semanal" <${gmailUser}>`,
+            from: `"SSOMA - Reporte Especializado" <${gmailUser}>`,
             to: MANAGEMENT_EMAILS.join(', '),
-            subject: `📊 [SSOMA] Reporte Semanal de Cumplimiento — ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
+            subject: `📊 [SSOMA] Reporte de Fotos PMA y Desvíos — ${new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}`,
             html: buildHtml(reportData, limaDate),
         });
 

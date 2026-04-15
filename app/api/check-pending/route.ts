@@ -50,27 +50,5 @@ export async function GET(req: NextRequest) {
         if (!rows || rows.length === 0) pending.push('HHC');
     } catch { pending.push('HHC'); }
 
-    if (!isGladys) {
-        try {
-            const rows = await db.fetchAll(
-                `SELECT p.id FROM progress p
-                 JOIN activities a ON p.activity_id = a.id
-                 WHERE DATE(p.created_at) = ? AND a.responsible LIKE ? AND p.executed_value > 0`,
-                [today, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('Objetivos PMA');
-        } catch { pending.push('Objetivos PMA'); }
-
-        try {
-            const rows = await db.fetchAll(
-                `SELECT e.id FROM evidence e
-                 JOIN activities a ON e.activity_id = a.id
-                 WHERE DATE(e.created_at) = ? AND a.responsible LIKE ?`,
-                [today, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('Evidencias PMA');
-        } catch { pending.push('Evidencias PMA'); }
-    }
-
     return NextResponse.json({ pending, today, username });
 }
