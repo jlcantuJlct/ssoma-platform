@@ -517,7 +517,7 @@ export default function PMAPage() {
 
                                     {/* Categoría */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Foto señalización</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Fotos PMA</label>
                                         <div className="relative group">
                                             <Leaf className="absolute left-3 top-3 text-slate-500" size={16} />
                                             <select
