@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-// ─── CONFIGURACIÓN DE USUARIOS (Igual que en send-alerts) ──────────────────────
+// ─── CONFIGURACIÓN DE USUARIOS ────────────────────────────────────────────────
 const ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   phone: '+51928893280' },
     { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', phone: '+51986103867' },
@@ -12,67 +12,80 @@ const ALERT_USERS = [
 
 const ADMIN_PHONE = '+51949260281';
 
-// Lista de feriados nacionales en Perú (YYYY-MM-DD)
 const FERIADOS = [
-    '2026-01-01', // Año Nuevo
-    '2026-04-02', // Jueves Santo
-    '2026-04-03', // Viernes Santo
-    '2026-05-01', // Día del Trabajo
-    '2026-06-07', // Batalla de Arica
-    '2026-06-29', // San Pedro y San Pablo
-    '2026-07-23', // Día del Capitán FAP José Abelardo Quiñones Gonzales
-    '2026-07-28', // Fiestas Patrias
-    '2026-07-29', // Fiestas Patrias
-    '2026-08-06', // Batalla de Junín
-    '2026-08-30', // Santa Rosa de Lima
-    '2026-10-08', // Combate de Angamos
-    '2026-11-01', // Todos los Santos
-    '2026-12-08', // Inmaculada Concepción
-    '2026-12-09', // Batalla de Ayacucho
-    '2026-12-25', // Navidad
+    '2026-01-01', '2026-04-02', '2026-04-03', '2026-05-01', '2026-06-07', 
+    '2026-06-29', '2026-07-23', '2026-07-28', '2026-07-29', '2026-08-06', 
+    '2026-08-30', '2026-10-08', '2026-11-01', '2026-12-08', '2026-12-09', '2026-12-25'
 ];
 
-// ─── LÓGICA DE VERIFICACIÓN ───────────────────────────────────────────────────
-async function getPendingToday(firstName: string): Promise<string[]> {
-    const pending: string[] = [];
+// ─── LÓGICA DE VERIFICACIÓN DETALLADA ─────────────────────────────────────────
+
+async function getDetailedPending(user: any): Promise<string[]> {
+    const pendingDetails: string[] = [];
+    const firstName = user.name.split(' ')[0];
     const isGladys = firstName.toLowerCase() === 'gladys' || firstName.toLowerCase() === 'gladis';
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
-    try {
-        const rows = await db.fetchAll(
-            `SELECT id FROM inspection_records WHERE date LIKE ? AND responsible LIKE ?`,
-            [`${today}%`, `%${firstName}%`]
-        );
-        if (!rows || rows.length === 0) pending.push('Inspecciones');
-    } catch { pending.push('Inspecciones'); }
+    // 1. Obtener Mes Actual para el PMA (e.g. "Abril 2026")
+    const monthName = now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric', timeZone: 'America/Lima' });
+    const pmaMonthFormatted = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
+    // 2. Tareas Diarias (Solo si NO es Gladys o si se requiere)
+    // El usuario pidió para Gladys SOLO Salud. Los ATS/PETAR/Inspecciones normales suelen ser Operativos.
     if (!isGladys) {
+        // ATS Diario
         try {
-            const rows = await db.fetchAll(
-                `SELECT id FROM ats_records WHERE date LIKE ? AND responsible LIKE ?`,
-                [`${today}%`, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('ATS');
-        } catch { pending.push('ATS'); }
+            const ats = await db.fetchOne(`SELECT id FROM ats_records WHERE date LIKE ? AND responsible LIKE ?`, [`${todayStr}%`, `%${firstName}%`]);
+            if (!ats) pendingDetails.push('Operativo: ATS Diario');
+        } catch {}
 
+        // PETAR Diario
         try {
-            const rows = await db.fetchAll(
-                `SELECT id FROM petar_records WHERE date LIKE ? AND responsible LIKE ?`,
-                [`${today}%`, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pending.push('PETAR');
-        } catch { pending.push('PETAR'); }
+            const petar = await db.fetchOne(`SELECT id FROM petar_records WHERE date LIKE ? AND responsible LIKE ?`, [`${todayStr}%`, `%${firstName}%`]);
+            if (!petar) pendingDetails.push('Operativo: PETAR Diario');
+        } catch {}
+
+        // HHC Diario
+        try {
+            const hhc = await db.fetchOne(`SELECT id FROM hhc_records WHERE date LIKE ? AND responsable LIKE ?`, [`${todayStr}%`, `%${firstName}%`]);
+            if (!hhc) pendingDetails.push('Operativo: Control HHC');
+        } catch {}
     }
 
+    // 3. Tareas del PMA (Formación, Inspecciones, Salud)
     try {
-        const rows = await db.fetchAll(
-            `SELECT id FROM hhc_records WHERE date LIKE ? AND responsable LIKE ?`,
-            [`${today}%`, `%${firstName}%`]
+        const pmaTasks = await db.fetchAll(
+            `SELECT category, topic FROM pma_records 
+             WHERE month = ? AND responsible LIKE ? AND (status IS NULL OR status != 'Completado')`,
+            [pmaMonthFormatted, `%${firstName}%`]
         );
-        if (!rows || rows.length === 0) pending.push('HHC');
-    } catch { pending.push('HHC'); }
 
-    return pending;
+        for (const task of pmaTasks) {
+            const cat = task.category;
+            const topic = task.topic;
+
+            if (isGladys) {
+                // Para Gladys SOLO Salud Ocupacional
+                if (cat === 'Salud Ocupacional') {
+                    pendingDetails.push(`Salud: ${topic}`);
+                }
+            } else {
+                // Para los demás, clasificar por tipo
+                if (cat === 'Formación') {
+                    pendingDetails.push(`Formación: ${topic}`);
+                } else if (cat === 'Gestión de riesgos' || cat === 'Inspecciones') {
+                    pendingDetails.push(`Inspección: ${topic}`);
+                } else {
+                    pendingDetails.push(`${cat}: ${topic}`);
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error consultando PMA para", user.name, err);
+    }
+
+    return pendingDetails;
 }
 
 // ─── HANDLER GET ──────────────────────────────────────────────────────────────
@@ -85,52 +98,31 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
         const now = new Date();
-        const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+        const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
         const dayOfWeekName = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', weekday: 'long' }).format(now);
 
-        const esDomingo = dayOfWeekName === 'Sunday';
-        const esFeriado = FERIADOS.includes(todayStr);
-
-        if (esDomingo || esFeriado) {
-            return NextResponse.json({ 
-                success: true, 
-                count: 0, 
-                data: [], 
-                message: `Hoy (${todayStr}) es ${esDomingo ? 'Domingo' : 'Feriado'}. No se envían alertas.` 
-            });
+        if (dayOfWeekName === 'Sunday' || FERIADOS.includes(todayStr)) {
+            return NextResponse.json({ success: true, count: 0, data: [], message: "Día no laborable" });
         }
 
         const results = [];
-
         for (const user of ALERT_USERS) {
-            const firstName = user.name.split(' ')[0];
-            const pending = await getPendingToday(firstName);
+            const pending = await getDetailedPending(user);
 
             if (pending.length > 0) {
+                const firstName = user.name.split(' ')[0];
                 results.push({
                     name: user.name,
-                    firstName: firstName,
                     phone: user.phone,
-                    pendingModules: pending,
-                    message: `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${firstName}*,\n\nAún tienes registros pendientes para el día de hoy en los siguientes módulos:\n\n${pending.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros a la brevedad aquí:\nhttps://ssoma-platform.vercel.app\n\n_Este es un recordatorio automático del Sistema de Gestión SSOMA._`
+                    pendingCount: pending.length,
+                    message: `🛡️ *DASHBOARD SSOMA - Recordatorio*\n\nHola *${firstName}*,\n\nAún tienes registros pendientes para el día de hoy:\n\n${pending.map(p => `❌ ${p}`).join('\n')}\n\nPor favor, completa tus registros aquí:\nhttps://ssoma-platform.vercel.app\n\n_Recordatorio automático de gestión SSOMA._`
                 });
             }
         }
 
-        return NextResponse.json({ 
-            success: true, 
-            adminPhone: ADMIN_PHONE,
-            count: results.length,
-            data: results 
-        });
+        return NextResponse.json({ success: true, adminPhone: ADMIN_PHONE, count: results.length, data: results });
     } catch (err: any) {
-        console.error('CRITICAL ERROR in get-pending-whatsapp:', err);
-        return NextResponse.json({ 
-            success: false, 
-            error: err.message,
-            stack: err.stack
-        }, { status: 500 });
+        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
 }
