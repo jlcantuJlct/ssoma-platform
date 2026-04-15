@@ -48,7 +48,7 @@ export const INITIAL_USERS: Record<string, { password: string, name: string, rol
     'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000' },
     'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000' },
     'gladis.aroste': { password: 'GAroste@2026', name: 'Gladys Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799' },
-    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'manager', email: '20173143@unica.edu.pe', phone: '+51971087023' },
+    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023' },
 };
 
 // Exportar lista para el Login
