@@ -88,9 +88,9 @@ export async function GET(req: NextRequest) {
         // ─── VERIFICACIÓN DE DOMINGOS Y FERIADOS ───
         const now = new Date();
         const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
-        const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: 'America/Lima', weekday: 'numeric' }); // 0=Sunday, 1=Monday...
+        const dayOfWeekName = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', weekday: 'long' }).format(now);
 
-        const esDomingo = dayOfWeek === '0';
+        const esDomingo = dayOfWeekName === 'Sunday';
         const esFeriado = FERIADOS.includes(todayStr);
 
         if (esDomingo || esFeriado) {
