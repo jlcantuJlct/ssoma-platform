@@ -57,95 +57,185 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
         label: "2. Foto de señalización MA",
         hint: "Evidenciar señalización de Medio Ambiente."
     },
-    {
-        id: "SSHH_BATHROOMS",
-        group: "Foto de SSHH",
-        label: "1. Foto de baños",
-        hint: "Evidenciar estado de los baños."
+    // BIENESTAR E HIGIENE
+    { 
+        id: "WELLBEING_BATHROOMS", 
+        group: "Bienestar e Higiene", 
+        label: "1. Foto de baños", 
+        hint: "Evidenciar estado de los baños." 
     },
-    {
-        id: "SSHH_CLEANING",
-        group: "Foto de SSHH",
-        label: "2. Foto de limpieza de baños",
-        hint: "Evidenciar la limpieza programada de los servicios higiénicos."
+    { 
+        id: "WELLBEING_CLEANING", 
+        group: "Bienestar e Higiene", 
+        label: "2. Foto de limpieza de baños", 
+        hint: "Evidenciar la limpieza programada." 
     },
-    {
-        id: "WASTE_SEGREGATION",
-        group: "Manejo de residuos",
-        label: "1. Foto de segregación de residuos",
-        hint: "Evidenciar la correcta segregación en los contenedores."
+    { 
+        id: "WELLBEING_HANDWASH", 
+        group: "Bienestar e Higiene", 
+        label: "3. Foto de Lavado de Manos", 
+        hint: "Evidenciar estación de lavado de manos." 
     },
-    {
-        id: "WASTE_VEHICLE",
-        group: "Manejo de residuos",
-        label: "2. Foto del vehículo de residuos",
-        hint: "Evidenciar el vehículo recolector de residuos."
+    { 
+        id: "WELLBEING_HYDRATION", 
+        group: "Bienestar e Higiene", 
+        label: "4. Foto Punto de Hidratación", 
+        hint: "Evidenciar puntos de agua/hidratación." 
     },
-    {
-        id: "WASTE_STORAGE",
-        group: "Manejo de residuos",
-        label: "3. Foto de almacenamiento de residuos",
-        hint: "Evidenciar el área de almacenamiento temporal de residuos."
+    { 
+        id: "WELLBEING_DINING", 
+        group: "Bienestar e Higiene", 
+        label: "5. Foto de comedor", 
+        hint: "Evidenciar área de comedor." 
     },
-    {
-        id: "WASTE_WEIGHING",
-        group: "Manejo de residuos",
-        label: "4. Foto de pesado de residuos",
-        hint: "Evidenciar el pesaje de los residuos generados."
+    { 
+        id: "WELLBEING_DINING_CLEAN", 
+        group: "Bienestar e Higiene", 
+        label: "6. Foto de Limpieza de Comedor", 
+        hint: "Evidenciar limpieza del comedor." 
     },
-    {
-        id: "WASTE_RRSS_STATION",
-        group: "Manejo de residuos",
-        label: "5. Foto de estación de RRSS",
-        hint: "Evidenciar la estación de RRSS (Residuos Sólidos) en el área."
+    { 
+        id: "WELLBEING_LOCKER", 
+        group: "Bienestar e Higiene", 
+        label: "7. Foto de vestuario", 
+        hint: "Evidenciar área de vestuarios." 
     },
-    {
-        id: "DUST_CISTERN_HEAD",
-        group: "Foto de control de Polvo",
-        label: "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.",
-        hint: "Verificar cabezal en mangueras de cisternas."
+    // MANEJO DE RESIDUOS
+    { 
+        id: "WASTE_SEGREGATION", 
+        group: "Manejo de residuos", 
+        label: "1. Foto de segregación de residuos", 
+        hint: "Evidenciar correcta segregación." 
     },
-    {
-        id: "DUST_SPILL_KIT",
-        group: "Foto de control de Polvo",
-        label: "2. Foto de: Las cisternas cuentan con kit antiderrame",
-        hint: "Verificar kit antiderrame operativo en cisterna."
+    { 
+        id: "WASTE_VEHICLE", 
+        group: "Manejo de residuos", 
+        label: "2. Foto del vehículo de residuos", 
+        hint: "Vehículo recolector." 
     },
-    {
-        id: "DUST_WATER_COURSE",
-        group: "Foto de control de Polvo",
-        label: "3. Foto de: Los vehículos no ingresan al curso de agua",
-        hint: "Evidenciar que los vehículos respetan el curso de agua."
+    { 
+        id: "WASTE_STORAGE", 
+        group: "Manejo de residuos", 
+        label: "3. Foto de almacenamiento de residuos", 
+        hint: "Área de acopio temporal." 
     },
-    {
-        id: "SST_EMERGENCY_VEHICLE",
-        group: "Foto del Programa de SST",
-        label: "1. Foto de Vehículo de Emergencia",
-        hint: "Evidenciar ambulancia o vehículo de rescate."
+    { 
+        id: "WASTE_WEIGHING", 
+        group: "Manejo de residuos", 
+        label: "4. Foto de pesado de residuos", 
+        hint: "Control de peso." 
     },
-    {
-        id: "SST_HEALTH_SPECIALIST",
-        group: "Foto del Programa de SST",
-        label: "2. Foto de Tópico y su especialista de Salud",
-        hint: "Evidenciar área médica y personal de salud."
+    { 
+        id: "WASTE_RRSS_STATION", 
+        group: "Manejo de residuos", 
+        label: "5. Foto de estación de RRSS", 
+        hint: "Estación de residuos." 
     },
-    {
-        id: "SST_TELEPHONE_DIRECTORY",
-        group: "Foto del Programa de SST",
-        label: "3. Foto de Directorio telefónico de emergencia.",
-        hint: "Evidenciar directorio telefónico visible."
+    // POLVO
+    { 
+        id: "DUST_CISTERN_HEAD", 
+        group: "Foto de control de Polvo", 
+        label: "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.", 
+        hint: "Cabezal en mangueras." 
     },
-    {
-        id: "SST_COMMS_FLOW",
-        group: "Foto del Programa de SST",
-        label: "4. Foto de Flujograma de Comunicación de emergencia",
-        hint: "Evidenciar flujograma de comunicaciones."
+    { 
+        id: "DUST_SPILL_KIT", 
+        group: "Foto de control de Polvo", 
+        label: "2. Foto de: Las cisternas cuentan con kit antiderrame", 
+        hint: "Kit antiderrame." 
     },
-    {
-        id: "SST_CARE_FLOW",
-        group: "Foto del Programa de SST",
-        label: "5. Foto de Flujograma de atención de emergencia",
-        hint: "Evidenciar flujograma de atención médica."
+    { 
+        id: "DUST_WATER_COURSE", 
+        group: "Foto de control de Polvo", 
+        label: "3. Foto de: Los vehículos no ingresan al curso de agua", 
+        hint: "Respeto al curso de agua." 
+    },
+    // SEGURIDAD Y CONTROL OPERATIVO
+    { 
+        id: "OPS_LOCKOUT", 
+        group: "Seguridad y Control Operativo", 
+        label: "1. Foto de bloqueado", 
+        hint: "Bloqueo y etiquetado (LOTO)." 
+    },
+    { 
+        id: "OPS_PPE_USE", 
+        group: "Seguridad y Control Operativo", 
+        label: "2. Foto de Uso de EPP", 
+        hint: "Uso correcto de EPP en campo." 
+    },
+    { 
+        id: "OPS_PPE_DELIVERY", 
+        group: "Seguridad y Control Operativo", 
+        label: "3. Foto de Entrega de EPP", 
+        hint: "Registro/entrega de EPP." 
+    },
+    { 
+        id: "OPS_DOC_REVIEW", 
+        group: "Seguridad y Control Operativo", 
+        label: "4. Foto de revisión Documentos", 
+        hint: "Revisión de ATS/PETAR/etc." 
+    },
+    // PROGRAMA SST Y EMERGENCIAS
+    { 
+        id: "SST_EMERGENCY_VEHICLE", 
+        group: "Programa de SST y Emergencias", 
+        label: "1. Foto de Vehículo de Emergencia", 
+        hint: "Ambulancia/Rescate." 
+    },
+    { 
+        id: "SST_HEALTH_SPECIALIST", 
+        group: "Programa de SST y Emergencias", 
+        label: "2. Foto de Tópico y su especialista de Salud", 
+        hint: "Área médica." 
+    },
+    { 
+        id: "SST_TELEPHONE_DIRECTORY", 
+        group: "Programa de SST y Emergencias", 
+        label: "3. Foto de Directorio telefónico de emergencia.", 
+        hint: "Directorio visible." 
+    },
+    { 
+        id: "SST_COMMS_FLOW", 
+        group: "Programa de SST y Emergencias", 
+        label: "4. Foto de Flujograma de Comunicación de emergencia", 
+        hint: "Flujograma comunicaciones." 
+    },
+    { 
+        id: "SST_CARE_FLOW", 
+        group: "Programa de SST y Emergencias", 
+        label: "5. Foto de Flujograma de atención de emergencia", 
+        hint: "Flujograma atención médica." 
+    },
+    { 
+        id: "SST_EMERGENCY_STATION", 
+        group: "Programa de SST y Emergencias", 
+        label: "6. Foto de estación de emergencia", 
+        hint: "Punto de emergencia/camilla/etc." 
+    },
+    { 
+        id: "SST_EXTINGUISHERS", 
+        group: "Programa de SST y Emergencias", 
+        label: "7. Foto Extintores", 
+        hint: "Estado y ubicación de extintores." 
+    },
+    // COMUNICACIÓN Y PARTICIPACIÓN
+    { 
+        id: "COMM_INFO_PANEL", 
+        group: "Comunicación y Participación", 
+        label: "1. Foto de Panel Informativo", 
+        hint: "Paneles de información SSOMA." 
+    },
+    { 
+        id: "COMM_COMPLAINTS_BOOK", 
+        group: "Comunicación y Participación", 
+        label: "2. Foto de Libro de reclamaciones", 
+        hint: "Ubicación del libro de reclamaciones." 
+    },
+    { 
+        id: "COMM_MAILBOX", 
+        group: "Comunicación y Participación", 
+        label: "3. Foto del Buzón", 
+        hint: "Buzón de sugerencias/consultas." 
     }
 ];
 
