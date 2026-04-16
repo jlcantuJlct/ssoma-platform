@@ -71,6 +71,10 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error("Export error:", error);
-        return NextResponse.json({ error: 'Failed to generate word report', details: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Failed to generate word report', 
+            details: error.message,
+            stack: error.stack 
+        }, { status: 500 });
     }
 }
