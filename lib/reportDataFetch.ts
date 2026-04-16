@@ -42,22 +42,22 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
 
     // 1. Fetch System Stats
     const inspectionsRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM inspection_records WHERE (date LIKE ? OR created_at LIKE ?) AND ${generateWhere('zone')}`,
+        `SELECT COUNT(*) as count FROM inspection_records WHERE (CAST(date AS TEXT) LIKE ? OR CAST(created_at AS TEXT) LIKE ?) AND ${generateWhere('zone')}`,
         [`${datePrefix}%`, `${datePrefix}%`, ...locationFilters]
     );
 
     const atsRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM ats_records WHERE date LIKE ? AND ${generateWhere('zone')}`,
+        `SELECT COUNT(*) as count FROM ats_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zone')}`,
         [`${datePrefix}%`, ...locationFilters]
     );
 
     const petarRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM petar_records WHERE date LIKE ? AND ${generateWhere('zone')}`,
+        `SELECT COUNT(*) as count FROM petar_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zone')}`,
         [`${datePrefix}%`, ...locationFilters]
     );
 
     const hhcRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM hhc_records WHERE date LIKE ? AND ${generateWhere('lugar')}`,
+        `SELECT COUNT(*) as count FROM hhc_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('lugar')}`,
         [`${datePrefix}%`, ...locationFilters]
     );
 
@@ -95,7 +95,7 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
 
     // 5. Desvios (Optional but useful for certain sections)
     const desvios = await db.fetchAll(
-        `SELECT * FROM desvio_evidence_records WHERE ${generateWhere('location')} AND date LIKE ?`,
+        `SELECT * FROM desvio_evidence_records WHERE ${generateWhere('location')} AND CAST(date AS TEXT) LIKE ?`,
         [...locationFilters, `${datePrefix}%`]
     );
 
