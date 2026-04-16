@@ -3,6 +3,7 @@ import Docxtemplater from 'docxtemplater';
 import ImageModule from 'docxtemplater-image-module-free';
 import fs from 'fs';
 import path from 'path';
+import { getDriveViewerUrl } from './utils';
 
 export interface ReportTemplateData {
     MES_REPORTE: string;
@@ -12,8 +13,10 @@ export interface ReportTemplateData {
 
 async function fetchImageBuffer(src: string): Promise<ArrayBuffer | Buffer> {
     try {
-        const res = await fetch(src);
-        if (!res.ok) throw new Error("Fetch failed");
+        // Convertir URL de Google Drive a link directo de imagen (thumbnail de alta resolución)
+        const directUrl = getDriveViewerUrl(src, true);
+        const res = await fetch(directUrl);
+        if (!res.ok) throw new Error(`Fetch failed for ${directUrl}`);
         const arrayBuffer = await res.arrayBuffer();
         return Buffer.from(arrayBuffer);
     } catch (error) {
@@ -25,10 +28,10 @@ async function fetchImageBuffer(src: string): Promise<ArrayBuffer | Buffer> {
 
 export async function generateWordFromTemplate(data: ReportTemplateData): Promise<Buffer> {
     // 1. Cargar Plantilla Base
-    const templatePath = path.join(process.cwd(), 'public', 'templates', 'Plantilla_Base.docx');
+    const templatePath = path.resolve(process.cwd(), 'public/templates/Plantilla_Base.docx');
     
     if (!fs.existsSync(templatePath)) {
-        throw new Error("No se ha encontrado Plantilla_Base.docx en la carpeta /public/templates/.\nPor favor, suba su documento plantilla primero.");
+        throw new Error(`No se ha encontrado la plantilla en: ${templatePath}`);
     }
 
     const content = fs.readFileSync(templatePath, 'binary');
