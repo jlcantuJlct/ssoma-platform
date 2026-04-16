@@ -16,7 +16,10 @@ import {
     Edit,
     Image as ImageIcon,
     User,
-    File
+    File,
+    FileSpreadsheet,
+    FileEdit,
+    FileText
 } from "lucide-react";
 import { DashboardData, UploadContext } from "@/lib/types";
 import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
@@ -77,7 +80,7 @@ type EvidenceRecord = {
     objective: string;
     description: string;
     location: string;
-    fileType: 'pdf' | 'image';
+    fileType: 'pdf' | 'image' | 'word' | 'excel';
     fileUrl: string;
 };
 
@@ -192,9 +195,13 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
 
         const isImage = file.type.startsWith('image/');
         const isPdf = file.type === 'application/pdf';
+        const isWord = file.type === 'application/msword' || 
+                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        const isExcel = file.type === 'application/vnd.ms-excel' || 
+                        file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-        if (!isImage && !isPdf) {
-            alert("Solo se permiten imágenes y PDFs");
+        if (!isImage && !isPdf && !isWord && !isExcel) {
+            alert("⚠️ Formato no soportado. Por favor sube Imágenes, PDFs, archivos Word (.docx) o Excel (.xlsx)");
             return;
         }
 
@@ -228,8 +235,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
 
             setFiles({
                 url: url,
-                type: isImage ? 'image' : 'pdf'
-            });
+                fileType: isImage ? 'image' : (isPdf ? 'pdf' : (isWord ? 'word' : 'excel'))
+            } as any);
             alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
 
         } catch (error: any) {
@@ -327,14 +334,19 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     };
 
     const handleDownload = (record: EvidenceRecord) => {
-        // If it's already a PDF, download it directly
-        if (record.fileType === 'pdf') {
+        // If it's a PDF, Word or Excel, download it directly
+        if (record.fileType === 'pdf' || record.fileType === 'word' || record.fileType === 'excel') {
             const link = document.createElement('a');
             link.href = record.fileUrl;
             link.download = (() => {
                 const context = record.objective === 'OBJ 01' ? 'Formacion' : (record.objective === 'OBJ 10' || record.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
                 const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
-                return generateFilename(record.description, record.date, record.responsible, 'pdf', 'evidencia', undefined, area);
+                
+                let ext = 'pdf';
+                if (record.fileType === 'word') ext = 'docx';
+                else if (record.fileType === 'excel') ext = 'xlsx';
+
+                return generateFilename(record.description, record.date, record.responsible, ext as any, 'evidencia', undefined, area);
             })();
             document.body.appendChild(link);
             link.click();
@@ -505,12 +517,15 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     <input
                                         type="file"
                                         onChange={handleFileUpload}
-                                        accept=".pdf,image/*"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
                                     <div className="flex flex-col items-center gap-2 text-slate-400 group-hover:text-emerald-400">
                                         {files ? (
-                                            files.type === 'pdf' ? <FileText size={24} className="text-red-400" /> : <ImageIcon size={24} className="text-blue-400" />
+                                            (files as any).fileType === 'pdf' ? <FileText size={24} className="text-red-400" /> : 
+                                            (files as any).fileType === 'word' ? <FileEdit size={24} className="text-blue-400" /> :
+                                            (files as any).fileType === 'excel' ? <FileSpreadsheet size={24} className="text-emerald-400" /> :
+                                            <ImageIcon size={24} className="text-blue-400" />
                                         ) : (
                                             <Upload size={24} />
                                         )}
@@ -609,8 +624,15 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto">
-                                                                    <FileText size={16} className="text-slate-500" />
+                                                                <div 
+                                                                    className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto cursor-pointer hover:bg-slate-700 transition-all"
+                                                                    onClick={() => handleView(r)}
+                                                                    title="Ver Archivo"
+                                                                >
+                                                                    {r.fileType === 'pdf' ? <FileText size={16} className="text-red-400" /> : 
+                                                                     r.fileType === 'word' ? <FileEdit size={16} className="text-blue-400" /> :
+                                                                     r.fileType === 'excel' ? <FileSpreadsheet size={16} className="text-emerald-400" /> :
+                                                                     <File size={16} className="text-slate-500" />}
                                                                 </div>
                                                             );
                                                         })()}
@@ -618,12 +640,20 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                     <td className="py-3 text-slate-400 text-xs truncate max-w-[250px]" title={(() => {
                                                         const context = r.objective === 'OBJ 01' ? 'Formacion' : (r.objective === 'OBJ 10' || r.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
                                                         const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
-                                                        return generateFilename(r.description, r.date, r.responsible, r.fileType === 'pdf' ? 'pdf' : 'jpg', 'evidencia', undefined, area);
+                                                        let ext = 'jpg';
+                                                        if (r.fileType === 'pdf') ext = 'pdf';
+                                                        else if (r.fileType === 'word') ext = 'docx';
+                                                        else if (r.fileType === 'excel') ext = 'xlsx';
+                                                        return generateFilename(r.description, r.date, r.responsible, ext as any, 'evidencia', undefined, area);
                                                     })()}>
                                                         {(() => {
                                                             const context = r.objective === 'OBJ 01' ? 'Formacion' : (r.objective === 'OBJ 10' || r.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
                                                             const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
-                                                            return generateFilename(r.description, r.date, r.responsible, r.fileType === 'pdf' ? 'pdf' : 'jpg', 'evidencia', r.location, area);
+                                                            let ext = 'jpg';
+                                                            if (r.fileType === 'pdf') ext = 'pdf';
+                                                            else if (r.fileType === 'word') ext = 'docx';
+                                                            else if (r.fileType === 'excel') ext = 'xlsx';
+                                                            return generateFilename(r.description, r.date, r.responsible, ext as any, 'evidencia', r.location, area);
                                                         })()}
                                                     </td>
                                                     <td className="py-3">
@@ -634,7 +664,10 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                                 className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition-colors border border-slate-700"
                                                                 title="Ver Archivo"
                                                             >
-                                                                {r.fileType === 'pdf' ? <FileText size={16} /> : <ImageIcon size={16} />}
+                                                                {r.fileType === 'pdf' ? <FileText size={16} /> : 
+                                                                 r.fileType === 'word' ? <FileEdit size={16} /> :
+                                                                 r.fileType === 'excel' ? <FileSpreadsheet size={16} /> :
+                                                                 <ImageIcon size={16} />}
                                                             </button>
 
                                                             {/* DESCARGAR */}
@@ -682,7 +715,10 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                     <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
                             <h3 className="text-white font-bold flex items-center gap-2">
-                                {viewingFile.fileType === 'pdf' ? <FileText size={20} className="text-red-400" /> : <ImageIcon size={20} className="text-blue-400" />}
+                                {viewingFile.fileType === 'pdf' ? <FileText size={20} className="text-red-400" /> : 
+                                 viewingFile.fileType === 'word' ? <FileEdit size={20} className="text-blue-400" /> :
+                                 viewingFile.fileType === 'excel' ? <FileSpreadsheet size={20} className="text-emerald-400" /> :
+                                 <ImageIcon size={20} className="text-blue-400" />}
                                 Vista Previa
                             </h3>
                             <div className="flex items-center gap-2">

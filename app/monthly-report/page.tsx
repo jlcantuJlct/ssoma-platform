@@ -17,8 +17,20 @@ import {
     Image as ImageIcon,
     Plus,
     X,
-    BarChart3
+    BarChart3,
+    Settings,
+    Save,
+    Upload,
+    Wrench,
+    CheckCircle2,
+    Clock,
+    RotateCcw,
+    AlertCircle,
+    Trash2,
+    Lock,
+    ExternalLink
 } from "lucide-react";
+import { uploadEvidence } from "@/app/actions";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { toPng } from 'html-to-image';
@@ -42,6 +54,28 @@ import { generateWordReport } from '../../lib/wordGenerator';
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+const ANNEXES_TYPES = [
+    { id: 0, label: "INFORME SIMULACRO", isPermanent: false },
+    { id: 1, label: "CERTIFICADO EORS", isPermanent: false },
+    { id: 2, label: "CERTIFICADOS DE OPERATIVIDAD", isPermanent: false },
+    { id: 3, label: "AUTORIZACIONES AREAS AUXILIARES", isPermanent: false },
+    { id: 4, label: "FLUJOGRAMA", isPermanent: true },
+    { id: 5, label: "CODIGO DE CONDUCTA", isPermanent: true },
+    { id: 6, label: "COMPRAS LOCALES", isPermanent: false },
+    { id: 7, label: "CAPACITACIONES OBRA", isPermanent: false },
+    { id: 8, label: "POLITICA Y PLAN", isPermanent: true },
+    { id: 9, label: "ESTADISTICAS SSOMA", isPermanent: false },
+    { id: 10, label: "CHARLA DIARIA", isPermanent: false },
+    { id: 11, label: "EMOs", isPermanent: false },
+    { id: 12, label: "ENTREGA DE EPPS", isPermanent: false },
+    { id: 13, label: "SUB COMITE", isPermanent: false },
+    { id: 14, label: "SCTR", isPermanent: false },
+    { id: 15, label: "ATS Y PETAR", isPermanent: false },
+    { id: 16, label: "PLAN DE CONTINGENCIA", isPermanent: true },
+    { id: 17, label: "POLIZA", isPermanent: true },
+    { id: 18, label: "OTROS DOCUMENTOS", isPermanent: true }
+];
 
 interface ReportImage {
     id: string;
@@ -74,6 +108,24 @@ export default function MonthlyReportPage() {
     const [reportImages, setReportImages] = useState<ReportImage[]>([]);
     const [newImageDesc, setNewImageDesc] = useState('');
     const [newImageCat, setNewImageCat] = useState('General');
+
+    // --- REPORT TOOLS STATES ---
+    const [showFeedingPanel, setShowFeedingPanel] = useState(false);
+    const [savingTools, setSavingTools] = useState(false);
+    const [loadingTools, setLoadingTools] = useState(false);
+    
+    // Manual stats state (synced with monthly_stats_records)
+    const [manualStats, setManualStats] = useState<Record<string, number>>({
+        HHT: 0, ATT: 0, APP: 0, ATP: 0, AM: 0, TDP: 0, EO: 0, EP: 0,
+        RES_PEL: 0, RES_NO_PEL: 0, RES_APROV: 0
+    });
+    
+    // Annexes from DB
+    const [dbAnnexes, setDbAnnexes] = useState<any[]>([]);
+    const [localAnnex1Files, setLocalAnnex1Files] = useState<any[]>([]);
+    const [fullYearStats, setFullYearStats] = useState<any>(null);
+    const [excelMetadata, setExcelMetadata] = useState<any>(null);
+    const [totals, setTotals] = useState<any>(null);
 
     // --- REFERENCES FOR CHARTS ---
     const chartsRef = useRef<HTMLDivElement>(null);
@@ -128,7 +180,133 @@ export default function MonthlyReportPage() {
         };
 
         loadAllData();
-    }, []);
+        loadReportTools();
+    }, [selectedMonth, selectedYear]);
+
+    const loadReportTools = async () => {
+        setLoadingTools(true);
+        try {
+            const res = await fetch(`/api/report-tools?type=stats&month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`);
+            const data = await res.json();
+            if (data.success) {
+                const newStats = { ...manualStats };
+                data.stats.forEach((s: any) => {
+                    newStats[s.stat_key] = s.stat_value;
+                });
+                setManualStats(newStats);
+            }
+
+            const resAnx = await fetch(`/api/report-tools?type=annexes&month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`);
+            const dataAnx = await resAnx.json();
+            if (dataAnx.success) {
+                setDbAnnexes(dataAnx.annexes);
+            }
+
+            // Local scan for Annex 1
+            const resLocal = await fetch(`/api/report-tools/local-scan?month=${MONTHS[selectedMonth]}`);
+            const dataLocal = await resLocal.json();
+            if (dataLocal.success) {
+                setLocalAnnex1Files(dataLocal.files);
+            }
+        } catch (e) {
+            console.error("Error loading tools:", e);
+        } finally {
+            setLoadingTools(false);
+        }
+    };
+
+    const saveReportStats = async () => {
+        setSavingTools(true);
+        try {
+            await fetch('/api/report-tools', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'stats',
+                    month: selectedMonth + 1,
+                    year: selectedYear,
+                    location: 'SAN CLEMENTE',
+                    data: manualStats
+                })
+            });
+            alert("✅ Estadísticas guardadas");
+        } catch (e) {
+            alert("❌ Error al guardar");
+        } finally {
+            setSavingTools(false);
+        }
+    };
+
+    const handleAutoFill = async () => {
+        setLoadingTools(true);
+        try {
+            alert("📊 Sincronizando datos oficiales desde el Excel de Estadísticas...");
+            
+            const res = await fetch(`/api/report-tools/excel-extract?month=${selectedMonth + 1}&location=SAN CLEMENTE`);
+            const data = await res.json();
+            
+            if (data.success) {
+                setManualStats(prev => ({ ...prev, ...data.stats }));
+                setFullYearStats(data.fullYear);
+                setExcelMetadata(data.metadata);
+                setTotals(data.totals);
+                alert(`✅ Datos de ${MONTHS[selectedMonth]} sincronizados correctamente.`);
+            } else {
+                alert("❌ Error al extraer datos del Excel: " + data.error);
+            }
+
+        } catch (e: any) {
+            console.error("Auto-fill error:", e);
+            alert("❌ Error de conexión al servidor");
+        } finally {
+            setLoadingTools(false);
+        }
+    };
+
+    const uploadAnnex = async (file: File, annexId: number, label: string, isPermanent: boolean) => {
+        setSavingTools(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('activityId', `ANNEX_${annexId}`);
+            formData.append('month', (selectedMonth + 1).toString());
+
+            const uploadRes = await uploadEvidence(formData);
+            if (!uploadRes.success) throw new Error("Upload failed");
+
+            await fetch('/api/report-tools', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'annexes',
+                    month: selectedMonth + 1,
+                    year: selectedYear,
+                    location: 'SAN CLEMENTE',
+                    data: {
+                        annex_id: annexId,
+                        label: label,
+                        file_path: uploadRes.path,
+                        is_permanent: isPermanent
+                    }
+                })
+            });
+            loadReportTools();
+        } catch (e) {
+            alert("❌ Error al subir");
+        } finally {
+            setSavingTools(false);
+        }
+    };
+
+    const deleteAnnex = async (id: number) => {
+        if (!confirm("¿Eliminar anexo?")) return;
+        setSavingTools(true);
+        try {
+            await fetch(`/api/report-tools?id=${id}`, { method: 'DELETE' });
+            loadReportTools();
+        } catch (e) { }
+        finally { setSavingTools(false); }
+    };
 
     // --- FILTER HELPERS ---
     const filterByDate = (records: any[], dateField: string = 'date') => {
@@ -258,8 +436,8 @@ export default function MonthlyReportPage() {
         addHeader("1. RESUMEN EJECUTIVO");
 
         const kpiData = [
-            ["Horas Hombre Trabajadas", statsData?.HP?.[selectedMonth] || 0],
-            ["Trabajadores Promedio", statsData?.T?.[selectedMonth] || 0],
+            ["Horas Hombre Trabajadas (HHT)", manualStats.HHT || 0],
+            ["Días Perdidos (TDP)", manualStats.TDP || 0],
             ["Inspecciones Realizadas", currentInspections.length],
             ["Permisos de Trabajo (PETAR)", currentPETAR.length],
             ["Análisis de Trabajo Seguro (ATS)", currentATS.length],
@@ -303,21 +481,22 @@ export default function MonthlyReportPage() {
         doc.addPage(); pageNum++;
         addHeader("3. ESTADÍSTICAS DE SEGURIDAD");
 
-        if (statsData) {
+        if (manualStats) {
+            const totalAcc = (manualStats.ATT || 0) + (manualStats.APP || 0) + (manualStats.ATP || 0);
             const statsBody = [
-                ["Nº Accidentes Leves", statsData.AL?.[selectedMonth] || 0],
-                ["Nº Accidentes Incapacitantes", (statsData.ATT?.[selectedMonth] || 0) + (statsData.APP?.[selectedMonth] || 0) + (statsData.ATP?.[selectedMonth] || 0)],
-                ["Nº Días Perdidos", statsData.TDP?.[selectedMonth] || 0],
-                ["Índice de Frecuencia (IF)", statsData.HP?.[selectedMonth] > 0 ? (((statsData.ATT?.[selectedMonth] || 0) + (statsData.APP?.[selectedMonth] || 0) + (statsData.ATP?.[selectedMonth] || 0)) * 1000000 / statsData.HP?.[selectedMonth]).toFixed(2) : '0.00'],
-                ["Índice de Severidad (IS)", statsData.HP?.[selectedMonth] > 0 ? ((statsData.TDP?.[selectedMonth] || 0) * 1000000 / statsData.HP?.[selectedMonth]).toFixed(2) : '0.00'],
-                ["Índice de Accidentabilidad (IA)", statsData.HP?.[selectedMonth] > 0 ?
-                    (((((statsData.ATT?.[selectedMonth] || 0) + (statsData.APP?.[selectedMonth] || 0) + (statsData.ATP?.[selectedMonth] || 0)) * 1000000 / statsData.HP?.[selectedMonth]) *
-                        ((statsData.TDP?.[selectedMonth] || 0) * 1000000 / statsData.HP?.[selectedMonth])) / 1000).toFixed(2) : '0.00']
+                ["Nº Accidentes Leves (AL)", manualStats.AL || 0],
+                ["Nº Accidentes Incapacitantes", totalAcc],
+                ["Nº Días Perdidos", manualStats.TDP || 0],
+                ["Índice de Frecuencia (IF)", manualStats.HHT > 0 ? (totalAcc * 1000000 / manualStats.HHT).toFixed(2) : '0.00'],
+                ["Índice de Severidad (IS)", manualStats.HHT > 0 ? ((manualStats.TDP || 0) * 1000000 / manualStats.HHT).toFixed(2) : '0.00'],
+                ["Índice de Accidentabilidad (IA)", manualStats.HHT > 0 ?
+                    (((totalAcc * 1000000 / manualStats.HHT) *
+                        ((manualStats.TDP || 0) * 1000000 / manualStats.HHT)) / 1000).toFixed(2) : '0.00']
             ];
 
             autoTable(doc, {
                 startY: yPos,
-                head: [['Indicador', 'Resultado Mensual']],
+                head: [['Indicador de Siniestralidad', 'Resultado Mensual']],
                 body: statsBody,
                 theme: 'striped',
                 headStyles: { fillColor: [220, 38, 38] },
@@ -433,6 +612,173 @@ export default function MonthlyReportPage() {
             }
             addFooter(pageNum);
         }
+
+        // --- PAGE 6: DOCUMENTARY ANNEXES ---
+        doc.addPage(); pageNum++;
+        addHeader("6. ANEXO DOCUMENTARIO (REGISTROS)");
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.text("Se listan a continuación los documentos técnicos y anexos cargados para el presente periodo:", 15, yPos);
+        yPos += 8;
+
+        const annexData = ANNEXES_TYPES.map(type => {
+            const saved = dbAnnexes.find(a => a.annex_id === type.id);
+            let status = saved ? "CARGADO / ADJUNTO" : "NO APLICABLE / PENDIENTE";
+            if (type.id === 15) status = "SINCRONIZADO / AUTO";
+            if (type.id === 1 && localAnnex1Files.length > 0) status = `SINC. LOCAL (${localAnnex1Files.length})`;
+            
+            return [
+                `Anexo ${type.id}`,
+                type.label,
+                status,
+                type.isPermanent ? "PERMANENTE" : "MENSUAL"
+            ];
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 10;
+
+        // --- ANEXO 1: CERTIFICADOS EORS (EXTRAIDOS DE CARPETA LOCAL) ---
+        if (localAnnex1Files.length > 0) {
+            doc.addPage(); pageNum++;
+            addHeader("ANEXO 1: CERTIFICADOS EORS");
+            
+            doc.setFontSize(10); doc.setTextColor(0);
+            const certText = "Se han identificado los siguientes certificados de Empresas Operadoras de Residuos Sólidos (EORS) en la carpeta técnica vinculada:";
+            doc.text(doc.splitTextToSize(certText, 180), 15, yPos);
+            yPos += 12;
+
+            autoTable(doc, {
+                startY: yPos,
+                head: [['N° Certificado / Nombre del Archivo', 'Estado de Sincronización']],
+                body: localAnnex1Files.map((f, i) => [
+                    f.name,
+                    "EXTRAÍDO LOCALMENTE"
+                ]),
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [30, 64, 175] } // Blue
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+            doc.setFontSize(9); doc.setFont("helvetica", "italic");
+            doc.text(`Ruta de origen: C:\\Users\\jlcan\\Desktop\\CASA 2026\\CERT. BAÑOS\\${MONTHS[selectedMonth]}`, 15, yPos);
+
+            addFooter(pageNum);
+            yPos = 20; // reset for next page
+        }
+
+        // --- ANEXO 9: FORMATO OFICIAL F-SIG-011 (EXTRAÍDO DE EXCEL) ---
+        const todayAtPDF = new Date();
+        const isPast5th = todayAtPDF.getDate() >= 5;
+        const currentYearNum = todayAtPDF.getFullYear();
+        const isCurrentPeriod = selectedYear === currentYearNum && selectedMonth === todayAtPDF.getMonth();
+
+        // Include if statistics are loaded and (it's a past month OR it's the current month after the 5th)
+        if (fullYearStats && (selectedYear < currentYearNum || (isCurrentPeriod && isPast5th) || selectedMonth < todayAtPDF.getMonth())) {
+            doc.addPage(); pageNum++;
+            yPos = 15;
+            
+            // Header F-SIG-011 Style
+            doc.setDrawColor(0); doc.setLineWidth(0.3);
+            doc.rect(15, yPos, pageWidth - 30, 20);
+            doc.setFontSize(14); doc.setFont("helvetica", "bold");
+            doc.text("ESTADÍSTICAS DE SST", pageWidth / 2, yPos + 12, { align: 'center' });
+            doc.setFontSize(7); doc.text("F-SIG-011\r\nVersión 05", pageWidth - 18, yPos + 8, { align: 'right' });
+            yPos += 25;
+
+            // Metadata Table
+            autoTable(doc, {
+                startY: yPos,
+                body: [
+                    ['RAZÓN SOCIAL:', 'Construcción y Administración S.A.', 'ESTADÍSTICA:', 'Mensual (x)', 'FECHA:', `${todayAtPDF.toLocaleDateString()}`],
+                    ['PROYECTO:', excelMetadata?.project || 'Obras Adicionales', 'RESPONSABLE:', excelMetadata?.responsible || 'Jose Luis Cancino', 'PERIODO:', `${MONTHS[selectedMonth]} ${selectedYear}`]
+                ],
+                theme: 'grid',
+                styles: { fontSize: 6, cellPadding: 1.5 },
+                columnStyles: { 0: { fontStyle: 'bold', fillColor: [245, 245, 245], width: 25 }, 2: { fontStyle: 'bold', fillColor: [245, 245, 245], width: 25 }, 4: { fontStyle: 'bold', fillColor: [245, 245, 245], width: 20 } }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 5;
+
+            // Main Stats Table
+            const mFullList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic", "Total"];
+            const head = [['Indicadores de Gestión de SST', ...mFullList]];
+            
+            const rLabels = [
+                { key: 'EO', label: 'Nº Enfermedades Ocupacionales (EO)' },
+                { key: 'EP', label: 'N° Estados Pre patológicos (EP)' },
+                { key: 'T', label: 'Nº Trabajadores (T)' },
+                { key: 'HHT', label: 'Horas hombre trabajadas (HHT)' },
+                { key: 'AL', label: 'Nº Accidentes Leves (AL)' },
+                { key: 'AI', label: 'Nº Accidentes Incapacitantes (AI)' },
+                { key: 'ATT', label: '   - Total Temporal (ATT)' },
+                { key: 'APP', label: '   - Parcial Permanente (APP)' },
+                { key: 'ATP', label: '   - Total Permanente (ATP)' },
+                { key: 'AM', label: 'Nº Accidentes Mortales (AM)' },
+                { key: 'TDP', label: 'Total Días Pérdidos (TDP)' },
+                { key: 'IF', label: 'Índice de Frecuencia (IF)' },
+                { key: 'IS', label: 'Índice de Severidad (IS)' },
+                { key: 'IA', label: 'Índice de Accidentabilidad (IA)' }
+            ];
+
+            const bCells = rLabels.map((rl) => {
+                const values = mFullList.map((m, mIdx) => {
+                    const val = mIdx === 12 
+                        ? (totals as any)?.[rl.key] || 0
+                        : fullYearStats[mIdx + 1]?.[rl.key] || 0;
+                    return val === 0 ? "0" : typeof val === 'number' ? val.toLocaleString() : val;
+                });
+                return [rl.label, ...values];
+            });
+
+            autoTable(doc, {
+                startY: yPos,
+                head: head,
+                body: bCells,
+                theme: 'grid',
+                headStyles: { fillColor: [15, 23, 42], fontSize: 5, halign: 'center' },
+                styles: { fontSize: 5, cellPadding: 1, halign: 'center', textColor: [0, 0, 0] },
+                columnStyles: { 0: { halign: 'left', fontStyle: 'bold', width: 45 } }
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 8;
+            doc.setFontSize(6); doc.setTextColor(100); doc.setFont("helvetica", "italic");
+            doc.text("* Al calcular los días pérdidos, sumarle 6000 días pérdidos por cada AM y ATP", 15, yPos);
+            doc.text("* No se debe considerar el día del accidente como día pérdido.", 15, yPos + 3);
+            doc.text(`* Fuente: Sincronización automática de F-SIG-011 (${location}).`, 15, yPos + 6);
+
+            addFooter(pageNum);
+            yPos = 20; // reset
+        }
+
+        // --- ANEXO 15: REFERENCIA A CARPETAS DE ATS Y PETAR (PDF) ---
+        doc.addPage(); pageNum++;
+        addHeader("ANEXO 15: REGISTROS DE ATS Y PETAR");
+        
+        doc.setFontSize(11); doc.setTextColor(0); doc.setFont("helvetica", "bold");
+        doc.text("A. REGISTROS DE ANÁLISIS DE TRABAJO SEGURO (ATS)", 15, yPos);
+        yPos += 10;
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        doc.text("Los registros originales en formato PDF se encuentran organizados en la siguiente ruta:", 15, yPos);
+        yPos += 7;
+        doc.setFont("helvetica", "bold"); doc.setTextColor(0, 51, 102);
+        doc.text("📂 RUTA: ANEXO 15 / REGISTROS_ATS_PDF / " + MONTHS[selectedMonth].toUpperCase(), 20, yPos);
+        
+        yPos += 20;
+        doc.setTextColor(0); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+        doc.text("B. REGISTROS DE PERMISOS ESCRITOS DE TRABAJO DE ALTO RIESGO (PETAR)", 15, yPos);
+        yPos += 10;
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        doc.text("Los permisos autorizados en formato PDF se encuentran organizados en la siguiente ruta:", 15, yPos);
+        yPos += 7;
+        doc.setFont("helvetica", "bold"); doc.setTextColor(180, 83, 9);
+        doc.text("📂 RUTA: ANEXO 15 / REGISTROS_PETAR_PDF / " + MONTHS[selectedMonth].toUpperCase(), 20, yPos);
+        
+        yPos += 25;
+        doc.setTextColor(100); doc.setFontSize(9); doc.setFont("helvetica", "italic");
+        doc.text("Nota: El total de registros vinculados para este periodo es de " + currentATS.length + " ATS y " + currentPETAR.length + " PETARs.", 15, yPos);
+
+        addFooter(pageNum);
 
         // SAVE
         doc.save(`Informe_SSOMA_${MONTHS[selectedMonth]}_${selectedYear}_Gerencial.pdf`);
@@ -803,16 +1149,10 @@ export default function MonthlyReportPage() {
         doc.text(`Cuadro N° 8.1.1.2-2: Reporte de Residuos No Peligrosos ${MONTHS[selectedMonth].toLowerCase()} del ${selectedYear}.`, pageWidth / 2, yPos, { align: 'center' });
         autoTable(doc, {
             startY: yPos + 2,
-            head: [['Tipos de residuos', 'Mes 1', 'Mes 2', 'Mes Actual', 'TOTAL']],
+            head: [['Tipos de residuos', 'Unidad', 'Cantidad']],
             body: [
-                ['RESIDUOS METALICOS', '0.00', '0.00', '20.00', '20.00'],
-                ['PAPELES Y CARTONES', '0.00', '1.00', '4.00', '5.00'],
-                ['PLASTICOS', '0.00', '1.00', '1.00', '2.00'],
-                ['VIDRIO', '0.00', '0.00', '0.00', '0.00'],
-                ['RESIDUOS DE COMIDA', '0.00', '0.00', '0.00', '0.00'],
-                ['RESIDUOS DE MADERA', '0.00', '0.00', '0.00', '0.00'],
-                ['RESIDUOS NO APROVECHABLE', '0.00', '5.00', '4.00', '9.00'],
-                ['Total kg', '0.00', '7.00', '29.00', '36.00']
+                ['RESIDUOS NO PELIGROSOS (GENERAL)', 'kg', manualStats.RES_NO_PEL || '0.00'],
+                ['RESIDUOS APROVECHABLES', 'kg', manualStats.RES_APROV || '0.00'],
             ],
             theme: 'grid',
             headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', halign: 'center' },
@@ -826,11 +1166,9 @@ export default function MonthlyReportPage() {
         doc.text(`Cuadro N° 8.1.1.2-3: Reporte de Residuos Peligrosos ${MONTHS[selectedMonth].toLowerCase()} ${selectedYear}`, pageWidth / 2, yPos, { align: 'center' });
         autoTable(doc, {
             startY: yPos + 2,
-            head: [['Descripción', 'Unidad', 'Mes 1', 'Mes 2', 'Mes Actual', 'Total']],
+            head: [['Descripción', 'Unidad', 'Cantidad']],
             body: [
-                ['TRAPOS INDUSTRIALES O TIERRA', 'kg', '0', '0.00', '50.00', '50'],
-                ['RESIDUOS SOLIDOS', 'kg', '0', '0.00', '15.00', '15'],
-                ['RESIDUOS LIQUIDOS', 'cilindro', '0', '0.00', '2.00', '2']
+                ['RESIDUOS PELIGROSOS', 'kg', manualStats.RES_PEL || '0.00'],
             ],
             theme: 'grid',
             headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', halign: 'center' },
@@ -1227,22 +1565,185 @@ export default function MonthlyReportPage() {
         <div className="min-h-screen bg-slate-950 p-6 md:p-10 text-white">
             <div className="max-w-6xl mx-auto space-y-8">
 
-                {/* Header */}
-                <div className="flex items-center gap-4 border-b border-slate-800 pb-6">
-                    <button onClick={() => router.back()} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400">
-                        <ChevronLeft size={20} />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-black text-white flex items-center gap-3">
-                            <FileText className="text-emerald-500" size={32} />
-                            Informe Gerencial SSOMA
-                        </h1>
-                        <p className="text-slate-400 text-sm">Generación de reportes con gráficos y evidencias</p>
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => router.back()} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400">
+                                <ChevronLeft size={20} />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl font-black text-white flex items-center gap-3">
+                                    <FileText className="text-emerald-500" size={32} />
+                                    Informe Mensual SSOMA
+                                </h1>
+                                <p className="text-slate-400 text-sm">Alimentación y generación de reportes consolidados</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowFeedingPanel(!showFeedingPanel)}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${showFeedingPanel ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'}`}
+                        >
+                            <Wrench size={16} /> {showFeedingPanel ? 'CERRAR PANEL DE ALIMENTACIÓN' : 'ESTADÍSTICAS Y ANEXOS'}
+                        </button>
                     </div>
-                </div>
 
-                {/* Controls */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Report Tool Panel */}
+                    {showFeedingPanel && (
+                        <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in slide-in-from-top-4 duration-300">
+                            {/* Left: Stats */}
+                            <div className="lg:col-span-12 flex justify-between items-center border-b border-white/5 pb-4 mb-2">
+                                <h3 className="text-lg font-black text-indigo-400 flex items-center gap-2 uppercase tracking-tight">
+                                    <Activity size={20} /> Alimentación del Informe
+                                </h3>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={handleAutoFill}
+                                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black px-4 py-2 rounded-lg border border-white/5 flex items-center gap-2"
+                                    >
+                                        <RotateCcw size={14} /> AUTO-ALIMENTAR
+                                    </button>
+                                    <button 
+                                        onClick={saveReportStats}
+                                        disabled={savingTools}
+                                        className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+                                    >
+                                        <Save size={14} /> GUARDAR CAMBIOS
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-5 space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Horas Hombre (HHT)</label>
+                                        <input 
+                                            type="number" 
+                                            value={manualStats.HHT} 
+                                            onChange={(e) => setManualStats({...manualStats, HHT: Number(e.target.value)})}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-indigo-400 font-black focus:border-indigo-500 outline-none" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Días Perdidos (TDP)</label>
+                                        <input 
+                                            type="number" 
+                                            value={manualStats.TDP} 
+                                            onChange={(e) => setManualStats({...manualStats, TDP: Number(e.target.value)})}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-red-500 font-black focus:border-red-500 outline-none" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['ATT', 'APP', 'ATP', 'AM', 'EO', 'EP'].map(key => (
+                                        <div key={key} className="space-y-1">
+                                            <label className="text-[9px] font-bold text-slate-600 uppercase">{key}</label>
+                                            <input 
+                                                type="number" 
+                                                value={manualStats[key]} 
+                                                onChange={(e) => setManualStats({...manualStats, [key]: Number(e.target.value)})}
+                                                className="w-full bg-slate-800/50 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none" 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-3 pt-4 border-t border-white/5">
+                                    <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Residuos Peligrosos / No Peligrosos (KG)</h4>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input 
+                                            type="number" placeholder="PEL"
+                                            value={manualStats.RES_PEL} 
+                                            onChange={(e) => setManualStats({...manualStats, RES_PEL: Number(e.target.value)})}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-emerald-500 font-black" 
+                                        />
+                                        <input 
+                                            type="number" placeholder="NO PEL"
+                                            value={manualStats.RES_NO_PEL} 
+                                            onChange={(e) => setManualStats({...manualStats, RES_NO_PEL: Number(e.target.value)})}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-emerald-500 font-black" 
+                                        />
+                                        <input 
+                                            type="number" placeholder="APROV"
+                                            value={manualStats.RES_APROV} 
+                                            onChange={(e) => setManualStats({...manualStats, RES_APROV: Number(e.target.value)})}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-emerald-500 font-black" 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right: Annexes */}
+                            <div className="lg:col-span-7 bg-slate-950/30 rounded-2xl p-4 max-h-[400px] overflow-y-auto custom-scrollbar border border-white/5">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Gestión de Anexos del Informe (PDF/JPG)</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {ANNEXES_TYPES.map((type) => {
+                                        const saved = dbAnnexes.find(a => a.annex_id === type.id);
+                                        return (
+                                            <div key={type.id} className={`p-3 rounded-xl border transition-all ${saved || type.id === 15 ? 'bg-slate-800 border-indigo-500/30' : 'bg-slate-900/50 border-slate-800'}`}>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">Anexo {type.id}</span>
+                                                    {type.isPermanent && <Lock size={12} className="text-purple-400" />}
+                                                </div>
+                                                <h5 className="text-[10px] font-black text-white uppercase truncate mb-2">{type.label}</h5>
+                                                
+                                                {type.id === 15 ? (
+                                                    <div className="flex items-center justify-between gap-2 text-emerald-400">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <RotateCcw size={12} className="animate-pulse" /> 
+                                                            <span className="text-[9px] font-bold uppercase">AUTO-VINCULADO</span>
+                                                        </div>
+                                                        <span className="text-[8px] font-black bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                                            {currentATS.length} ATS / {currentPETAR.length} PETAR
+                                                        </span>
+                                                    </div>
+                                                ) : type.id === 1 ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between text-blue-400">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Clock size={12} className="animate-spin-slow" /> 
+                                                                <span className="text-[9px] font-bold uppercase">CARPETA LOCAL SINC.</span>
+                                                            </div>
+                                                            <span className="text-[8px] font-black bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                                                {localAnnex1Files.length} ARCHIVOS
+                                                            </span>
+                                                        </div>
+                                                        <div className="max-h-16 overflow-y-auto pr-1">
+                                                            {localAnnex1Files.map((f, i) => (
+                                                                <div key={i} className="text-[8px] text-slate-400 flex items-center gap-1 truncate border-l border-blue-500/30 pl-1 mb-0.5">
+                                                                    <FileText size={8} /> {f.name}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : saved ? (
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <a href={saved.file_path} target="_blank" className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300">
+                                                            <CheckCircle2 size={12} /> <span className="text-[9px] font-bold">VER ARCHIVO</span>
+                                                        </a>
+                                                        <button onClick={() => deleteAnnex(saved.id)} className="text-red-500 hover:text-red-400 p-1">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative border border-dashed border-slate-700 rounded-lg py-2 flex flex-col items-center gap-1 hover:border-slate-500 cursor-pointer transition-colors bg-slate-900/50">
+                                                        <Upload size={12} className="text-slate-600" />
+                                                        <span className="text-[8px] font-bold text-slate-500">CARGAR</span>
+                                                        <input 
+                                                            type="file" 
+                                                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                                                            onChange={(e) => e.target.files?.[0] && uploadAnnex(e.target.files[0], type.id, type.label, type.isPermanent)}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Controls */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* Period Selector */}
                     <div className="lg:col-span-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
                         <label className="text-xs font-bold text-slate-500 uppercase block mb-3">Período</label>

@@ -11,18 +11,29 @@ import {
     AlignmentType,
     ImageRun,
     HeadingLevel,
-    PageBreak
+    PageBreak,
+    VerticalAlign
 } from 'docx';
 import { saveAs } from 'file-saver';
 
-// Define the interface for the data we expect
+// Updated interface to match reportDataFetch output
 export interface ReportData {
-    month: string;
+    monthName: string;
     year: number;
-    reportImages: any[];
-    currentInspections: any[];
-    currentATS: any[];
-    currentPETAR: any[];
+    location: string;
+    stats: {
+        inspections: number;
+        ats: number;
+        petar: number;
+        hhc: number;
+        hht: number;
+        accidents: Record<string, number>;
+        waste: Record<string, number>;
+    };
+    pmaCompliance: any[];
+    evidence: any[];
+    annexes: any[];
+    desvios: any[];
 }
 
 // Helper to download images from URL to ArrayBuffer for docx injection
@@ -55,23 +66,28 @@ function createHeading(text: string, level: HeadingLevel) {
     });
 }
 
-function createTable(headers: string[], rows: string[][]) {
+function createTableCell(content: string, bold = false, fill = "FFFFFF", color = "000000") {
+    return new TableCell({
+        children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: content, bold, size: 18, color, font: "Arial" })]
+        })],
+        shading: { fill },
+        verticalAlign: VerticalAlign.CENTER,
+        margins: { top: 100, bottom: 100 }
+    });
+}
+
+function createTable(headers: string[], rows: (string | number)[][], widths?: number[]) {
     return new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
-            // Header Row
             new TableRow({
-                children: headers.map(h => new TableCell({
-                    children: [createParagraph(h, true, 20, AlignmentType.CENTER)],
-                    shading: { fill: "D9D9D9" }
-                }))
+                children: headers.map((h, i) => createTableCell(h, true, "1E40AF", "FFFFFF"))
             }),
-            // Data Rows
             ...rows.map(row =>
                 new TableRow({
-                    children: row.map(cell => new TableCell({
-                        children: [createParagraph(cell, false, 20, AlignmentType.CENTER)]
-                    }))
+                    children: row.map(cell => createTableCell(String(cell)))
                 })
             )
         ]
@@ -79,21 +95,14 @@ function createTable(headers: string[], rows: string[][]) {
 }
 
 // Generate the Document
-export async function generateWordReport(data: ReportData) {
-    const { month, year, reportImages, currentInspections, currentATS, currentPETAR } = data;
+export async function generateWordReport(data: ReportData, isServerSide = false) {
+    const { monthName, year, location, stats, pmaCompliance, evidence, annexes, desvios } = data;
 
-    // Pre-fetch images to buffers
-    const docxImages: any[] = [];
-    for (const img of reportImages) {
-        const buffer = await fetchImageBuffer(img.preview);
-        if (buffer) {
-            docxImages.push({
-                buffer,
-                description: img.description,
-                category: img.category
-            });
-        }
-    }
+    // Calculate Statistics
+    const accidentsTotal = (stats.accidents.ATT || 0) + (stats.accidents.APP || 0) + (stats.accidents.ATP || 0) + (stats.accidents.AM || 0);
+    const IF = stats.hht > 0 ? (accidentsTotal * 1000000) / stats.hht : 0;
+    const IS = stats.hht > 0 ? ((stats.accidents.TDP || 0) * 1000000) / stats.hht : 0;
+    const IA = (IF * IS) / 1000;
 
     const docChildren: any[] = [];
 
@@ -101,29 +110,55 @@ export async function generateWordReport(data: ReportData) {
     docChildren.push(
         new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 4000, after: 1000 },
-            children: [new TextRun({ text: "INFORME MENSUAL DEL PLAN DE MANEJO AMBIENTAL Y SSOMA", bold: true, size: 36, font: "Arial" })]
+            spacing: { before: 2000, after: 1000 },
+            children: [new TextRun({ text: "CONCESIÓN DEL TRAMO VIAL PUENTE PUCUSANA – CERRO AZUL – ICA", bold: true, size: 28, font: "Arial" })]
+        }),
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 1000 },
+            children: [new TextRun({ text: "RED VIAL 6", bold: true, size: 24, font: "Arial", color: "1E40AF" })]
+        }),
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 2000, after: 400 },
+            children: [new TextRun({ text: `INFORME DE GESTIÓN MENSUAL SSOMA`, bold: true, size: 36, font: "Arial" })]
+        }),
+        new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 1000 },
+            children: [new TextRun({ text: `${location.toUpperCase()}`, bold: true, size: 32, font: "Arial", color: "1E40AF" })]
         }),
         new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 400 },
-            children: [new TextRun({ text: `${month.toUpperCase()} - ${year}`, bold: true, size: 28, font: "Arial" })]
+            children: [new TextRun({ text: `${monthName.toUpperCase()} ${year}`, bold: true, size: 28, font: "Arial" })]
         }),
         new Paragraph({ children: [new PageBreak()] })
     );
 
-    // --- INTRODUCCIÓN GENERAL ---
+    // --- 1. RESUMEN EJECUTIVO & 3. ESTADÍSTICAS ---
     docChildren.push(
-        createHeading("1. INTRODUCCIÓN Y ANTECEDENTES", HeadingLevel.HEADING_1),
-        createParagraph(`El presente documento constituye el informe de cumplimiento correspondiente al mes de ${month} del ${year}.`),
-        createParagraph("Estructura base del informe para ser completada con la información en sitio e información recopilada directamente desde la plataforma Antigravity SSOMA."),
+        createHeading("1. RESUMEN EJECUTIVO", HeadingLevel.HEADING_1),
+        createParagraph(`Durante el mes de ${monthName} del ${year}, se ha dado cumplimiento a las actividades de prevención y control ambiental en el área de ${location}.`),
+        
+        createHeading("3. ESTADÍSTICAS DE SEGURIDAD Y SALUD", HeadingLevel.HEADING_1),
+        createParagraph("A continuación se detallan los indicadores de accidentabilidad del período:"),
+        createTable(["INDICADOR", "VALOR MENSUAL", "UNIDAD"], [
+            ["Horas Hombre Trabajadas (HHT)", stats.hht, "Horas"],
+            ["Índice de Frecuencia (IF)", IF.toFixed(2), "N° Acc. / HH"],
+            ["Índice de Severidad (IS)", IS.toFixed(2), "Días / HH"],
+            ["Índice de Accidentabilidad (IA)", IA.toFixed(2), "IF * IS / 1000"],
+            ["Accidentes con Lesión", accidentsTotal, "N° Casos"],
+            ["Días Perdidos", stats.accidents.TDP || 0, "Días"]
+        ]),
 
-        createHeading("2. REGISTROS OPERATIVOS DE SSOMA EN PLATAFORMA", HeadingLevel.HEADING_1),
-        createParagraph("La plataforma tecnológica registró durante el mes la siguiente actividad documentaria para la obra:"),
-        createTable(["TIPO DE DOCUMENTO", "CANTIDAD EMITIDA", "ESTADO"], [
-            ["Inspecciones de Seguridad", currentInspections.length.toString(), "Completado"],
-            ["Análisis de Trabajo Seguro (ATS)", currentATS.length.toString(), "Completado"],
-            ["Permisos Escritos para Trabajos de Alto Riesgo (PETAR)", currentPETAR.length.toString(), "Completado"]
+        createHeading("4. GESTIÓN DE LA PREVENCIÓN", HeadingLevel.HEADING_1),
+        createParagraph("Registro de actividades preventivas realizadas en campo:"),
+        createTable(["DOCUMENTO", "CANTIDAD", "SITIO"], [
+            ["Inspecciones de Seguridad", stats.inspections, "Consolidado"],
+            ["Registros ATS / APR", stats.ats, "Consolidado"],
+            ["Permisos de Trabajo (PETAR)", stats.petar, "Consolidado"],
+            ["Control de Personal (HHC)", stats.hhc, "Consolidado"]
         ]),
         new Paragraph({ children: [new PageBreak()] })
     );
@@ -131,132 +166,73 @@ export async function generateWordReport(data: ReportData) {
     // --- 8. EJECUCIÓN DEL PLAN DE MANEJO AMBIENTAL ---
     docChildren.push(
         createHeading("8. EJECUCIÓN DEL PLAN DE MANEJO AMBIENTAL", HeadingLevel.HEADING_1),
-        createHeading("8.1. PROGRAMA DE PREVENCIÓN Y MITIGACIÓN", HeadingLevel.HEADING_2),
-        createHeading("8.1.1. Manejo de Residuos y Efluentes", HeadingLevel.HEADING_3),
-        createParagraph("A continuación, las métricas de generación. (Complete las cifras exactas obtenidas en campo para el cierre mensual)."),
-        createTable(["TIPO DE RESIDUO", "CANTIDAD GENERADA (Kg/Mes)", "DESTINO FINAL / DISPOSICIÓN"], [
-            ["Residuos No Peligrosos (Domésticos, Papel, Cartón)", " ", "Relleno Sanitario Autorizado"],
-            ["Residuos Peligrosos (Industrial, Hidrocarburos)", " ", "EO-RS Autorizada"],
-            ["Residuos Metálicos o Asfalto", " ", "Comercialización / Reuso"]
+        createHeading("8.1. MANEJO DE RESIDUOS SÓLIDOS", HeadingLevel.HEADING_2),
+        createParagraph("Cuantificación de residuos generados durante el período:"),
+        createTable(["CATEGORÍA", "CANTIDAD (KG)", "ESTADO"], [
+            ["Residuos Peligrosos", stats.waste.PEL || 0, "Recolección/EPS"],
+            ["Residuos No Peligrosos", stats.waste.NO_PEL || 0, "Relleno Sanitario"],
+            ["Residuos Aprovechables", stats.waste.APROV || 0, "Segregación"],
+            ["TOTAL GENERADO", (stats.waste.PEL || 0) + (stats.waste.NO_PEL || 0) + (stats.waste.APROV || 0), "-"]
         ]),
-        createParagraph(" ")
+
+        createHeading("8.6. CUMPLIMIENTO PMA", HeadingLevel.HEADING_2),
+        createTable(["ACTIVIDAD PMA", "RESPONSABLE", "EVIDENCIA"], 
+            pmaCompliance.map(p => [p.activity_name, p.responsible || 'Antigravity', p.status || 'OK'])
+        )
     );
 
-    // Efluentes & Baños Photos (Category PMA, description has 'baño' or 'lavamano' or 'residuo' or 'contenedor')
-    const residuoImages = docxImages.filter(i => i.category.includes('PMA') && (
-        i.description.toLowerCase().includes('baño') ||
-        i.description.toLowerCase().includes('lavamano') ||
-        i.description.toLowerCase().includes('residuo') ||
-        i.description.toLowerCase().includes('contenedor') ||
-        i.description.toLowerCase().includes('basura')
-    ));
-    if (residuoImages.length > 0) {
-        docChildren.push(createHeading("Fotografías: Disposición de Residuos y Efluentes", HeadingLevel.HEADING_4));
-        residuoImages.forEach(img => {
-            docChildren.push(new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new ImageRun({ data: img.buffer, transformation: { width: 350, height: 250 } }),
-                    new TextRun({ text: `\n${img.description}`, break: 1, size: 18 })
-                ]
-            }));
-        });
-    }
-
-    // --- 8.2 ASUNTOS SOCIALES ---
-    docChildren.push(
-        new Paragraph({ children: [new PageBreak()] }),
-        createHeading("8.2. PROGRAMA DE ASUNTOS SOCIALES", HeadingLevel.HEADING_1),
-        createParagraph("Información sobre relacionamiento comunitario, buzón de quejas y man de obra local."),
-        createTable(["Personal en San Clemente", "Personal en Ica", "Personal en Lima"], [
-            [" ", " ", " "]
-        ]),
-        createParagraph(" ")
-    );
-
-    const socialImages = docxImages.filter(i => i.category.includes('PMA') && (
-        i.description.toLowerCase().includes('buzon') ||
-        i.description.toLowerCase().includes('reclamo') ||
-        i.description.toLowerCase().includes('social')
-    ));
-    if (socialImages.length > 0) {
-        docChildren.push(createHeading("Fotografías: Relacionamiento Comunitario (Buzones y Actas)", HeadingLevel.HEADING_4));
-        socialImages.forEach(img => {
-            docChildren.push(new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new ImageRun({ data: img.buffer, transformation: { width: 350, height: 250 } }),
-                    new TextRun({ text: `\n${img.description}`, break: 1, size: 18 })
-                ]
-            }));
-        });
-    }
-
-    // --- 8.3 CAPACITACIÓN ---
-    docChildren.push(
-        new Paragraph({ children: [new PageBreak()] }),
-        createHeading("8.3. PROGRAMA DE CAPACITACIÓN, EDUCACIÓN", HeadingLevel.HEADING_1),
-        createParagraph("Evidencia de charlas participativas dictadas en sitio (Charlas Ambientales y ATS vinculados a la cultura preventiva).")
-    );
-
-    const charlaImages = docxImages.filter(i => i.category.includes('ATS') || (i.category.includes('PMA') && i.description.toLowerCase().includes('charla')));
-    if (charlaImages.length > 0) {
-        docChildren.push(createHeading("Fotografías de Capacitación (ATS y Difusiones)", HeadingLevel.HEADING_4));
-        charlaImages.forEach(img => {
-            docChildren.push(new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new ImageRun({ data: img.buffer, transformation: { width: 350, height: 250 } }),
-                    new TextRun({ text: `\n${img.description} [Ref: ${i.category}]`, break: 1, size: 18 })
-                ]
-            }));
-        });
-    }
-
-    // --- 8.4 CONTINGENCIAS ---
-    docChildren.push(
-        new Paragraph({ children: [new PageBreak()] }),
-        createHeading("8.4. PREVENCIÓN DE PÉRDIDAS Y CONTINGENCIAS", HeadingLevel.HEADING_1),
-        createParagraph("Registros físicos y evidencia in-situ del establecimiento de control de contingencias (Salud ocupacional, Tópicos, Equipos de emergencia)."),
-        createTable(["Equipo / Instalación", "Inspecciones Acumuladas en Plataforma", "Estado de Mantenimiento"], [
-            ["Tópico de Emergencias", " ", " "],
-            ["Estación y Equipo Antiderrames", " ", " "],
-            ["Extintores (Red y Obra)", " ", " "]
-        ]),
-        createParagraph(" ")
-    );
-
-    const continImages = docxImages.filter(i => i.category.includes('PMA') && (
-        i.description.toLowerCase().includes('emergencia') ||
-        i.description.toLowerCase().includes('topico') ||
-        i.description.toLowerCase().includes('tópico') ||
-        i.description.toLowerCase().includes('extintor') ||
-        i.description.toLowerCase().includes('botiquin') ||
-        i.description.toLowerCase().includes('epp')
-    ));
-    if (continImages.length > 0) {
-        docChildren.push(createHeading("Fotografías: Elementos de Contingencia", HeadingLevel.HEADING_4));
-        continImages.forEach(img => {
-            docChildren.push(new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new ImageRun({ data: img.buffer, transformation: { width: 350, height: 250 } }),
-                    new TextRun({ text: `\n${img.description}`, break: 1, size: 18 })
-                ]
-            }));
-        });
-    }
-
-    // COMPILING THE FINAL DOCUMENT
-    const doc = new Document({
-        sections: [
-            {
-                properties: {},
-                children: docChildren
+    // --- ANEXOS & PANEL FOTOGRÁFICO ---
+    const photoEvidence = evidence.slice(0, 16);
+    if (photoEvidence.length > 0) {
+        docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+        createHeading("ANEXO: PANEL FOTOGRÁFICO", HeadingLevel.HEADING_1);
+        
+        for (let i = 0; i < photoEvidence.length; i++) {
+            const e = photoEvidence[i];
+            const buffer = await fetchImageBuffer(e.file_url);
+            if (buffer) {
+                docChildren.push(
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 200, after: 200 },
+                        children: [
+                            new ImageRun({ data: buffer, transformation: { width: 400, height: 250 } }),
+                        ]
+                    }),
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                            new TextRun({ text: `Imagen ${i+1}: ${e.description}`, bold: true, size: 16, font: "Arial" }),
+                            new TextRun({ text: `\nLugar: ${e.location} | Fecha: ${e.date}`, break: 1, size: 14, font: "Arial" })
+                        ]
+                    })
+                );
             }
-        ]
+        }
+    }
+
+    // --- LISTADO DE ANEXOS DOCUMENTARIOS ---
+    docChildren.push(new Paragraph({ children: [new PageBreak()] }));
+    createHeading("LISTADO DE ANEXOS (ARCHIVOS ADJUNTOS)", HeadingLevel.HEADING_1);
+    createParagraph("Los siguientes documentos han sido cargados y validados en la plataforma como parte de la sustentación mensual:");
+    
+    if (annexes.length > 0) {
+        createTable(["N° ANEXO", "DESCRIPCIÓN", "TIPO"], 
+            annexes.map(a => [a.annex_id, a.label, a.is_permanent ? 'Permanente' : 'Mensual'])
+        ).rows.forEach(row => docChildren.push(row));
+    } else {
+        docChildren.push(createParagraph("No se registran anexos documentarios para este período."));
+    }
+
+    const doc = new Document({
+        title: `Informe Mensual ${monthName} - ${location}`,
+        sections: [{ children: docChildren }]
     });
 
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `Informe_Mensual_PMA_${month}_${year}.docx`);
+    if (isServerSide) {
+        return await Packer.toBuffer(doc);
+    } else {
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `Informe_Mensual_Consolidado_${location.replace(/\s+/g, '_')}_${monthName}_${year}.docx`);
+    }
 }

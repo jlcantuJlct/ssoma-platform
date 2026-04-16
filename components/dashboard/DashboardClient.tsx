@@ -30,8 +30,10 @@ import {
     Upload,
     Save,
     Image as ImageIcon,
-    TrendingUp
+    TrendingUp,
+    Wrench
 } from "lucide-react";
+import { ReportCommandCenter } from "./ReportCommandCenter";
 
 interface DashboardClientProps {
     initialData: DashboardData;
@@ -77,6 +79,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
 
     const [activeManagement, setActiveManagement] = useState<string>(searchParams.get('area') || 'todos');
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showReportTools, setShowReportTools] = useState(false);
 
     // PERSISTENCIA E HIDRATACIÓN DB
     useEffect(() => {
@@ -725,6 +728,15 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                         {showAnalytics ? 'PROGRAMA DE ACTIVIDADES' : 'ANALÍTICA'}
                     </button>
                 )}
+
+                {/* Report Tools Button */}
+                <button
+                    onClick={() => setShowReportTools(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20 border border-indigo-400/20"
+                >
+                    <Wrench size={16} />
+                    HERRAMIENTAS DE REPORTE
+                </button>
             </div>
 
             {/* Navigation Tabs Dinámicas */}
@@ -938,6 +950,16 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     </div>
                 )
             }
+
+            {/* Report Command Center Modal */}
+            {showReportTools && (
+                <ReportCommandCenter 
+                    onClose={() => setShowReportTools(false)}
+                    currentMonth={selectedMonthIndex === -1 ? new Date().getMonth() : selectedMonthIndex}
+                    currentYear={selectedYear}
+                    location="SAN CLEMENTE"
+                />
+            )}
         </div >
     );
 }

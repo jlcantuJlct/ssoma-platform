@@ -3,6 +3,31 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
     const url = req.nextUrl.searchParams.get('url');
     
+    const localPath = req.nextUrl.searchParams.get('localPath');
+    
+    if (localPath) {
+        // Safety check: Only allow access to CASA 2026 directory
+        if (!localPath.startsWith('C:\\Users\\jlcan\\Desktop\\CASA 2026')) {
+            return new NextResponse('Error: Access denied to this path', { status: 403 });
+        }
+
+        try {
+            const fs = require('fs');
+            if (!fs.existsSync(localPath)) {
+                return new NextResponse('Error: File not found', { status: 404 });
+            }
+            const fileBuffer = fs.readFileSync(localPath);
+            const contentType = localPath.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+            
+            return new NextResponse(fileBuffer, {
+                status: 200,
+                headers: { 'Content-Type': contentType, 'Access-Control-Allow-Origin': '*' }
+            });
+        } catch (e: any) {
+            return new NextResponse(`Error reading local file: ${e.message}`, { status: 500 });
+        }
+    }
+
     if (!url) {
         return new NextResponse('Error: Parameter URL is missing', { status: 400 });
     }
