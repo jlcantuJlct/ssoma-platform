@@ -1545,14 +1545,25 @@ export default function MonthlyReportPage() {
     const handleGenerateWordPMA = async () => {
         setIsGenerating(true);
         try {
-            // Se usa el endpoint de servidor para compilar sin problemas de cliente
-            window.location.href = `/api/export-word?month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`;
-        } catch (error) {
+            const res = await fetch(`/api/export-word?month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || errData.details || "Error al generar Word");
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Informe_Mensual_${MONTHS[selectedMonth]}_${selectedYear}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
             console.error("Error al generar reporte Word:", error);
-            alert("Ocurrió un error al compilar el documento Word. Revise la consola.");
+            alert(`Ocurrió un error al compilar el documento Word en el servidor:\n${error.message}`);
         } finally {
-            // Pequeño timeout antes de apagar el spinner para dejar que el navegador inicie la descarga
-            setTimeout(() => setIsGenerating(false), 2000);
+            setIsGenerating(false);
         }
     };
 
