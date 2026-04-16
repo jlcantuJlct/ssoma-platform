@@ -18,8 +18,7 @@ import {
     User,
     File,
     FileSpreadsheet,
-    FileEdit,
-    FileText
+    FileEdit
 } from "lucide-react";
 import { DashboardData, UploadContext } from "@/lib/types";
 import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
