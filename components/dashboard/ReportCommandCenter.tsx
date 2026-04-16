@@ -233,31 +233,25 @@ export function ReportCommandCenter({ onClose, currentMonth, currentYear, locati
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Horas Hombre (HHT)</label>
-                                                    <input 
-                                                        type="number" 
-                                                        value={stats.HHT} 
-                                                        onChange={(e) => setStats({...stats, HHT: Number(e.target.value)})}
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-indigo-400 font-black focus:border-indigo-500 outline-none" 
-                                                    />
+                                                    <div className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 text-indigo-400 font-black cursor-not-allowed flex justify-between items-center">
+                                                        <span>{stats.HHT || 0}</span>
+                                                        <span className="text-[8px] tracking-widest text-indigo-900/80 bg-indigo-500/10 px-2 py-0.5 rounded-full font-bold">EXCEL</span>
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Días Perdidos (TDP)</label>
-                                                    <input 
-                                                        type="number" 
-                                                        value={stats.TDP} 
-                                                        onChange={(e) => setStats({...stats, TDP: Number(e.target.value)})}
-                                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-red-500 font-black focus:border-red-500 outline-none" 
-                                                    />
+                                                    <div className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 text-red-500 font-black cursor-not-allowed flex justify-between items-center">
+                                                        <span>{stats.TDP || 0}</span>
+                                                        <span className="text-[8px] tracking-widest text-red-900/80 bg-red-500/10 px-2 py-0.5 rounded-full font-bold">EXCEL</span>
+                                                    </div>
                                                 </div>
                                                 {['ATT', 'APP', 'ATP', 'AM', 'EO', 'EP'].map(key => (
                                                     <div key={key} className="space-y-1">
                                                         <label className="text-[10px] font-bold text-slate-500 uppercase">{key === 'ATT' ? 'Accid. Totales (ATT)' : key}</label>
-                                                        <input 
-                                                            type="number" 
-                                                            value={stats[key]} 
-                                                            onChange={(e) => setStats({...stats, [key]: Number(e.target.value)})}
-                                                            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-white font-mono focus:border-indigo-500 outline-none" 
-                                                        />
+                                                        <div className="w-full bg-slate-900/30 border border-slate-800 rounded-xl px-4 py-2 text-slate-400 font-mono cursor-not-allowed flex justify-between items-center">
+                                                            <span>{stats[key] || 0}</span>
+                                                            <span className="text-[8px] tracking-widest text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full font-bold">AUTO</span>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
