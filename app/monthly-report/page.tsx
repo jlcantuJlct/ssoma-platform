@@ -1545,19 +1545,14 @@ export default function MonthlyReportPage() {
     const handleGenerateWordPMA = async () => {
         setIsGenerating(true);
         try {
-            await generateWordReport({
-                month: MONTHS[selectedMonth],
-                year: selectedYear,
-                reportImages,
-                currentInspections,
-                currentATS,
-                currentPETAR
-            });
+            // Se usa el endpoint de servidor para compilar sin problemas de cliente
+            window.location.href = `/api/export-word?month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`;
         } catch (error) {
             console.error("Error al generar reporte Word:", error);
             alert("Ocurrió un error al compilar el documento Word. Revise la consola.");
         } finally {
-            setIsGenerating(false);
+            // Pequeño timeout antes de apagar el spinner para dejar que el navegador inicie la descarga
+            setTimeout(() => setIsGenerating(false), 2000);
         }
     };
 
