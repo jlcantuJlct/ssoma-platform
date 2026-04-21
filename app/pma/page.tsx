@@ -13,7 +13,9 @@ import {
     X,
     Save,
     Target,
-    Filter
+    Filter,
+    Search,
+    ChevronDown
 } from "lucide-react";
 import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -136,6 +138,12 @@ const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
         group: "Manejo de residuos", 
         label: "5. Foto de estación de RRSS", 
         hint: "Estación de residuos." 
+    },
+    { 
+        id: "WASTE_SPILL_KIT", 
+        group: "Manejo de residuos", 
+        label: "6. Foto de kit contra derrames", 
+        hint: "Evidenciar disponibilidad y estado del kit contra derrames." 
     },
     // POLVO
     { 
@@ -295,6 +303,10 @@ export default function PMAPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+
+    // Search Category State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -645,27 +657,84 @@ export default function PMAPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Fotos PMA</label>
                                         <div className="relative group">
-                                            <Leaf className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <select
-                                                value={form.category}
-                                                onChange={e => setForm({ ...form, category: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-xs focus:border-emerald-500 outline-none appearance-none transition-colors truncate"
-                                                required
-                                            >
-                                                <option value="">Seleccionar Actividad...</option>
-                                                {Array.from(new Set(pmaCategories.map(c => c.group))).map(groupName => (
-                                                    <optgroup key={groupName} label={groupName} className="bg-slate-900 text-emerald-400 font-bold">
-                                                        {pmaCategories
-                                                            .filter(c => c.group === groupName)
-                                                            .map(cat => (
-                                                                <option key={cat.id} value={cat.id} className="bg-slate-950 text-white font-normal">
-                                                                    {cat.label}
-                                                                </option>
-                                                            ))
-                                                        }
-                                                    </optgroup>
-                                                ))}
-                                            </select>
+                                            <Leaf className="absolute left-3 top-3 text-slate-500 z-10" size={16} />
+                                            
+                                            {/* Custom Searchable Dropdown */}
+                                            <div className="relative w-full">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-10 py-2.5 text-white text-xs focus:border-emerald-500 outline-none transition-colors text-left flex items-center justify-between"
+                                                >
+                                                    <span className="truncate">
+                                                        {form.category ? pmaCategories.find(c => c.id === form.category)?.label : "Seleccionar Actividad..."}
+                                                    </span>
+                                                    <ChevronDown className={`text-slate-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} size={16} />
+                                                </button>
+
+                                                {isDropdownOpen && (
+                                                    <div className="absolute top-full left-0 w-full mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[400px]">
+                                                        <div className="p-2 border-b border-slate-800 bg-slate-900/50">
+                                                            <div className="relative">
+                                                                <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Buscar actividad..."
+                                                                    value={searchTerm}
+                                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-white text-[11px] focus:border-emerald-500 outline-none"
+                                                                    autoFocus
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="overflow-y-auto flex-1 custom-scrollbar">
+                                                            {Array.from(new Set(pmaCategories.map(c => c.group))).map(groupName => {
+                                                                const filteredItems = pmaCategories.filter(c => 
+                                                                    c.group === groupName && 
+                                                                    (c.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                                                     c.group.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                                );
+
+                                                                if (filteredItems.length === 0) return null;
+
+                                                                return (
+                                                                    <div key={groupName} className="p-1">
+                                                                        <div className="px-3 py-1.5 text-[10px] font-black text-emerald-500 uppercase tracking-wider bg-emerald-500/5 rounded-md mb-1">
+                                                                            {groupName}
+                                                                        </div>
+                                                                        {filteredItems.map(cat => (
+                                                                            <button
+                                                                                key={cat.id}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setForm({ ...form, category: cat.id });
+                                                                                    setIsDropdownOpen(false);
+                                                                                    setSearchTerm("");
+                                                                                }}
+                                                                                className={`w-full text-left px-4 py-2 text-[11px] rounded-md transition-colors flex items-center gap-2 ${
+                                                                                    form.category === cat.id 
+                                                                                    ? 'bg-emerald-600 text-white font-bold' 
+                                                                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                                                                }`}
+                                                                            >
+                                                                                {cat.label}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            {pmaCategories.filter(c => 
+                                                                c.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                                                c.group.toLowerCase().includes(searchTerm.toLowerCase())
+                                                            ).length === 0 && (
+                                                                <div className="p-8 text-center text-[11px] text-slate-500 italic">
+                                                                    No se encontraron resultados
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         {/* Hint Text */}
                                         {form.category && (
