@@ -887,7 +887,7 @@ export default function PMAPage() {
                                         <tbody className="divide-y divide-slate-800">
                                             {records.filter(r => {
                                                 const matchesDate = filterDate === "" || r.date === filterDate;
-                                                const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                 const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                 const matchesCat = filterCategory === "" || r.category === filterCategory;
                                                 return matchesDate && matchesResp && matchesLoc && matchesCat;
@@ -901,7 +901,7 @@ export default function PMAPage() {
                                                 records
                                                     .filter(r => {
                                                         const matchesDate = filterDate === "" || r.date === filterDate;
-                                                        const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                         const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                         const matchesCat = filterCategory === "" || r.category === filterCategory;
                                                         return matchesDate && matchesResp && matchesLoc && matchesCat;

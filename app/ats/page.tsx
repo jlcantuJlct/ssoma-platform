@@ -46,7 +46,6 @@ export default function AtsPage() {
 
     const [file, setFile] = useState<{ url: string, name: string } | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
 
     // Filter State
     const [filterDate, setFilterDate] = useState("");
@@ -445,7 +444,7 @@ export default function AtsPage() {
                                         <tbody className="divide-y divide-slate-800/50">
                                             {records.filter(r => {
                                                 const matchesDate = filterDate === "" || r.date === filterDate;
-                                                const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                 const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                 return matchesDate && matchesResp && matchesLoc;
                                             }).length === 0 ? (
@@ -458,7 +457,7 @@ export default function AtsPage() {
                                                 records
                                                     .filter(r => {
                                                         const matchesDate = filterDate === "" || r.date === filterDate;
-                                                        const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                         const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                         return matchesDate && matchesResp && matchesLoc;
                                                     })
