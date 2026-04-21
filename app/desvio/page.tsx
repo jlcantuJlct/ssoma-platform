@@ -72,7 +72,8 @@ export default function DetourPage() {
         location: ''
     });
     const [images, setImages] = useState<string[]>([]);
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false); // Refined from previewFile check
+    const [isUploading, setIsUploading] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // Table Filter State

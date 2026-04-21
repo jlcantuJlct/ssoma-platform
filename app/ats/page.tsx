@@ -46,6 +46,7 @@ export default function AtsPage() {
 
     const [file, setFile] = useState<{ url: string, name: string } | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Filter State
     const [filterDate, setFilterDate] = useState("");
