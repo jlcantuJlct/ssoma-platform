@@ -72,9 +72,14 @@ export default function DetourPage() {
         location: ''
     });
     const [images, setImages] = useState<string[]>([]);
-    const [isUploading, setIsUploading] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false); // Refined from previewFile check
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+
+    // Table Filter State
+    const [filterDate, setFilterDate] = useState("");
+    const [filterResponsible, setFilterResponsible] = useState("");
+    const [filterLocation, setFilterLocation] = useState("");
+    const [filterCategory, setFilterCategory] = useState("");
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -460,9 +465,55 @@ export default function DetourPage() {
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl overflow-hidden">
                                 <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-emerald-400" />
-                                    Historial de Controles
+                                    <FileText size={20} className="text-emerald-400" /> Historial de Controles
                                 </h3>
+
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-blue-950/10 p-4 rounded-xl border border-blue-500/10">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nombre..."
+                                            value={filterResponsible}
+                                            onChange={e => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
+                                        <select
+                                            value={filterCategory}
+                                            onChange={e => setFilterCategory(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
+                                        >
+                                            <option value="">Todas las categorías...</option>
+                                            {DETOUR_CATEGORIES.map(cat => (
+                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
+                                        <select
+                                            value={filterLocation}
+                                            onChange={e => setFilterLocation(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
+                                        >
+                                            <option value="">Todos los lugares...</option>
+                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
                                     <table className="w-full min-w-[800px] text-left text-xs">
@@ -477,12 +528,28 @@ export default function DetourPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
-                                            {records.length === 0 ? (
+                                            {records.filter(r => {
+                                                const matchesDate = filterDate === "" || r.date === filterDate;
+                                                const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                            }).length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={6} className="py-12 text-center text-slate-600 italic">No hay registros aún.</td>
+                                                    <td colSpan={6} className="py-12 text-center text-slate-600 italic">
+                                                        {records.length === 0 ? "No hay registros aún." : "No se encontraron registros con los filtros aplicados."}
+                                                    </td>
                                                 </tr>
                                             ) : (
-                                                records.map((r) => (
+                                                records
+                                                    .filter(r => {
+                                                        const matchesDate = filterDate === "" || r.date === filterDate;
+                                                        const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                        const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                        return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                                    })
+                                                    .map((r) => (
                                                     <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-4 pl-2 font-mono text-white">{r.date}</td>
                                                         <td className="py-4">

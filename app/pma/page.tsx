@@ -308,6 +308,12 @@ export default function PMAPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+    // Table Filter State
+    const [filterDate, setFilterDate] = useState("");
+    const [filterResponsible, setFilterResponsible] = useState("");
+    const [filterLocation, setFilterLocation] = useState("");
+    const [filterCategory, setFilterCategory] = useState("");
+
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
         const loadRecords = async () => {
@@ -816,9 +822,55 @@ export default function PMAPage() {
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
                                 <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-blue-400" />
-                                    Historial de Cargas
+                                    <FileText size={20} className="text-blue-400" /> Historial de Cargas
                                 </h3>
+
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nombre..."
+                                            value={filterResponsible}
+                                            onChange={e => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
+                                        <select
+                                            value={filterCategory}
+                                            onChange={e => setFilterCategory(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                        >
+                                            <option value="">Todas las categorías...</option>
+                                            {pmaCategories.map(cat => (
+                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
+                                        <select
+                                            value={filterLocation}
+                                            onChange={e => setFilterLocation(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                        >
+                                            <option value="">Todos los lugares...</option>
+                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[900px] text-left text-sm text-slate-400">
@@ -833,14 +885,28 @@ export default function PMAPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
-                                            {records.length === 0 ? (
+                                            {records.filter(r => {
+                                                const matchesDate = filterDate === "" || r.date === filterDate;
+                                                const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                            }).length === 0 ? (
                                                 <tr>
                                                     <td colSpan={7} className="py-12 text-center text-slate-600 italic">
-                                                        No hay evidencias registradas en el historial.
+                                                        {records.length === 0 ? "No hay evidencias registradas en el historial." : "No se encontraron registros con los filtros aplicados."}
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                records.map((record) => {
+                                                records
+                                                    .filter(r => {
+                                                        const matchesDate = filterDate === "" || r.date === filterDate;
+                                                        const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                        const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                        return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                                    })
+                                                    .map((record) => {
                                                     const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">

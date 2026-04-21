@@ -56,6 +56,11 @@ export default function PetarPage() {
     const [file, setFile] = useState<{ url: string, name: string } | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
 
+    // Filter State
+    const [filterDate, setFilterDate] = useState("");
+    const [filterResponsible, setFilterResponsible] = useState("");
+    const [filterLocation, setFilterLocation] = useState("");
+
     // LOAD RECORDS FROM DATABASE
     useEffect(() => {
         const loadRecords = async () => {
@@ -412,6 +417,40 @@ export default function PetarPage() {
                                     <Activity className="text-blue-500" size={20} /> Historial de Registros
                                 </h3>
 
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <input
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-orange-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nombre..."
+                                            value={filterResponsible}
+                                            onChange={e => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-orange-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
+                                        <select
+                                            value={filterLocation}
+                                            onChange={e => setFilterLocation(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-orange-500 outline-none transition-colors"
+                                        >
+                                            <option value="">Todos los lugares...</option>
+                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
@@ -425,14 +464,26 @@ export default function PetarPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800/50">
-                                            {records.length === 0 ? (
+                                            {records.filter(r => {
+                                                const matchesDate = filterDate === "" || r.date === filterDate;
+                                                const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                return matchesDate && matchesResp && matchesLoc;
+                                            }).length === 0 ? (
                                                 <tr>
                                                     <td colSpan={6} className="py-12 text-center text-slate-500 italic">
-                                                        No hay registros de PETAR aún.
+                                                        {records.length === 0 ? "No hay registros de PETAR aún." : "No se encontraron registros con los filtros aplicados."}
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                records.map((record) => (
+                                                records
+                                                    .filter(r => {
+                                                        const matchesDate = filterDate === "" || r.date === filterDate;
+                                                        const matchesResp = filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                        return matchesDate && matchesResp && matchesLoc;
+                                                    })
+                                                    .map((record) => (
                                                     <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group text-sm">
                                                         <td className="py-4 pl-4 font-mono text-slate-300">{record.date}</td>
                                                         <td className="py-4">
