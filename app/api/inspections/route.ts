@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
 // Crear tabla si no existe
+// Crear tabla si no existe (Unificado con actions.ts)
 async function ensureTable() {
     await db.execute(`
-        CREATE TABLE IF NOT EXISTS inspections_records (
-            id SERIAL PRIMARY KEY,
-            date VARCHAR(20) NOT NULL,
-            responsable VARCHAR(100),
+        CREATE TABLE IF NOT EXISTS inspection_records (
+            id BIGINT PRIMARY KEY,
+            date VARCHAR(50),
+            responsible VARCHAR(100),
+            inspection_type VARCHAR(100),
             area VARCHAR(50),
-            zona VARCHAR(200),
-            tipo VARCHAR(100),
-            description TEXT,
-            evidence_imgs TEXT,
+            zone VARCHAR(200),
+            status VARCHAR(50),
+            observations TEXT,
             evidence_pdf TEXT,
-            status VARCHAR(50) DEFAULT 'Pendiente',
+            evidence_imgs TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
@@ -24,7 +25,7 @@ async function ensureTable() {
 export async function GET() {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM inspections_records ORDER BY date DESC');
+        const records = await db.fetchAll('SELECT * FROM inspection_records ORDER BY date DESC');
 
         const parsed = records.map((r: any) => {
             let evidenceImgs: string[] = [];
@@ -36,9 +37,16 @@ export async function GET() {
                 console.warn('Could not parse evidence_imgs:', e);
             }
             return {
-                ...r,
+                id: r.id,
+                date: r.date,
+                responsible: r.responsible,
+                inspectionType: r.inspection_type, // Mapped to frontend expectation
+                area: r.area,
+                zone: r.zone,
+                observations: r.observations,
                 evidenceImgs,
-                evidencePdf: r.evidence_pdf || ''
+                evidencePdf: r.evidence_pdf || '',
+                status: r.status || 'Pendiente'
             };
         });
 
@@ -49,7 +57,7 @@ export async function GET() {
     }
 }
 
-// POST - Guardar inspecciones con acciones CRUD
+// POST - Guardar inspecciones con acciones CRUD (Unificado)
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
@@ -57,61 +65,63 @@ export async function POST(req: NextRequest) {
 
         // 1. MODO LEGADO (Protección contra borrado)
         if (body.records && Array.isArray(body.records) && !body.action) {
-            // Solo insertamos los que no tengan ID
             const newRecords = body.records.filter((r: any) => !r.id);
             let insertedCount = 0;
             for (const r of newRecords) {
                 await db.execute(
-                    `INSERT INTO inspections_records (date, responsable, area, zona, tipo, description, evidence_imgs, evidence_pdf, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_imgs, evidence_pdf)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
+                        r.id || Date.now() + insertedCount,
                         r.date || '',
-                        r.responsable || '',
+                        r.responsible || r.responsable || '',
+                        r.inspectionType || r.tipo || '',
                         r.area || '',
-                        r.zona || r.lugar || '',
-                        r.tipo || '',
-                        r.description || r.tema || '',
+                        r.zone || r.zona || r.lugar || '',
+                        r.status || 'Pendiente',
+                        r.observations || r.description || r.tema || '',
                         JSON.stringify(r.evidenceImgs || []),
-                        r.evidencePdf || '',
-                        r.status || 'Pendiente'
+                        r.evidencePdf || ''
                     ]
                 );
                 insertedCount++;
             }
-            return NextResponse.json({ success: true, message: "Legacy Sync: Appended new records", count: insertedCount });
+            return NextResponse.json({ success: true, message: "Sync complete", count: insertedCount });
         }
 
         // 2. MODO ACCIONES
         const { action, data, id } = body;
 
         if (action === 'create') {
-            const res = await db.execute(
-                `INSERT INTO inspections_records (date, responsable, area, zona, tipo, description, evidence_imgs, evidence_pdf, status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            const recordId = data.id || Date.now();
+            await db.execute(
+                `INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_imgs, evidence_pdf)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
+                    recordId,
                     data.date || '',
-                    data.responsable || '',
+                    data.responsible || '',
+                    data.inspectionType || '',
                     data.area || '',
-                    data.zona || data.lugar || '',
-                    data.tipo || '',
-                    data.description || data.tema || '',
+                    data.zone || data.lugar || '',
+                    data.status || 'Pendiente',
+                    data.observations || data.description || '',
                     JSON.stringify(data.evidenceImgs || []),
-                    data.evidencePdf || '',
-                    data.status || 'Pendiente'
+                    data.evidencePdf || ''
                 ]
             );
-            return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
+            return NextResponse.json({ success: true, id: recordId });
         }
 
         if (action === 'update') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
             await db.execute(
-                `UPDATE inspections_records SET 
-                    date=?, responsable=?, area=?, zona=?, tipo=?, description=?, evidence_imgs=?, evidence_pdf=?, status=?
+                `UPDATE inspection_records SET 
+                    date=?, responsible=?, inspection_type=?, area=?, zone=?, status=?, observations=?, evidence_imgs=?, evidence_pdf=?
                  WHERE id=?`,
                 [
-                    data.date, data.responsable, data.area, data.zona, data.tipo, data.description,
-                    JSON.stringify(data.evidenceImgs || []), data.evidencePdf, data.status,
+                    data.date, data.responsible, data.inspectionType, data.area, data.zone, data.status, data.observations,
+                    JSON.stringify(data.evidenceImgs || []), data.evidencePdf,
                     id
                 ]
             );
@@ -120,7 +130,7 @@ export async function POST(req: NextRequest) {
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
-            await db.execute('DELETE FROM inspections_records WHERE id=?', [id]);
+            await db.execute('DELETE FROM inspection_records WHERE id=?', [id]);
             return NextResponse.json({ success: true });
         }
 
@@ -129,18 +139,19 @@ export async function POST(req: NextRequest) {
             let count = 0;
             for (const r of data) {
                 await db.execute(
-                    `INSERT INTO inspections_records (date, responsable, area, zona, tipo, description, evidence_imgs, evidence_pdf, status)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_imgs, evidence_pdf)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
+                        r.id || Date.now() + count,
                         r.date || '',
-                        r.responsable || '',
+                        r.responsible || '',
+                        r.inspectionType || '',
                         r.area || '',
-                        r.zona || r.lugar || '',
-                        r.tipo || '',
-                        r.description || r.tema || '',
+                        r.zone || '',
+                        r.status || 'Pendiente',
+                        r.observations || '',
                         JSON.stringify(r.evidenceImgs || []),
-                        r.evidencePdf || '',
-                        r.status || 'Pendiente'
+                        r.evidencePdf || ''
                     ]
                 );
                 count++;
@@ -154,3 +165,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+

@@ -38,6 +38,12 @@ export default function Sidebar() {
         environment: true
     });
 
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    useEffect(() => {
+        setIsMobileOpen(false);
+    }, [pathname, searchParams]);
+
     // Ocultar Sidebar en login (Check posterior a hooks)
     if (pathname === '/login') return null;
 
@@ -48,12 +54,6 @@ export default function Sidebar() {
         setOpenMenus(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-    // Close mobile menu on route change
-    useEffect(() => {
-        setIsMobileOpen(false);
-    }, [pathname, searchParams]);
 
     return (
         <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Leaf,
     Upload,
@@ -14,16 +14,14 @@ import {
     Save,
     Target,
     Filter,
-    Search,
-    ChevronDown
 } from "lucide-react";
-import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
-import { UploadContext } from "@/lib/types";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
-import { USER_LIST } from "@/lib/auth";
-
+import { useAuth } from "@/lib/auth";
+import { PMA_CATEGORIES, PMACategory, RESPONSIBLES } from "@/lib/categories";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 // --- TYPES ---
 type PMAEvidenceRecord = {
@@ -33,263 +31,16 @@ type PMAEvidenceRecord = {
     category: string;
     description: string;
     location: string;
-    images: string[]; // Se mantienen como 'images' por compatibilidad con el backend, pero pueden ser URLs de PDFs.
+    images: string[];
 };
-
-type PMACategory = {
-    id: string;
-    label: string;
-    hint: string;
-    group: string;
-};
-
-// --- CONSTANTS ---
-const RESPONSIBLES = USER_LIST.map(user => user.name);
-
-const DEFAULT_PMA_CATEGORIES: PMACategory[] = [
-    {
-        id: "SIGNAGE_SST",
-        group: "Foto señalización",
-        label: "1. Foto de señalización SST",
-        hint: "Evidenciar señalización de Seguridad y Salud en el Trabajo."
-    },
-    {
-        id: "SIGNAGE_MA",
-        group: "Foto señalización",
-        label: "2. Foto de señalización MA",
-        hint: "Evidenciar señalización de Medio Ambiente."
-    },
-    {
-        id: "SIGNAGE_PERIMETERS",
-        group: "Foto señalización",
-        label: "3. Foto de Delimitación de áreas y Perímetros",
-        hint: "Evidenciar mallas, cintas o barreras de delimitación."
-    },
-    // BIENESTAR E HIGIENE
-    { 
-        id: "WELLBEING_BATHROOMS", 
-        group: "Bienestar e Higiene", 
-        label: "1. Foto de baños", 
-        hint: "Evidenciar estado de los baños." 
-    },
-    { 
-        id: "WELLBEING_CLEANING", 
-        group: "Bienestar e Higiene", 
-        label: "2. Foto de limpieza de baños", 
-        hint: "Evidenciar la limpieza programada." 
-    },
-    { 
-        id: "WELLBEING_HANDWASH", 
-        group: "Bienestar e Higiene", 
-        label: "3. Foto de Lavado de Manos", 
-        hint: "Evidenciar estación de lavado de manos." 
-    },
-    { 
-        id: "WELLBEING_HYDRATION", 
-        group: "Bienestar e Higiene", 
-        label: "4. Foto Punto de Hidratación", 
-        hint: "Evidenciar puntos de agua/hidratación." 
-    },
-    { 
-        id: "WELLBEING_DINING", 
-        group: "Bienestar e Higiene", 
-        label: "5. Foto de comedor", 
-        hint: "Evidenciar área de comedor." 
-    },
-    { 
-        id: "WELLBEING_DINING_CLEAN", 
-        group: "Bienestar e Higiene", 
-        label: "6. Foto de Limpieza de Comedor", 
-        hint: "Evidenciar limpieza del comedor." 
-    },
-    { 
-        id: "WELLBEING_LOCKER", 
-        group: "Bienestar e Higiene", 
-        label: "7. Foto de vestuario", 
-        hint: "Evidenciar área de vestuarios." 
-    },
-    // MANEJO DE RESIDUOS
-    { 
-        id: "WASTE_SEGREGATION", 
-        group: "Manejo de residuos", 
-        label: "1. Foto de segregación de residuos", 
-        hint: "Evidenciar correcta segregación." 
-    },
-    { 
-        id: "WASTE_VEHICLE", 
-        group: "Manejo de residuos", 
-        label: "2. Foto del vehículo de residuos", 
-        hint: "Vehículo recolector." 
-    },
-    { 
-        id: "WASTE_STORAGE", 
-        group: "Manejo de residuos", 
-        label: "3. Foto de almacenamiento de residuos", 
-        hint: "Área de acopio temporal." 
-    },
-    { 
-        id: "WASTE_WEIGHING", 
-        group: "Manejo de residuos", 
-        label: "4. Foto de pesado de residuos", 
-        hint: "Control de peso." 
-    },
-    { 
-        id: "WASTE_RRSS_STATION", 
-        group: "Manejo de residuos", 
-        label: "5. Foto de estación de RRSS", 
-        hint: "Estación de residuos." 
-    },
-    { 
-        id: "WASTE_SPILL_KIT", 
-        group: "Manejo de residuos", 
-        label: "6. Foto de kit contra derrames", 
-        hint: "Evidenciar disponibilidad y estado del kit contra derrames." 
-    },
-    // POLVO
-    { 
-        id: "DUST_CISTERN_HEAD", 
-        group: "Foto de control de Polvo", 
-        label: "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.", 
-        hint: "Cabezal en mangueras." 
-    },
-    { 
-        id: "DUST_SPILL_KIT", 
-        group: "Foto de control de Polvo", 
-        label: "2. Foto de: Las cisternas cuentan con kit antiderrame", 
-        hint: "Kit antiderrame." 
-    },
-    { 
-        id: "DUST_WATER_COURSE", 
-        group: "Foto de control de Polvo", 
-        label: "3. Foto de: Los vehículos no ingresan al curso de agua", 
-        hint: "Respeto al curso de agua." 
-    },
-    // SEGURIDAD Y CONTROL OPERATIVO
-    { 
-        id: "OPS_LOCKOUT", 
-        group: "Seguridad y Control Operativo", 
-        label: "1. Foto de bloqueado", 
-        hint: "Bloqueo y etiquetado (LOTO)." 
-    },
-    { 
-        id: "OPS_PPE_TAPONES", 
-        group: "Seguridad y Control Operativo", 
-        label: "2. Foto de Uso de EPP: Tapones", 
-        hint: "Uso correcto de tapones auditivos." 
-    },
-    { 
-        id: "OPS_PPE_GUANTES", 
-        group: "Seguridad y Control Operativo", 
-        label: "3. Foto de Uso de EPP: Guantes", 
-        hint: "Uso correcto de guantes de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_LENTES", 
-        group: "Seguridad y Control Operativo", 
-        label: "4. Foto de Uso de EPP: Lentes", 
-        hint: "Uso correcto de lentes de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_ARNES", 
-        group: "Seguridad y Control Operativo", 
-        label: "5. Foto de Uso de EPP: Arnés", 
-        hint: "Uso correcto de arnés de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_RESPIRADOR", 
-        group: "Seguridad y Control Operativo", 
-        label: "6. Foto de Uso de EPP: Respirador", 
-        hint: "Uso correcto de respirador/mascarilla." 
-    },
-    { 
-        id: "OPS_PPE_DELIVERY", 
-        group: "Seguridad y Control Operativo", 
-        label: "7. Foto de Entrega de EPP", 
-        hint: "Registro/entrega de EPP." 
-    },
-    { 
-        id: "OPS_DOC_REVIEW", 
-        group: "Seguridad y Control Operativo", 
-        label: "8. Foto de revisión Documentos", 
-        hint: "Revisión de ATS/PETAR/etc." 
-    },
-    { 
-        id: "OPS_MACHINE_SILENCER", 
-        group: "Seguridad y Control Operativo", 
-        label: "9. Foto de Maquinarias con silenciador", 
-        hint: "Evidenciar uso de silenciadores en maquinaria." 
-    },
-    // PROGRAMA SST Y EMERGENCIAS
-    { 
-        id: "SST_EMERGENCY_VEHICLE", 
-        group: "Programa de SST y Emergencias", 
-        label: "1. Foto de Vehículo de Emergencia", 
-        hint: "Ambulancia/Rescate." 
-    },
-    { 
-        id: "SST_HEALTH_SPECIALIST", 
-        group: "Programa de SST y Emergencias", 
-        label: "2. Foto de Tópico y su especialista de Salud", 
-        hint: "Área médica." 
-    },
-    { 
-        id: "SST_TELEPHONE_DIRECTORY", 
-        group: "Programa de SST y Emergencias", 
-        label: "3. Foto de Directorio telefónico de emergencia.", 
-        hint: "Directorio visible." 
-    },
-    { 
-        id: "SST_COMMS_FLOW", 
-        group: "Programa de SST y Emergencias", 
-        label: "4. Foto de Flujograma de Comunicación de emergencia", 
-        hint: "Flujograma comunicaciones." 
-    },
-    { 
-        id: "SST_CARE_FLOW", 
-        group: "Programa de SST y Emergencias", 
-        label: "5. Foto de Flujograma de atención de emergencia", 
-        hint: "Flujograma atención médica." 
-    },
-    { 
-        id: "SST_EMERGENCY_STATION", 
-        group: "Programa de SST y Emergencias", 
-        label: "6. Foto de estación de emergencia", 
-        hint: "Punto de emergencia/camilla/etc." 
-    },
-    { 
-        id: "SST_EXTINGUISHERS", 
-        group: "Programa de SST y Emergencias", 
-        label: "7. Foto Extintores", 
-        hint: "Estado y ubicación de extintores." 
-    },
-    // COMUNICACIÓN Y PARTICIPACIÓN
-    { 
-        id: "COMM_INFO_PANEL", 
-        group: "Comunicación y Participación", 
-        label: "1. Foto de Panel Informativo", 
-        hint: "Paneles de información SSOMA." 
-    },
-    { 
-        id: "COMM_COMPLAINTS_BOOK", 
-        group: "Comunicación y Participación", 
-        label: "2. Foto de Libro de reclamaciones", 
-        hint: "Ubicación del libro de reclamaciones." 
-    },
-    { 
-        id: "COMM_MAILBOX", 
-        group: "Comunicación y Participación", 
-        label: "3. Foto del Buzón", 
-        hint: "Buzón de sugerencias/consultas." 
-    }
-];
 
 export default function PMAPage() {
+    const { user } = useAuth();
+
     // --- STATE ---
     const [records, setRecords] = useState<PMAEvidenceRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Dynamic Categories
-    const [pmaCategories, setPmaCategories] = useState<PMACategory[]>(DEFAULT_PMA_CATEGORIES);
 
     // Form State
     const [form, setForm] = useState({
@@ -304,15 +55,12 @@ export default function PMAPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
-    // Search Category State
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
     // Table Filter State
     const [filterDate, setFilterDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
     const [filterCategory, setFilterCategory] = useState("");
+
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -348,10 +96,6 @@ export default function PMAPage() {
                 console.error("Error parsing pma_evidence_records", e);
             }
         }
-
-        // Load Categories (Always reset to DEFAULT for this update)
-        setPmaCategories(DEFAULT_PMA_CATEGORIES);
-        localStorage.setItem('ssoma_pma_categories', JSON.stringify(DEFAULT_PMA_CATEGORIES));
 
         setIsLoaded(true);
     }, []);
@@ -396,7 +140,7 @@ export default function PMAPage() {
             const filesArray = Array.from(files);
 
             // Generar nombre con categoría reducida
-            const catLabel = pmaCategories.find(c => c.id === form.category)?.label || form.category || 'Evidencia';
+            const catLabel = PMA_CATEGORIES.find(c => c.id === form.category)?.label || form.category || 'Evidencia';
             const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
@@ -473,7 +217,7 @@ export default function PMAPage() {
 
     // Helper para generar nombre de archivo con categoría reducida
     const getFileName = (record: PMAEvidenceRecord) => {
-        const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
+        const catLabel = PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
         // Reducir categoría: tomar primeras 3 palabras y max 20 chars
         const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
         const lugarShort = (record.location || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
@@ -503,7 +247,7 @@ export default function PMAPage() {
         doc.text("Categoría:", 20, y);
         y += 5;
         doc.setFont("helvetica", "normal");
-        const categoryLines = doc.splitTextToSize(pmaCategories.find(c => c.id === record.category)?.label || record.category, 170);
+        const categoryLines = doc.splitTextToSize(PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category, 170);
         doc.text(categoryLines, 20, y);
         y += (categoryLines.length * 5) + 5;
 
@@ -655,102 +399,28 @@ export default function PMAPage() {
 
                                             </select>
                                         </div>
-                                    </div>
-
-
-
-                                    {/* Categoría */}
+                                                                  {/* Categoría */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Fotos PMA</label>
-                                        <div className="relative group">
-                                            <Leaf className="absolute left-3 top-3 text-slate-500 z-10" size={16} />
-                                            
-                                            {/* Custom Searchable Dropdown */}
-                                            <div className="relative w-full">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-10 py-2.5 text-white text-xs focus:border-emerald-500 outline-none transition-colors text-left flex items-center justify-between"
-                                                >
-                                                    <span className="truncate">
-                                                        {form.category ? pmaCategories.find(c => c.id === form.category)?.label : "Seleccionar Actividad..."}
-                                                    </span>
-                                                    <ChevronDown className={`text-slate-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} size={16} />
-                                                </button>
-
-                                                {isDropdownOpen && (
-                                                    <div className="absolute top-full left-0 w-full mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col max-h-[400px]">
-                                                        <div className="p-2 border-b border-slate-800 bg-slate-900/50">
-                                                            <div className="relative">
-                                                                <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Buscar actividad..."
-                                                                    value={searchTerm}
-                                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-white text-[11px] focus:border-emerald-500 outline-none"
-                                                                    autoFocus
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="overflow-y-auto flex-1 custom-scrollbar">
-                                                            {Array.from(new Set(pmaCategories.map(c => c.group))).map(groupName => {
-                                                                const filteredItems = pmaCategories.filter(c => 
-                                                                    c.group === groupName && 
-                                                                    (c.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                                                     c.group.toLowerCase().includes(searchTerm.toLowerCase()))
-                                                                );
-
-                                                                if (filteredItems.length === 0) return null;
-
-                                                                return (
-                                                                    <div key={groupName} className="p-1">
-                                                                        <div className="px-3 py-1.5 text-[10px] font-black text-emerald-500 uppercase tracking-wider bg-emerald-500/5 rounded-md mb-1">
-                                                                            {groupName}
-                                                                        </div>
-                                                                        {filteredItems.map(cat => (
-                                                                            <button
-                                                                                key={cat.id}
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setForm({ ...form, category: cat.id });
-                                                                                    setIsDropdownOpen(false);
-                                                                                    setSearchTerm("");
-                                                                                }}
-                                                                                className={`w-full text-left px-4 py-2 text-[11px] rounded-md transition-colors flex items-center gap-2 ${
-                                                                                    form.category === cat.id 
-                                                                                    ? 'bg-emerald-600 text-white font-bold' 
-                                                                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                                                                }`}
-                                                                            >
-                                                                                {cat.label}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                            {pmaCategories.filter(c => 
-                                                                c.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                                                c.group.toLowerCase().includes(searchTerm.toLowerCase())
-                                                            ).length === 0 && (
-                                                                <div className="p-8 text-center text-[11px] text-slate-500 italic">
-                                                                    No se encontraron resultados
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <SearchableSelect 
+                                            options={PMA_CATEGORIES}
+                                            value={form.category}
+                                            onChange={(val) => setForm({ ...form, category: val })}
+                                            placeholder="Seleccionar Actividad..."
+                                            searchPlaceholder="Buscar actividad..."
+                                            icon={<Leaf size={16} />}
+                                        />
+                                        
                                         {/* Hint Text */}
                                         {form.category && (
                                             <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg mt-1">
                                                 <p className="text-[10px] text-emerald-400 font-medium">
-                                                    ℹ️ {pmaCategories.find(c => c.id === form.category)?.hint}
+                                                    ℹ️ {PMA_CATEGORIES.find(c => c.id === form.category)?.hint}
                                                 </p>
                                             </div>
                                         )}
                                     </div>
+                   </div>
 
                                     {/* Descripción (Opcional) */}
 
@@ -854,7 +524,7 @@ export default function PMAPage() {
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
                                         >
                                             <option value="">Todas las categorías...</option>
-                                            {pmaCategories.map(cat => (
+                                            {PMA_CATEGORIES.map(cat => (
                                                 <option key={cat.id} value={cat.id}>{cat.label}</option>
                                             ))}
                                         </select>
@@ -907,7 +577,7 @@ export default function PMAPage() {
                                                         return matchesDate && matchesResp && matchesLoc && matchesCat;
                                                     })
                                                     .map((record) => {
-                                                    const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
+                                                        const catLabel = PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">
                                                             <td className="py-4 pl-2 font-mono text-xs text-white align-top">

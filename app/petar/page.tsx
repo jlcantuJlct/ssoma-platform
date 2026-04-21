@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth, USER_LIST } from "@/lib/auth";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { PETAR_TYPES, RESPONSIBLES } from "@/lib/categories";
 import { uploadEvidence } from "@/lib/uploadClient";
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -26,17 +27,9 @@ type PetarRecord = {
     date: string;
     responsible: string;
     location: string;
-    type: 'Caliente' | 'Altura' | 'Excavacion' | 'Espacio Confinado' | 'Izaje';
+    type: string;
     fileUrl: string;
 };
-
-const PETAR_TYPES = [
-    'Caliente',
-    'Altura',
-    'Excavacion',
-    'Espacio Confinado',
-    'Izaje'
-];
 
 export default function PetarPage() {
     const { user } = useAuth();

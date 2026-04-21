@@ -16,13 +16,13 @@ import {
     Filter,
     ArrowUpRight
 } from "lucide-react";
-import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
+import * as Utils from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
-import { UploadContext } from "@/lib/types";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
-import { USER_LIST } from "@/lib/auth";
-
+import { useAuth, USER_LIST } from "@/lib/auth";
+import { DETOUR_CATEGORIES, DetourCategory, RESPONSIBLES } from "@/lib/categories";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 // --- TYPES ---
 type DetourEvidenceRecord = {
@@ -35,33 +35,12 @@ type DetourEvidenceRecord = {
     images: string[];
 };
 
-type DetourCategory = {
-    id: string;
-    label: string;
-    hint: string;
-};
-
-// --- CONSTANTS ---
-const RESPONSIBLES = USER_LIST.map(user => user.name);
-
-const DETOUR_CATEGORIES: DetourCategory[] = [
-    { id: "SIGN_SOUTH", label: "Foto señalización según PTP Sur", hint: "Evidenciar señalización de desvío sector Sur." },
-    { id: "SIGN_NORTH", label: "Foto señalización según PTP Norte", hint: "Evidenciar señalización de desvío sector Norte." },
-    { id: "VIGIAS_DAY", label: "Foto Vigias Día", hint: "Presencia y EPP de vigías en turno día." },
-    { id: "VIGIAS_NIGHT", label: "Foto Vigias Noche", hint: "Presencia y elementos luminosos de vigías en turno noche." },
-    { id: "LUMINOUS_ARROW", label: "Foto de flecha luminosa", hint: "Funcionamiento de flechas luminosas/paneles." },
-    { id: "DELINEATORS", label: "Foto delineadores", hint: "Estado y ubicación de delineadores." },
-    { id: "CHANNELIZERS", label: "Foto Canalizadores", hint: "Estado y ubicación de canalizadores (conos, barriles)." },
-    { id: "SIGN_CLEANING", label: "Limpieza de señalización", hint: "Evidencia de limpieza de señales preventivas/informativas." },
-    { id: "SIGN_REPLACEMENT", label: "Foto de reposición de señalización", hint: "Cambio de elementos dañados o faltantes." },
-    { id: "BUMP_PAINTING", label: "Foto de pintado de Giba y/o líneas", hint: "Mantenimiento de pintura en gibas o señalización horizontal." },
-    { id: "DETOUR_CLEANING", label: "Foto de limpieza de desvío", hint: "Limpieza general de la zona de desvío (basura, escombros)." }
-];
-
 export default function DetourPage() {
+    const { user } = useAuth();
     // --- STATE ---
     const [records, setRecords] = useState<DetourEvidenceRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+
 
     // Form State
     const [form, setForm] = useState({
@@ -162,16 +141,24 @@ export default function DetourPage() {
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
             for (const file of filesArray) {
+                const extension = file.name.split('.').pop() || 'jpg';
+                const filename = await Utils.generateFilename(
+                    form.description,
+                    form.date,
+                    form.responsible,
+                    extension
+                );
                 const url = await uploadEvidence(
                     file,
-                    'Desvio', // Use a dedicated context
+                    'Desvio',
                     descWithCat,
                     form.date,
                     form.responsible,
                     'desvio',
                     'seguridad',
                     form.location,
-                    catLabel
+                    catLabel,
+                    filename
                 );
                 uploadedUrls.push(url);
             }
@@ -396,20 +383,16 @@ export default function DetourPage() {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
-                                        <div className="relative group">
-                                            <MapIcon className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <select
-                                                value={form.category}
-                                                onChange={e => setForm({ ...form, category: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-white text-xs focus:border-blue-500 outline-none appearance-none transition-colors truncate"
-                                                required
-                                            >
-                                                <option value="">Seleccionar Actividad...</option>
-                                                {DETOUR_CATEGORIES.map(cat => (
-                                                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                        <SearchableSelect 
+                                            options={DETOUR_CATEGORIES}
+                                            value={form.category}
+                                            onChange={(val) => setForm({ ...form, category: val })}
+                                            placeholder="Seleccionar Actividad..."
+                                            searchPlaceholder="Buscar actividad..."
+                                            icon={<MapIcon size={16} />}
+                                            variant="blue"
+                                        />
+
                                         {form.category && (
                                             <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded-lg mt-1">
                                                 <p className="text-[10px] text-blue-400 font-medium">
@@ -418,6 +401,7 @@ export default function DetourPage() {
                                             </div>
                                         )}
                                     </div>
+
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Archivos (Max 9)</label>
@@ -439,7 +423,7 @@ export default function DetourPage() {
                                         <div className="grid grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                             {images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-square rounded-md overflow-hidden bg-slate-900">
-                                                    <iframe src={getDriveViewerUrl(img, false)} className="w-full h-full border-0 pointer-events-none" />
+                                                    <iframe src={Utils.getDriveViewerUrl(img, false)} className="w-full h-full border-0 pointer-events-none" />
                                                     <button
                                                         type="button"
                                                         onClick={() => removeFile(idx)}
@@ -555,7 +539,7 @@ export default function DetourPage() {
                                                         <td className="py-4 pl-2 font-mono text-white">{r.date}</td>
                                                         <td className="py-4">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[8px] font-bold">{getInitials(r.responsible)}</div>
+                                                                <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[8px] font-bold">{Utils.getInitials(r.responsible)}</div>
                                                                 <span className="truncate max-w-[120px]">{r.responsible}</span>
                                                             </div>
                                                         </td>

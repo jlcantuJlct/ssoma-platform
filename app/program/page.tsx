@@ -441,6 +441,35 @@ export default function ProgramPage() {
         const currentList = programData[selectedObjId] || [];
         const grouped: Record<string, Record<string, { programmed: number[], executed: number[] }>> = {};
 
+        // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
+        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const getWords = (s: string) => s.split(/\s+/).filter(w => w.length > 2);
+        const isSubset = (subset: string[], superset: string[]) => {
+            return subset.every(subWord => {
+                return superset.some(superWord =>
+                    superWord.includes(subWord) || subWord.includes(superWord)
+                );
+            });
+        };
+
+        const findMatch = (areaKey: string, searchStr: string) => {
+            const tNorm = normalize(searchStr || '');
+            const tWords = getWords(tNorm);
+            if (tWords.length === 0) return null;
+
+            return Object.keys(grouped[areaKey]).find(desc => {
+                const dNorm = normalize(desc);
+                // 1. Coincidencia Directa
+                if (dNorm === tNorm) return true;
+
+                // 2. Coincidencia por Palabras (Bidirectional Subset logic)
+                const dWords = getWords(dNorm);
+                if (dWords.length === 0) return false;
+
+                return isSubset(dWords, tWords) || isSubset(tWords, dWords);
+            });
+        };
+
         // Pre-initialize preferred order
         const baseAreas = ['SEGURIDAD', 'MEDIO AMBIENTE', 'SALUD'];
         baseAreas.forEach(a => grouped[a] = {});
@@ -478,31 +507,26 @@ export default function ProgramPage() {
             if (m >= 0 && m <= 11) grouped[key][item.description].programmed[m]++;
         });
 
+        // 2. Map Executed Inspections
         executedInspections.forEach(exec => {
             const m = new Date(exec.date).getMonth();
             if (m < 0 || m > 11) return;
-            // Add executed counts to matching descriptions across all areas
+
             for (const areaKey in grouped) {
-                if (grouped[areaKey][exec.inspectionType]) {
-                    grouped[areaKey][exec.inspectionType].executed[m]++;
+                const match = findMatch(areaKey, exec.inspectionType);
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
                 }
             }
         });
 
-        // 3. Map HHC Records (Data from Control HHC - Obj 2 mostly)
+        // 3. Map HHC Records
         hhcRecords.forEach(hhc => {
             const m = new Date(hhc.date).getMonth();
             if (m < 0 || m > 11) return;
 
-            // Try to find matching program entry
             for (const areaKey in grouped) {
-                // Check if hhc.tema matches any description
-                const match = Object.keys(grouped[areaKey]).find(desc => {
-                    const d = desc.toLowerCase();
-                    const t = (hhc.tema || '').toLowerCase();
-                    return d === t || d.includes(t) || t.includes(d);
-                });
-
+                const match = findMatch(areaKey, hhc.tema);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                 }
@@ -511,13 +535,10 @@ export default function ProgramPage() {
 
         // 4. Map Evidence Center Records (NEW)
         evidenceRecords.forEach(ev => {
-            // Filter by current objective (e.g. "OBJ 01")
             const currentObjLabel = currentObj?.label || '';
-            // ev.objective is like "OBJ 01", label is like "OBJ 01: ..."
             if (!ev.objective || !currentObjLabel.startsWith(ev.objective)) return;
 
             let m = -1;
-            // Parse date "YYYY-MM-DD"
             if (ev.date && typeof ev.date === 'string') {
                 const parts = ev.date.split('-');
                 if (parts.length === 3) m = parseInt(parts[1]) - 1;
@@ -529,52 +550,12 @@ export default function ProgramPage() {
 
             if (m < 0 || m > 11) return;
 
-            // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
-            const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-
             for (const areaKey in grouped) {
-                // Match Activity (ev.description) with Matrix Description
-                const match = Object.keys(grouped[areaKey]).find(desc => {
-                    const dNorm = normalize(desc);
-                    const tNorm = normalize(ev.description || '');
-
-                    // 1. Coincidencia Directa
-                    if (dNorm === tNorm) return true;
-
-                    // 2. Coincidencia por Palabras (Bidirectional Subset logic)
-                    // Ignoramos palabras cortas <= 2 letras para filtrar "de", "el", "y" (pero manteniendo "emo", "epp", etc si son > 2)
-                    // Usamos Set para palabras únicas
-                    const getWords = (s: string) => s.split(/\s+/).filter(w => w.length > 2);
-
-                    const dWords = getWords(dNorm);
-                    const tWords = getWords(tNorm);
-
-                    if (dWords.length === 0 || tWords.length === 0) return false;
-
-                    // Función para verificar si un set de palabras está contenido en otro (fuzzy)
-                    const isSubset = (subset: string[], superset: string[]) => {
-                        return subset.every(subWord => {
-                            // subWord debe coincidir con alguna palabra del superset
-                            return superset.some(superWord =>
-                                superWord.includes(subWord) || subWord.includes(superWord)
-                            );
-                        });
-                    };
-
-                    // MATCH si Program contiene a Evidence (o viceversa)
-                    // Esto maneja:
-                    // - Singular/Plural ("Examen" contenido en "Examenes")
-                    // - Palabras extra ("Examen Medico" contenido en "Examen Medico Anual")
-                    // - PERO falla si hay palabras conflictivas ("RRSS" no está en "RRPP")
-                    return isSubset(dWords, tWords) || isSubset(tWords, dWords);
-                });
-
+                const match = findMatch(areaKey, ev.description);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                 }
             }
-        });
-
         return grouped;
     };
 
