@@ -45,6 +45,24 @@ async function getPendingForDate(firstName: string, dateStr: string): Promise<st
         if (!rows || rows.length === 0) pending.push('Control de Desvíos');
     } catch { pending.push('Control de Desvíos'); }
 
+    // 3. Inspecciones (Nueva Sincronización)
+    try {
+        const rows = await db.fetchAll(
+            `SELECT id FROM inspection_records WHERE date LIKE ? AND responsible LIKE ?`,
+            [`${dateStr}%`, `%${firstName}%`]
+        );
+        if (!rows || rows.length === 0) pending.push('Inspecciones');
+    } catch { pending.push('Inspecciones'); }
+
+    // 4. Control HHC
+    try {
+        const rows = await db.fetchAll(
+            `SELECT id FROM hhc_records WHERE date LIKE ? AND responsable LIKE ?`,
+            [`${dateStr}%`, `%${firstName}%`]
+        );
+        if (!rows || rows.length === 0) pending.push('Control HHC');
+    } catch { pending.push('Control HHC'); }
+
     return pending;
 }
 
@@ -87,7 +105,7 @@ function buildHtml(reportData: any[], fecha: string) {
             : user.days.map((d:any) => `
                 <div style="margin-bottom:8px; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px;">
                     <strong style="font-size:11px; color:#64748b; text-transform:uppercase;">${d.label}:</strong><br>
-                    <span style="color:#ef4444; font-size:12px; font-weight:600;">${d.pending.join(', ')}</span>
+                    <span style="color:${d.pending.length > 2 ? '#ef4444' : '#f59e0b'}; font-size:11px; font-weight:600;">${d.pending.join(', ')}</span>
                 </div>
             `).join('');
 

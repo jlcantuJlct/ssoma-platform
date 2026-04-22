@@ -107,6 +107,10 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const [isLoaded, setIsLoaded] = useState(false);
     const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
 
+    // --- DRAG AND DROP STATES ---
+    const [isDraggingHhcPdf, setIsDraggingHhcPdf] = useState(false);
+    const [isDraggingHhcImgs, setIsDraggingHhcImgs] = useState(false);
+
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
     useEffect(() => {
         const saved = localStorage.getItem('accidentability_stats_2026');
@@ -1266,9 +1270,8 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
+    const processHhcImages = async (files: File[] | FileList) => {
+        if (!files || files.length === 0) return;
 
         const fileArray = Array.from(files);
         if (fileArray.length + newHHC.evidenceImgs.length > 4) {
@@ -1279,6 +1282,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         setIsUploading(true);
         try {
             for (const file of fileArray) {
+                if (!file.type.match('image/.*')) continue;
                 const url = await handleFileUpload(file, 'IMAGE');
                 if (url) {
                     setNewHHC(prev => ({
@@ -1289,14 +1293,17 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             }
         } finally {
             setIsUploading(false);
-            e.target.value = ''; // Reset input
         }
     };
 
-    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) await processHhcImages(files);
+        e.target.value = ''; // Reset input
+    };
 
+    const processHhcPdf = async (file: File) => {
+        if (!file) return;
         if (file.type !== 'application/pdf') {
             alert("⚠️ Solo se permiten archivos PDF.");
             return;
@@ -1310,7 +1317,47 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             }
         } finally {
             setIsUploading(false);
-            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) await processHhcPdf(file);
+        e.target.value = ''; // Reset input
+    };
+
+    // --- HHC DRAG AND DROP HANDLERS ---
+    const handleHhcDragOver = (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingHhcPdf(true);
+        else setIsDraggingHhcImgs(true);
+    };
+
+    const handleHhcDragLeave = (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingHhcPdf(false);
+        else setIsDraggingHhcImgs(false);
+    };
+
+    const handleHhcDrop = async (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingHhcPdf(false);
+        else setIsDraggingHhcImgs(false);
+
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        if (type === 'pdf') {
+            const pdfFile = Array.from(files).find(f => f.type === 'application/pdf');
+            if (pdfFile) await processHhcPdf(pdfFile);
+            else alert("⚠️ Por favor suelta un archivo PDF válido.");
+        } else {
+            const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            if (imgFiles.length > 0) await processHhcImages(imgFiles);
+            else alert("⚠️ Por favor suelta archivos de imagen válidos.");
         }
     };
 
@@ -2329,10 +2376,16 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                             />
                                             <label
                                                 htmlFor="img-upload-hhc"
-                                                className={`flex items-center justify-center gap-1 bg-slate-800 border ${newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer'} rounded-lg p-2 transition-colors flex-1`}
+                                                onDragOver={(e) => handleHhcDragOver(e, 'imgs')}
+                                                onDragLeave={(e) => handleHhcDragLeave(e, 'imgs')}
+                                                onDrop={(e) => handleHhcDrop(e, 'imgs')}
+                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.05]' : (newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer')} rounded-lg p-2 transition-all flex-1 text-center min-h-[48px]`}
                                             >
-                                                <ImageIcon size={14} />
-                                                <span className="text-[9px] font-bold">FOTOS ({newHHC.evidenceImgs.length}/4)</span>
+                                                <div className="flex items-center gap-1">
+                                                    <ImageIcon size={14} />
+                                                    <span className="text-[9px] font-bold">FOTOS ({newHHC.evidenceImgs.length}/4)</span>
+                                                </div>
+                                                {isDraggingHhcImgs && <span className="text-[7px] text-blue-400 font-black animate-pulse uppercase">¡Suelta fotos!</span>}
                                             </label>
 
                                             <input
@@ -2344,10 +2397,16 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                             />
                                             <label
                                                 htmlFor="pdf-upload-hhc"
-                                                className={`flex items-center justify-center gap-1 bg-slate-800 border ${newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500'} rounded-lg p-2 transition-colors flex-1 cursor-pointer`}
+                                                onDragOver={(e) => handleHhcDragOver(e, 'pdf')}
+                                                onDragLeave={(e) => handleHhcDragLeave(e, 'pdf')}
+                                                onDrop={(e) => handleHhcDrop(e, 'pdf')}
+                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.05]' : (newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500')} rounded-lg p-2 transition-all flex-1 cursor-pointer text-center min-h-[48px]`}
                                             >
-                                                <FileText size={14} />
-                                                <span className="text-[9px] font-bold">{newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <FileText size={14} />
+                                                    <span className="text-[9px] font-bold">{newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}</span>
+                                                </div>
+                                                {isDraggingHhcPdf && <span className="text-[7px] text-emerald-400 font-black animate-pulse uppercase">¡Suelta PDF!</span>}
                                             </label>
                                         </div>
 

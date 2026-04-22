@@ -452,6 +452,22 @@ export default function ProgramPage() {
             });
         };
 
+        const getMonthFromStr = (dateStr: any) => {
+            if (!dateStr || typeof dateStr !== 'string') return -1;
+            // Robust parsing YYYY-MM-DD or DD/MM/YYYY
+            if (dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts.length >= 2) return parseInt(parts[1]) - 1;
+            }
+            if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length >= 2) return parseInt(parts[1]) - 1;
+            }
+            // Fallback for native Date objects stringified
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? -1 : d.getMonth();
+        };
+
         const findMatch = (areaKey: string, searchStr: string) => {
             const tNorm = normalize(searchStr || '');
             const tWords = getWords(tNorm);
@@ -509,7 +525,7 @@ export default function ProgramPage() {
 
         // 2. Map Executed Inspections
         executedInspections.forEach(exec => {
-            const m = new Date(exec.date).getMonth();
+            const m = getMonthFromStr(exec.date);
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
@@ -522,7 +538,7 @@ export default function ProgramPage() {
 
         // 3. Map HHC Records
         hhcRecords.forEach(hhc => {
-            const m = new Date(hhc.date).getMonth();
+            const m = getMonthFromStr(hhc.date);
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
@@ -538,15 +554,7 @@ export default function ProgramPage() {
             const currentObjLabel = currentObj?.label || '';
             if (!ev.objective || !currentObjLabel.startsWith(ev.objective)) return;
 
-            let m = -1;
-            if (ev.date && typeof ev.date === 'string') {
-                const parts = ev.date.split('-');
-                if (parts.length === 3) m = parseInt(parts[1]) - 1;
-                else {
-                    const d = new Date(ev.date);
-                    if (!isNaN(d.getTime())) m = d.getMonth();
-                }
-            }
+            const m = getMonthFromStr(ev.date);
 
             if (m < 0 || m > 11) return;
 
@@ -556,6 +564,8 @@ export default function ProgramPage() {
                     grouped[areaKey][match].executed[m]++;
                 }
             }
+        });
+
         return grouped;
     };
 

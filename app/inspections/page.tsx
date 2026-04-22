@@ -63,51 +63,45 @@ const INITIAL_ZONES = SSOMA_LOCATIONS;
 // Lista de Tipos de Inspección por Área
 const INSPECTION_TYPES_BY_AREA = {
     "Seguridad": [
-        "Inspecciones y observaciones maquinaria Línea amarilla",
-        "Inspecciones y observaciones vehículos",
-        "Inspección de Equipos de Emergencia (Extintores)",
-        "Inspección de Herramientas manuales y eléctricas",
-        "Inspección de generador, tableros eléctrico",
-        "Inspección de taller de soldadura/mecanico",
-        "Inspección de EPP básico o especifico",
-        "Inspección de Señalización Vial",
-        "Inspección de vías de acceso y bermas de seguridad",
-        "Inspección de Señalización de Obra",
-        "Inspección de almacenes",
-        "Inspección del almacén de productos químicos MSDS",
-        "Inspección de orden y limpieza de áreas de trabajo",
-        "Inspección de escalera o andamios",
-        "Inspección de Equipo contra caídas",
-        "Inspeccion de oficinas",
-        "Inspeccion de laboratorio",
-        "Inspeccion de planta de asfalto",
-        "Inspeccion de planta de concreto",
-        "Inspeccion de planta de Chancado",
-        "Inspeccion de almacen de combustible"
+        "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
+        "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehiculos",
+        "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia",
+        "Inspección de Herramientas manuales y eléctricas (F-OP-019) Verificación de Herramientas Manuales, Eléctricas y Equipos Portátiles",
+        "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01",
+        "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03",
+        "Inspección de Señalización Vial (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de vías de acceso y bermas de seguridad plataformas de descarga de material (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Señalización de Obra (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09",
+        "Inspección del almacén de productos químicos F-SIG-028 Inspeccion Almacén V09",
+        "Inspección de orden y limpieza de áreas de trabajo (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO",
+        "Inspeccion de planta de asfalto LISTA DE CHEQUEO DE PLANTA DE ASFALTO",
+        "Inspeccion de planta de concreto LISTA DE CHEQUEO DE PLANTA DE CONCRETO",
+        "Inspeccion de planta de Chancado LISTA DE CHEQUEO DE PLANTA DE AGREGADOS",
+        "Inspección de taller de soldadura/ mecanico F-SIG-079 Inspección de Talleres V02",
+        "Inspección de escalera o andamios F-OP-001 CHECK LIST DE ANDAMIOS F-OP-018 INSPECCIÓN DE ESCALERAS",
+        "Inspección de Equipo contra caídas (arnés, línea de vida, etc.) F-OP-017 INSPECCIÓN DE EQUIPOS CONTRA CAIDA"
     ],
     "Salud": [
-        "Inspecciones botiquines",
-        "Inspecciones Estaciones de emergencia",
-        "Inspección de puntos de hidratacion",
-        "Inspección punto de proteccion solar",
-        "Inspección de lavaderos de SSHH y mano",
-        "Inspección de Cocina y comedor",
-        "Inspección de EPP",
-        "Inspección de señalización de salud",
-        "Inspección de Topico",
-        "Inspección de Alcotest"
+        "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
+        "Inspecciones Estaciones de emergencia (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR",
+        "Inspección de EPP Inspección de EPP Seguimiento de observacion medica F-SIG-044 Inspección de EPP V03",
+        "Inspección de Topico (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
     ],
     "Medioambiente": [
-        "Inspecciones de estaciones de residuos por colores",
-        "Inspecciones de almacén de acopio temporal de residuos sólidos",
-        "Inspecciones de la segregación",
-        "Inspecciones de almacén de acopio temporal de residuos peligrosos",
-        "Inspección de trampas de grasas de talleres",
-        "Inspección de controles de polución",
-        "Inspección de controles de ruido",
-        "Inspección de Kit antiderrames",
-        "Inspección de Señalización Medio ambiental",
-        "Inspección de limpieza de accesos y vías"
+        "Inspecciones de estaciones de residuos por colores (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspecciones de almacén de acopio temporal de residuos solidos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspecciones de la segregacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de controles de polucion. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de controles de ruido. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME",
+        "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
     ]
 };
 
@@ -165,6 +159,10 @@ export default function InspectionsPage() {
 
     // Estado para Edición
     const [editingId, setEditingId] = useState<number | null>(null);
+
+    // Estados para Drag and Drop
+    const [isDraggingPdf, setIsDraggingPdf] = useState(false);
+    const [isDraggingImgs, setIsDraggingImgs] = useState(false);
 
     // Estado para la lista de inspecciones (Datos de ejemplo iniciales)
     const [inspections, setInspections] = useState<InspectionRecord[]>([
@@ -578,13 +576,10 @@ export default function InspectionsPage() {
         }));
     };
 
-    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const processPdf = async (file: File) => {
         if (!file) return;
-
         if (!formData.inspectionType || !formData.responsible || !formData.area || !formData.zone) {
             alert("⚠️ Por favor seleccione TIPO DE INSPECCIÓN, ÁREA, LUGAR y RESPONSABLE antes de subir el archivo para nombrarlo correctamente.");
-            e.target.value = '';
             return;
         }
 
@@ -596,9 +591,9 @@ export default function InspectionsPage() {
                 formData.inspectionType,
                 formData.date,
                 formData.responsible,
-                'inspeccion', // Pasamos el tipo
-                formData.area, // Pasamos el área (Seguridad, Salud, Medioambiente)
-                formData.zone // Pasamos el lugar (location del form)
+                'inspeccion',
+                formData.area,
+                formData.zone
             );
             setNewEvidence(prev => ({ ...prev, pdf: url }));
             console.log("✅ PDF subido con éxito:", url);
@@ -609,9 +604,14 @@ export default function InspectionsPage() {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
+    const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) await processPdf(file);
+        e.target.value = '';
+    };
+
+    const processImages = async (files: FileList | File[]) => {
+        if (!files || files.length === 0) return;
 
         if (newEvidence.imgs.length + files.length > 5) {
             alert('⚠️ Máximo 5 imágenes permitidas.');
@@ -620,36 +620,75 @@ export default function InspectionsPage() {
 
         if (!formData.inspectionType || !formData.responsible || !formData.area || !formData.zone) {
             alert("⚠️ Por favor seleccione primero el TIPO DE INSPECCIÓN, ÁREA, LUGAR y RESPONSABLE para nombrar el archivo correctamente.");
-            e.target.value = '';
             return;
         }
 
         setIsUploading(true);
         try {
+            const newUrls: string[] = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (!file.type.match('image/.*')) continue;
 
-                // Upload each file
                 const url = await uploadEvidence(
                     file,
                     'Inspeccion',
-                    `${formData.inspectionType}_img${i + 1}`,
+                    `${formData.inspectionType}_img${newEvidence.imgs.length + i + 1}`,
                     formData.date,
                     formData.responsible,
-                    'inspeccion', // Pasamos el tipo
-                    formData.area, // Pasamos el área
-                    formData.zone // Pasamos el lugar
+                    'inspeccion',
+                    formData.area,
+                    formData.zone
                 );
-
-                setNewEvidence(prev => ({ ...prev, imgs: [...prev.imgs, url] }));
+                newUrls.push(url);
             }
+            setNewEvidence(prev => ({ ...prev, imgs: [...prev.imgs, ...newUrls] }));
             console.log("✅ Imágenes subidas con éxito");
         } catch (error: any) {
             alert(`Error subiendo imagen: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = '';
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) await processImages(files);
+        e.target.value = '';
+    };
+
+    // Handlers para Drag & Drop
+    const handleDragOver = (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingPdf(true);
+        else setIsDraggingImgs(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingPdf(false);
+        else setIsDraggingImgs(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent, type: 'pdf' | 'imgs') => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (type === 'pdf') setIsDraggingPdf(false);
+        else setIsDraggingImgs(false);
+
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        if (type === 'pdf') {
+            const pdfFile = Array.from(files).find(f => f.type === 'application/pdf');
+            if (pdfFile) await processPdf(pdfFile);
+            else alert("⚠️ Por favor suelta un archivo PDF válido.");
+        } else {
+            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            if (imageFiles.length > 0) await processImages(imageFiles);
+            else alert("⚠️ Por favor suelta archivos de imagen válidos.");
         }
     };
 
@@ -1351,27 +1390,43 @@ export default function InspectionsPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Evidencia (PDF)</label>
-                                                <div className="relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-emerald-500/50 transition-colors">
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf"
-                                                        onChange={handlePdfUpload}
-                                                        className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-emerald-600/10 file:text-emerald-400 cursor-pointer"
-                                                    />
+                                                <div 
+                                                    onDragOver={(e) => handleDragOver(e, 'pdf')}
+                                                    onDragLeave={(e) => handleDragLeave(e, 'pdf')}
+                                                    onDrop={(e) => handleDrop(e, 'pdf')}
+                                                    className={`relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-emerald-500/50 transition-all ${isDraggingPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.02]' : ''}`}
+                                                >
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <input
+                                                            type="file"
+                                                            accept=".pdf"
+                                                            onChange={handlePdfUpload}
+                                                            className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-emerald-600/10 file:text-emerald-400 cursor-pointer"
+                                                        />
+                                                        {isDraggingPdf && <span className="text-[9px] text-emerald-400 font-bold animate-bounce text-center">¡Suelta el PDF aquí!</span>}
+                                                    </div>
                                                     {newEvidence.pdf && <span className="absolute right-2 top-2 text-[10px] text-emerald-500 font-bold">✅</span>}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Imágenes (Max 5)</label>
-                                                <div className="relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-emerald-500/50 transition-colors">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        multiple
-                                                        onChange={handleImageUpload}
-                                                        disabled={newEvidence.imgs.length >= 5}
-                                                        className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-blue-600/10 file:text-blue-400 cursor-pointer disabled:opacity-50"
-                                                    />
+                                                <div 
+                                                    onDragOver={(e) => handleDragOver(e, 'imgs')}
+                                                    onDragLeave={(e) => handleDragLeave(e, 'imgs')}
+                                                    onDrop={(e) => handleDrop(e, 'imgs')}
+                                                    className={`relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-blue-500/50 transition-all ${isDraggingImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : ''}`}
+                                                >
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            multiple
+                                                            onChange={handleImageUpload}
+                                                            disabled={newEvidence.imgs.length >= 5}
+                                                            className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-blue-600/10 file:text-blue-400 cursor-pointer disabled:opacity-50"
+                                                        />
+                                                        {isDraggingImgs && <span className="text-[9px] text-blue-400 font-bold animate-bounce text-center">¡Suelta imágenes aquí!</span>}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
