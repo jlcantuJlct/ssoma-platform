@@ -27,6 +27,59 @@ const FERIADOS = [
 
 const DAYS_TO_CHECK = 5;
 
+// ─── LÓGICA DE AUDITORÍA DE CUMPLIMIENTO (SÁBADOS) ────────────────────────────
+async function getComplianceByResponsible(monthIdx: number): Promise<Record<string, { activity: string, p: number, e: number }[]>> {
+    const complianceMap: Record<string, { activity: string, p: number, e: number }[]> = {};
+
+    try {
+        // 1. Obtener toda la programación
+        const progRecords = await db.fetchAll('SELECT * FROM annual_program');
+        const annualProgram: Record<string, any[]> = {};
+        progRecords.forEach((r: any) => { annualProgram[r.objective_id] = JSON.parse(r.data_json); });
+
+        // 2. Obtener todas las ejecuciones del mes actual
+        const monthQuery = `-${(monthIdx + 1).toString().padStart(2, '0')}-`; // -MM-
+        const inspections = await db.fetchAll('SELECT * FROM inspection_records WHERE date LIKE ?', [`%${monthQuery}%`]);
+        const hhc = await db.fetchAll('SELECT * FROM hhc_records WHERE date LIKE ?', [`%${monthQuery}%`]);
+        const evidence = await db.fetchAll('SELECT * FROM evidence_center_records WHERE date LIKE ?', [`%${monthQuery}%`]);
+        const pma = await db.fetchAll('SELECT * FROM pma_records WHERE date LIKE ?', [`%${monthQuery}%`]);
+
+        // 3. Procesar cada objetivo y actividad
+        for (const [objId, activities] of Object.entries(annualProgram)) {
+            activities.forEach((act: any) => {
+                const p = act.programmed?.[monthIdx] || 0;
+                if (p === 0) return; // Si no hay nada programado, ignoramos
+
+                let e = 0;
+                const desc = act.description.toLowerCase();
+                const resp = act.responsible || act.responsable || 'SIN ASIGNAR';
+
+                // Contar ejecuciones (Lógica similar a getMatrixData)
+                if (objId === 'obj3' || objId === 'obj6' || objId === 'obj8') {
+                    e = inspections.filter(i => i.inspectionType.toLowerCase().includes(desc) || desc.includes(i.inspectionType.toLowerCase())).length;
+                } else if (objId === 'obj2' || objId === 'obj7' || objId === 'obj9') {
+                    e = hhc.filter(h => h.tema.toLowerCase().includes(desc) || desc.includes(h.tema.toLowerCase())).length;
+                } else if (objId === 'obj8' && act.description.includes('Foto')) {
+                    e = pma.filter(p => (p.date && p.date.includes(monthQuery))).length;
+                } else {
+                    e = evidence.filter(ev => (ev.objective && objId.startsWith(ev.objective)) && 
+                        (ev.description?.toLowerCase().includes(desc) || ev.activity?.toLowerCase().includes(desc))).length;
+                }
+
+                // Si hay deuda acumulada o falta cumplir
+                if (e < p) {
+                    if (!complianceMap[resp]) complianceMap[resp] = [];
+                    complianceMap[resp].push({ activity: act.description, p, e });
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error calculating compliance:', err);
+    }
+
+    return complianceMap;
+}
+
 // ─── LÓGICA DE VERIFICACIÓN DETALLADA ─────────────────────────────────────────
 async function getPendingForDate(firstName: string, dateStr: string, isToday: boolean): Promise<string[]> {
     const pending: string[] = [];
@@ -207,6 +260,9 @@ export async function GET(req: NextRequest) {
         const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } });
 
         const summary = [];
+        const isSaturday = dayOfWeekName === 'Saturday';
+
+        // 1. Reporte Diario de Pendientes
         for (const user of ALERT_USERS) {
             const historial = await getHistorial(user.name.split(' ')[0]);
             if (historial.length > 0) {
@@ -219,17 +275,63 @@ export async function GET(req: NextRequest) {
                     html: html
                 });
 
-                // Enviar WhatsApp si es Hoy
                 const todayRecord = historial.find(h => h.isToday);
                 if (todayRecord) {
                     const waMsg = `🛡️ *DASHBOARD SSOMA*\n\nHola *${user.name.split(' ')[0]}*,\n\nTienes pendientes hoy:\n${todayRecord.pending.map(p => `❌ ${p}`).join('\n')}\n\nIngresa aquí: https://ssoma-platform.vercel.app`;
                     await sendAutomatedWhatsApp(user.phone, waMsg);
-                    await sendAutomatedWhatsApp(WHATSAPP_CC_PHONE, `🤖 CC Admin: Alerta enviada a ${user.name}\n\n${waMsg}`);
                 }
                 summary.push(user.name);
             }
         }
-        return NextResponse.json({ success: true, totalSent: summary.length, recipients: summary });
+
+        // 2. Reporte Sabatino de Cumplimiento (Solo sábados)
+        if (isSaturday) {
+            const monthIdx = now.getMonth();
+            const monthName = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][monthIdx];
+            const compliance = await getComplianceByResponsible(monthIdx);
+
+            for (const user of ALERT_USERS) {
+                const firstName = user.name.split(' ')[0];
+                const myFails = compliance[user.name] || compliance[firstName.toUpperCase()] || [];
+
+                if (myFails.length > 0) {
+                    const failList = myFails.map(f => `❌ *${f.activity}* (Ejecutado: ${f.e} / Programado: ${f.p})`).join('\n');
+                    const waMsg = `📊 *REPORTE DE CUMPLIMIENTO - ${monthName}*\n\nHola *${firstName}*,\n\nSe han detectado actividades del Programa Anual que *FALTAN CUMPLIR* este mes:\n\n${failList}\n\nPor favor, regularice estas actividades antes del cierre de mes.`;
+                    
+                    await sendAutomatedWhatsApp(user.phone, waMsg);
+                    await sendAutomatedWhatsApp(WHATSAPP_CC_PHONE, `🤖 CC Admin: Reporte cumplimiento enviado a ${user.name}\n\n${waMsg}`);
+
+                    // Email de Cumplimiento
+                    await transporter.sendMail({
+                        from: `"SSOMA - Cumplimiento" <${gmailUser}>`,
+                        to: user.email,
+                        cc: DAILY_CC_EMAILS.join(','),
+                        subject: `📊 FALTA CUMPLIR PROGRAMA ANUAL - ${monthName} - ${user.name}`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                                <div style="background-color: #f59e0b; color: white; padding: 20px; text-align: center;">
+                                    <h1 style="margin: 0; font-size: 20px;">📊 REPORTE DE CUMPLIMIENTO ${monthName.toUpperCase()}</h1>
+                                </div>
+                                <div style="padding: 24px; color: #1e293b;">
+                                    <p>Hola <strong>${user.name}</strong>,</p>
+                                    <p>Se han identificado las siguientes actividades con brechas de cumplimiento respecto al Programa Anual:</p>
+                                    <ul style="list-style: none; padding: 0;">
+                                        ${myFails.map(f => `
+                                            <li style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                                                <strong style="color: #92400e;">${f.activity}</strong><br/>
+                                                <small>Progreso: ${f.e} de ${f.p} ejecutados</small>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                    <p style="font-weight: bold; color: #b45309;">Estado: FALTA CUMPLIR</p>
+                                </div>
+                            </div>`
+                    });
+                }
+            }
+        }
+
+        return NextResponse.json({ success: true, totalSent: summary.length, recipients: summary, isSaturday });
     } catch (err: any) {
         return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }

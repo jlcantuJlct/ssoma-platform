@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown } from 'lucide-react';
+import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -85,14 +86,16 @@ const INSPECTION_TYPES_BY_AREA = {
     ],
     "Salud": [
         "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
-        "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÓN DE PRIMEROS AUXILIOS",
+        "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS",
         "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR",
         "Inspección de EPP Inspección de EPP Seguimiento de observacion medica F-SIG-044 Inspección de EPP V03",
         "Inspección de Topico (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
+        "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de señalización de salud (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de EPP Ligado a Enf. Ocupacionales F-SIG-044 Inspección de EPP V03"
     ],
     "Medioambiente": [
         "Inspecciones de estaciones de residuos por colores (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
@@ -101,7 +104,10 @@ const INSPECTION_TYPES_BY_AREA = {
         "Inspección de controles de polucion. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección de controles de ruido. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME",
-        "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
+        "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de trampas de grasa de talleres (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de almacén de acopio temporal de residuos peligrosos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de limpieza de accesos y vías (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
     ]
 };
 
@@ -1367,23 +1373,22 @@ export default function InspectionsPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tipo de Inspección</label>
-                                            <div className="relative group">
-                                                <AlertCircle className="absolute left-3 top-3 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={18} />
-                                                <select
-                                                    name="inspectionType"
-                                                    value={formData.inspectionType}
-                                                    onChange={handleInputChange}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none truncate"
-                                                    required
-                                                >
-                                                    <option value="">Seleccionar Tipo...</option>
-                                                    {(INSPECTION_TYPES_BY_AREA[formData.area as keyof typeof INSPECTION_TYPES_BY_AREA] || INSPECTION_TYPES_BY_AREA['Seguridad']).map(type => (
-                                                        <option key={type} value={type}>{type}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
+                                        <SearchableSelect
+                                            options={INSPECTION_TYPES_BY_AREA[formData.area as keyof typeof INSPECTION_TYPES_BY_AREA] || INSPECTION_TYPES_BY_AREA['Seguridad']}
+                                            value={formData.inspectionType}
+                                            onChange={(val) => setFormData({ ...formData, inspectionType: val })}
+                                            placeholder="Seleccionar Tipo de Inspección..."
+                                            label="Tipo de Inspección"
+                                            icon={<AlertCircle size={18} className="text-emerald-500" />}
+                                        />
+
+                                        {/* Advertencia Preventiva */}
+                                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-3 animate-pulse">
+                                            <AlertCircle className="text-amber-500" size={18} />
+                                            <p className="text-[11px] text-amber-200 font-bold leading-tight">
+                                                ASEGÚRESE QUE EL FORMATO CORRESPONDE A LA INSPECCIÓN <br/>
+                                                <span className="text-[9px] opacity-70 font-normal">Verifique el código F-SIG antes de cargar su archivo.</span>
+                                            </p>
                                         </div>
 
                                         {/* Evidencias */}
@@ -1506,15 +1511,14 @@ export default function InspectionsPage() {
 
                                     {/* Filtro Tipo */}
                                     <div className="relative">
-                                        <AlertCircle className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
-                                            value={filterType}
-                                            onChange={(e) => setFilterType(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
-                                        >
-                                            <option value="">Todo Tipo</option>
-                                            {Object.values(INSPECTION_TYPES_BY_AREA).flat().sort().map(t => <option key={t} value={t}>{t}</option>)}
-                                        </select>
+                                        <SearchableSelect
+                                            options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
+                                            value={filterType || "Todo Tipo"}
+                                            onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
+                                            placeholder="Todo Tipo"
+                                            icon={<AlertCircle className="text-slate-500" size={16} />}
+                                            className="h-[42px]"
+                                        />
                                     </div>
 
                                     {/* Filtro Fecha */}
