@@ -72,7 +72,8 @@ export default function ProgramPage() {
     const [programData, setProgramData] = useState<Record<string, ProgramItem[]>>({});
     const [executedInspections, setExecutedInspections] = useState<ExecutedInspection[]>([]);
     const [hhcRecords, setHhcRecords] = useState<any[]>([]);
-    const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]); // New state for Evidence Center records
+    const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]); 
+    const [pmaRecords, setPmaRecords] = useState<any[]>([]); // New state for PMA records
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -117,9 +118,27 @@ export default function ProgramPage() {
                     if (storedHHC) setHhcRecords(JSON.parse(storedHHC));
                 }
 
-                // 4. Load Evidence (still localStorage only for now)
-                const storedEvidence = localStorage.getItem('evidence_center_records');
-                if (storedEvidence) setEvidenceRecords(JSON.parse(storedEvidence));
+                // 4. Load Evidence from cloud
+                const evRes = await fetch('/api/evidence-records');
+                const evData = await evRes.json();
+                if (evData.success && evData.records.length > 0) {
+                    setEvidenceRecords(evData.records);
+                    localStorage.setItem('evidence_center_records', JSON.stringify(evData.records));
+                } else {
+                    const storedEvidence = localStorage.getItem('evidence_center_records');
+                    if (storedEvidence) setEvidenceRecords(JSON.parse(storedEvidence));
+                }
+
+                // 5. Load PMA from cloud
+                const pmaRes = await fetch('/api/pma-records');
+                const pmaData = await pmaRes.json();
+                if (pmaData.success && pmaData.records.length > 0) {
+                    setPmaRecords(pmaData.records);
+                    localStorage.setItem('pma_records', JSON.stringify(pmaData.records));
+                } else {
+                    const storedPMA = localStorage.getItem('pma_records');
+                    if (storedPMA) setPmaRecords(JSON.parse(storedPMA));
+                }
 
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
@@ -132,6 +151,8 @@ export default function ProgramPage() {
                 if (storedHHC) setHhcRecords(JSON.parse(storedHHC));
                 const storedEvidence = localStorage.getItem('evidence_center_records');
                 if (storedEvidence) setEvidenceRecords(JSON.parse(storedEvidence));
+                const storedPMA = localStorage.getItem('pma_records');
+                if (storedPMA) setPmaRecords(JSON.parse(storedPMA));
             }
         };
         loadData();
@@ -561,21 +582,38 @@ export default function ProgramPage() {
             }
         });
 
-        // 4. Map Evidence Center Records (NEW)
+        // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
             const currentObjLabel = currentObj?.label || '';
             if (!ev.objective || !currentObjLabel.startsWith(ev.objective)) return;
 
             const m = getMonthFromStr(ev.date);
-
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, ev.description);
+                const match = findMatch(areaKey, ev.description || ev.activity);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...ev, _type: 'EVIDENCE' });
+                }
+            }
+        });
+
+        // 5. Map PMA Records (Objective 08 - Photos)
+        pmaRecords.forEach(pma => {
+            const currentObjLabel = currentObj?.label || '';
+            if (!currentObjLabel.startsWith('OBJ 08')) return; // Solo para Medio Ambiente
+
+            const m = getMonthFromStr(pma.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, pma.category || pma.description);
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...pma, _type: 'PMA' });
                 }
             }
         });
@@ -797,9 +835,9 @@ export default function ProgramPage() {
                                     </div>
                                     
                                     <div className="flex items-center gap-3">
-                                        {(rec.evidencePdf || (rec.file_url && (rec.file_type?.includes('pdf') || rec.pdfUrl))) && (
+                                        {(rec.evidencePdf || rec.pdfUrl || (rec.file_url && rec.file_type?.includes('pdf'))) && (
                                             <a 
-                                                href={rec.evidencePdf || rec.file_url || rec.pdfUrl} 
+                                                href={rec.evidencePdf || rec.pdfUrl || rec.file_url} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-400 rounded-lg text-[10px] font-bold border border-emerald-500/20 transition-all"
@@ -808,16 +846,20 @@ export default function ProgramPage() {
                                                 VER PDF
                                             </a>
                                         )}
-                                        {((rec.evidenceImgs && rec.evidenceImgs.length > 0) || (rec.file_url && (rec.file_type?.includes('image') || rec.file_type?.includes('jpg') || rec.file_type?.includes('png')))) && (
+                                        {((rec.evidenceImgs && rec.evidenceImgs.length > 0) || (rec.images && rec.images.length > 0) || (rec.file_url && (rec.file_type?.includes('image') || rec.file_type?.includes('jpg') || rec.file_type?.includes('png')))) && (
                                             <button 
-                                                onClick={() => window.open((rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : rec.file_url, '_blank')}
+                                                onClick={() => {
+                                                    const imgUrl = (rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : 
+                                                                  (rec.images && rec.images.length > 0) ? rec.images[0] : rec.file_url;
+                                                    window.open(imgUrl, '_blank');
+                                                }}
                                                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-lg text-[10px] font-bold border border-blue-500/20 transition-all"
                                             >
                                                 <ImageIcon size={12} />
-                                                FOTOS {rec.evidenceImgs ? `(${rec.evidenceImgs.length})` : ''}
+                                                FOTOS {(rec.evidenceImgs || rec.images) ? `(${(rec.evidenceImgs || rec.images).length})` : ''}
                                             </button>
                                         )}
-                                        {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (
+                                        {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (!rec.images || rec.images.length === 0) && (
                                             <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
                                         )}
                                     </div>
