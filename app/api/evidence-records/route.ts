@@ -24,8 +24,20 @@ async function ensureTable() {
 export async function GET() {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
-        return NextResponse.json({ success: true, records });
+        const rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
+        
+        // Deduplicate in JS to handle existing DB duplicates gracefully
+        const uniqueRecords = [];
+        const seenKeys = new Set();
+        for (const r of rawRecords) {
+            const contentKey = `${r.date}|${r.responsable || r.responsible}|${r.objective}|${r.activity || r.description}|${r.zona || r.location}|${r.file_url || r.fileUrl}`;
+            if (!seenKeys.has(contentKey)) {
+                uniqueRecords.push(r);
+                seenKeys.add(contentKey);
+            }
+        }
+
+        return NextResponse.json({ success: true, records: uniqueRecords });
     } catch (error: any) {
         console.error('Error fetching evidence records:', error);
         return NextResponse.json({ success: true, records: [] });
@@ -42,15 +54,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
         }
 
+        // Deduplicate records to avoid doubling entries due to sync race conditions
+        const uniqueRecords = [];
+        const seenKeys = new Set();
+        for (const r of records) {
+            const contentKey = `${r.date}|${r.responsable || r.responsible}|${r.objective}|${r.activity || r.description}|${r.zona || r.location}|${r.file_url || r.fileUrl}`;
+            if (!seenKeys.has(contentKey)) {
+                uniqueRecords.push(r);
+                seenKeys.add(contentKey);
+            }
+        }
+
         // Borrar y reemplazar
         await db.execute('DELETE FROM evidence_center_records');
 
-        for (const r of records) {
+        for (const r of uniqueRecords) {
             await db.execute(
                 `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    r.id || r.record_id || '',
+                    String(r.id || r.record_id || ''),
                     r.date || '',
                     r.objective || '',
                     r.activity || '',
@@ -63,7 +86,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        return NextResponse.json({ success: true, count: records.length });
+        return NextResponse.json({ success: true, count: uniqueRecords.length });
     } catch (error: any) {
         console.error('Error saving evidence records:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

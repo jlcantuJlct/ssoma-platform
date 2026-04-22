@@ -64,7 +64,20 @@ export default function PMAPage() {
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
-        const loadRecords = async () => {
+        const init = async () => {
+            // 1. Load stored records first
+            const stored = localStorage.getItem('pma_evidence_records');
+            let initialRecords: PMAEvidenceRecord[] = [];
+            if (stored) {
+                try {
+                    initialRecords = JSON.parse(stored);
+                    setRecords(initialRecords);
+                } catch (e) {
+                    console.error("Error parsing pma_evidence_records", e);
+                }
+            }
+
+            // 2. Fetch from cloud
             try {
                 const res = await fetch('/api/pma-records');
                 const data = await res.json();
@@ -78,26 +91,33 @@ export default function PMAPage() {
                         location: r.location || '',
                         images: typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || [])
                     }));
-                    setRecords(mapped);
-                    localStorage.setItem('pma_evidence_records', JSON.stringify(mapped));
+
+                    // Deduplicate and merge: prefer cloud data but keep unique local ones
+                    const merged = [...mapped];
+                    // Create a set of content keys from cloud records
+                    const getRecordKey = (r: any) => `${r.date}|${r.responsible}|${r.category}|${r.location}|${JSON.stringify(r.images || [])}`;
+                    const cloudKeys = new Set(mapped.map(getRecordKey));
+                    
+                    initialRecords.forEach(r => {
+                        if (!cloudKeys.has(getRecordKey(r))) {
+                            merged.push(r);
+                        }
+                    });
+
+                    // Final deduplication by content key
+                    const finalRecords = Array.from(new Map(merged.map(r => [getRecordKey(r), r])).values());
+
+                    setRecords(finalRecords);
+                    localStorage.setItem('pma_evidence_records', JSON.stringify(finalRecords));
                 }
             } catch (e) {
                 console.warn('Could not fetch PMA records from cloud:', e);
+            } finally {
+                setIsLoaded(true);
             }
         };
-        loadRecords();
 
-        // Load stored records as fallback
-        const stored = localStorage.getItem('pma_evidence_records');
-        if (stored) {
-            try {
-                setRecords(JSON.parse(stored));
-            } catch (e) {
-                console.error("Error parsing pma_evidence_records", e);
-            }
-        }
-
-        setIsLoaded(true);
+        init();
     }, []);
 
     useEffect(() => {
