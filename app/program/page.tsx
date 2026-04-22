@@ -23,7 +23,10 @@ import {
     Save,
     RotateCcw,
     Edit2,
-    Check
+    Check,
+    X,
+    ExternalLink,
+    Image as ImageIcon
 } from 'lucide-react';
 import { useState, useEffect, Fragment } from 'react';
 import * as XLSX from 'xlsx';
@@ -75,6 +78,7 @@ export default function ProgramPage() {
     const [editValue, setEditValue] = useState("");
     const [autoReplace, setAutoReplace] = useState(false); // Default to APPEND as requested
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
+    const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
 
     // Carga inicial - Cloud first, then localStorage fallback
     useEffect(() => {
@@ -439,7 +443,7 @@ export default function ProgramPage() {
     // Generate Matrix Data
     const getMatrixData = () => {
         const currentList = programData[selectedObjId] || [];
-        const grouped: Record<string, Record<string, { programmed: number[], executed: number[] }>> = {};
+        const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
 
         // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
         const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -501,7 +505,11 @@ export default function ProgramPage() {
             }
 
             if (!grouped[key][item.description]) {
-                grouped[key][item.description] = { programmed: new Array(12).fill(0), executed: new Array(12).fill(0) };
+                grouped[key][item.description] = { 
+                    programmed: new Array(12).fill(0), 
+                    executed: new Array(12).fill(0),
+                    executionRecords: {}
+                };
             }
 
             // Robust Month Parsing (Expects YYYY-MM-DD)
@@ -532,6 +540,8 @@ export default function ProgramPage() {
                 const match = findMatch(areaKey, exec.inspectionType);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...exec, _type: 'INSPECTION' });
                 }
             }
         });
@@ -545,6 +555,8 @@ export default function ProgramPage() {
                 const match = findMatch(areaKey, hhc.tema);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...hhc, _type: 'HHC' });
                 }
             }
         });
@@ -562,6 +574,8 @@ export default function ProgramPage() {
                 const match = findMatch(areaKey, ev.description);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...ev, _type: 'EVIDENCE' });
                 }
             }
         });
@@ -725,7 +739,15 @@ export default function ProgramPage() {
                                             {/* Executed Row */}
                                             <div className="h-[32px] font-black text-center bg-slate-800/50 text-blue-400 border-r border-b border-slate-950 flex items-center justify-center">E</div>
                                             {data.executed.map((c, i) => (
-                                                <div key={`e-${i}`} className={`h-[32px] border-r border-b border-slate-950 flex items-center justify-center font-bold ${c > 0 ? 'text-white bg-blue-500/20' : 'text-slate-800'}`}>
+                                                <div 
+                                                    key={`e-${i}`} 
+                                                    onClick={() => c > 0 && setSelectedRecords({ 
+                                                        activity: desc, 
+                                                        month: MONTHS[i], 
+                                                        records: data.executionRecords[i] || [] 
+                                                    })}
+                                                    className={`h-[32px] border-r border-b border-slate-950 flex items-center justify-center font-bold transition-all ${c > 0 ? 'text-white bg-blue-500/20 hover:bg-blue-500/40 cursor-pointer' : 'text-slate-800'}`}
+                                                >
                                                     {c > 0 ? c : '-'}
                                                 </div>
                                             ))}
@@ -746,6 +768,69 @@ export default function ProgramPage() {
                     </div>
                 </div>
             </div>
+            {/* Traceability Modal */}
+            {selectedRecords && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setSelectedRecords(null)} />
+                    <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-1">Evidencias de Ejecución</h3>
+                                <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedRecords.activity} • {selectedRecords.month}</p>
+                            </div>
+                            <button onClick={() => setSelectedRecords(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
+                            {selectedRecords.records.map((rec, ri) => (
+                                <div key={ri} className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-500/50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                            <ClipboardCheck size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-white capitalize">{rec.responsible || rec.responsable || 'Sin responsable'}</p>
+                                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">{rec.date}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-3">
+                                        {(rec.evidencePdf || (rec.file_url && (rec.file_type?.includes('pdf') || rec.pdfUrl))) && (
+                                            <a 
+                                                href={rec.evidencePdf || rec.file_url || rec.pdfUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-400 rounded-lg text-[10px] font-bold border border-emerald-500/20 transition-all"
+                                            >
+                                                <ExternalLink size={12} />
+                                                VER PDF
+                                            </a>
+                                        )}
+                                        {((rec.evidenceImgs && rec.evidenceImgs.length > 0) || (rec.file_url && (rec.file_type?.includes('image') || rec.file_type?.includes('jpg') || rec.file_type?.includes('png')))) && (
+                                            <button 
+                                                onClick={() => window.open((rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : rec.file_url, '_blank')}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-lg text-[10px] font-bold border border-blue-500/20 transition-all"
+                                            >
+                                                <ImageIcon size={12} />
+                                                FOTOS {rec.evidenceImgs ? `(${rec.evidenceImgs.length})` : ''}
+                                            </button>
+                                        )}
+                                        {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (
+                                            <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="p-4 bg-slate-950 text-center border-t border-slate-800">
+                            <p className="text-[10px] text-slate-500">Se muestran {selectedRecords.records.length} registros encontrados para este mes.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
