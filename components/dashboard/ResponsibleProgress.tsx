@@ -63,145 +63,166 @@ export function ResponsibleProgress() {
     const [monthName, setMonthName] = useState("");
 
     useEffect(() => {
-        try {
-            // Load Data
-            const hhcStored = localStorage.getItem('hhc_records');
-            const programStored = localStorage.getItem('monthly_training_program');
-            const responsiblesStored = localStorage.getItem('ssoma_responsibles');
-            const inspectionsStored = localStorage.getItem('inspections_records');
-            const pmaStored = localStorage.getItem('pma_evidence_records');
-            const annualStored = localStorage.getItem('annual_program_data');
-
-            const hhcRecords: any[] = hhcStored ? JSON.parse(hhcStored) : [];
-            const program: any[] = programStored ? JSON.parse(programStored) : [];
-            const responsiblesList: string[] = responsiblesStored ? JSON.parse(responsiblesStored) : Object.keys(PRESETS);
-            const inspectionRecords: any[] = inspectionsStored ? JSON.parse(inspectionsStored) : [];
-            const pmaRecords: any[] = pmaStored ? JSON.parse(pmaStored) : [];
-            const annualProgram: any = annualStored ? JSON.parse(annualStored) : {};
-
-            // Filter for Current Month
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth();
-
-            setMonthName(new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(now));
-
-            // 1. Build Dynamic Configurations
-            const newConfigs: Record<string, any> = {};
-
-            responsiblesList.forEach(name => {
-                // EXCLUDE Developer/Admin
-                if (name === 'Jose Luis Cancino' || name.toLowerCase().includes('gerencia')) return;
-
-                // Use Preset if exists, else Default
-                if (PRESETS[name]) {
-                    newConfigs[name] = PRESETS[name];
-                } else {
-                    newConfigs[name] = {
-                        name: name,
-                        zones: [],
-                        area: 'seguridad', // Default assumption
-                        label: 'Inspector General',
-                        matchName: true
-                    };
+        const loadAllData = async () => {
+            try {
+                // 1. Fetch Cloud Data for PMA first to ensure dashboard is updated
+                let cloudPma = [];
+                try {
+                    const res = await fetch('/api/pma-records');
+                    const data = await res.json();
+                    if (data.success && data.records) {
+                        cloudPma = data.records;
+                        localStorage.setItem('pma_evidence_records', JSON.stringify(data.records));
+                    }
+                } catch (e) {
+                    console.error("Cloud PMA fetch error:", e);
                 }
-            });
 
-            setActiveConfigs(newConfigs);
+                // 2. Load Other Data
+                const hhcStored = localStorage.getItem('hhc_records');
+                const programStored = localStorage.getItem('monthly_training_program');
+                const responsiblesStored = localStorage.getItem('ssoma_responsibles');
+                const inspectionsStored = localStorage.getItem('inspections_records');
+                const pmaStored = localStorage.getItem('pma_evidence_records');
+                const annualStored = localStorage.getItem('annual_program_data');
 
-            // 2. Calculate Totals
-            const newStats: any = {};
+                const hhcRecords: any[] = hhcStored ? JSON.parse(hhcStored) : [];
+                const trainingProgram: any[] = programStored ? JSON.parse(programStored) : [];
+                const responsiblesList: string[] = responsiblesStored ? JSON.parse(responsiblesStored) : Object.keys(PRESETS);
+                const inspectionRecords: any[] = inspectionsStored ? JSON.parse(inspectionsStored) : [];
+                const pmaRecords: any[] = cloudPma.length > 0 ? cloudPma : (pmaStored ? JSON.parse(pmaStored) : []);
+                const annualProgram: any = annualStored ? JSON.parse(annualStored) : {};
 
-            // Helper to match responsible
-            const isResponsible = (r: any, config: any) => {
-                // Match Name
-                if (config.matchName) {
-                    return r.responsable?.toLowerCase().includes(config.name.toLowerCase().split(' ')[0]) ||
-                        r.responsible?.toLowerCase().includes(config.name.toLowerCase().split(' ')[0]);
-                }
-                // Match Zone
-                if (r.lugar && config.zones.some((z: string) => r.lugar.toLowerCase().includes(z.toLowerCase()))) {
-                    return true;
-                }
-                // Fallback Match Name
-                return r.responsable?.toLowerCase().includes(config.name.toLowerCase().split(' ')[0]) ||
-                    r.responsible?.toLowerCase().includes(config.name.toLowerCase().split(' ')[0]);
-            };
+                calculateStats(hhcRecords, trainingProgram, responsiblesList, inspectionRecords, pmaRecords, annualProgram);
+            } catch (error) {
+                console.error("ResponsibleProgress Data Error:", error);
+            }
+        };
 
-            Object.entries(newConfigs).forEach(([key, config]) => {
-                // --- PLANNED ---
-
-                // 1. Trainings (Plan)
-                const planTrainings = program.filter(p => {
-                    if (!p || !p.date) return false;
-                    const d = new Date(p.date);
-                    return d.getMonth() === currentMonth &&
-                        d.getFullYear() === currentYear &&
-                        p.area === config.area;
-                }).length;
-
-                // 2. Inspections (Plan) - From Annual Program based on Area
-                let targetObj = 'obj3'; // Default Safety
-                if (config.area === 'salud') targetObj = 'obj7';
-                if (config.area === 'environment') targetObj = 'obj9';
-
-                const areaActivities = annualProgram[targetObj] || [];
-
-                // Sum plan values for current month
-                const planInspections = areaActivities.reduce((acc: number, act: any) => {
-                    const val = act?.data?.plan?.[currentMonth];
-                    return acc + (Number(val) || 0);
-                }, 0);
-
-                // 3. PMA (Plan)
-                const planPMA = 12; // Fixed constant
-
-                const totalPlan = planTrainings + planInspections + planPMA;
-
-                // --- EXECUTED ---
-
-                // 1. Trainings (Exec)
-                const execTrainings = hhcRecords.filter(r => {
-                    if (!r || !r.date) return false;
-                    const d = new Date(r.date);
-                    const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                    return isMonth && isResponsible(r, config);
-                }).length;
-
-                // 2. Inspections (Exec)
-                const execInspections = inspectionRecords.filter(r => {
-                    if (!r || !r.date) return false;
-                    const d = new Date(r.date);
-                    const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                    return isMonth && isResponsible(r, config);
-                }).length;
-
-                // 3. PMA (Exec)
-                const execPMA = pmaRecords.filter(r => {
-                    if (!r || !r.date) return false;
-                    const d = new Date(r.date);
-                    const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                    return isMonth && isResponsible(r, config);
-                }).length;
-
-                const totalExec = execTrainings + execInspections + execPMA;
-
-                // Avoid division by zero
-                const finalPlan = totalPlan === 0 ? (totalExec > 0 ? totalExec : 1) : totalPlan;
-                const pct = Math.min(Math.round((totalExec / finalPlan) * 100), 100);
-
-                newStats[key] = {
-                    executed: totalExec,
-                    total: finalPlan,
-                    percent: pct
-                };
-            });
-
-            setStats(newStats);
-        } catch (error) {
-            console.error("ResponsibleProgress Data Error:", error);
-        }
+        loadAllData();
     }, []);
+
+    const calculateStats = (hhcRecords: any[], program: any[], responsiblesList: string[], inspectionRecords: any[], pmaRecords: any[], annualProgram: any) => {
+        // Filter for Current Month
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        setMonthName(new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(now));
+
+        // 1. Build Dynamic Configurations
+        const newConfigs: Record<string, any> = {};
+
+        responsiblesList.forEach(name => {
+            // EXCLUDE Developer/Admin
+            if (name === 'Jose Luis Cancino' || name.toLowerCase().includes('gerencia')) return;
+
+            // Use Preset if exists, else Default
+            if (PRESETS[name]) {
+                newConfigs[name] = PRESETS[name];
+            } else {
+                newConfigs[name] = {
+                    name: name,
+                    zones: [],
+                    area: 'seguridad', // Default assumption
+                    label: 'Inspector General',
+                    matchName: true
+                };
+            }
+        });
+
+        setActiveConfigs(newConfigs);
+
+        // 2. Calculate Totals
+        const newStats: any = {};
+
+        // Helper to match responsible
+        const isResponsible = (r: any, config: any) => {
+            // Match Name
+            if (config.matchName) {
+                const rName = (r.responsable || r.responsible || '').toLowerCase();
+                return rName.includes(config.name.toLowerCase().split(' ')[0]);
+            }
+            // Match Zone
+            if (r.lugar && config.zones.some((z: string) => r.lugar.toLowerCase().includes(z.toLowerCase()))) {
+                return true;
+            }
+            // Fallback Match Name
+            const rNameFallback = (r.responsable || r.responsible || '').toLowerCase();
+            return rNameFallback.includes(config.name.toLowerCase().split(' ')[0]);
+        };
+
+        Object.entries(newConfigs).forEach(([key, config]) => {
+            // --- PLANNED ---
+
+            // 1. Trainings (Plan)
+            const planTrainings = program.filter(p => {
+                if (!p || !p.date) return false;
+                const d = new Date(p.date);
+                return d.getMonth() === currentMonth &&
+                    d.getFullYear() === currentYear &&
+                    p.area === config.area;
+            }).length;
+
+            // 2. Inspections (Plan) - From Annual Program based on Area
+            let targetObj = 'obj3'; // Default Safety
+            if (config.area === 'salud') targetObj = 'obj7';
+            if (config.area === 'environment') targetObj = 'obj9';
+
+            const areaActivities = annualProgram[targetObj] || [];
+
+            // Sum plan values for current month
+            const planInspections = areaActivities.reduce((acc: number, act: any) => {
+                const val = act?.data?.plan?.[currentMonth];
+                return acc + (Number(val) || 0);
+            }, 0);
+
+            // 3. PMA (Plan)
+            const planPMA = 12; // Fixed constant
+
+            const totalPlan = planTrainings + planInspections + planPMA;
+
+            // --- EXECUTED ---
+
+            // 1. Trainings (Exec)
+            const execTrainings = hhcRecords.filter(r => {
+                if (!r || !r.date) return false;
+                const d = new Date(r.date);
+                const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                return isMonth && isResponsible(r, config);
+            }).length;
+
+            // 2. Inspections (Exec)
+            const execInspections = inspectionRecords.filter(r => {
+                if (!r || !r.date) return false;
+                const d = new Date(r.date);
+                const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                return isMonth && isResponsible(r, config);
+            }).length;
+
+            // 3. PMA (Exec)
+            const execPMA = pmaRecords.filter(r => {
+                if (!r || !r.date) return false;
+                const d = new Date(r.date);
+                const isMonth = d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                return isMonth && isResponsible(r, config);
+            }).length;
+
+            const totalExec = execTrainings + execInspections + execPMA;
+
+            // Avoid division by zero
+            const finalPlan = totalPlan === 0 ? (totalExec > 0 ? totalExec : 1) : totalPlan;
+            const pct = Math.min(Math.round((totalExec / finalPlan) * 100), 100);
+
+            newStats[key] = {
+                executed: totalExec,
+                total: finalPlan,
+                percent: pct
+            };
+        });
+
+        setStats(newStats);
+    };
 
     return (
         <div className="pt-8 border-t border-slate-800">
