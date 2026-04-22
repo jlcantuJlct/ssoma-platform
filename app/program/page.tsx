@@ -80,6 +80,7 @@ export default function ProgramPage() {
     const [autoReplace, setAutoReplace] = useState(false); // Default to APPEND as requested
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
+    const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
 
     // Carga inicial - Cloud first, then localStorage fallback
     useEffect(() => {
@@ -157,6 +158,44 @@ export default function ProgramPage() {
         };
         loadData();
     }, []);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HANDLE OBSERVATION (NO CONFORME)
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleObserveRecord = async (rec: any, index: number) => {
+        if (!selectedRecords) return;
+        
+        const confirmObs = window.confirm(`¿Estás seguro de marcar como NO CONFORME y alertar a ${rec.responsible || rec.responsable}?`);
+        if (!confirmObs) return;
+
+        setSendingObs(index);
+        try {
+            const currentObj = OBJECTIVES.find(o => o.id === selectedObjId);
+            const res = await fetch('/api/program/observe-record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    responsibleName: rec.responsible || rec.responsable,
+                    documentName: rec.inspectionType || rec.tema || rec.description || rec.activity || 'Documento sin nombre',
+                    month: selectedRecords.month,
+                    activity: selectedRecords.activity,
+                    currentObjective: currentObj?.label
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ Alerta enviada con éxito a ${data.sendedTo} vía WhatsApp y Correo.`);
+            } else {
+                alert(`❌ Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error("Error sending observation:", error);
+            alert("❌ Ocurrió un error al enviar la alerta.");
+        } finally {
+            setSendingObs(null);
+        }
+    };
 
     // PERSIST DATA - Local + Cloud sync
     useEffect(() => {
@@ -859,6 +898,22 @@ export default function ProgramPage() {
                                                 FOTOS {(rec.evidenceImgs || rec.images) ? `(${(rec.evidenceImgs || rec.images).length})` : ''}
                                             </button>
                                         )}
+                                        <button 
+                                            disabled={sendingObs === ri}
+                                            onClick={() => handleObserveRecord(rec, ri)}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                                                sendingObs === ri 
+                                                ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                                                : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
+                                            }`}
+                                        >
+                                            {sendingObs === ri ? (
+                                                <RotateCcw size={12} className="animate-spin" />
+                                            ) : (
+                                                <AlertTriangle size={12} />
+                                            )}
+                                            {sendingObs === ri ? 'ENVIANDO...' : 'NO CONFORME'}
+                                        </button>
                                         {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (!rec.images || rec.images.length === 0) && (
                                             <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
                                         )}

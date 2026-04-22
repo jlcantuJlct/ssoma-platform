@@ -85,7 +85,7 @@ const INSPECTION_TYPES_BY_AREA = {
     ],
     "Salud": [
         "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
-        "Inspecciones Estaciones de emergencia (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÓN DE PRIMEROS AUXILIOS",
         "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
         "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",

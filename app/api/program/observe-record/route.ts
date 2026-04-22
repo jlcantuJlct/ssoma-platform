@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
+import { sendAutomatedWhatsApp } from '@/lib/whatsappAutomation';
+
+// ─── CONFIGURACIÓN DE USUARIOS (Sincronizado con send-alerts) ─────────────────
+const ALERT_USERS = [
+    { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
+    { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51986103867' },
+    { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255' },
+    { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
+    { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173' },
+    { username: 'brayan.pena',         name: 'Brayan Jeanpool Peña Villafuerte', email: '20173143@unica.edu.pe',       phone: '+51971087023' },
+];
+
+const WHATSAPP_CC_PHONE = '+51949260281';
+
+export async function POST(req: NextRequest) {
+    try {
+        const { responsibleName, documentName, month, activity, currentObjective } = await req.json();
+
+        if (!responsibleName || !documentName) {
+            return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // 1. Buscar el destinatario (Búsqueda por nombre parcial para mayor compatibilidad)
+        const recipient = ALERT_USERS.find(u => 
+            responsibleName.toLowerCase().includes(u.name.split(' ')[0].toLowerCase()) ||
+            u.name.toLowerCase().includes(responsibleName.toLowerCase())
+        );
+
+        if (!recipient) {
+            console.warn(`⚠️ No se encontró contacto para el responsable: ${responsibleName}`);
+            return NextResponse.json({ 
+                success: false, 
+                error: `No se encontró información de contacto para: ${responsibleName}. Por favor verifique el nombre en el registro.` 
+            }, { status: 404 });
+        }
+
+        // 2. Configurar el Correo
+        const gmailUser = process.env.GMAIL_USER;
+        const gmailPass = process.env.GMAIL_APP_PASSWORD;
+        const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } });
+
+        const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                <div style="background-color: #ef4444; color: white; padding: 20px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 20px;">⚠️ OBSERVACIÓN DE DOCUMENTACIÓN ⚠️</h1>
+                </div>
+                <div style="padding: 24px; color: #1e293b;">
+                    <p>Hola <strong>${recipient.name}</strong>,</p>
+                    <p>Se ha detectado una observación en la documentación del Programa Anual:</p>
+                    
+                    <div style="background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 0 0 8px 0;"><strong>📄 Documento:</strong> ${documentName}</p>
+                        <p style="margin: 0 0 8px 0;"><strong>📅 Mes:</strong> ${month}</p>
+                        <p style="margin: 0 0 8px 0;"><strong>🎯 Objetivo:</strong> ${currentObjective || 'N/A'}</p>
+                        <p style="margin: 0;"><strong>📋 Actividad:</strong> ${activity || 'N/A'}</p>
+                    </div>
+
+                    <p style="color: #ef4444; font-weight: bold;">Estado: NO CONFORME (No cumple formato/tipo)</p>
+                    <p>Por favor, revisa y regularice este registro a la brevedad.</p>
+                    
+                    <center style="margin-top: 30px;">
+                        <a href="https://ssoma-platform.vercel.app" style="background-color: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">IR AL DASHBOARD</a>
+                    </center>
+                </div>
+                <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 11px; color: #64748b;">
+                    Mensaje automático generado por Sistema de Gestión SSOMA.
+                </div>
+            </div>
+        `;
+
+        // 3. Enviar Correo
+        await transporter.sendMail({
+            from: `"SSOMA - Auditoría" <${gmailUser}>`,
+            to: recipient.email,
+            subject: `🚨 NO CONFORME: Observación en ${documentName} (${month})`,
+            html: emailHtml
+        });
+
+        // 4. Enviar WhatsApp
+        const waMsg = `⚠️ *OBSERVACIÓN DE DOCUMENTACIÓN SSOMA* ⚠️\n\nHola *${recipient.name.split(' ')[0]}*,\n\nTienes una observación en tus registros del programa anual:\n\n📄 *Documento:* ${documentName}\n📅 *Mes:* ${month}\n\n*ESTADO: NO CONFORME*\n(No cumple con el formato o tipo de formación/inspección).\n\nPor favor, revisar y corregir.`;
+        
+        await sendAutomatedWhatsApp(recipient.phone, waMsg);
+        
+        // CC al Admin
+        await sendAutomatedWhatsApp(WHATSAPP_CC_PHONE, `🤖 *AVISO AUDITORIA:* Documento observado enviado a ${recipient.name}\n\n${waMsg}`);
+
+        return NextResponse.json({ success: true, sendedTo: recipient.name });
+
+    } catch (error: any) {
+        console.error('Error in observe-record API:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+}
