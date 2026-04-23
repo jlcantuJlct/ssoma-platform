@@ -270,7 +270,7 @@ export default function AtsPage() {
                         <div>
                             <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
                                 <Shield className="text-teal-500" size={32} />
-                                Gestión de ATS
+                                Control de ATS
                             </h1>
                             <p className="text-slate-400 font-medium">Análisis de Trabajo Seguro</p>
                         </div>

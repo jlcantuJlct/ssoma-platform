@@ -270,7 +270,7 @@ export default function PetarPage() {
                         <div>
                             <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
                                 <Clipboard className="text-orange-500" size={32} />
-                                Gestión de PETAR
+                                Control de PETAR
                             </h1>
                             <p className="text-slate-400 font-medium">Permisos Escritos de Trabajo de Alto Riesgo</p>
                         </div>
