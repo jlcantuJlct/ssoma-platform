@@ -100,19 +100,12 @@ export default function ProgramPage() {
         'Control de ATS': ['ATS'],
         'Control de PETAR': ['Caliente', 'Altura', 'Excavacion', 'Espacio Confinado', 'Izaje'],
         'Control de HHC': [
-            'INDUCCIÓN GENERAL',
-            'INDUCCIÓN ESPECÍFICA',
             'INDUCCIÓN (4H)',
             'IND. ESPECÍFICA (8H)',
             'CAPACITACIÓN (1H)',
             'DIFUSIÓN (30 MIN)',
             'ENTRENAMIENTO (30 MIN)',
-            'CHARLA (15 MIN)',
-            'Capacitación Diaria',
-            'Charla de 5 min',
-            'Control de Fatiga',
-            'Inspección Inopinada',
-            'Pausas Activas'
+            'CHARLA (15 MIN)'
         ],
         'Control de Inspecciones': [
             "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
