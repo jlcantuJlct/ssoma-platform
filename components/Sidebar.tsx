@@ -119,7 +119,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<Shield size={16} />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem icon={<Clipboard size={16} />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
-                        <SidebarItem icon={<CheckSquare size={16} />} label="Objetivos" href="/evidence" active={pathname === '/evidence'} />
+                        <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Fotos PMA" href="/pma" active={pathname === '/pma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<BarChart2 size={16} />} label="Estadística de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
@@ -157,7 +157,7 @@ export default function Sidebar() {
                             <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider leading-tight">Desarrollado por</span>
                                 <span className="text-[10px] text-emerald-400 font-bold tracking-tight leading-tight">Jose Luis Cancino Tueros</span>
-                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.7 - UNIFIED CONTROL</span>
+                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.8 - HEALTH SPECIALIST</span>
                             </div>
                         </div>
                     </div>

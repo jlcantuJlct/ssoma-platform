@@ -35,41 +35,16 @@ interface EvidencePageProps {
     data: DashboardData;
 }
 
-// Actividades específicas por objetivo
+// Actividades específicas por objetivo (Solo EMO)
 const ACTIVITIES_BY_OBJECTIVE: Record<string, string[]> = {
-    'OBJ 01': [
-        "Conformación del subcomité de seguridad y salud en el trabajo (SCSST)",
-        "Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST)",
-        "Inspecciones del SCSST",
-        "Capacitaciones Inspecciones de Seguridad y salud en el trabajo",
-        "Capacitaciones Notificación, investigación y reporte de incidentes",
-        "Capacitaciones seguridad y salud en el trabajo, actualización de la Ley 29783",
-        "Capacitaciones IPERC",
-        "Elaboración de Informes trimestrales"
-    ],
-    'OBJ 04': [
-        "Implementación del sistema de RAC",
-        "Reporte de actos y condiciones insegura"
-    ],
-    'OBJ 05': [
-        "Exámenes Médico Ocupacional"
-    ],
-    'OBJ 10': [
-        "Control de segregacion"
-    ],
-    'OBJ 11': [
-        "Control de Acopio temporal RRSS",
-        "Control de Acopio temporal RRPP"
+    'EMO': [
+        "Exámenes Médico Ocupacional (EMO)"
     ]
 };
 
-// Objetivos específicos solicitados
+// Objetivos específicos solicitados (Solo EMO)
 const TARGET_OBJECTIVES = [
-    { id: 'OBJ 01', label: 'OBJ 01: Programas de SCSST' },
-    { id: 'OBJ 04', label: 'OBJ 04: Reporte A/C Inseguras' },
-    { id: 'OBJ 05', label: 'OBJ 05: EMO Realizados' },
-    { id: 'OBJ 10', label: 'OBJ 10: Control Segregación RRSS' },
-    { id: 'OBJ 11', label: 'OBJ 11: Control Acopios Temporales' },
+    { id: 'EMO', label: 'Control de EMO' },
 ];
 
 const RESPONSIBLES = USER_LIST.map(user => user.name);
@@ -151,8 +126,9 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         fileType: r.file_type || r.fileType,
                         fileUrl: r.file_url || r.fileUrl
                     }));
-                    setRecords(mapped);
-                    localStorage.setItem('evidence_center_records', JSON.stringify(mapped));
+                    const filtered = mapped.filter((r: any) => r.objective === 'EMO' || r.objective === 'OBJ 05');
+                    setRecords(filtered);
+                    localStorage.setItem('evidence_center_records', JSON.stringify(filtered));
                     setIsLoaded(true);
                     return;
                 }
@@ -165,7 +141,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                 try {
                     const parsed = JSON.parse(stored);
                     if (Array.isArray(parsed)) {
-                        setRecords(parsed.filter(r => r && typeof r === 'object'));
+                        const filtered = parsed.filter((r: any) => r && typeof r === 'object' && (r.objective === 'EMO' || r.objective === 'OBJ 05'));
+                        setRecords(filtered);
                     }
                 } catch (e) {
                     console.error("Error parsing evidence_center_records", e);
@@ -438,10 +415,10 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
-                        <ShieldCheck className="text-emerald-500" size={32} />
-                        Centro de Evidencias
+                        <ActivityIcon className="text-rose-500" size={32} />
+                        Control de EMO
                     </h1>
-                    <p className="text-slate-400 font-medium">Gestión de Archivos para Objetivos Estratégicos (1, 4, 5, 10, 11)</p>
+                    <p className="text-slate-400 font-medium">Registro de Exámenes Médicos Ocupacionales</p>
                 </div>
                 <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
@@ -493,36 +470,9 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 </select>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase">Objetivo Estratégico</label>
-                                <select
-                                    value={form.objective}
-                                    // @ts-ignore
-                                    onChange={e => setForm({ ...form, objective: e.target.value, activity: '' })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none"
-                                >
-                                    {TARGET_OBJECTIVES.map(obj => (
-                                        <option key={obj.id} value={obj.id}>{obj.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase">Actividad</label>
-                                <select
-                                    // @ts-ignore
-                                    value={form.activity}
-                                    // @ts-ignore
-                                    onChange={e => setForm({ ...form, activity: e.target.value })}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none"
-                                    disabled={!form.objective}
-                                >
-                                    <option value="">Seleccionar Actividad...</option>
-                                    {currentActivities.map(act => (
-                                        <option key={act} value={act}>{act}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {/* Campos ocultos (fijos para EMO) */}
+                            <input type="hidden" value={form.objective} />
+                            <input type="hidden" value={form.activity} />
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-2">
@@ -619,7 +569,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         </div>
 
                         {/* FILTROS AVANZADOS */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 mb-6">
                             <div className="space-y-1.5">
                                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
                                 <SearchableSelect 
@@ -627,15 +577,6 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     value={filters.date}
                                     onChange={(val) => setFilters({...filters, date: val})}
                                     placeholder="Todas las fechas"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad</label>
-                                <SearchableSelect 
-                                    options={filterOptions.activities}
-                                    value={filters.activity}
-                                    onChange={(val) => setFilters({...filters, activity: val})}
-                                    placeholder="Todas las actividades"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -656,31 +597,16 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     placeholder="Todos los lugares"
                                 />
                             </div>
-                            <div className="space-y-1.5 lg:col-span-4">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Filtrar por Objetivo</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {['', ...filterOptions.objectives].map(obj => (
-                                        <button
-                                            key={obj}
-                                            onClick={() => setFilters({...filters, objective: obj})}
-                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border ${filters.objective === obj ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'}`}
-                                        >
-                                            {obj || 'TODOS LOS OBJETIVOS'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1000px] text-left text-sm text-slate-400 table-fixed">
+                            <table className="w-full min-w-[900px] text-left text-sm text-slate-400 table-fixed">
                                 <thead className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-800">
                                     <tr>
                                         <th className="pb-3 pl-2 w-[80px]">Fecha</th>
                                         <th className="pb-3 w-[60px]">Resp</th>
-                                        <th className="pb-3 w-[100px]">Lugar</th>
-                                        <th className="pb-3 w-[80px]">Objetivo</th>
-                                        <th className="pb-3 w-[180px]">Actividad</th>
+                                        <th className="pb-3 w-[120px]">Lugar</th>
+                                        <th className="pb-3 w-[200px]">Actividad</th>
                                         <th className="pb-3 w-[60px] text-center">Preview</th>
                                         <th className="pb-3 w-[200px]">Archivo</th>
                                         <th className="pb-3 text-center w-[140px]">Acciones</th>
@@ -689,7 +615,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 <tbody className="divide-y divide-slate-800">
                                     {(!filteredRecords || filteredRecords.length === 0) ? (
                                         <tr>
-                                            <td colSpan={8} className="py-8 text-center text-slate-600 italic">No se encontraron registros con los filtros aplicados.</td>
+                                            <td colSpan={7} className="py-8 text-center text-slate-600 italic">No se encontraron registros de EMO.</td>
                                         </tr>
                                     ) : (
                                         (filteredRecords || []).map((r) => (
@@ -699,11 +625,6 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                     <td className="py-3 text-slate-300 font-medium" title={r.responsible}>{getInitials(r.responsible)}</td>
                                                     <td className="py-3">
                                                         <span className="text-[10px] text-slate-300 font-semibold">{r.location || '-'}</span>
-                                                    </td>
-                                                    <td className="py-3">
-                                                        <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded text-[9px] font-bold border border-slate-700 whitespace-nowrap">
-                                                            {r.objective}
-                                                        </span>
                                                     </td>
                                                     <td className="py-3 text-slate-300 text-[10px] leading-tight whitespace-normal max-w-[180px]">{r.description}</td>
                                                     <td className="py-3 text-center">
