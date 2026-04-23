@@ -729,6 +729,24 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     </button>
                 )}
 
+                {/* PMA Tool Button */}
+                <button
+                    onClick={() => router.push('/pma')}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-teal-600 text-white hover:bg-teal-500 shadow-teal-900/20 border border-teal-400/20"
+                >
+                    <Leaf size={16} />
+                    FOTOS PMA
+                </button>
+
+                {/* SCSST Tool Button */}
+                <button
+                    onClick={() => router.push('/scsst')}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20 border border-emerald-400/20"
+                >
+                    <ShieldCheck size={16} />
+                    PROGRAMAS SCSST
+                </button>
+
                 {/* Report Tools Button */}
                 <button
                     onClick={() => setShowReportTools(true)}

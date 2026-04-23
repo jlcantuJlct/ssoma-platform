@@ -27,6 +27,14 @@ export default function SCSSTPage() {
         fileUrl: ''
     });
 
+    // Filter state
+    const [filters, setFilters] = useState({
+        date: '',
+        activity: '',
+        responsable: '',
+        zona: ''
+    });
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -55,6 +63,23 @@ export default function SCSSTPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Filtered Records logic
+    const filteredRecords = records.filter(rec => {
+        const matchDate = !filters.date || rec.date === filters.date;
+        const matchActivity = !filters.activity || rec.activity === filters.activity;
+        const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
+        const matchZone = !filters.zona || (rec.zona || rec.location) === filters.zona;
+        return matchDate && matchActivity && matchResp && matchZone;
+    });
+
+    // Derive filter options
+    const filterOptions = {
+        dates: Array.from(new Set(records.map(r => r.date))).sort().reverse(),
+        activities: Array.from(new Set(records.map(r => r.activity))).sort(),
+        responsibles: Array.from(new Set(records.map(r => r.responsable || r.responsible))).sort(),
+        zones: Array.from(new Set(records.map(r => r.zona || r.location))).sort()
     };
 
     const handleSave = async () => {
@@ -273,13 +298,63 @@ export default function SCSSTPage() {
 
                 {/* List Section */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between px-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
                         <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <FileText size={18} className="text-emerald-500" />
                             Historial de Cargas SCSST
                         </h2>
-                        <div className="text-[10px] font-mono text-slate-600 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                            {records.length} REGISTROS ENCONTRADOS
+                        <div className="flex items-center gap-2">
+                            {(filters.date || filters.activity || filters.responsable || filters.zona) && (
+                                <button 
+                                    onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
+                                    className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1"
+                                >
+                                    <X size={12} /> Limpiar Filtros
+                                </button>
+                            )}
+                            <div className="text-[10px] font-mono text-slate-600 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                                {filteredRecords.length} REGISTROS ENCONTRADOS
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filters Bar */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
+                            <SearchableSelect 
+                                options={filterOptions.dates}
+                                value={filters.date}
+                                onChange={(val) => setFilters({...filters, date: val})}
+                                placeholder="Todas las fechas"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad</label>
+                            <SearchableSelect 
+                                options={filterOptions.activities}
+                                value={filters.activity}
+                                onChange={(val) => setFilters({...filters, activity: val})}
+                                placeholder="Todas las actividades"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
+                            <SearchableSelect 
+                                options={filterOptions.responsibles}
+                                value={filters.responsable}
+                                onChange={(val) => setFilters({...filters, responsable: val})}
+                                placeholder="Todos los responsables"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Lugar / Zona</label>
+                            <SearchableSelect 
+                                options={filterOptions.zones}
+                                value={filters.zona}
+                                onChange={(val) => setFilters({...filters, zona: val})}
+                                placeholder="Todas las zonas"
+                            />
                         </div>
                     </div>
 
@@ -288,17 +363,17 @@ export default function SCSSTPage() {
                             <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Cargando registros...</p>
                         </div>
-                    ) : records.length === 0 ? (
+                    ) : filteredRecords.length === 0 ? (
                         <div className="bg-slate-900/50 border border-slate-800 rounded-3xl py-20 flex flex-col items-center justify-center text-center px-4">
                             <div className="p-4 bg-slate-800 rounded-full mb-4 text-slate-600">
                                 <Search size={40} />
                             </div>
-                            <h3 className="text-white font-bold mb-1">No hay actividades registradas</h3>
-                            <p className="text-xs text-slate-500 max-w-xs">Comience cargando una evidencia utilizando el botón superior.</p>
+                            <h3 className="text-white font-bold mb-1">No se encontraron resultados</h3>
+                            <p className="text-xs text-slate-500 max-w-xs">Intente ajustando los filtros o cargue una nueva evidencia.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {records.map((rec) => (
+                            {filteredRecords.map((rec) => (
                                 <Card key={rec.id} className="bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden rounded-2xl">
                                     <div className="p-4 space-y-4">
                                         <div className="flex justify-between items-start gap-4">
@@ -355,3 +430,4 @@ export default function SCSSTPage() {
         </div>
     );
 }
+

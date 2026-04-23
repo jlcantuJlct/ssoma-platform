@@ -18,8 +18,10 @@ import {
     User,
     File,
     FileSpreadsheet,
-    FileEdit
+    FileEdit,
+    X
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { DashboardData, UploadContext } from "@/lib/types";
 import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
 import { uploadEvidence } from "@/lib/uploadClient";
@@ -97,10 +99,39 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         location: ''
     });
 
-    const [files, setFiles] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+    const [files, setFiles] = useState<{ url: string, type: 'pdf' | 'image' | 'word' | 'excel' } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [viewingFile, setViewingFile] = useState<EvidenceRecord | null>(null);
+
+    // Filters State
+    const [filters, setFilters] = useState({
+        date: '',
+        activity: '',
+        responsible: '',
+        location: '',
+        objective: ''
+    });
+
+    // Filtered Records
+    const filteredRecords = (records || []).filter(r => {
+        if (!r) return false;
+        const matchDate = !filters.date || r.date === filters.date;
+        const matchAct = !filters.activity || r.description === filters.activity;
+        const matchResp = !filters.responsible || r.responsible === filters.responsible;
+        const matchLoc = !filters.location || r.location === filters.location;
+        const matchObj = !filters.objective || r.objective === filters.objective;
+        return matchDate && matchAct && matchResp && matchLoc && matchObj;
+    });
+
+    // Derive filter options
+    const filterOptions = {
+        dates: Array.from(new Set((records || []).filter(Boolean).map(r => r.date))).sort().reverse(),
+        activities: Array.from(new Set((records || []).filter(Boolean).map(r => r.description))).sort(),
+        responsibles: Array.from(new Set((records || []).filter(Boolean).map(r => r.responsible))).sort(),
+        locations: Array.from(new Set((records || []).filter(Boolean).map(r => r.location))).sort(),
+        objectives: Array.from(new Set((records || []).filter(Boolean).map(r => r.objective))).sort()
+    };
 
     // LOAD DATA - Cloud first, then localStorage fallback
     useEffect(() => {
@@ -562,12 +593,81 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                 </div>
 
                 {/* HISTORIAL */}
-                <div className="xl:col-span-2">
+                <div className="xl:col-span-2 space-y-6">
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-                        <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                            <ActivityIcon size={20} className="text-blue-400" />
-                            Historial de Cargas
-                        </h3>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                <ActivityIcon size={20} className="text-blue-400" />
+                                Historial de Cargas
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {(filters.date || filters.activity || filters.responsible || filters.location || filters.objective) && (
+                                    <button 
+                                        onClick={() => setFilters({ date: '', activity: '', responsible: '', location: '', objective: '' })}
+                                        className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1"
+                                    >
+                                        <X size={12} /> Limpiar Filtros
+                                    </button>
+                                )}
+                                <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                    {filteredRecords.length} REGISTROS
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FILTROS AVANZADOS */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
+                                <SearchableSelect 
+                                    options={filterOptions.dates}
+                                    value={filters.date}
+                                    onChange={(val) => setFilters({...filters, date: val})}
+                                    placeholder="Todas las fechas"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad</label>
+                                <SearchableSelect 
+                                    options={filterOptions.activities}
+                                    value={filters.activity}
+                                    onChange={(val) => setFilters({...filters, activity: val})}
+                                    placeholder="Todas las actividades"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
+                                <SearchableSelect 
+                                    options={filterOptions.responsibles}
+                                    value={filters.responsible}
+                                    onChange={(val) => setFilters({...filters, responsible: val})}
+                                    placeholder="Todos los responsables"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Lugar</label>
+                                <SearchableSelect 
+                                    options={filterOptions.locations}
+                                    value={filters.location}
+                                    onChange={(val) => setFilters({...filters, location: val})}
+                                    placeholder="Todos los lugares"
+                                />
+                            </div>
+                            <div className="space-y-1.5 lg:col-span-4">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Filtrar por Objetivo</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['', ...filterOptions.objectives].map(obj => (
+                                        <button
+                                            key={obj}
+                                            onClick={() => setFilters({...filters, objective: obj})}
+                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border ${filters.objective === obj ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'}`}
+                                        >
+                                            {obj || 'TODOS LOS OBJETIVOS'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[1000px] text-left text-sm text-slate-400 table-fixed">
@@ -584,12 +684,12 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800">
-                                    {(!records || records.length === 0) ? (
+                                    {(!filteredRecords || filteredRecords.length === 0) ? (
                                         <tr>
-                                            <td colSpan={8} className="py-8 text-center text-slate-600 italic">No hay registros aún.</td>
+                                            <td colSpan={8} className="py-8 text-center text-slate-600 italic">No se encontraron registros con los filtros aplicados.</td>
                                         </tr>
                                     ) : (
-                                        (records || []).map((r) => (
+                                        (filteredRecords || []).map((r) => (
                                             r && (
                                                 <tr key={r.id || Math.random()} className="hover:bg-slate-800/30 transition-colors group">
                                                     <td className="py-3 pl-2 font-mono text-xs text-white truncate" title={r.date}>{r.date || 'S/F'}</td>

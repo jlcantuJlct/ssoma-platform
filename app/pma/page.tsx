@@ -440,9 +440,17 @@ export default function PMAPage() {
                                             </div>
                                         )}
                                     </div>
-                   </div>
 
                                     {/* Descripción (Opcional) */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Descripción / Observaciones</label>
+                                        <textarea
+                                            value={form.description}
+                                            onChange={e => setForm({ ...form, description: e.target.value })}
+                                            placeholder="Detalles adicionales..."
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs focus:border-emerald-500 outline-none h-20 resize-none transition-colors"
+                                        />
+                                    </div>
 
 
                                     {/* Upload Files */}
