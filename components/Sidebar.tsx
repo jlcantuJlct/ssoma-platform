@@ -104,6 +104,7 @@ export default function Sidebar() {
                             href="/"
                             active={pathname === '/' && (!searchParams.get('view') || searchParams.get('view') === 'analytics')}
                         />
+                        <SidebarItem icon={<LayoutDashboard size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                     </div>
 
                     {/* HERRAMIENTAS */}
@@ -117,8 +118,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<ClipboardCheck size={16} />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
                         <SidebarItem icon={<Shield size={16} />} label="Gestión ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem icon={<Clipboard size={16} />} label="Gestión PETAR" href="/petar" active={pathname === '/petar'} />
-                        <SidebarItem icon={<LayoutDashboard size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
-                        <SidebarItem icon={<ShieldCheck size={16} />} label="Programas SCSST" href="/scsst" active={pathname === '/scsst'} />
+                        <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem icon={<CheckSquare size={16} />} label="Objetivos" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Fotos PMA" href="/pma" active={pathname === '/pma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
@@ -157,7 +157,7 @@ export default function Sidebar() {
                             <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider leading-tight">Desarrollado por</span>
                                 <span className="text-[10px] text-emerald-400 font-bold tracking-tight leading-tight">Jose Luis Cancino Tueros</span>
-                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.5 - FULL STABILITY</span>
+                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.6 - FINAL RESTRUCTURE</span>
                             </div>
                         </div>
                     </div>

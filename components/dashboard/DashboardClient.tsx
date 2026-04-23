@@ -745,7 +745,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20 border border-emerald-400/20"
                 >
                     <ShieldCheck size={16} />
-                    PROGRAMAS SCSST
+                    CONTROL SCSST
                 </button>
 
                 {/* Report Tools Button */}

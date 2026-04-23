@@ -159,9 +159,9 @@ export default function SCSSTPage() {
                             </div>
                             <div>
                                 <h1 className="text-2xl md:text-3xl font-black text-white tracking-tighter">
-                                    PROGRAMAS SCSST
+                                    CONTROL SCSST
                                 </h1>
-                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">OBJ 01: Programas de Seguridad y Salud</p>
+                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">OBJ 01: Control de Seguridad y Salud</p>
                             </div>
                         </div>
                     </div>
