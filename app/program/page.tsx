@@ -74,7 +74,10 @@ export default function ProgramPage() {
     const [executedInspections, setExecutedInspections] = useState<ExecutedInspection[]>([]);
     const [hhcRecords, setHhcRecords] = useState<any[]>([]);
     const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]); 
-    const [pmaRecords, setPmaRecords] = useState<any[]>([]); // New state for PMA records
+    const [pmaRecords, setPmaRecords] = useState<any[]>([]); 
+    const [atsRecords, setAtsRecords] = useState<any[]>([]);
+    const [petarRecords, setPetarRecords] = useState<any[]>([]);
+    const [detourRecords, setDetourRecords] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -85,20 +88,122 @@ export default function ProgramPage() {
     const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string } | null>(null);
 
     const RECONFIG_CATEGORIES = [
-        { id: 'ATS', label: 'Control de ATS' },
-        { id: 'PETAR', label: 'Control de PETAR' },
-        { id: 'HHC', label: 'Control de HHC' },
-        { id: 'INSPECTION', label: 'Control de Inspecciones' },
-        { id: 'PMA', label: 'Control de PMA' },
-        { id: 'DETOUR', label: 'Control de Desvíos' },
+        { id: 'Control de ATS', label: 'Control de ATS' },
+        { id: 'Control de PETAR', label: 'Control de PETAR' },
+        { id: 'Control de HHC', label: 'Control de HHC' },
+        { id: 'Control de Inspecciones', label: 'Control de Inspecciones' },
+        { id: 'PMA', label: 'PMA' },
+        { id: 'Desvíos', label: 'Desvíos' },
     ];
 
     const RECONFIG_SUBTYPES: Record<string, string[]> = {
-        'PETAR': ['Altura', 'Caliente', 'Excavacion', 'Espacio Confinado', 'Izaje'],
-        'INSPECTION': ['Inspección de EPP', 'Inspección de Herramientas', 'Inspección de Extintores', 'Inspección de Botiquín', 'Inspección de Residuos', 'Inspección de Kit Antiderrame'],
-        'HHC': ['Capacitación Diaria', 'Charla de 5 min', 'Control de Fatiga', 'Inspección de Salud'],
-        'PMA': ['Señalización', 'Bienestar e Higiene', 'Manejo de Residuos', 'Control de Polvo'],
-        'DETOUR': ['Señalización PTP', 'Vigías', 'Flecha Luminosa', 'Limpieza de Desvío']
+        'Control de ATS': ['ATS'],
+        'Control de PETAR': ['Caliente', 'Altura', 'Excavacion', 'Espacio Confinado', 'Izaje'],
+        'Control de HHC': [
+            'INDUCCIÓN GENERAL',
+            'INDUCCIÓN ESPECÍFICA',
+            'INDUCCIÓN (4H)',
+            'IND. ESPECÍFICA (8H)',
+            'CAPACITACIÓN (1H)',
+            'DIFUSIÓN (30 MIN)',
+            'ENTRENAMIENTO (30 MIN)',
+            'CHARLA (15 MIN)',
+            'Capacitación Diaria',
+            'Charla de 5 min',
+            'Control de Fatiga',
+            'Inspección Inopinada',
+            'Pausas Activas'
+        ],
+        'Control de Inspecciones': [
+            "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
+            "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehiculos",
+            "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia",
+            "Inspección de Herramientas manuales y eléctricas (F-OP-019) Verificación de Herramientas Manuales, Eléctricas y Equipos Portátiles",
+            "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01",
+            "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03",
+            "Inspección de Señalización Vial (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de vías de acceso y bermas de seguridad plataformas de descarga de material (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de Señalización de Obra (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09",
+            "Inspección del almacén de productos químicos F-SIG-028 Inspeccion Almacén V09",
+            "Inspección de orden y limpieza de áreas de trabajo (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO",
+            "Inspeccion de planta de asfalto LISTA DE CHEQUEO DE PLANTA DE ASFALTO",
+            "Inspeccion de planta de concreto LISTA DE CHEQUEO DE PLANTA DE CONCRETO",
+            "Inspeccion de planta de Chancado LISTA DE CHEQUEO DE PLANTA DE AGREGADOS",
+            "Inspección de taller de soldadura/ mecanico F-SIG-079 Inspección de Talleres V02",
+            "Inspección de escalera o andamios F-OP-001 CHECK LIST DE ANDAMIOS F-OP-018 INSPECCIÓN DE ESCALERAS",
+            "Inspección de Equipo contra caídas (arnés, línea de vida, etc.) F-OP-017 INSPECCIÓN DE EQUIPOS CONTRA CAIDA",
+            "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
+            "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS",
+            "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR",
+            "Inspección de EPP Inspección de EPP Seguimiento de observacion medica F-SIG-044 Inspección de EPP V03",
+            "Inspección de Topico (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de señalización de salud (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de EPP Ligado a Enf. Ocupacionales F-SIG-044 Inspección de EPP V03",
+            "Inspecciones de estaciones de residuos por colores (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspecciones de almacén de acopio temporal de residuos solidos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspecciones de la segregacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de controles de polucion. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de controles de ruido. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME",
+            "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de trampas de grasa de talleres (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de almacén de acopio temporal de residuos peligrosos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+            "Inspección de limpieza de accesos y vías (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
+        ],
+        'PMA': [
+            "1. Foto de señalización SST",
+            "2. Foto de señalización MA",
+            "3. Foto de Delimitación de áreas y Perímetros",
+            "1. Foto de baños",
+            "2. Foto de limpieza de baños",
+            "3. Foto de Lavado de Manos",
+            "4. Foto Punto de Hidratación",
+            "5. Foto de comedor",
+            "6. Foto de Limpieza de Comedor",
+            "7. Foto de vestuario",
+            "1. Foto de segregación de residuos",
+            "2. Foto del vehículo de residuos",
+            "3. Foto de almacenamiento de residuos",
+            "4. Foto de pesado de residuos",
+            "5. Foto de estación de RRSS",
+            "6. Foto de kit contra derrames",
+            "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.",
+            "2. Foto de: Las cisternas cuentan con kit antiderrame",
+            "3. Foto de: Los vehículos no ingresan al curso de agua",
+            "1. Foto de bloqueado",
+            "2. Foto de Uso de EPP: Tapones",
+            "3. Foto de Uso de EPP: Guantes",
+            "4. Foto de Uso de EPP: Lentes",
+            "5. Foto de Uso de EPP: Arnés",
+            "6. Foto de Uso de EPP: Respirador",
+            "7. Foto de Entrega de EPP",
+            "8. Foto de revisión Documentos",
+            "9. Foto de Maquinarias con silenciador",
+            "1. Foto de Vehículo de Emergencia",
+            "2. Foto de Tópico y su especialista de Salud",
+            "3. Foto de Directorio telefónico de emergencia.",
+            "4. Foto de Flujograma de Comunicación de emergencia",
+            "5. Foto de Flujograma de atención de emergencia"
+        ],
+        'Desvíos': [
+            "Foto señalización según PTP Sur",
+            "Foto señalización según PTP Norte",
+            "Foto Vigias Día",
+            "Foto Vigias Noche",
+            "Foto de flecha luminosa",
+            "Foto delineadores",
+            "Foto Canalizadores",
+            "Limpieza de señalización",
+            "Foto de reposición de señalización",
+            "Foto de pintado de Giba y/o líneas",
+            "Foto de limpieza de desvío"
+        ],
     };
 
     // Carga inicial - Cloud first, then localStorage fallback
@@ -155,10 +260,22 @@ export default function ProgramPage() {
                 if (pmaData.success && pmaData.records.length > 0) {
                     setPmaRecords(pmaData.records);
                     localStorage.setItem('pma_records', JSON.stringify(pmaData.records));
-                } else {
-                    const storedPMA = localStorage.getItem('pma_records');
-                    if (storedPMA) setPmaRecords(JSON.parse(storedPMA));
                 }
+
+                // 6. Load ATS from cloud
+                const atsRes = await fetch('/api/ats-records');
+                const atsData = await atsRes.json();
+                if (atsData.success) setAtsRecords(atsData.records);
+
+                // 7. Load PETAR from cloud
+                const petarRes = await fetch('/api/petar-records');
+                const petarData = await petarRes.json();
+                if (petarData.success) setPetarRecords(petarData.records);
+
+                // 8. Load Desvios from cloud
+                const detourRes = await fetch('/api/desvio-records');
+                const detourData = await detourRes.json();
+                if (detourData.success) setDetourRecords(detourData.records);
 
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
@@ -676,6 +793,51 @@ export default function ProgramPage() {
             }
         });
 
+        // 6. Map ATS Records
+        atsRecords.forEach(ats => {
+            const m = getMonthFromStr(ats.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, 'ATS' || ats.location);
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...ats, _type: 'ATS' });
+                }
+            }
+        });
+
+        // 7. Map PETAR Records
+        petarRecords.forEach(petar => {
+            const m = getMonthFromStr(petar.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, petar.type || 'PETAR');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...petar, _type: 'PETAR' });
+                }
+            }
+        });
+
+        // 8. Map Desvío Records
+        detourRecords.forEach(det => {
+            const m = getMonthFromStr(det.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, det.category || 'Desvío');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...det, _type: 'DETOUR' });
+                }
+            }
+        });
+
         return grouped;
     };
 
@@ -987,11 +1149,35 @@ export default function ProgramPage() {
                                             <button 
                                                 disabled={!reconfigRecord.category || (!reconfigRecord.subtype && RECONFIG_SUBTYPES[reconfigRecord.category])}
                                                 className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-xs px-6 py-2 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95"
-                                                onClick={() => {
-                                                    alert(`🔄 Redireccionando registro a: ${reconfigRecord.category} > ${reconfigRecord.subtype}\n(Funcionalidad en desarrollo - mock visual)`);
+                                                onClick={async () => {
+                                                    const rec = selectedRecords.records[ri];
+                                                    const confirm = window.confirm(`¿Estás seguro de REDIRECCIONAR este registro a ${reconfigRecord.category} > ${reconfigRecord.subtype}?`);
+                                                    if (!confirm) return;
+
+                                                    try {
+                                                        const res = await fetch('/api/reconfigure', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                record: rec,
+                                                                targetCategory: reconfigRecord.category,
+                                                                targetSubtype: reconfigRecord.subtype
+                                                            })
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                            alert(`✅ Registro redireccionado con éxito.`);
+                                                            window.location.reload(); // Simple refresh to update all states
+                                                        } else {
+                                                            alert(`❌ Error: ${data.error}`);
+                                                        }
+                                                    } catch (err) {
+                                                        alert(`❌ Error de conexión`);
+                                                    }
                                                     setReconfigRecord(null);
                                                 }}
                                             >
+                                                REDIRECCIONAR
                                             </button>
                                         </div>
                                     </div>
