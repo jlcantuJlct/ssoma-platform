@@ -31,7 +31,8 @@ import {
     Save,
     Image as ImageIcon,
     TrendingUp,
-    Wrench
+    Wrench,
+    Leaf
 } from "lucide-react";
 import { ReportCommandCenter } from "./ReportCommandCenter";
 
