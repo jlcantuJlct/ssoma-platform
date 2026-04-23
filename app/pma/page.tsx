@@ -419,6 +419,7 @@ export default function PMAPage() {
 
                                             </select>
                                         </div>
+                                    </div>
                                                                   {/* Categoría */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Fotos PMA</label>
