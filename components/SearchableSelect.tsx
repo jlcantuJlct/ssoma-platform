@@ -78,7 +78,7 @@ export default function SearchableSelect({
             </div>
 
             {isOpen && (
-                <div className="absolute top-[calc(100%+4px)] left-0 min-w-full md:min-w-[800px] max-w-[95vw] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] p-2 flex flex-col gap-2 backdrop-blur-xl bg-slate-900/95 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-[calc(100%+4px)] left-0 min-w-full md:min-w-[950px] max-w-[95vw] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] p-2 flex flex-col gap-2 backdrop-blur-xl bg-slate-900/95 animate-in fade-in zoom-in-95 duration-200">
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
                         <input
@@ -91,7 +91,7 @@ export default function SearchableSelect({
                         />
                     </div>
 
-                    <div className="max-h-[250px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-1 flex flex-col gap-1">
+                    <div className="max-h-[450px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-700 pr-1 flex flex-col gap-1">
                         {filteredOptions.length === 0 ? (
                             <div className="py-8 text-center text-slate-500 text-xs italic">
                                 No se encontraron resultados
