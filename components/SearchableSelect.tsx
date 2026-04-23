@@ -78,7 +78,7 @@ export default function SearchableSelect({
             </div>
 
             {isOpen && (
-                <div className="absolute top-[calc(100%+4px)] left-0 min-w-full md:min-w-[500px] max-w-[90vw] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] p-2 flex flex-col gap-2 backdrop-blur-xl bg-slate-900/95">
+                <div className="absolute top-[calc(100%+4px)] left-0 min-w-full md:min-w-[650px] max-w-[95vw] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[100] p-2 flex flex-col gap-2 backdrop-blur-xl bg-slate-900/95 animate-in fade-in zoom-in-95 duration-200">
                     <div className="relative">
                         <Search className="absolute left-3 top-2.5 text-slate-500" size={14} />
                         <input

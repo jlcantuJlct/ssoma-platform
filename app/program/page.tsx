@@ -1108,7 +1108,7 @@ export default function ProgramPage() {
 
                                 {/* PANEL DE RECONFIGURACIÓN (DESPLEGABLE) */}
                                 {reconfigRecord?.index === ri && (
-                                    <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 mt-2 animate-in slide-in-from-top-2 duration-200">
+                                    <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 mt-2 animate-in slide-in-from-top-2 duration-200 min-h-[350px]">
                                         <div className="flex flex-col md:flex-row gap-4 items-end">
                                             <div className="flex-1 space-y-2">
                                                 <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nueva Categoría</label>
