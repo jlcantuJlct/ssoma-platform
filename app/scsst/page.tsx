@@ -47,15 +47,15 @@ export default function SCSSTPage() {
             const progData = await progRes.json();
             if (progData.success && progData.programData?.obj1) {
                 const obj1Items = progData.programData.obj1;
-                const uniqueActivities = Array.from(new Set(obj1Items.map((i: any) => i.description))).sort() as string[];
+                const uniqueActivities = Array.from(new Set(obj1Items.map((i: any) => i.description))).filter(Boolean).sort() as string[];
                 setActivities(uniqueActivities);
             }
 
             // 2. Fetch existing SCSST records (from evidence_center_records with objective OBJ 01)
             const recRes = await fetch('/api/evidence-records');
             const recData = await recRes.json();
-            if (recData.success) {
-                const scsstRecords = recData.records.filter((r: any) => r.objective === 'OBJ 01');
+            if (recData.success && Array.isArray(recData.records)) {
+                const scsstRecords = recData.records.filter((r: any) => r && r.objective === 'OBJ 01');
                 setRecords(scsstRecords);
             }
         } catch (error) {
@@ -66,7 +66,8 @@ export default function SCSSTPage() {
     };
 
     // Filtered Records logic
-    const filteredRecords = records.filter(rec => {
+    const filteredRecords = (records || []).filter(rec => {
+        if (!rec) return false;
         const matchDate = !filters.date || rec.date === filters.date;
         const matchActivity = !filters.activity || rec.activity === filters.activity;
         const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
@@ -76,10 +77,10 @@ export default function SCSSTPage() {
 
     // Derive filter options
     const filterOptions = {
-        dates: Array.from(new Set(records.map(r => r.date))).sort().reverse(),
-        activities: Array.from(new Set(records.map(r => r.activity))).sort(),
-        responsibles: Array.from(new Set(records.map(r => r.responsable || r.responsible))).sort(),
-        zones: Array.from(new Set(records.map(r => r.zona || r.location))).sort()
+        dates: Array.from(new Set((records || []).map(r => r?.date).filter(Boolean))).sort().reverse(),
+        activities: Array.from(new Set((records || []).map(r => r?.activity).filter(Boolean))).sort(),
+        responsibles: Array.from(new Set((records || []).map(r => r?.responsable || r?.responsible).filter(Boolean))).sort(),
+        zones: Array.from(new Set((records || []).map(r => r?.zona || r?.location).filter(Boolean))).sort()
     };
 
     const handleSave = async () => {
