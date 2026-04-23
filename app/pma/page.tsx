@@ -70,7 +70,10 @@ export default function PMAPage() {
             let initialRecords: PMAEvidenceRecord[] = [];
             if (stored) {
                 try {
-                    initialRecords = JSON.parse(stored);
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) {
+                        initialRecords = parsed.filter(r => r && typeof r === 'object');
+                    }
                     setRecords(initialRecords);
                 } catch (e) {
                     console.error("Error parsing pma_evidence_records", e);
@@ -96,19 +99,26 @@ export default function PMAPage() {
                     const merged = [...mapped];
                     // Create a set of content keys from cloud records
                     const getRecordKey = (r: any) => {
+                        if (!r) return 'invalid';
                         const imgs = Array.isArray(r.images) ? r.images : [];
-                        return `${r.date}|${r.responsible}|${r.category}|${r.location}|${imgs.length}`;
+                        return `${r.date || ''}|${r.responsible || ''}|${r.category || ''}|${r.location || ''}|${imgs.length}`;
                     };
                     const cloudKeys = new Set(mapped.map(getRecordKey));
                     
                     initialRecords.forEach(r => {
-                        if (!cloudKeys.has(getRecordKey(r))) {
+                        if (!r || typeof r !== 'object') return; // Skip invalid records
+                        const key = getRecordKey(r);
+                        if (key !== 'invalid' && !cloudKeys.has(key)) {
                             merged.push(r);
                         }
                     });
 
                     // Final deduplication by content key
-                    const finalRecords = Array.from(new Map(merged.map(r => [getRecordKey(r), r])).values());
+                    const finalRecords = Array.from(new Map(
+                        merged
+                            .filter(r => r && typeof r === 'object')
+                            .map(r => [getRecordKey(r), r])
+                    ).values());
 
                     setRecords(finalRecords);
                     localStorage.setItem('pma_evidence_records', JSON.stringify(finalRecords));
