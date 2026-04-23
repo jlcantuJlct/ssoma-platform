@@ -32,6 +32,7 @@ import {
 import { useState, useEffect, Fragment } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import SearchableSelect from '@/components/SearchableSelect';
 
 // Definición de Objetivos (sin cambios)
 const OBJECTIVES = [
@@ -1126,16 +1127,13 @@ export default function ProgramPage() {
                                             {reconfigRecord.category && RECONFIG_SUBTYPES[reconfigRecord.category] && (
                                                 <div className="flex-1 space-y-2">
                                                     <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nuevo Tipo / Tema</label>
-                                                    <select 
-                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
+                                                    <SearchableSelect
+                                                        options={RECONFIG_SUBTYPES[reconfigRecord.category]}
                                                         value={reconfigRecord.subtype}
-                                                        onChange={(e) => setReconfigRecord({ ...reconfigRecord, subtype: e.target.value })}
-                                                    >
-                                                        <option value="">Seleccione Tipo...</option>
-                                                        {RECONFIG_SUBTYPES[reconfigRecord.category].map(sub => (
-                                                            <option key={sub} value={sub}>{sub}</option>
-                                                        ))}
-                                                    </select>
+                                                        onChange={(val) => setReconfigRecord({ ...reconfigRecord, subtype: val })}
+                                                        placeholder="Seleccione Tipo..."
+                                                        className="text-white"
+                                                    />
                                                 </div>
                                             )}
 
