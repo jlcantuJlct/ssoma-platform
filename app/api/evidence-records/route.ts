@@ -54,19 +54,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
         }
 
-        // Deduplicate records to avoid doubling entries due to sync race conditions
         const uniqueRecords = [];
         const seenKeys = new Set();
+        const objectivesToClear = new Set();
+        
         for (const r of records) {
             const contentKey = `${r.date}|${r.responsable || r.responsible}|${r.objective}|${r.activity || r.description}|${r.zona || r.location}|${r.file_url || r.fileUrl}`;
             if (!seenKeys.has(contentKey)) {
                 uniqueRecords.push(r);
                 seenKeys.add(contentKey);
+                if (r.objective) objectivesToClear.add(r.objective);
             }
         }
 
-        // Borrar y reemplazar
-        await db.execute('DELETE FROM evidence_center_records');
+        // Solo borramos los objetivos que estamos actualizando
+        for (const obj of Array.from(objectivesToClear)) {
+            await db.execute('DELETE FROM evidence_center_records WHERE objective = ?', [obj]);
+        }
 
         for (const r of uniqueRecords) {
             await db.execute(
