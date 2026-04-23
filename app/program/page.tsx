@@ -1024,7 +1024,7 @@ export default function ProgramPage() {
             {selectedRecords && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => { setSelectedRecords(null); setReconfigRecord(null); }} />
-                    <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                    <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                         <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                             <div>
                                 <h3 className="text-lg font-bold text-white mb-1">Evidencias de Ejecución</h3>
