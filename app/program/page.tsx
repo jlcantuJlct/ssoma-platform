@@ -26,7 +26,8 @@ import {
     Check,
     X,
     ExternalLink,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Settings
 } from 'lucide-react';
 import { useState, useEffect, Fragment } from 'react';
 import * as XLSX from 'xlsx';
@@ -81,6 +82,24 @@ export default function ProgramPage() {
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
     const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
+    const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string } | null>(null);
+
+    const RECONFIG_CATEGORIES = [
+        { id: 'ATS', label: 'Control de ATS' },
+        { id: 'PETAR', label: 'Control de PETAR' },
+        { id: 'HHC', label: 'Control de HHC' },
+        { id: 'INSPECTION', label: 'Control de Inspecciones' },
+        { id: 'PMA', label: 'Control de PMA' },
+        { id: 'DETOUR', label: 'Control de Desvíos' },
+    ];
+
+    const RECONFIG_SUBTYPES: Record<string, string[]> = {
+        'PETAR': ['Altura', 'Caliente', 'Excavacion', 'Espacio Confinado', 'Izaje'],
+        'INSPECTION': ['Inspección de EPP', 'Inspección de Herramientas', 'Inspección de Extintores', 'Inspección de Botiquín', 'Inspección de Residuos', 'Inspección de Kit Antiderrame'],
+        'HHC': ['Capacitación Diaria', 'Charla de 5 min', 'Control de Fatiga', 'Inspección de Salud'],
+        'PMA': ['Señalización', 'Bienestar e Higiene', 'Manejo de Residuos', 'Control de Polvo'],
+        'DETOUR': ['Señalización PTP', 'Vigías', 'Flecha Luminosa', 'Limpieza de Desvío']
+    };
 
     // Carga inicial - Cloud first, then localStorage fallback
     useEffect(() => {
@@ -848,21 +867,22 @@ export default function ProgramPage() {
             {/* Traceability Modal */}
             {selectedRecords && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setSelectedRecords(null)} />
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => { setSelectedRecords(null); setReconfigRecord(null); }} />
                     <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                         <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                             <div>
                                 <h3 className="text-lg font-bold text-white mb-1">Evidencias de Ejecución</h3>
                                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedRecords.activity} • {selectedRecords.month}</p>
                             </div>
-                            <button onClick={() => setSelectedRecords(null)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                            <button onClick={() => { setSelectedRecords(null); setReconfigRecord(null); }} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
                             {selectedRecords.records.map((rec, ri) => (
-                                <div key={ri} className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-500/50 transition-colors">
+                                <div key={ri} className="space-y-3">
+                                    <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-500/50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                                             <ClipboardCheck size={20} />
@@ -914,10 +934,74 @@ export default function ProgramPage() {
                                             )}
                                             {sendingObs === ri ? 'ENVIANDO...' : 'NO CONFORME'}
                                         </button>
-                                        {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (!rec.images || rec.images.length === 0) && (
-                                            <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
-                                        )}
+
+                                        {/* BOTÓN RECONFIGURAR (NUEVO) */}
+                                        <button 
+                                            onClick={() => setReconfigRecord(reconfigRecord?.index === ri ? null : { index: ri, category: '', subtype: '' })}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                                                reconfigRecord?.index === ri
+                                                ? 'bg-amber-500 text-white border-amber-400'
+                                                : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20'
+                                            }`}
+                                        >
+                                            <Settings size={12} />
+                                            RECONFIGURAR
+                                        </button>
                                     </div>
+                                </div>
+
+                                {/* PANEL DE RECONFIGURACIÓN (DESPLEGABLE) */}
+                                {reconfigRecord?.index === ri && (
+                                    <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 mt-2 animate-in slide-in-from-top-2 duration-200">
+                                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                                            <div className="flex-1 space-y-2">
+                                                <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nueva Categoría</label>
+                                                <select 
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
+                                                    value={reconfigRecord.category}
+                                                    onChange={(e) => setReconfigRecord({ ...reconfigRecord, category: e.target.value, subtype: '' })}
+                                                >
+                                                    <option value="">Seleccione Categoría...</option>
+                                                    {RECONFIG_CATEGORIES.map(cat => (
+                                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {reconfigRecord.category && RECONFIG_SUBTYPES[reconfigRecord.category] && (
+                                                <div className="flex-1 space-y-2">
+                                                    <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nuevo Tipo / Tema</label>
+                                                    <select 
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
+                                                        value={reconfigRecord.subtype}
+                                                        onChange={(e) => setReconfigRecord({ ...reconfigRecord, subtype: e.target.value })}
+                                                    >
+                                                        <option value="">Seleccione Tipo...</option>
+                                                        {RECONFIG_SUBTYPES[reconfigRecord.category].map(sub => (
+                                                            <option key={sub} value={sub}>{sub}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            <button 
+                                                disabled={!reconfigRecord.category || (!reconfigRecord.subtype && RECONFIG_SUBTYPES[reconfigRecord.category])}
+                                                className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-xs px-6 py-2 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95"
+                                                onClick={() => {
+                                                    alert(`🔄 Redireccionando registro a: ${reconfigRecord.category} > ${reconfigRecord.subtype}\n(Funcionalidad en desarrollo - mock visual)`);
+                                                    setReconfigRecord(null);
+                                                }}
+                                            >
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                    
+                                    {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (!rec.images || rec.images.length === 0) && (
+                                        <div className="px-4 pb-2 text-center">
+                                            <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
