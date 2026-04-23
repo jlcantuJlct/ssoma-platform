@@ -85,15 +85,24 @@ export default function PMAPage() {
                 const res = await fetch('/api/pma-records');
                 const data = await res.json();
                 if (data.success && data.records.length > 0) {
-                    const mapped = data.records.map((r: any) => ({
-                        id: Number(r.id) || Number(r.record_id),
-                        date: r.date,
-                        responsible: r.responsible,
-                        category: r.category,
-                        description: r.description,
-                        location: r.location || '',
-                        images: typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || [])
-                    }));
+                    const mapped = data.records.map((r: any) => {
+                        let parsedImages = [];
+                        try {
+                            parsedImages = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
+                        } catch (e) {
+                            console.warn("Could not parse images for record", r.id, e);
+                            parsedImages = [];
+                        }
+                        return {
+                            id: Number(r.id) || Number(r.record_id),
+                            date: r.date,
+                            responsible: r.responsible,
+                            category: r.category,
+                            description: r.description,
+                            location: r.location || '',
+                            images: Array.isArray(parsedImages) ? parsedImages : []
+                        };
+                    });
 
                     // Deduplicate and merge: prefer cloud data but keep unique local ones
                     const merged = [...mapped];
@@ -644,8 +653,8 @@ export default function PMAPage() {
 
                                                             <td className="py-4 align-top">
                                                                 <div className="flex justify-center -space-x-2">
-                                                                    {record.images.slice(0, 4).map((img, i) => {
-                                                                        const isPdf = img.toLowerCase().includes('.pdf');
+                                                                    {Array.isArray(record.images) && record.images.slice(0, 4).map((img, i) => {
+                                                                        const isPdf = img?.toLowerCase().includes('.pdf');
                                                                         return (
                                                                             <div
                                                                                 key={i}
@@ -663,7 +672,7 @@ export default function PMAPage() {
                                                                             </div>
                                                                         );
                                                                     })}
-                                                                    {record.images.length > 4 && (
+                                                                    {Array.isArray(record.images) && record.images.length > 4 && (
                                                                         <div className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-700 flex items-center justify-center text-[9px] font-bold text-white z-10">
                                                                             +{record.images.length - 4}
                                                                         </div>
