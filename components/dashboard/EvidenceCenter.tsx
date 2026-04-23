@@ -115,22 +115,22 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
 
     // Filtered Records
     const filteredRecords = (records || []).filter(r => {
-        if (!r) return false;
+        if (!r || typeof r !== 'object') return false;
         const matchDate = !filters.date || r.date === filters.date;
-        const matchAct = !filters.activity || r.description === filters.activity;
-        const matchResp = !filters.responsible || r.responsible === filters.responsible;
-        const matchLoc = !filters.location || r.location === filters.location;
+        const matchAct = !filters.activity || (r.description || r.activity) === filters.activity;
+        const matchResp = !filters.responsible || (r.responsible || r.responsable) === filters.responsible;
+        const matchLoc = !filters.location || (r.location || r.zona) === filters.location;
         const matchObj = !filters.objective || r.objective === filters.objective;
         return matchDate && matchAct && matchResp && matchLoc && matchObj;
     });
 
     // Derive filter options
     const filterOptions = {
-        dates: Array.from(new Set((records || []).filter(Boolean).map(r => r.date))).sort().reverse(),
-        activities: Array.from(new Set((records || []).filter(Boolean).map(r => r.description))).sort(),
-        responsibles: Array.from(new Set((records || []).filter(Boolean).map(r => r.responsible))).sort(),
-        locations: Array.from(new Set((records || []).filter(Boolean).map(r => r.location))).sort(),
-        objectives: Array.from(new Set((records || []).filter(Boolean).map(r => r.objective))).sort()
+        dates: Array.from(new Set((records || []).filter(r => r && r.date).map(r => r.date))).sort().reverse(),
+        activities: Array.from(new Set((records || []).filter(r => r && (r.description || r.activity)).map(r => r.description || r.activity))).sort(),
+        responsibles: Array.from(new Set((records || []).filter(r => r && (r.responsible || r.responsable)).map(r => r.responsible || r.responsable))).sort(),
+        locations: Array.from(new Set((records || []).filter(r => r && (r.location || r.zona)).map(r => r.location || r.zona))).sort(),
+        objectives: Array.from(new Set((records || []).filter(r => r && r.objective).map(r => r.objective))).sort()
     };
 
     // LOAD DATA - Cloud first, then localStorage fallback
@@ -163,7 +163,10 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             const stored = localStorage.getItem('evidence_center_records');
             if (stored) {
                 try {
-                    setRecords(JSON.parse(stored));
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) {
+                        setRecords(parsed.filter(r => r && typeof r === 'object'));
+                    }
                 } catch (e) {
                     console.error("Error parsing evidence_center_records", e);
                 }
