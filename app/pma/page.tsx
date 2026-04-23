@@ -95,7 +95,10 @@ export default function PMAPage() {
                     // Deduplicate and merge: prefer cloud data but keep unique local ones
                     const merged = [...mapped];
                     // Create a set of content keys from cloud records
-                    const getRecordKey = (r: any) => `${r.date}|${r.responsible}|${r.category}|${r.location}|${JSON.stringify(r.images || [])}`;
+                    const getRecordKey = (r: any) => {
+                        const imgs = Array.isArray(r.images) ? r.images : [];
+                        return `${r.date}|${r.responsible}|${r.category}|${r.location}|${imgs.length}`;
+                    };
                     const cloudKeys = new Set(mapped.map(getRecordKey));
                     
                     initialRecords.forEach(r => {

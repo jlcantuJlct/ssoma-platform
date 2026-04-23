@@ -26,8 +26,16 @@ export async function GET() {
         const uniqueRecords = [];
         const seenKeys = new Set();
         for (const r of rawRecords) {
-            // Use content-based key to catch duplicates with different IDs
-            const contentKey = `${r.date}|${r.responsible}|${r.category}|${r.location}|${typeof r.images === 'string' ? r.images : JSON.stringify(r.images || [])}`;
+            let imagesCount = 0;
+            try {
+                const imgs = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
+                imagesCount = Array.isArray(imgs) ? imgs.length : 0;
+            } catch (e) {
+                imagesCount = 0;
+            }
+
+            // Use robust composite key
+            const contentKey = `${r.date}|${r.responsible}|${r.category}|${r.location}|${imagesCount}`;
             if (!seenKeys.has(contentKey)) {
                 uniqueRecords.push(r);
                 seenKeys.add(contentKey);
@@ -55,7 +63,8 @@ export async function POST(req: NextRequest) {
         const seenKeys = new Set();
         
         for (const r of records) {
-            const contentKey = `${r.date}|${r.responsible}|${r.category}|${r.location}|${JSON.stringify(r.images || [])}`;
+            let imagesCount = Array.isArray(r.images) ? r.images.length : 0;
+            const contentKey = `${r.date}|${r.responsible}|${r.category}|${r.location}|${imagesCount}`;
             if (!seenKeys.has(contentKey)) {
                 uniqueRecords.push(r);
                 seenKeys.add(contentKey);

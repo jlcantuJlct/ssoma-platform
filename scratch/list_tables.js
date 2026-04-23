@@ -1,12 +1,4 @@
 const Database = require('better-sqlite3');
-const path = require('path');
-const dbPath = path.join(__dirname, '..', 'ssoma.db');
-const db = new Database(dbPath);
-
+const db = new Database('ssoma.db');
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
 console.log('Tables:', tables);
-
-tables.forEach(table => {
-    const columns = db.prepare(`PRAGMA table_info(${table.name})`).all();
-    console.log(`Columns for ${table.name}:`, columns.map(c => c.name));
-});

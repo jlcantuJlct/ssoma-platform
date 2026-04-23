@@ -3,54 +3,45 @@ import db from '@/lib/db';
 
 export async function GET() {
     try {
-        console.log('--- Cleaning PMA Duplicates (Postgres) ---');
+        console.log('--- Cleaning PMA Duplicates (Fuzzy Logic) ---');
 
-        // Find duplicates grouping by all key fields
-        const duplicates = await db.fetchAll(`
-            SELECT date, responsible, category, location, images, COUNT(*) as count
-            FROM pma_evidence_records
-            GROUP BY date, responsible, category, location, images
-            HAVING COUNT(*) > 1
-        `);
+        // Fetch ALL records to deduplicate in JS for more flexibility
+        const allRecords = await db.fetchAll('SELECT * FROM pma_evidence_records ORDER BY id DESC');
+        
+        const seenKeys = new Set();
+        const idsToDelete = [];
+
+        for (const r of allRecords) {
+            // Robust key: Date + Responsible + Category + Location + Number of images
+            let imagesCount = 0;
+            try {
+                const imgs = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
+                imagesCount = Array.isArray(imgs) ? imgs.length : 0;
+            } catch (e) {
+                imagesCount = 0;
+            }
+
+            const contentKey = `${r.date}|${r.responsible}|${r.category}|${r.location}|${imagesCount}`;
+            
+            if (seenKeys.has(contentKey)) {
+                idsToDelete.push(r.id);
+            } else {
+                seenKeys.add(contentKey);
+            }
+        }
 
         let deletedTotal = 0;
-        const details = [];
-
-        for (const dup of duplicates) {
-            // Get all IDs for this duplicate group
-            const allInstances = await db.fetchAll(`
-                SELECT id FROM pma_evidence_records
-                WHERE (date = ? OR (date IS NULL AND ? = ''))
-                  AND (responsible = ? OR (responsible IS NULL AND ? = ''))
-                  AND (category = ? OR (category IS NULL AND ? = ''))
-                  AND (location = ? OR (location IS NULL AND ? = ''))
-                  AND (images = ? OR (images IS NULL AND ? = ''))
-                ORDER BY id DESC
-            `, [
-                dup.date, dup.date, 
-                dup.responsible, dup.responsible, 
-                dup.category, dup.category, 
-                dup.location, dup.location, 
-                dup.images, dup.images
-            ]);
-
-            // Keep the first one (most recent), delete the rest
-            const idsToDelete = allInstances.slice(1).map(i => i.id);
-            
-            if (idsToDelete.length > 0) {
-                // Delete one by one or using IN clause
-                for (const id of idsToDelete) {
-                    await db.execute('DELETE FROM pma_evidence_records WHERE id = ?', [id]);
-                    deletedTotal++;
-                }
-                details.push({ group: `${dup.date} | ${dup.responsible}`, deleted: idsToDelete.length });
+        if (idsToDelete.length > 0) {
+            for (const id of idsToDelete) {
+                await db.execute('DELETE FROM pma_evidence_records WHERE id = ?', [id]);
+                deletedTotal++;
             }
         }
 
         return NextResponse.json({ 
             success: true, 
-            message: `Cleanup complete. Deleted ${deletedTotal} records.`,
-            details 
+            message: `Cleanup complete. Deleted ${deletedTotal} duplicate records based on fuzzy matching.`,
+            duplicatesDetected: idsToDelete.length
         });
 
     } catch (error: any) {
