@@ -108,7 +108,6 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
         description: 'Inspecciones y reducción de riesgos ambientales.',
         area: 'environment',
         keywords: ["inspecciones medio ambiente", "inspección ambiental"]
-    },
     }
 ];
 
