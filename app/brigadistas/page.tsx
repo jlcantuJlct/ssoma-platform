@@ -245,9 +245,9 @@ export default function BrigadistasPage() {
                         <div>
                             <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
                                 <Users className="text-red-500" size={32} />
-                                Brigadistas
+                                Control de Brigadistas
                             </h1>
-                            <p className="text-slate-400 font-medium">Control de Brigadas y Actividades de Emergencia</p>
+                            <p className="text-slate-400 font-medium">Gestión y Seguimiento de Brigadas de Emergencia</p>
                         </div>
                         <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Actividades</p>

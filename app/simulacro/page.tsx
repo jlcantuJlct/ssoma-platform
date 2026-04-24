@@ -14,7 +14,7 @@ import {
     Activity,
     Shield,
     Pencil,
-    FlameKindling,
+    Siren,
     Image as ImageIcon
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
@@ -244,7 +244,7 @@ export default function SimulacroPage() {
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
                         <div>
                             <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
-                                <FlameKindling className="text-orange-500" size={32} />
+                                <Siren className="text-orange-500" size={32} />
                                 Control de Simulacros
                             </h1>
                             <p className="text-slate-400 font-medium">Registro y Evidencias de Ensayos de Emergencia</p>

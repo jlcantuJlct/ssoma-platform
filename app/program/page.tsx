@@ -38,9 +38,9 @@ import SearchableSelect from '@/components/SearchableSelect';
 
 // Definición de Objetivos y Seguimiento
 const OBJECTIVES = [
-    { id: 'obj1', label: 'OBJ 01: Programas de SCSST', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { id: 'obj1', label: 'OBJ 01: SCSST', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { id: 'obj2', label: 'OBJ 02: Capacitación', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 'obj3', label: 'OBJ 03: Inspecciones', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 'obj3', label: 'OBJ 03: Inspecciones Seguridad', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
     { id: 'obj4', label: 'OBJ 04: Reporte A/C Inseguras', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     { id: 'obj5', label: 'OBJ 05: EMO Realizados', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     // --- SEGUIMIENTO ---
@@ -49,7 +49,7 @@ const OBJECTIVES = [
     { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
     { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
     { id: 'obj10', label: 'SEG 05: Control de Simulacros', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { id: 'obj11', label: 'SEG 06: Brigadistas', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj11', label: 'SEG 06: Control de Brigadistas', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
 ];
 
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
@@ -858,7 +858,7 @@ export default function ProgramPage() {
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, sim.type || 'Simulacro');
+                const match = findMatch(areaKey, sim.drillType || 'Simulacro');
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
@@ -873,7 +873,7 @@ export default function ProgramPage() {
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, bri.type || 'Brigadista');
+                const match = findMatch(areaKey, bri.brigadistaType || 'Brigadista');
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
