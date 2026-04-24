@@ -462,7 +462,7 @@ export default function InspectionsPage() {
             // REGLA DE NEGOCIO: Si es importación de SALUD, asignar todo a Gladis Aroste force
             if (importType === 'Salud') {
                 parsedItems.forEach(item => {
-                    item.responsible = "Gladis Aroste";
+                    item.responsible = "Gladis Aroste Huertas";
                 });
             }
 

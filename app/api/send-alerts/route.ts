@@ -8,7 +8,7 @@ const ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
     { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51986103867' },
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255' },
-    { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
+    { username: 'gladis.aroste',      name: 'Gladis Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173' },
     { username: 'brayan.pena',         name: 'Brayan Jeanpool Peña Villafuerte', email: '20173143@unica.edu.pe',       phone: '+51971087023' },
 ];

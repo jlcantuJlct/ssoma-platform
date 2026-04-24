@@ -7,7 +7,7 @@ const ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
     { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51986103867' },
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255' },
-    { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
+    { username: 'gladis.aroste',      name: 'Gladis Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173' },
     { username: 'brayan.pena',         name: 'Brayan Jeanpool Peña Villafuerte', email: '20173143@unica.edu.pe',       phone: '+51971087023' },
 ];
@@ -22,11 +22,25 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Buscar el destinatario (Búsqueda por nombre parcial para mayor compatibilidad)
-        const recipient = ALERT_USERS.find(u => 
-            responsibleName.toLowerCase().includes(u.name.split(' ')[0].toLowerCase()) ||
-            u.name.toLowerCase().includes(responsibleName.toLowerCase())
-        );
+        // 1. Buscar el destinatario con lógica robusta
+        const recipient = ALERT_USERS.find(u => {
+            const searchName = responsibleName.toLowerCase().trim();
+            const targetName = u.name.toLowerCase().trim();
+            const targetFirstName = targetName.split(' ')[0];
+
+            // Coincidencia exacta o contenida
+            if (targetName.includes(searchName) || searchName.includes(targetName)) return true;
+            
+            // Coincidencia por primer nombre
+            if (searchName.includes(targetFirstName)) return true;
+
+            // CASO ESPECIAL: Gladys / Gladis
+            if (searchName.includes('gladis') || searchName.includes('gladys')) {
+                if (targetFirstName === 'gladys' || targetFirstName === 'gladis') return true;
+            }
+
+            return false;
+        });
 
         if (!recipient) {
             console.warn(`⚠️ No se encontró contacto para el responsable: ${responsibleName}`);
