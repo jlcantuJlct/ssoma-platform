@@ -448,12 +448,29 @@ export default function ProgramPage() {
                     const planIndex = headers.findIndex(h => h.includes('PLAN') || h.includes('TIPO') || h.includes('ESTADO'));
 
                     // Detect Description Column
-                    let descIndex = headers.findIndex(h => h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO'));
+                    let descIndex = headers.findIndex(h => h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE'));
+
+                    // Fallback: Check the row ABOVE the header (common in some templates)
+                    if (descIndex === -1 && headerRowIdx > 0) {
+                        const aboveHeaders = worksheet[headerRowIdx - 1].map(h => norm(h));
+                        descIndex = aboveHeaders.findIndex(h => h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE'));
+                    }
 
                     if (descIndex === -1) {
-                        if (planIndex !== -1 && planIndex <= 1) descIndex = planIndex === 0 ? 1 : 0;
-                        else descIndex = 0;
+                        // Fallback 2: Check first data row for the column with the longest text that is not a month or plan
+                        const firstDataRow = worksheet[headerRowIdx + 1] || [];
+                        let longestLen = -1;
+                        firstDataRow.forEach((cell, idx) => {
+                            if (monthColIndices.includes(idx) || idx === planIndex) return;
+                            const val = String(cell || '');
+                            if (val.length > longestLen && !val.match(/^\d+$/)) {
+                                longestLen = val.length;
+                                descIndex = idx;
+                            }
+                        });
                     }
+
+                    if (descIndex === -1) descIndex = 1; // Default to column B if everything fails
 
                     let lastDescription = "";
 
