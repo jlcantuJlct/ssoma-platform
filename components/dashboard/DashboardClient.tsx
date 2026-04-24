@@ -178,10 +178,12 @@ function DashboardContent({ initialData }: DashboardClientProps) {
         if (view === 'grid') setViewMode('grid');
         else if (view === 'cards') setViewMode('cards');
 
-        if (view === 'analytics' || view === 'control_hhc') {
+        if (view === 'analytics' || view === 'control_hhc' || (!view && area)) {
             setShowAnalytics(true);
-        } else {
+        } else if (view === 'grid' || view === 'cards') {
             setShowAnalytics(false);
+        } else if (!view && !area) {
+            setShowAnalytics(true);
         }
 
         if (section && uniqueSections.some(s => s.id === section)) {
@@ -192,10 +194,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
             setActiveManagement(area);
         } else {
             setActiveManagement('todos');
-            setActiveSectionId('todos');
-            if (!view || view === 'analytics') {
-                setShowAnalytics(true);
-            }
+            if (!section) setActiveSectionId('todos');
         }
     }, [searchParams, uniqueSections]);
 
@@ -830,6 +829,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                     .filter(a => activeManagement === 'todos' || a.managementArea === activeManagement)
                             }
                             mode={searchParams.get('view') === 'control_hhc' ? 'hhc' : 'general'}
+                            activeManagement={activeManagement}
                             currentMonth={selectedMonthIndex}
                             currentYear={selectedYear}
                         />

@@ -18,11 +18,18 @@ import { SSOMA_LOCATIONS } from "@/lib/locations";
 interface DashboardChartsProps {
     activities: Activity[];
     mode?: 'general' | 'hhc';
+    activeManagement?: string;
     currentMonth?: number;
     currentYear?: number;
 }
 
-export function DashboardCharts({ activities, mode = 'general', currentMonth = -1, currentYear = 2026 }: DashboardChartsProps) {
+export function DashboardCharts({ 
+    activities, 
+    mode = 'general', 
+    activeManagement = 'todos',
+    currentMonth = -1, 
+    currentYear = 2026 
+}: DashboardChartsProps) {
 
 
     // --- DATA LOADING FOR ANNUAL PROGRAM ---
@@ -462,35 +469,39 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         return "0.00";
     }, [hhcRecords, currentYear, hhcMonthFilter, monthlyHHTInputs]);
 
-    const hhcStats = useMemo(() => {
-        const data = MONTHS.map(m => ({ name: m.substring(0, 3), hhc: 0, hht: 0, index: 0, tempIndices: [] as number[] }));
-        hhcRecords.forEach(r => {
-            if (!r || !r.date) return;
-            try {
-                const parts = String(r.date).split('-');
-                if (parts.length < 2) return;
-                const m = parseInt(parts[1], 10) - 1;
+    // Calculate Training Index for the selected month/area
+    const trainingIndexValue = useMemo(() => {
+        const getTrainingStatsForArea = (area: string) => {
+            if (area === 'health') return getObjectiveMonthlyStats('obj7');
+            if (area === 'environment') return getObjectiveMonthlyStats('obj9');
+            if (area === 'safety') return getObjectiveMonthlyStats('obj2');
+            
+            const s2 = getObjectiveMonthlyStats('obj2');
+            const s7 = getObjectiveMonthlyStats('obj7');
+            const s9 = getObjectiveMonthlyStats('obj9');
+            
+            return s2.map((m, i) => ({
+                P: m.P + s7[i].P + s9[i].P,
+                E: m.E + s7[i].E + s9[i].E
+            }));
+        };
 
-                if (m >= 0 && m <= 11 && data[m]) {
-                    const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
-                    const planilla = Number(r.hht) || 1; // Avoid div by 0
-                    const dailyIndex = (assistants / planilla) * 100;
+        const stats = getTrainingStatsForArea(activeManagement);
+        let p = 0;
+        let e = 0;
 
-                    if (!data[m].tempIndices) data[m].tempIndices = [];
-                    data[m].tempIndices.push(dailyIndex);
-                }
-            } catch (e) { /* ignore */ }
-        });
-        data.forEach(d => {
-            // Month Index = Average of daily indices
-            if (d.tempIndices && d.tempIndices.length > 0) {
-                d.index = parseFloat((d.tempIndices.reduce((a: number, b: number) => a + b, 0) / d.tempIndices.length).toFixed(2));
-            } else {
-                d.index = 0;
-            }
-        });
-        return data;
-    }, [hhcRecords]);
+        if (currentMonth === -1) {
+            p = stats.reduce((acc, curr) => acc + curr.P, 0);
+            e = stats.reduce((acc, curr) => acc + curr.E, 0);
+        } else {
+            p = stats[currentMonth]?.P || 0;
+            e = stats[currentMonth]?.E || 0;
+        }
+
+        return p > 0 ? Math.round((e / p) * 100) : (e > 0 ? 100 : 0);
+    }, [programData, activeManagement, currentMonth, hhcRecords]); // Add deps
+
+    const annualIndex = trainingIndexValue; // Alias for compatibility with the gauge usage
 
     const responsibleStats = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -955,7 +966,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             sumMonthIndicesNew += mIndex;
         }
     }
-    const annualIndex = (sumMonthIndicesNew / 12).toFixed(2);
+    const hhcAnnualIndexValue = (sumMonthIndicesNew / 12).toFixed(2);
 
     // Cálculos por Tipo (para el área seleccionada)
     const getStatsByType = () => {
@@ -1667,19 +1678,41 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('residuos')) fill = '#3b82f6';
         if (obj.id === 'obj10' || obj.id === 'obj11') fill = '#3b82f6';
 
+        const NAME_MAPPING: Record<string, string> = {
+            'obj1': 'OBJ 01', 'obj-1': 'OBJ 01',
+            'obj2': 'OBJ 02', 'obj-2': 'OBJ 02',
+            'obj3': 'OBJ 03', 'obj-3': 'OBJ 03',
+            'obj4': 'OBJ 04', 'obj-4': 'OBJ 04',
+            'obj5': 'OBJ 05', 'obj-5': 'OBJ 05',
+            'obj6': 'SEG 01', 'obj-6': 'SEG 01',
+            'obj7': 'SEG 02', 'obj-7': 'SEG 02',
+            'obj8': 'SEG 03', 'obj-8': 'SEG 03',
+            'obj9': 'SEG 04', 'obj-9': 'SEG 04',
+            'obj10': 'SEG 05', 'obj-10': 'SEG 05',
+            'obj11': 'SEG 06', 'obj-11': 'SEG 06',
+        };
+
+        const configId = obj.id.includes('-') ? obj.id : `obj-${obj.id.replace('obj', '')}`;
         return {
             id: obj.id,
-            name: obj.id.replace('obj', 'Obj ').replace('obj10', 'SEG 05').replace('obj11', 'SEG 06'),
+            name: NAME_MAPPING[obj.id] || obj.id,
             fullName: obj.label,
             percent: percent > 100 ? 100 : percent,
             fill: fill,
             plan: totalPlan,
-            exec: totalExec
+            exec: totalExec,
+            area: OBJECTIVES_CONFIG.find(c => c.id === configId)?.area || 'safety'
         };
     });
 
-    const mgmtData = objectivesData.filter(obj => ['obj1', 'obj2', 'obj3', 'obj4', 'obj5'].includes(obj.id));
-    const followupData = objectivesData.filter(obj => !['obj1', 'obj2', 'obj3', 'obj4', 'obj5'].includes(obj.id));
+    const mgmtData = objectivesData.filter(obj => 
+        ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj-1', 'obj-2', 'obj-3', 'obj-4', 'obj-5'].includes(obj.id) &&
+        (activeManagement === 'todos' || obj.area === activeManagement)
+    );
+    const followupData = objectivesData.filter(obj => 
+        !['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj-1', 'obj-2', 'obj-3', 'obj-4', 'obj-5'].includes(obj.id) &&
+        (activeManagement === 'todos' || obj.area === activeManagement)
+    );
 
     // Custom Bar Shape for 3D Effect
     const CustomBar = (props: any) => {
@@ -1858,12 +1891,34 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const monthlyData = calculateMonthlyData();
 
     // Calculate Overall Achievement for General Dashboard (used below)
-    const overallAchievement = calculateOverallAchievement();
+    const overallAchievement = calculateOverallAchievement().filter(area => {
+        if (activeManagement === 'todos') return true;
+        if (activeManagement === 'safety' && area.name === 'Seguridad') return true;
+        if (activeManagement === 'health' && area.name === 'Salud') return true;
+        if (activeManagement === 'environment' && area.name === 'Medio Ambiente') return true;
+        return false;
+    });
 
-    // --- INSPECTION GAUGE CALC ---
-    const inspStats = programData['obj3'] || []; // Safe access
-    const totalInspP = inspStats.reduce((a: any, b: any) => a + (b.plan || 0), 0);
-    const totalInspE = inspStats.reduce((a: any, b: any) => a + (b.executed || 0), 0);
+    // --- INSPECTION GAUGE CALC (DYNAMIC BY AREA) ---
+    const getInspStatsForArea = (area: string) => {
+        if (area === 'health') return getObjectiveMonthlyStats('obj6');
+        if (area === 'environment') return getObjectiveMonthlyStats('obj8');
+        if (area === 'safety') return getObjectiveMonthlyStats('obj3');
+        
+        // 'todos' -> combine obj3, obj6, obj8
+        const s3 = getObjectiveMonthlyStats('obj3');
+        const s6 = getObjectiveMonthlyStats('obj6');
+        const s8 = getObjectiveMonthlyStats('obj8');
+        
+        return s3.map((m, i) => ({
+            P: m.P + s6[i].P + s8[i].P,
+            E: m.E + s6[i].E + s8[i].E
+        }));
+    };
+
+    const currentInspStats = getInspStatsForArea(activeManagement);
+    const totalInspP = currentInspStats.reduce((a, b) => a + (b.P || 0), 0);
+    const totalInspE = currentInspStats.reduce((a, b) => a + (b.E || 0), 0);
     const inspectionIndex = totalInspP > 0 ? Math.round((totalInspE / totalInspP) * 100) : 0;
 
     // --- ACCIDENTABILITY STATS LOGIC ---
