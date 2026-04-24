@@ -1,7 +1,7 @@
 
 'use client'
 import { Activity, Progress } from "@/lib/api";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { useState } from "react";
 import { uploadEvidence } from "@/app/actions";
@@ -44,18 +44,41 @@ export default function ActivityItem({ activity }: { activity: Activity }) {
                         Freq: <span className="text-foreground">{activity.frequency}</span>
                     </p>
                 </div>
-                <div className="h-32 w-full md:w-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data}>
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                                itemStyle={{ color: '#f8fafc' }}
-                                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                            />
-                            <Bar dataKey="plan" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Plan" />
-                            <Bar dataKey="exec" fill="#10b981" radius={[4, 4, 0, 0]} name="Ejec" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="h-32 w-32 shrink-0 relative">
+                    {(() => {
+                        const totalPlan = data.reduce((a, b) => a + b.plan, 0);
+                        const totalExec = data.reduce((a, b) => a + b.exec, 0);
+                        const percent = totalPlan > 0 ? Math.round((totalExec / totalPlan) * 100) : (totalExec > 0 ? 100 : 0);
+                        const donutData = [
+                            { name: 'Ejecutado', value: percent, fill: percent >= 100 ? '#10b981' : (percent > 0 ? '#3b82f6' : '#94a3b8') },
+                            { name: 'Pendiente', value: 100 - percent, fill: '#f1f5f9' }
+                        ];
+                        return (
+                            <>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={donutData}
+                                            innerRadius="70%"
+                                            outerRadius="100%"
+                                            paddingAngle={0}
+                                            dataKey="value"
+                                            startAngle={90}
+                                            endAngle={-270}
+                                        >
+                                            {donutData.map((entry, i) => (
+                                                <Cell key={i} fill={entry.fill} stroke="none" />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span className="text-xl font-black text-slate-800 leading-none">{percent}%</span>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">Total</span>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
 
