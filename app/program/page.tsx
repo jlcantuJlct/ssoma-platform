@@ -419,7 +419,7 @@ export default function ProgramPage() {
                 // Scan first 50 rows (increased range)
                 for (let r = 0; r < Math.min(50, worksheet.length); r++) {
                     const row = worksheet[r].map(c => norm(c));
-                    const countMatches = (list: string[]) => list.filter(m => row.some(cell => cell === m || cell.startsWith(m) || cell.includes(m))).length;
+                    const countMatches = (list: string[]) => list.filter(m => row.some(cell => cell && (cell === m || cell.startsWith(m) || cell.includes(m)))).length;
 
                     if (countMatches(monthNamesShort) >= 2 || countMatches(monthNamesFull) >= 2 || countMatches(monthNamesShortEn) >= 2) {
                         headerRowIdx = r;
@@ -430,7 +430,7 @@ export default function ProgramPage() {
                 // Identify Indices
                 if (headerRowIdx !== -1) {
                     const row = worksheet[headerRowIdx].map(c => norm(c));
-                    const findMonthCol = (searchList: string[]) => searchList.map(m => row.findIndex(cell => cell === m || cell.startsWith(m) || cell.includes(m)));
+                    const findMonthCol = (searchList: string[]) => searchList.map(m => row.findIndex(cell => cell && (cell === m || cell.startsWith(m) || cell.includes(m))));
 
                     let bestIndices = findMonthCol(monthNamesShort);
                     if (bestIndices.filter(i => i !== -1).length < 2) bestIndices = findMonthCol(monthNamesFull);
