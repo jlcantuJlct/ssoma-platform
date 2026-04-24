@@ -444,7 +444,7 @@ export default function PMAPage() {
                                     </div>
                                                                   {/* Categoría */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Fotos PMA</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Control de Fotos PMA</label>
                                         <SearchableSelect 
                                             options={PMA_CATEGORIES}
                                             value={form.category}

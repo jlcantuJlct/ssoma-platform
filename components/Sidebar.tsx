@@ -120,7 +120,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<Clipboard size={16} />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
-                        <SidebarItem icon={<Leaf size={16} />} label="Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
                         <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
