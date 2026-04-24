@@ -217,42 +217,90 @@ export function DashboardCharts({
                     monthlyData[m].E = countRecordsByMonth(hhcRecords, m);
                     break;
                 case 'obj3': // Inspecciones Seguridad
-                    monthlyData[m].E = executedInspections.filter(r => {
+            // 1. Conteo manual desde la matriz del Programa Anual (items)
+            let matrixCount = 0;
+            items.forEach(item => {
+                if (!item || !item.date) return;
+                const itemMonth = findMonthInItemDate(item.date);
+                if (itemMonth === m && (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0)) {
+                    matrixCount++;
+                }
+            });
+
+            // 2. Conteo dinámico desde registros reales
+            let dynamicCount = 0;
+            switch (objId) {
+                case 'obj1': // HHC
+                    dynamicCount = countRecordsByMonth(hhcRecords, m);
+                    break;
+                case 'obj2': // Capacitación
+                    dynamicCount = evidenceRecords.filter(r => {
                         const d = new Date(r.date);
                         return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               !r.inspectionType?.toLowerCase().includes('comedor') && 
-                               !r.inspectionType?.toLowerCase().includes('asfalto');
+                               (r.category === 'Capacitación' || r.type === 'Capacitación');
+                    }).length;
+                    break;
+                case 'obj3': // Inspecciones (Seguridad)
+                    dynamicCount = executedInspections.filter(r => {
+                        const d = new Date(r.date);
+                        const type = (r.inspectionType || '').toLowerCase();
+                        const area = (r.area || '').toLowerCase();
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               (area === 'seguridad' || (!area.includes('salud') && !area.includes('ambiente') && !type.includes('comedor') && !type.includes('tópico') && !type.includes('botiquín')));
                     }).length;
                     break;
                 case 'obj4': // RAC
-                    monthlyData[m].E = countRecordsByMonth(detourRecords, m);
+                    dynamicCount = countRecordsByMonth(detourRecords, m);
                     break;
                 case 'obj5': // EMO
-                    monthlyData[m].E = evidenceRecords.filter(r => {
+                    dynamicCount = evidenceRecords.filter(r => {
                         const d = new Date(r.date);
                         return d.getFullYear() === currentYear && d.getMonth() === m && 
                                (r.category === 'EMO' || r.type === 'EMO');
                     }).length;
                     break;
                 case 'obj6': // SEG 01 (Salud)
-                    monthlyData[m].E = executedInspections.filter(r => {
+                    dynamicCount = executedInspections.filter(r => {
                         const d = new Date(r.date);
+                        const type = (r.inspectionType || '').toLowerCase();
+                        const area = (r.area || '').toLowerCase();
+                        const healthKeywords = ['comedor', 'tópico', 'botiquín', 'emergencia', 'hidratación', 'solar', 'lavadero', 'alcotest', 'salud', 'ocupacional'];
                         return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (r.inspectionType?.toLowerCase().includes('comedor') || r.inspectionType?.toLowerCase().includes('tópico'));
+                               (area.includes('salud') || healthKeywords.some(kw => type.includes(kw)));
+                    }).length;
+                    break;
+                case 'obj7': // SEG 02 (Formaciones Salud)
+                    dynamicCount = evidenceRecords.filter(r => {
+                        const d = new Date(r.date);
+                        const type = (r.type || r.category || '').toLowerCase();
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               (type.includes('salud') && (type.includes('capacitación') || type.includes('formación')));
                     }).length;
                     break;
                 case 'obj8': // SEG 03 (Medio Ambiente)
-                    monthlyData[m].E = pmaRecords.filter(r => {
+                    dynamicCount = pmaRecords.filter(r => {
                         const d = new Date(r.date);
                         return d.getFullYear() === currentYear && d.getMonth() === m;
                     }).length;
                     break;
+                case 'obj9': // SEG 04 (Formaciones MA)
+                    dynamicCount = evidenceRecords.filter(r => {
+                        const d = new Date(r.date);
+                        const type = (r.type || r.category || '').toLowerCase();
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               ((type.includes('ambiente') || type.includes('pma')) && (type.includes('capacitación') || type.includes('formación')));
+                    }).length;
+                    break;
                 case 'obj10': // Simulacros
-                    monthlyData[m].E = countRecordsByMonth(simulacroRecords, m);
+                    dynamicCount = countRecordsByMonth(simulacroRecords, m);
                     break;
                 case 'obj11': // Brigadistas
-                    monthlyData[m].E = countRecordsByMonth(brigadistaRecords, m);
+                    dynamicCount = countRecordsByMonth(brigadistaRecords, m);
                     break;
+            }
+
+            // Usamos el máximo entre lo manual (Programa Anual) y lo dinámico (Registros)
+            monthlyData[m].E = Math.max(matrixCount, dynamicCount);
                 default:
                     // Fallback to manual status in programData
                     items.forEach(item => {
