@@ -1026,7 +1026,7 @@ export default function ProgramPage() {
                             <div>
                                 <span className="text-emerald-500 font-bold tracking-widest text-xs uppercase mb-1 block">Gestión de Programa</span>
                                 <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-                                    {currentObj?.label.split(':')[1]}
+                                    {currentObj?.label ? currentObj.label.split(':')[1] : 'Seleccione Objetivo'}
                                 </h1>
                             </div>
                             <div className="flex items-center gap-4">
@@ -1142,7 +1142,7 @@ export default function ProgramPage() {
                             {Object.values(matrixData || {}).every(g => Object.keys(g).length === 0) && (
                                 <div className="p-12 text-center text-slate-500">
                                     <FileSpreadsheet size={48} className="mx-auto mb-4 opacity-50" />
-                                    <p>No hay datos cargados para {currentObj?.label.split(':')[1]}.</p>
+                                    <p>No hay datos cargados para {currentObj?.label ? currentObj.label.split(':')[1] : 'este objetivo'}.</p>
                                     <p className="text-xs mt-2">Carga un Excel con fechas y descripciones para visualizar el programa.</p>
                                 </div>
                             )}
