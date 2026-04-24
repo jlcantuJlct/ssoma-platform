@@ -114,7 +114,6 @@ export default function Sidebar() {
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Herramientas</span>
                         </div>
 
-
                         <SidebarItem icon={<ActivityIcon size={16} />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
                         <SidebarItem icon={<ClipboardCheck size={16} />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
                         <SidebarItem icon={<Shield size={16} />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
@@ -137,9 +136,21 @@ export default function Sidebar() {
                             <>
                                 <SidebarItem
                                     icon={<FileText size={16} className="text-amber-500" />}
-                                    label="Informe del Mes"
+                                    label="07 Informe del Mes"
                                     href="/monthly-report"
                                     active={pathname === '/monthly-report'}
+                                />
+                                <SidebarItem
+                                    icon={<ExternalLink size={16} className="text-cyan-500" />}
+                                    label="08 Comunicación con Cliente"
+                                    href="/cliente"
+                                    active={pathname === '/cliente'}
+                                />
+                                <SidebarItem
+                                    icon={<ActivityIcon size={16} className="text-rose-400" />}
+                                    label="14 Monitoreos SSTMA"
+                                    href="/monitoreos"
+                                    active={pathname === '/monitoreos'}
                                 />
                                 <SidebarItem
                                     icon={<ExternalLink size={16} className="text-cyan-500" />}
@@ -149,7 +160,6 @@ export default function Sidebar() {
                                 />
                             </>
                         )}
-
                         {/* SOLO DEVELOPER - Configuración de Maestros */}
                         {user?.role === 'developer' && (
                             <SidebarItem
