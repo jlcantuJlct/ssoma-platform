@@ -22,7 +22,8 @@ import {
     Leaf,
     Clipboard,
     ArrowUpRight,
-    BookOpen
+    BookOpen,
+    Trash2
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
