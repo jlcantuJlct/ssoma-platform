@@ -121,6 +121,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
                         <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
@@ -167,7 +168,7 @@ export default function Sidebar() {
                             <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider leading-tight">Desarrollado por</span>
                                 <span className="text-[10px] text-emerald-400 font-bold tracking-tight leading-tight">Jose Luis Cancino Tueros</span>
-                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.10 - ARCHIVE MASTER</span>
+                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.11 - COMPLIANCE MASTER</span>
                             </div>
                         </div>
                     </div>

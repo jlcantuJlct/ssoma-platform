@@ -84,6 +84,7 @@ export default function ProgramPage() {
     const [detourRecords, setDetourRecords] = useState<any[]>([]);
     const [simulacroRecords, setSimulacroRecords] = useState<any[]>([]);
     const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
+    const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -285,6 +286,11 @@ export default function ProgramPage() {
                 const briRes = await fetch('/api/brigadista-records');
                 const briData = await briRes.json();
                 if (briData.success) setBrigadistaRecords(briData.records);
+
+                // 11. Load RISSTMA from cloud
+                const risRes = await fetch('/api/risstma-records');
+                const risData = await risRes.json();
+                if (risData.success) setRisstmaRecords(risData.records);
 
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
@@ -925,6 +931,22 @@ export default function ProgramPage() {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...bri, _type: 'BRIGADISTA' });
+                }
+            }
+        });
+
+        // 11. Map RISSTMA Records (OBJ 03 or Folder 03)
+        risstmaRecords.forEach(ris => {
+            const m = getMonthFromStr(ris.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                // In Folder 03, we often have items like "Entrega de RISST" or "Declaración Jurada"
+                const match = findMatch(areaKey, ris.documentType || 'RISSTMA');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...ris, _type: 'RISSTMA' });
                 }
             }
         });
