@@ -51,6 +51,7 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos' });
 
     // --- ACCIDENTABILITY STATS ---
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
