@@ -27,7 +27,9 @@ import {
     X,
     ExternalLink,
     Image as ImageIcon,
-    Settings
+    Settings,
+    Siren,
+    Users
 } from 'lucide-react';
 import { useState, useEffect, Fragment } from 'react';
 import * as XLSX from 'xlsx';
@@ -46,7 +48,7 @@ const OBJECTIVES = [
     { id: 'obj7', label: 'SEG 02: Formaciones de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
     { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
     { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
-    { id: 'obj10', label: 'SEG 05: Control de Simulacros', icon: Settings, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'obj10', label: 'SEG 05: Control de Simulacros', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
     { id: 'obj11', label: 'SEG 06: Brigadistas', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
 ];
 
