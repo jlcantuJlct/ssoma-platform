@@ -702,6 +702,8 @@ export default function ProgramPage() {
     // Generate Matrix Data
     const getMatrixData = () => {
         const currentList = (programData && programData[selectedObjId]) || [];
+        const currentObj = OBJECTIVES.find(o => o.id === selectedObjId);
+        const currentObjLabel = currentObj?.label || '';
         const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
 
         // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
@@ -822,9 +824,9 @@ export default function ProgramPage() {
 
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
-            const objIdNum = selectedObjId.replace('obj-', '');
+            const objIdNum = selectedObjId.replace('obj', '');
             // EMO Special Case: If it's an EMO and we are in OBJ 05, it matches even if objective field is missing
-            const isEmoMatch = (selectedObjId === 'obj-5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
+            const isEmoMatch = (selectedObjId === 'obj5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
             
             const isMatch = isEmoMatch || (ev.objective && (
                 currentObjLabel.startsWith(ev.objective) || 
