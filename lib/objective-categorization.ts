@@ -120,8 +120,6 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
         area: 'safety',
         keywords: ["brigada", "brigadista", "primeros auxilios", "evacuación", "rescate"]
     }
-];pecciones medio ambiente", "inspección ambiental"]
-    }
 ];
 
 export function categorizeActivitiesByObjective(activities: Activity[]): ObjectiveGroup[] {
