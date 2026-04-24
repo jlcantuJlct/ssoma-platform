@@ -128,12 +128,20 @@ export default function Sidebar() {
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
                         {(user?.role === 'developer' || user?.role === 'manager') && (
-                            <SidebarItem
-                                icon={<FileText size={16} className="text-amber-500" />}
-                                label="Informe del Mes"
-                                href="/monthly-report"
-                                active={pathname === '/monthly-report'}
-                            />
+                            <>
+                                <SidebarItem
+                                    icon={<FileText size={16} className="text-amber-500" />}
+                                    label="Informe del Mes"
+                                    href="/monthly-report"
+                                    active={pathname === '/monthly-report'}
+                                />
+                                <SidebarItem
+                                    icon={<ExternalLink size={16} className="text-cyan-500" />}
+                                    label="Archivo Central SharePoint"
+                                    href="/export-center"
+                                    active={pathname === '/export-center'}
+                                />
+                            </>
                         )}
 
                         {/* SOLO DEVELOPER - Configuración de Maestros */}
@@ -159,7 +167,7 @@ export default function Sidebar() {
                             <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider leading-tight">Desarrollado por</span>
                                 <span className="text-[10px] text-emerald-400 font-bold tracking-tight leading-tight">Jose Luis Cancino Tueros</span>
-                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.8 - HEALTH SPECIALIST</span>
+                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.4.10 - ARCHIVE MASTER</span>
                             </div>
                         </div>
                     </div>
