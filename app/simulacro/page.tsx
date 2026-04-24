@@ -236,8 +236,7 @@ export default function SimulacroPage() {
     };
 
     return (
-        <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden selection:bg-teal-500/30">
-            <Sidebar />
+        <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden selection:bg-teal-500/30 w-full">
             <main className="flex-1 overflow-y-auto relative w-full h-full">
                 <div className="fixed inset-0 pointer-events-none bg-gradient-to-bl from-orange-900/10 via-slate-950 to-slate-950 z-0"></div>
 
