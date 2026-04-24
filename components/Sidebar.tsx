@@ -126,11 +126,10 @@ export default function Sidebar() {
                         <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="10 Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
-                        <SidebarItem icon={<BarChart2 size={16} className="text-purple-400" />} label="12 Estadísticas" href="/registros" active={pathname === '/registros'} />
-                        <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="15 Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
                         <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
-                        <SidebarItem icon={<BarChart2 size={16} />} label="Estadística de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
+                        <SidebarItem icon={<BarChart2 size={16} />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
                         {(user?.role === 'developer' || user?.role === 'manager') && (
@@ -149,7 +148,7 @@ export default function Sidebar() {
                                 />
                                 <SidebarItem
                                     icon={<ActivityIcon size={16} className="text-rose-400" />}
-                                    label="14 Monitoreos SSTMA"
+                                    label="Monitoreo Ocupacional"
                                     href="/monitoreos"
                                     active={pathname === '/monitoreos'}
                                 />
