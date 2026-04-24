@@ -109,15 +109,6 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
         area: 'environment',
         keywords: ["inspecciones medio ambiente", "inspección ambiental"]
     },
-    {
-        id: 'obj-10',
-        title: 'OBJETIVO 10: CONTROL DE ALMACENES Y RESIDUOS',
-        description: 'Control y seguimiento de almacenes, RRSS, MATPEL y recursos.',
-        area: 'environment',
-        keywords: [
-            "aceites", "residuos", "rrss", "matpel", "aguas", "derrames",
-            "segregación", "consumo de agua", "generación", "almacenadas"
-        ]
     }
 ];
 

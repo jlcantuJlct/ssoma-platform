@@ -34,19 +34,20 @@ import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import SearchableSelect from '@/components/SearchableSelect';
 
-// Definición de Objetivos (sin cambios)
+// Definición de Objetivos y Seguimiento
 const OBJECTIVES = [
     { id: 'obj1', label: 'OBJ 01: Programas de SCSST', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { id: 'obj2', label: 'OBJ 02: Capacitación', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     { id: 'obj3', label: 'OBJ 03: Inspecciones', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
     { id: 'obj4', label: 'OBJ 04: Reporte A/C Inseguras', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     { id: 'obj5', label: 'OBJ 05: EMO Realizados', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
-    { id: 'obj6', label: 'OBJ 06: Inspecciones de Salud', icon: HeartPulse, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-    { id: 'obj7', label: 'OBJ 07: Formaciones de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { id: 'obj8', label: 'OBJ 08: Inspecciones M. Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'obj9', label: 'OBJ 09: Formaciones M. Ambiente', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
-    { id: 'obj10', label: 'OBJ 10: Control Segregación RRSS', icon: Recycle, color: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { id: 'obj11', label: 'OBJ 11: Control Acopios Temporales', icon: Trash2, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    // --- SEGUIMIENTO ---
+    { id: 'obj6', label: 'SEG 01: Inspecciones de Salud', icon: HeartPulse, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+    { id: 'obj7', label: 'SEG 02: Formaciones de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
+    { id: 'obj10', label: 'SEG 05: Control de Simulacros', icon: Settings, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'obj11', label: 'SEG 06: Brigadistas', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
 ];
 
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
@@ -79,6 +80,8 @@ export default function ProgramPage() {
     const [atsRecords, setAtsRecords] = useState<any[]>([]);
     const [petarRecords, setPetarRecords] = useState<any[]>([]);
     const [detourRecords, setDetourRecords] = useState<any[]>([]);
+    const [simulacroRecords, setSimulacroRecords] = useState<any[]>([]);
+    const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -270,6 +273,16 @@ export default function ProgramPage() {
                 const detourRes = await fetch('/api/desvio-records');
                 const detourData = await detourRes.json();
                 if (detourData.success) setDetourRecords(detourData.records);
+
+                // 9. Load Simulacros from cloud
+                const simRes = await fetch('/api/simulacro-records');
+                const simData = await simRes.json();
+                if (simData.success) setSimulacroRecords(simData.records);
+
+                // 10. Load Brigadistas from cloud
+                const briRes = await fetch('/api/brigadista-records');
+                const briData = await briRes.json();
+                if (briData.success) setBrigadistaRecords(briData.records);
 
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
@@ -754,7 +767,12 @@ export default function ProgramPage() {
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
             const currentObjLabel = currentObj?.label || '';
-            if (!ev.objective || !currentObjLabel.startsWith(ev.objective)) return;
+            const objIdNum = selectedObjId.replace('obj', '');
+            const isMatch = ev.objective && (
+                currentObjLabel.startsWith(ev.objective) || 
+                ev.objective.includes(objIdNum.padStart(2, '0'))
+            );
+            if (!isMatch) return;
 
             const m = getMonthFromStr(ev.date);
             if (m < 0 || m > 11) return;
@@ -772,7 +790,7 @@ export default function ProgramPage() {
         // 5. Map PMA Records (Objective 08 - Photos)
         pmaRecords.forEach(pma => {
             const currentObjLabel = currentObj?.label || '';
-            if (!currentObjLabel.startsWith('OBJ 08')) return; // Solo para Medio Ambiente
+            if (!currentObjLabel.includes('08')) return; // Solo para Medio Ambiente (OBJ 08 o SEG 03)
 
             const m = getMonthFromStr(pma.date);
             if (m < 0 || m > 11) return;
@@ -828,6 +846,36 @@ export default function ProgramPage() {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...det, _type: 'DETOUR' });
+                }
+            }
+        });
+
+        // 9. Map Simulacro Records
+        simulacroRecords.forEach(sim => {
+            const m = getMonthFromStr(sim.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, sim.type || 'Simulacro');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...sim, _type: 'SIMULACRO' });
+                }
+            }
+        });
+
+        // 10. Map Brigadista Records
+        brigadistaRecords.forEach(bri => {
+            const m = getMonthFromStr(bri.date);
+            if (m < 0 || m > 11) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, bri.type || 'Brigadista');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...bri, _type: 'BRIGADISTA' });
                 }
             }
         });
