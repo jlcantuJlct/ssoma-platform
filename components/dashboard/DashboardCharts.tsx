@@ -1740,7 +1740,9 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             name: obj.id.replace('obj', 'Obj '),
             fullName: obj.label,
             percent: percent > 100 ? 100 : percent,
-            fill: fill
+            fill: fill,
+            plan: totalPlan,
+            exec: totalExec
         };
     });
 
@@ -1840,17 +1842,23 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             {
                 name: 'Seguridad',
                 value: areas.safety.plan > 0 ? Math.round((areas.safety.exec / areas.safety.plan) * 100) : 0,
-                color: '#10b981'
+                color: '#10b981',
+                plan: areas.safety.plan,
+                exec: areas.safety.exec
             },
             {
                 name: 'Salud',
                 value: areas.health.plan > 0 ? Math.round((areas.health.exec / areas.health.plan) * 100) : 0,
-                color: '#ec4899'
+                color: '#ec4899',
+                plan: areas.health.plan,
+                exec: areas.health.exec
             },
             {
                 name: 'Medio Ambiente',
                 value: areas.environment.plan > 0 ? Math.round((areas.environment.exec / areas.environment.plan) * 100) : 0,
-                color: '#3b82f6'
+                color: '#3b82f6',
+                plan: areas.environment.plan,
+                exec: areas.environment.exec
             }
         ];
     };
@@ -1932,7 +1940,17 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                                     </span>
                                                     <span className="text-sm font-bold text-slate-600">%</span>
                                                 </div>
-                                                <p className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">Cumplimiento Global</p>
+                                                <div className="flex items-center justify-center gap-3 mt-1">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] text-slate-500 font-bold uppercase leading-none">Prog.</span>
+                                                        <span className="text-xs font-black text-white">{area.plan}</span>
+                                                    </div>
+                                                    <div className="w-px h-6 bg-slate-800"></div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] text-emerald-500 font-bold uppercase leading-none">Ejec.</span>
+                                                        <span className="text-xs font-black text-emerald-400">{area.exec}</span>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Progress Bar */}
@@ -2008,7 +2026,11 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                                     <div className="flex-1 w-full relative flex items-center justify-center">
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                             <div className="text-center">
-                                                <span className="text-2xl font-black text-slate-800 tracking-tighter">{obj.percent}%</span>
+                                                <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{obj.percent}%</span>
+                                                <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                                                    <span className="text-[9px] font-bold text-slate-400">P: {obj.plan}</span>
+                                                    <span className="text-[9px] font-bold text-emerald-600">E: {obj.exec}</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <ResponsiveContainer width="100%" height="100%">

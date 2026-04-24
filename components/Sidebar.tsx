@@ -121,9 +121,13 @@ export default function Sidebar() {
                         <SidebarItem icon={<Clipboard size={16} />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
+                        <SidebarItem icon={<ShieldCheck size={16} className="text-blue-400" />} label="06 Control de EPP" href="/epp" active={pathname === '/epp'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="10 Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                        <SidebarItem icon={<BarChart2 size={16} className="text-purple-400" />} label="12 Estadísticas" href="/registros" active={pathname === '/registros'} />
+                        <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="15 Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
                         <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
                         <SidebarItem icon={<BarChart2 size={16} />} label="Estadística de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
