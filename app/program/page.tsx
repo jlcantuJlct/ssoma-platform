@@ -806,19 +806,23 @@ export default function ProgramPage() {
 
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
-            const currentObjLabel = currentObj?.label || '';
-            const objIdNum = selectedObjId.replace('obj', '');
-            const isMatch = ev.objective && (
+            const objIdNum = selectedObjId.replace('obj-', '');
+            // EMO Special Case: If it's an EMO and we are in OBJ 05, it matches even if objective field is missing
+            const isEmoMatch = (selectedObjId === 'obj-5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
+            
+            const isMatch = isEmoMatch || (ev.objective && (
                 currentObjLabel.startsWith(ev.objective) || 
                 ev.objective.includes(objIdNum.padStart(2, '0'))
-            );
+            ));
+
             if (!isMatch) return;
 
             const m = getMonthFromStr(ev.date);
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, ev.description || ev.activity);
+                // If it's EMO, we try to match "EMO" keyword if no direct match
+                const match = findMatch(areaKey, ev.description || ev.activity || (isEmoMatch ? 'EMO' : ''));
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
@@ -827,10 +831,10 @@ export default function ProgramPage() {
             }
         });
 
-        // 5. Map PMA Records (Objective 08 - Photos)
+        // 5. Map PMA Records (Objective 08 - Photos / SEG 03)
         pmaRecords.forEach(pma => {
-            const currentObjLabel = currentObj?.label || '';
-            if (!currentObjLabel.includes('08')) return; // Solo para Medio Ambiente (OBJ 08 o SEG 03)
+            // PMA is now SEG 03 (obj-8)
+            if (selectedObjId !== 'obj-8') return; 
 
             const m = getMonthFromStr(pma.date);
             if (m < 0 || m > 11) return;
@@ -845,7 +849,7 @@ export default function ProgramPage() {
             }
         });
 
-        // 6. Map ATS Records
+        // 6. Map ATS Records (OBJ 02/03/04 usually)
         atsRecords.forEach(ats => {
             const m = getMonthFromStr(ats.date);
             if (m < 0 || m > 11) return;
@@ -890,12 +894,15 @@ export default function ProgramPage() {
             }
         });
 
-        // 9. Map Simulacro Records
+        // 9. Map Simulacro Records (SEG 05 - obj-10)
         simulacroRecords.forEach(sim => {
+            if (selectedObjId !== 'obj-10') return;
+
             const m = getMonthFromStr(sim.date);
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
+                // Fuzzy match for drill type
                 const match = findMatch(areaKey, sim.drillType || 'Simulacro');
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
@@ -905,8 +912,10 @@ export default function ProgramPage() {
             }
         });
 
-        // 10. Map Brigadista Records
+        // 10. Map Brigadista Records (SEG 06 - obj-11)
         brigadistaRecords.forEach(bri => {
+            if (selectedObjId !== 'obj-11') return;
+
             const m = getMonthFromStr(bri.date);
             if (m < 0 || m > 11) return;
 
