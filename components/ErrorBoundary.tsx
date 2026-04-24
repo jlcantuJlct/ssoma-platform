@@ -29,7 +29,18 @@ class ErrorBoundary extends Component<Props, State> {
     handleReload = () => {
         // Limpiar localStorage corrupto si existe
         try {
-            const keys = ['hhc_records', 'pma_evidence_records', 'evidence_center_records', 'inspections_records'];
+            const keys = [
+                'hhc_records', 
+                'pma_evidence_records', 
+                'evidence_center_records', 
+                'inspections_records',
+                'annual_program_data',
+                'pma_records',
+                'ats_records',
+                'petar_records',
+                'desvio_records',
+                'risstma_records'
+            ];
             keys.forEach(key => {
                 const data = localStorage.getItem(key);
                 if (data) {

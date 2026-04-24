@@ -218,7 +218,17 @@ export default function ProgramPage() {
                     localStorage.setItem('annual_program_data', JSON.stringify(progData.programData));
                 } else {
                     const storedData = localStorage.getItem('annual_program_data');
-                    if (storedData) setProgramData(JSON.parse(storedData));
+                    if (storedData && storedData !== 'undefined' && storedData !== 'null') {
+                        try {
+                            const parsed = JSON.parse(storedData);
+                            if (parsed && typeof parsed === 'object') setProgramData(parsed);
+                            else setProgramData({});
+                        } catch {
+                            setProgramData({});
+                        }
+                    } else {
+                        setProgramData({});
+                    }
                 }
 
                 // 2. Load inspections from cloud
@@ -655,7 +665,7 @@ export default function ProgramPage() {
             return;
         }
         // Calculation logic...
-        const currentList = programData[selectedObjId] || [];
+        const currentList = (programData && programData[selectedObjId]) || [];
         const others = currentList.filter(item => {
             const m = new Date(item.date).getMonth();
             return !(item.description === desc && m === monthIdx && (item.area === area || !item.area));
@@ -691,7 +701,7 @@ export default function ProgramPage() {
 
     // Generate Matrix Data
     const getMatrixData = () => {
-        const currentList = programData[selectedObjId] || [];
+        const currentList = (programData && programData[selectedObjId]) || [];
         const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
 
         // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
