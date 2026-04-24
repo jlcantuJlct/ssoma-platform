@@ -28,16 +28,19 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     // --- DATA LOADING FOR ANNUAL PROGRAM ---
     const [programData, setProgramData] = useState<Record<string, any[]>>({});
     const [executedInspections, setExecutedInspections] = useState<any[]>([]);
+    const [hhcRecords, setHhcRecords] = useState<any[]>([]);
+    const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]);
+    const [pmaRecords, setPmaRecords] = useState<any[]>([]);
+    const [atsRecords, setAtsRecords] = useState<any[]>([]);
+    const [petarRecords, setPetarRecords] = useState<any[]>([]);
+    const [detourRecords, setDetourRecords] = useState<any[]>([]);
+    const [simulacroRecords, setSimulacroRecords] = useState<any[]>([]);
+    const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
+    const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
 
     // --- AUTH CONTEXT ---
     const { user } = useAuth();
-    const isDeveloper = true; // EXPUESTO TEMPORALMENTE PARA ACCIONES DE ELIMINAR
-
-    // --- HHC STATE ---
-    const [hhcRecords, setHhcRecords] = useState<any[]>([]);
-    const [newHHC, setNewHHC] = useState({
-        responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [] as string[], evidencePdf: '', lugar: ''
-    });
+    const isDeveloper = true;
 
     const [selectedArea, setSelectedArea] = useState<'todos' | 'seguridad' | 'salud' | 'ambiente'>('todos');
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -45,75 +48,14 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const [trainingProgram, setTrainingProgram] = useState<any[]>([]);
     const [complianceGoal, setComplianceGoal] = useState(95);
 
-    const [filters, setFilters] = useState({
-        responsable: '',
-        startDate: '',
-        endDate: '',
-        tema: '',
-        type: 'todos'
-    });
-
-    const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as any, tipo: 'capacitacion' as any });
-
-    // LOAD TRAINING PROGRAM - Cloud first, then localStorage fallback
-    useEffect(() => {
-        const loadTrainingProgram = async () => {
-            try {
-                const res = await fetch('/api/training-program');
-                const data = await res.json();
-                if (data.success && data.records.length > 0) {
-                    setTrainingProgram(data.records);
-                    localStorage.setItem('monthly_training_program', JSON.stringify(data.records));
-                    return;
-                }
-            } catch (e) {
-                console.warn('Could not fetch training program from cloud:', e);
-            }
-            // Fallback to localStorage
-            const prog = localStorage.getItem('monthly_training_program');
-            if (prog) {
-                try {
-                    setTrainingProgram(JSON.parse(prog));
-                } catch (e) {
-                    console.error("Error parsing monthly_training_program", e);
-                }
-            } else {
-                setTrainingProgram([
-                    { date: '2025-01-15', tema: 'Uso Correcto de EPP', area: 'seguridad', tipo: 'capacitacion' },
-                    { date: '2025-01-20', tema: 'Primeros Auxilios', area: 'salud', tipo: 'entrenamiento' },
-                    { date: '2025-02-05', tema: 'Gestión de Residuos', area: 'ambiente', tipo: 'capacitacion' }
-                ]);
-            }
-        };
-        loadTrainingProgram();
-    }, []);
-
-    // AUTO-SET RESPONSIBLE
-    useEffect(() => {
-        if (user && !newHHC.responsable) {
-            setNewHHC(prev => ({ ...prev, responsable: user.name }));
-        }
-    }, [user]);
-
-    // SAVE TRAINING PROGRAM - REMOVED AUTO-SYNC TO PREVENT OVERWRITES
-    useEffect(() => {
-        if (trainingProgram.length > 0) {
-            localStorage.setItem('monthly_training_program', JSON.stringify(trainingProgram));
-        }
-    }, [trainingProgram]);
-
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
 
-    // --- DRAG AND DROP STATES ---
-    const [isDraggingHhcPdf, setIsDraggingHhcPdf] = useState(false);
-    const [isDraggingHhcImgs, setIsDraggingHhcImgs] = useState(false);
-
+    // --- ACCIDENTABILITY STATS ---
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
     useEffect(() => {
-        const saved = localStorage.getItem('accidentability_stats_2026');
+        const saved = localStorage.getItem(`accidentability_stats_${currentYear}`);
         if (saved) {
             try {
                 const data = JSON.parse(saved);
@@ -147,73 +89,67 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                 console.error(e);
             }
         }
-    }, [mode]);
+    }, [mode, currentYear]);
 
-    // LOAD HHC - Cloud first, then localStorage fallback
+    // LOAD ALL RECORDS - Consolidated
     useEffect(() => {
-        const loadHhcRecords = async (force = false) => {
-            // Si hay una subida en curso o una sincronización pendiente, no sobrescribir localmente
-            if (!force && (isUploading || isSyncing)) return;
-
+        const loadAllRecords = async () => {
             try {
-                const res = await fetch('/api/hhc-records');
-                const data = await res.json();
-                if (data.success && data.records.length > 0) {
-                    // Solo sobrescribir si no hemos añadido algo localmente que aún no esté en la nube
-                    // O si es la carga inicial (isLoaded false)
-                    setHhcRecords(data.records);
-                    localStorage.setItem('hhc_records', JSON.stringify(data.records));
-                    setIsLoaded(true);
-                    return;
-                }
-            } catch (e) {
-                console.warn('Could not fetch HHC records from cloud:', e);
-            }
-            // Fallback to localStorage
-            const hhc = localStorage.getItem('hhc_records');
-            if (hhc) {
-                try {
-                    setHhcRecords(JSON.parse(hhc));
-                } catch (e) {
-                    console.error("Error parsing hhc_records", e);
-                }
-            }
-            setIsLoaded(true);
-        };
-        loadHhcRecords(true); // Carga inicial forzada
+                const [
+                    progRes, inspRes, hhcRes, evRes, pmaRes, 
+                    atsRes, petarRes, detourRes, simRes, briRes, risRes
+                ] = await Promise.all([
+                    fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} })),
+                    fetch('/api/inspections').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/hhc-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/evidence-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/pma-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/ats-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/petar-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/desvio-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/simulacro-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/brigadista-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/risstma-records').then(r => r.json()).catch(() => ({ records: [] }))
+                ]);
 
-        const syncInterval = setInterval(() => loadHhcRecords(false), 30000);
+                setProgramData(progRes.programData || {});
+                setExecutedInspections(inspRes.records || []);
+                setHhcRecords(hhcRes.records || []);
+                setEvidenceRecords(evRes.records || []);
+                setPmaRecords(pmaRes.records || []);
+                setAtsRecords(atsRes.records || []);
+                setPetarRecords(petarRes.records || []);
+                setDetourRecords(detourRes.records || []);
+                setSimulacroRecords(simRes.records || []);
+                setBrigadistaRecords(briRes.records || []);
+                setRisstmaRecords(risRes.records || []);
+                
+                setIsLoaded(true);
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            }
+        };
+        loadAllRecords();
+        const syncInterval = setInterval(loadAllRecords, 60000); // Sync every min
         return () => clearInterval(syncInterval);
     }, []);
 
-    // SAVE HHC - REMOVED AUTO-SYNC TO PREVENT DATA LOSS
-    // Ahora las acciones son atómicas (Create/Update/Delete)
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('hhc_records', JSON.stringify(hhcRecords));
-        }
-    }, [hhcRecords, isLoaded]);
+    // --- HHC DRAFT LOGIC ---
+    const [newHHC, setNewHHC] = useState({
+        responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [] as string[], evidencePdf: '', lugar: ''
+    });
 
-
-
-
-    // TRAINING PROGRAM MONTH FILTER
-    const [programMonthFilter, setProgramMonthFilter] = useState(currentMonth === -1 ? new Date().getMonth() : currentMonth);
-
-    // Initial load
     useEffect(() => {
         if (editingIndex === null) {
             localStorage.setItem('hhc_draft_v1', JSON.stringify(newHHC));
         }
     }, [newHHC, editingIndex]);
 
-    // DRAFT LOAD
     useEffect(() => {
         const savedDraft = localStorage.getItem('hhc_draft_v1');
         if (savedDraft) {
             try {
                 const draft = JSON.parse(savedDraft);
-                // Solo cargar si el formulario actual está vacío
                 if (!newHHC.tema && !newHHC.hhc) {
                     setNewHHC(prev => ({ ...prev, ...draft }));
                 }
@@ -223,64 +159,12 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         }
     }, []);
 
-    // LOAD ANNUAL PROGRAM DATA - Cloud first, then localStorage fallback
+    // AUTO-SET RESPONSIBLE
     useEffect(() => {
-        const loadProgramData = async () => {
-            try {
-                const res = await fetch('/api/annual-program');
-                const data = await res.json();
-                if (data.success && Object.keys(data.programData).length > 0) {
-                    setProgramData(data.programData);
-                    localStorage.setItem('annual_program_data', JSON.stringify(data.programData));
-                    return;
-                }
-            } catch (e) {
-                console.warn('Could not fetch annual program from cloud:', e);
-            }
-            // Fallback to localStorage
-            const pd = localStorage.getItem('annual_program_data');
-            if (pd) {
-                try {
-                    setProgramData(JSON.parse(pd));
-                } catch (e) {
-                    console.error("Error parsing annual_program_data", e);
-                }
-            }
-        };
-
-        const loadInspections = async () => {
-            try {
-                const res = await fetch('/api/inspections');
-                const data = await res.json();
-                if (data.success && data.records.length > 0) {
-                    setExecutedInspections(data.records);
-                    localStorage.setItem('inspections_records', JSON.stringify(data.records));
-                    return;
-                }
-            } catch (e) {
-                console.warn('Could not fetch inspections from cloud:', e);
-            }
-            // Fallback to localStorage
-            const ei = localStorage.getItem('inspections_records');
-            if (ei) {
-                try {
-                    setExecutedInspections(JSON.parse(ei));
-                } catch (e) {
-                    console.error("Error parsing inspections_records", e);
-                }
-            }
-        };
-
-        loadProgramData();
-        loadInspections();
-
-        // AUTO-SYNC: Actualizar cada 30 segundos para sincronizar entre dispositivos
-        const syncInterval = setInterval(() => {
-            loadProgramData();
-            loadInspections();
-        }, 30000);
-        return () => clearInterval(syncInterval);
-    }, []);
+        if (user && !newHHC.responsable) {
+            setNewHHC(prev => ({ ...prev, responsable: user.name }));
+        }
+    }, [user]);
 
     // --- CALCULATE FUNCTIONS ---
     const getObjectiveMonthlyStats = (objId: string) => {
@@ -294,34 +178,80 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                 if (dateParts.length < 2) return;
                 const m = parseInt(dateParts[1], 10) - 1;
                 if (m >= 0 && m <= 11) monthlyData[m].P++;
-            } catch (e) { /* ignore corrupt date */ }
+            } catch (e) { }
         });
 
-        if (objId === 'obj3') {
-            executedInspections.forEach(ex => {
-                if (!ex || !ex.date) return;
-                try {
-                    const dateParts = String(ex.date).split('-');
-                    if (dateParts.length < 2) return;
-                    const m = parseInt(dateParts[1], 10) - 1;
-                    if (m >= 0 && m <= 11) monthlyData[m].E++;
-                } catch (e) { /* ignore */ }
-            });
-        } else {
-            items.forEach(item => {
-                if (!item || !item.date) return;
-                try {
-                    const dateParts = String(item.date).split('-');
-                    if (dateParts.length < 2) return;
-                    const m = parseInt(dateParts[1], 10) - 1;
-                    if (m >= 0 && m <= 11) {
-                        if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
+        const countRecordsByMonth = (records: any[], monthTarget: number) => {
+            return records.filter(r => {
+                if (!r || !r.date) return false;
+                const d = new Date(r.date);
+                return d.getFullYear() === currentYear && d.getMonth() === monthTarget;
+            }).length;
+        };
+
+        const findMonthInItemDate = (dateStr: string) => {
+            const d = new Date(dateStr);
+            return d.getMonth();
+        };
+
+        // --- DYNAMIC EXECUTION COUNTING ---
+        for (let m = 0; m < 12; m++) {
+            switch(objId) {
+                case 'obj1': // SCSST
+                    monthlyData[m].E = countRecordsByMonth(risstmaRecords, m);
+                    break;
+                case 'obj2': // Capacitación
+                    monthlyData[m].E = countRecordsByMonth(hhcRecords, m);
+                    break;
+                case 'obj3': // Inspecciones Seguridad
+                    monthlyData[m].E = executedInspections.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               !r.inspectionType?.toLowerCase().includes('comedor') && 
+                               !r.inspectionType?.toLowerCase().includes('asfalto');
+                    }).length;
+                    break;
+                case 'obj4': // RAC
+                    monthlyData[m].E = countRecordsByMonth(detourRecords, m);
+                    break;
+                case 'obj5': // EMO
+                    monthlyData[m].E = evidenceRecords.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               (r.category === 'EMO' || r.type === 'EMO');
+                    }).length;
+                    break;
+                case 'obj6': // SEG 01 (Salud)
+                    monthlyData[m].E = executedInspections.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === currentYear && d.getMonth() === m && 
+                               (r.inspectionType?.toLowerCase().includes('comedor') || r.inspectionType?.toLowerCase().includes('tópico'));
+                    }).length;
+                    break;
+                case 'obj8': // SEG 03 (Medio Ambiente)
+                    monthlyData[m].E = pmaRecords.filter(r => {
+                        const d = new Date(r.date);
+                        return d.getFullYear() === currentYear && d.getMonth() === m;
+                    }).length;
+                    break;
+                case 'obj10': // Simulacros
+                    monthlyData[m].E = countRecordsByMonth(simulacroRecords, m);
+                    break;
+                case 'obj11': // Brigadistas
+                    monthlyData[m].E = countRecordsByMonth(brigadistaRecords, m);
+                    break;
+                default:
+                    // Fallback to manual status in programData
+                    items.forEach(item => {
+                        if (!item || !item.date) return;
+                        const itemMonth = findMonthInItemDate(item.date);
+                        if (itemMonth === m && (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0)) {
                             monthlyData[m].E++;
                         }
-                    }
-                } catch (e) { /* ignore */ }
-            });
+                    });
+            }
         }
+
         return monthlyData;
     };
 
@@ -1705,16 +1635,13 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     // Data por Objetivo (CONECTADO AL PROGRAMA ANUAL)
     const objectivesData = OBJECTIVES_LIST.map(obj => {
         const stats = getObjectiveMonthlyStats(obj.id);
-
         let totalPlan = 0;
         let totalExec = 0;
 
         if (currentMonth === -1) {
-            // Accumulate all months
             totalPlan = stats.reduce((acc, curr) => acc + curr.P, 0);
             totalExec = stats.reduce((acc, curr) => acc + curr.E, 0);
         } else {
-            // Specific month
             if (stats[currentMonth]) {
                 totalPlan = stats[currentMonth].P;
                 totalExec = stats[currentMonth].E;
@@ -1728,16 +1655,15 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             percent = 100;
         }
 
-        // Color Logic
-        let fill = '#10b981'; // Green (Security)
+        let fill = '#10b981'; 
         const labelLower = obj.label.toLowerCase();
-        if (labelLower.includes('salud') || labelLower.includes('emo')) fill = '#ec4899'; // Pink (Health)
-        else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('segregación') || labelLower.includes('residuos')) fill = '#3b82f6'; // Blue (Env)
-
+        if (labelLower.includes('salud') || labelLower.includes('emo')) fill = '#ec4899';
+        else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('residuos')) fill = '#3b82f6';
         if (obj.id === 'obj10' || obj.id === 'obj11') fill = '#3b82f6';
 
         return {
-            name: obj.id.replace('obj', 'Obj '),
+            id: obj.id,
+            name: obj.id.replace('obj', 'Obj ').replace('obj10', 'SEG 05').replace('obj11', 'SEG 06'),
             fullName: obj.label,
             percent: percent > 100 ? 100 : percent,
             fill: fill,
@@ -1745,6 +1671,9 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             exec: totalExec
         };
     });
+
+    const mgmtData = objectivesData.filter(obj => ['obj1', 'obj2', 'obj3', 'obj4', 'obj5'].includes(obj.id));
+    const followupData = objectivesData.filter(obj => !['obj1', 'obj2', 'obj3', 'obj4', 'obj5'].includes(obj.id));
 
     // Custom Bar Shape for 3D Effect
     const CustomBar = (props: any) => {
@@ -1795,46 +1724,33 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
         return monthlyData;
     };
 
-    // Calculate overall achievement by area based on OBJECTIVES GROUPS
+    // Calculate overall achievement by area based on OBJECTIVES GROUPS (DYNAMIC)
     const calculateOverallAchievement = () => {
         const areas = { safety: { plan: 0, exec: 0 }, health: { plan: 0, exec: 0 }, environment: { plan: 0, exec: 0 } };
 
-        // Group activities by objective to follow specific rules
-        const grouped = categorizeActivitiesByObjective(activities);
+        OBJECTIVES_LIST.forEach(obj => {
+            const stats = getObjectiveMonthlyStats(obj.id);
+            let p = 0;
+            let e = 0;
 
-        grouped.forEach(group => {
-            const gid = group.id; // 'obj1', 'obj2', ...
-
-            // Calculate totals for this group
-            let groupPlan = 0;
-            let groupExec = 0;
-
-            group.activities.forEach(activity => {
-                if (currentMonth === -1) {
-                    groupPlan += activity.data.plan.reduce((a, b) => a + b, 0);
-                    groupExec += activity.data.executed.reduce((a, b) => a + b, 0);
-                } else {
-                    groupPlan += activity.data.plan[currentMonth] || 0;
-                    groupExec += activity.data.executed[currentMonth] || 0;
-                }
-            });
-
-            // Assign to Area based on user rules
-            // Seguridad: obj 1, 2, 3, 4
-            // Seguridad: obj 1, 2, 3, 4
-            if (['obj-1', 'obj-2', 'obj-3', 'obj-4'].includes(gid)) {
-                areas.safety.plan += groupPlan;
-                areas.safety.exec += groupExec;
+            if (currentMonth === -1) {
+                p = stats.reduce((acc, curr) => acc + curr.P, 0);
+                e = stats.reduce((acc, curr) => acc + curr.E, 0);
+            } else {
+                p = stats[currentMonth]?.P || 0;
+                e = stats[currentMonth]?.E || 0;
             }
-            // Salud: obj 5, 6, 7
-            else if (['obj-5', 'obj-6', 'obj-7'].includes(gid)) {
-                areas.health.plan += groupPlan;
-                areas.health.exec += groupExec;
-            }
-            // Medio Ambiente: obj 8, 9, 10
-            else if (['obj-8', 'obj-9', 'obj-10'].includes(gid)) {
-                areas.environment.plan += groupPlan;
-                areas.environment.exec += groupExec;
+
+            const labelLower = obj.label.toLowerCase();
+            if (labelLower.includes('salud') || labelLower.includes('emo')) {
+                areas.health.plan += p;
+                areas.health.exec += e;
+            } else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('residuos')) {
+                areas.environment.plan += p;
+                areas.environment.exec += e;
+            } else {
+                areas.safety.plan += p;
+                areas.safety.exec += e;
             }
         });
 
@@ -1862,6 +1778,67 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
             }
         ];
     };
+
+    const renderObjectiveList = (data: any[]) => (
+        <div className="flex gap-4 overflow-x-auto pb-6 px-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent snap-x snap-mandatory">
+            {data.map((obj, idx) => {
+                const donutData = [
+                    { name: 'Cumplimiento', value: obj.percent, fill: obj.fill },
+                    { name: 'Pendiente', value: 100 - obj.percent, fill: '#f1f5f9' }
+                ];
+                let Icon = Target;
+                if (obj.fill === '#10b981') Icon = ShieldCheck;
+                if (obj.fill === '#ec4899') Icon = ActivityIcon;
+                if (obj.fill === '#3b82f6') Icon = Leaf;
+
+                return (
+                    <div key={idx} className="min-w-[200px] w-[200px] bg-white rounded-[2rem] p-5 shadow-lg border border-slate-100 flex flex-col items-center relative overflow-hidden h-[240px] flex-shrink-0 snap-center">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
+                            <div className="h-full transition-all duration-1000" style={{ width: `${obj.percent}%`, backgroundColor: obj.fill }}></div>
+                        </div>
+                        <div className="text-center mb-1 z-10 w-full px-1">
+                            <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center justify-center gap-1 truncate">
+                                <Icon size={12} style={{ color: obj.fill }} />
+                                {obj.name}
+                            </h4>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5 truncate max-w-full" title={obj.fullName}>{obj.fullName}</p>
+                        </div>
+                        <div className="flex-1 w-full relative flex items-center justify-center">
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="text-center">
+                                    <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{obj.percent}%</span>
+                                    <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                                        <span className="text-[9px] font-bold text-slate-400">P: {obj.plan}</span>
+                                        <span className="text-[9px] font-bold text-emerald-600">E: {obj.exec}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={donutData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={45}
+                                        outerRadius={60}
+                                        startAngle={90}
+                                        endAngle={-270}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        stroke="none"
+                                    >
+                                        {donutData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
 
     if (!activities || activities.length === 0) {
         return (
@@ -1999,64 +1976,26 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                         </div>
                     </div>
 
-                    {/* 2. 3D OBJECTIVES CHARTS ROW */}
-                    <div className="flex gap-4 overflow-x-auto pb-6 px-4 -mx-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent snap-x snap-mandatory">
-                        {objectivesData.map((obj, idx) => {
-                            const donutData = [
-                                { name: 'Cumplimiento', value: obj.percent, fill: obj.fill },
-                                { name: 'Pendiente', value: 100 - obj.percent, fill: '#f1f5f9' }
-                            ];
-                            let Icon = Target;
-                            if (obj.fill === '#10b981') Icon = ShieldCheck;
-                            if (obj.fill === '#ec4899') Icon = ActivityIcon;
-                            if (obj.fill === '#3b82f6') Icon = Leaf;
+                    {/* 2. OBJECTIVES CHARTS (OBJ 01-05) */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 px-4">
+                            <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                <Target size={18} className="text-emerald-500" />
+                            </div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Objetivos de Gestión (OBJ 01 - 05)</h3>
+                        </div>
+                        {renderObjectiveList(mgmtData)}
+                    </div>
 
-                            return (
-                                <div key={idx} className="min-w-[200px] w-[200px] bg-white rounded-[2rem] p-5 shadow-lg border border-slate-100 flex flex-col items-center relative overflow-hidden h-[240px] flex-shrink-0 snap-center">
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
-                                        <div className="h-full transition-all duration-1000" style={{ width: `${obj.percent}%`, backgroundColor: obj.fill }}></div>
-                                    </div>
-                                    <div className="text-center mb-1 z-10 w-full px-1">
-                                        <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center justify-center gap-1 truncate">
-                                            <Icon size={12} style={{ color: obj.fill }} />
-                                            {obj.name}
-                                        </h4>
-                                        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5 truncate max-w-full" title={obj.fullName}>{obj.fullName}</p>
-                                    </div>
-                                    <div className="flex-1 w-full relative flex items-center justify-center">
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="text-center">
-                                                <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{obj.percent}%</span>
-                                                <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                                                    <span className="text-[9px] font-bold text-slate-400">P: {obj.plan}</span>
-                                                    <span className="text-[9px] font-bold text-emerald-600">E: {obj.exec}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={donutData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={45}
-                                                    outerRadius={60}
-                                                    startAngle={90}
-                                                    endAngle={-270}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                    stroke="none"
-                                                >
-                                                    {donutData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
-                                                    ))}
-                                                </Pie>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    {/* 3. FOLLOW-UP CHARTS (SEG 01-06) */}
+                    <div className="space-y-4 mt-8">
+                        <div className="flex items-center gap-3 px-4">
+                            <div className="p-2 bg-blue-500/20 rounded-lg">
+                                <ClipboardCheck size={18} className="text-blue-500" />
+                            </div>
+                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Seguimientos (SEG 01 - 06)</h3>
+                        </div>
+                        {renderObjectiveList(followupData)}
                     </div>
 
                     {/* 3. PERFORMANCE BY RESPONSIBLE (NEW SECTION) */}
@@ -2077,10 +2016,39 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative z-10 w-full">
                             {USER_LIST.filter(u => u.username !== 'jose.cancino' && u.username !== 'gerencia').map((userObj, idx) => {
                                 const user = userObj.name;
-                                const userActs = activities.filter(a => a.responsible === user);
-                                const planned = userActs.reduce((acc, act) => acc + act.data.plan.reduce((a, b) => a + b, 0), 0);
-                                const executed = userActs.reduce((acc, act) => acc + act.data.executed.reduce((a, b) => a + b, 0), 0);
-                                const performance = planned > 0 ? Math.round((executed / planned) * 100) : 0;
+                                
+                                // Dynamic Calculation for this user
+                                let planned = 0;
+                                let executed = 0;
+
+                                OBJECTIVES_LIST.forEach(obj => {
+                                    const items = programData[obj.id] || [];
+                                    items.forEach(item => {
+                                        if (item.responsible === user || item.responsable === user) {
+                                            const d = new Date(item.date);
+                                            if (d.getFullYear() === currentYear && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                                planned++;
+                                                if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) executed++;
+                                            }
+                                        }
+                                    });
+                                });
+
+                                // Add real records execution for this user
+                                const filterByResponsible = (recs: any[]) => recs.filter(r => {
+                                    const d = new Date(r.date);
+                                    return (r.responsible === user || r.responsable === user) && 
+                                           d.getFullYear() === currentYear && 
+                                           (currentMonth === -1 || d.getMonth() === currentMonth);
+                                }).length;
+
+                                executed += filterByResponsible(hhcRecords);
+                                executed += filterByResponsible(executedInspections);
+                                executed += filterByResponsible(detourRecords);
+                                executed += filterByResponsible(simulacroRecords);
+                                executed += filterByResponsible(brigadistaRecords);
+
+                                const performance = planned > 0 ? Math.round((executed / planned) * 100) : (executed > 0 ? 100 : 0);
 
                                 return (
                                     <div key={idx} className="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50 flex flex-col items-center hover:bg-slate-800 transition-colors group">
