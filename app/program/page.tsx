@@ -900,9 +900,9 @@ export default function ProgramPage() {
             }
         });
 
-        // 9. Map Simulacro Records (SEG 05 - obj-10)
+        // 9. Map Simulacro Records (SEG 05 - obj10)
         simulacroRecords.forEach(sim => {
-            if (selectedObjId !== 'obj-10') return;
+            if (selectedObjId !== 'obj10') return;
 
             const m = getMonthFromStr(sim.date);
             if (m < 0 || m > 11) return;
@@ -918,9 +918,9 @@ export default function ProgramPage() {
             }
         });
 
-        // 10. Map Brigadista Records (SEG 06 - obj-11)
+        // 10. Map Brigadista Records (SEG 06 - obj11)
         brigadistaRecords.forEach(bri => {
-            if (selectedObjId !== 'obj-11') return;
+            if (selectedObjId !== 'obj11') return;
 
             const m = getMonthFromStr(bri.date);
             if (m < 0 || m > 11) return;
@@ -937,13 +937,14 @@ export default function ProgramPage() {
 
         // 11. Map RISSTMA Records (OBJ 03 or Folder 03)
         risstmaRecords.forEach(ris => {
+            if (!ris || !ris.date) return;
             const m = getMonthFromStr(ris.date);
             if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
                 // In Folder 03, we often have items like "Entrega de RISST" or "Declaración Jurada"
                 const match = findMatch(areaKey, ris.documentType || 'RISSTMA');
-                if (match) {
+                if (match && grouped[areaKey] && grouped[areaKey][match]) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...ris, _type: 'RISSTMA' });
