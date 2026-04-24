@@ -6,7 +6,8 @@ import { DashboardData, Section, Activity, AuditLog, MONTHS } from "@/lib/types"
 import { ActivityTable } from "./ActivityList";
 import { TableView } from "./TableView";
 import { DashboardCharts } from "./DashboardCharts";
-import { uploadEvidence, getDashboardActivities, updateDashboardActivity, syncInitialData } from "@/app/actions";
+import { uploadEvidence, getDashboardActivities, updateDashboardActivity, syncInitialData, getAuditLogs } from "@/app/actions";
+import { Header } from "./Header";
 import jsPDF from "jspdf";
 import { toPng } from 'html-to-image';
 import * as XLSX from 'xlsx';
@@ -81,6 +82,16 @@ function DashboardContent({ initialData }: DashboardClientProps) {
     const [activeManagement, setActiveManagement] = useState<string>(searchParams.get('area') || 'todos');
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [showReportTools, setShowReportTools] = useState(false);
+    const [showLogs, setShowLogs] = useState(false);
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+    const fetchLogs = async () => {
+        setIsLoadingLogs(true);
+        const res = await getAuditLogs(50);
+        if (res.success) setAuditLogs(res.data);
+        setIsLoadingLogs(false);
+    };
 
     // PERSISTENCIA E HIDRATACIÓN DB
     useEffect(() => {
@@ -601,32 +612,45 @@ function DashboardContent({ initialData }: DashboardClientProps) {
     };
 
     return (
-        <div className="space-y-4 px-2 xl:px-6 pb-10 w-full max-w-full overflow-x-auto">
-            {/* INTEGRATED HEADER */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-                <div>
-                    <h1 className="text-2xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
-                        SSOMA DASHBOARD
-                    </h1>
-                    <p className="text-slate-500 mt-2 text-xs md:text-lg font-medium">
-                        Plataforma Integral de Seguridad, Salud Ocupacional y Medio Ambiente
-                    </p>
-                </div>
-                <div className="flex gap-2 relative z-20">
-                    <div className="px-6 py-2 bg-slate-900 rounded-full text-sm font-bold border border-slate-700 backdrop-blur-md shadow-lg flex items-center gap-2">
-                        <span className="text-slate-400 uppercase tracking-widest text-[10px]">Año</span>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="bg-transparent border-none text-emerald-400 font-black text-lg focus:ring-0 outline-none cursor-pointer appearance-none"
+        <div className="flex flex-col min-h-screen bg-slate-950 text-slate-200">
+            <Header />
+            
+            <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+                {/* Header Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-emerald-500/10 p-2.5 rounded-2xl border border-emerald-500/20">
+                            <LayoutDashboard className="text-emerald-500" size={24} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black text-white tracking-tight uppercase">Panel de Control SSOMA</h1>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1 italic opacity-70">Planificación {selectedYear} • {selectedMonthIndex === -1 ? 'Vista Anual' : MONTHS_FULL[selectedMonthIndex + 1].toUpperCase()}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <span className="text-slate-400 uppercase tracking-widest text-[9px] font-black">Periodo</span>
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                className="bg-transparent border-none text-emerald-400 font-black text-xs focus:ring-0 outline-none cursor-pointer appearance-none p-0"
+                            >
+                                {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                                    <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <button 
+                            onClick={() => { setShowLogs(true); fetchLogs(); }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest border border-slate-700 active:scale-95"
                         >
-                            {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => (
-                                <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>
-                            ))}
-                        </select>
+                            <History size={16} />
+                            Historial
+                        </button>
                     </div>
                 </div>
-            </div>
 
             {/* Header Area (Toolbar) */}
             <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800">
@@ -978,6 +1002,70 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     currentYear={selectedYear}
                     location="SAN CLEMENTE"
                 />
+
+            {/* Audit Log Drawer */}
+            {showLogs && (
+                <div className="fixed inset-0 z-[100] flex justify-end">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowLogs(false)} />
+                    <div className="relative w-full max-w-md bg-slate-900 h-full shadow-2xl border-l border-slate-800 flex flex-col animate-in slide-in-from-right duration-300">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-800/30">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                    <History className="text-emerald-500" size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-black text-white uppercase tracking-widest">Historial de Actividad</h2>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Rastro global de la plataforma</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowLogs(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                            {isLoadingLogs ? (
+                                <div className="flex flex-col items-center justify-center h-40 gap-3">
+                                    <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase animate-pulse">Consultando base de datos...</p>
+                                </div>
+                            ) : auditLogs.length === 0 ? (
+                                <div className="text-center py-20 flex flex-col items-center gap-4">
+                                    <div className="p-4 bg-slate-800 rounded-full text-slate-600">
+                                        <History size={40} />
+                                    </div>
+                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest italic">No hay actividad reciente registrada.</p>
+                                </div>
+                            ) : (
+                                auditLogs.map((log) => (
+                                    <div key={log.id} className="p-4 rounded-2xl bg-slate-800/30 border border-slate-800 hover:border-slate-700 transition-all group hover:bg-slate-800/50">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-emerald-900/20">
+                                                    {log.user_name?.substring(0, 1).toUpperCase()}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-white uppercase leading-none">{log.user_name}</span>
+                                                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter mt-1">{log.module}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase bg-slate-900 px-2 py-1 rounded-md">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <p className="text-[11px] font-bold text-slate-200 leading-relaxed border-l-2 border-emerald-500/30 pl-3 py-1">{log.action}</p>
+                                        {log.details && (
+                                            <div className="mt-3 p-2 bg-slate-950/50 rounded-lg border border-slate-800/50">
+                                                <p className="text-[9px] font-medium text-slate-500 italic break-words">{log.details}</p>
+                                            </div>
+                                        )}
+                                        <div className="mt-3 flex items-center justify-end">
+                                            <span className="text-[8px] font-bold text-slate-600 uppercase">{new Date(log.timestamp).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div >
     );
