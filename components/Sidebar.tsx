@@ -21,7 +21,8 @@ import {
     Settings,
     Leaf,
     Clipboard,
-    ArrowUpRight
+    ArrowUpRight,
+    BookOpen
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
