@@ -116,22 +116,21 @@ export default function RISSTMAPage() {
     });
 
     return (
-        <div className="p-6 bg-slate-50 min-h-screen">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="p-6 md:p-8 min-h-screen">
+            <div className="max-w-7xl mx-auto space-y-8">
                 
-                {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 flex items-center gap-2">
-                            <BookOpen className="text-indigo-600" />
+                        <h1 className="text-3xl font-black text-white flex items-center gap-2">
+                            <BookOpen className="text-indigo-400" />
                             Control de RISSTMA
                         </h1>
-                        <p className="text-slate-500 font-medium">Control de entrega y cargo de reglamentos internos (RISST / RITMA)</p>
+                        <p className="text-slate-400 font-medium">Control de entrega y cargo de reglamentos internos (RISST / RITMA)</p>
                     </div>
                     <button 
                         onClick={() => setIsAdding(!isAdding)}
                         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-lg ${
-                            isAdding ? 'bg-slate-200 text-slate-700' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            isAdding ? 'bg-slate-800 text-slate-300 border border-slate-700' : 'bg-indigo-600 text-white hover:bg-indigo-500'
                         }`}
                     >
                         {isAdding ? <X size={20} /> : <Plus size={20} />}
@@ -141,30 +140,30 @@ export default function RISSTMAPage() {
 
                 {/* Add Form */}
                 {isAdding && (
-                    <Card className="border-none shadow-xl bg-white overflow-hidden animate-in fade-in slide-in-from-top-4">
-                        <CardHeader className="bg-indigo-600 text-white">
+                    <Card className="border border-slate-800 shadow-2xl bg-slate-900/80 backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-top-4">
+                        <CardHeader className="bg-indigo-600/20 text-white border-b border-indigo-500/20">
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Shield className="w-5 h-5" />
+                                <Shield className="w-5 h-5 text-indigo-400" />
                                 Nueva Declaración Jurada de RISSTMA
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                        <Calendar size={14} /> Fecha de Entrega
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                                        <Calendar size={12} /> Fecha de Entrega
                                     </label>
                                     <input 
                                         type="date" 
                                         value={formData.date}
                                         onChange={e => setFormData({...formData, date: e.target.value})}
-                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                        <User size={14} /> Trabajador
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                                        <User size={12} /> Trabajador
                                     </label>
                                     <SearchableSelect 
                                         options={USER_LIST.map(u => u.name)}
@@ -175,13 +174,13 @@ export default function RISSTMAPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                        <FileText size={14} /> Documento Entregado
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                                        <FileText size={12} /> Documento Entregado
                                     </label>
                                     <select 
                                         value={formData.documentType}
                                         onChange={e => setFormData({...formData, documentType: e.target.value})}
-                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                     >
                                         <option>RISST + RITMA</option>
                                         <option>Solo RISST</option>
@@ -190,8 +189,8 @@ export default function RISSTMAPage() {
                                 </div>
 
                                 <div className="md:col-span-2 space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                        <Upload size={14} /> Cargo / Declaración Jurada (PDF o Imagen)
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                                        <Upload size={12} /> Cargo / Declaración Jurada (PDF o Imagen)
                                     </label>
                                     <div className="flex items-center gap-4">
                                         <input 
@@ -209,15 +208,15 @@ export default function RISSTMAPage() {
                                         />
                                         <label 
                                             htmlFor="file-upload"
-                                            className="flex-1 cursor-pointer p-4 border-2 border-dashed border-slate-300 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all flex flex-col items-center gap-2 text-slate-500"
+                                            className="flex-1 cursor-pointer p-4 border-2 border-dashed border-slate-700 rounded-2xl hover:border-indigo-500 hover:bg-indigo-500/5 transition-all flex flex-col items-center gap-2 text-slate-400"
                                         >
                                             {formData.fileUrl ? (
-                                                <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                                                <div className="flex items-center gap-2 text-emerald-400 font-bold">
                                                     <CheckCircle2 className="w-6 h-6" /> Evidencia Lista
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <Upload className="w-8 h-8 text-slate-400" />
+                                                    <Upload className="w-8 h-8 text-slate-600" />
                                                     <span className="text-sm">Clic para subir el cargo firmado</span>
                                                 </>
                                             )}
@@ -229,7 +228,7 @@ export default function RISSTMAPage() {
                                     <button 
                                         onClick={handleSave}
                                         disabled={isSaving}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 shadow-emerald-900/20"
                                     >
                                         {isSaving ? <span className="animate-spin text-xl">⏳</span> : <Check size={20} />}
                                         Guardar Registro
@@ -241,32 +240,32 @@ export default function RISSTMAPage() {
                 )}
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap items-center gap-4">
+                <div className="bg-slate-900/50 p-4 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center gap-4 backdrop-blur-sm">
                     <div className="flex items-center gap-2 text-slate-500 mr-2">
-                        <Filter size={18} />
-                        <span className="font-bold text-sm">Filtros:</span>
+                        <Filter size={18} className="text-indigo-400" />
+                        <span className="font-bold text-xs uppercase tracking-widest">Filtros:</span>
                     </div>
                     <input 
                         type="date" 
                         value={filters.date}
                         onChange={e => setFilters({...filters, date: e.target.value})}
-                        className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
+                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
                     />
                     <input 
                         type="text" 
                         placeholder="Filtrar por trabajador..."
                         value={filters.workerName}
                         onChange={e => setFilters({...filters, workerName: e.target.value})}
-                        className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none w-48"
+                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none w-48 focus:border-indigo-500"
                     />
                 </div>
 
                 {/* Records Table */}
-                <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+                <div className="bg-slate-900/40 rounded-3xl shadow-2xl overflow-hidden border border-slate-800 backdrop-blur-md">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-widest font-black">
+                                <tr className="bg-slate-950 text-slate-500 text-[10px] uppercase tracking-widest font-black border-b border-slate-800">
                                     <th className="p-4 pl-6">Fecha Entrega</th>
                                     <th className="p-4">Trabajador</th>
                                     <th className="p-4">Documento</th>
@@ -274,33 +273,33 @@ export default function RISSTMAPage() {
                                     <th className="p-4 text-right pr-6">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-800/50">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={5} className="p-12 text-center text-slate-400">
+                                        <td colSpan={5} className="p-12 text-center text-slate-500">
                                             <div className="animate-pulse flex flex-col items-center gap-2">
-                                                <div className="w-8 h-8 bg-slate-200 rounded-full"></div>
+                                                <div className="w-8 h-8 bg-slate-800 rounded-full"></div>
                                                 Cargando registros...
                                             </div>
                                         </td>
                                     </tr>
                                 ) : filteredRecords.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-12 text-center text-slate-400 font-medium">
+                                        <td colSpan={5} className="p-12 text-center text-slate-500 font-medium italic">
                                             No se encontraron registros.
                                         </td>
                                     </tr>
                                 ) : filteredRecords.map(rec => (
-                                    <tr key={rec.id} className="hover:bg-slate-50 transition-colors group">
-                                        <td className="p-4 pl-6 font-bold text-slate-700">{rec.date}</td>
+                                    <tr key={rec.id} className="hover:bg-slate-800/30 transition-colors group">
+                                        <td className="p-4 pl-6 font-bold text-slate-300">{rec.date}</td>
                                         <td className="p-4">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-slate-800">{rec.workerName}</span>
-                                                <span className="text-xs text-slate-400">DNI: {rec.dni || '---'}</span>
+                                                <span className="font-bold text-white">{rec.workerName}</span>
+                                                <span className="text-[10px] text-slate-500 font-mono mt-0.5">DNI: {rec.dni || '---'}</span>
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold border border-indigo-100">
+                                            <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-[10px] font-bold border border-indigo-500/20 uppercase">
                                                 {rec.documentType}
                                             </span>
                                         </td>
@@ -309,18 +308,18 @@ export default function RISSTMAPage() {
                                                 <a 
                                                     href={getDriveViewerUrl(rec.fileUrl)} 
                                                     target="_blank" 
-                                                    className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-bold text-sm"
+                                                    className="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 font-bold text-xs group-hover:translate-x-1 transition-transform"
                                                 >
                                                     <FileText size={16} /> Ver Cargo
                                                 </a>
                                             ) : (
-                                                <span className="text-slate-300">Sin archivo</span>
+                                                <span className="text-slate-700">Sin archivo</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-right pr-6">
                                             <button 
                                                 onClick={() => handleDelete(rec.id)}
-                                                className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                className="p-2 text-slate-600 hover:text-red-400 transition-colors"
                                             >
                                                 <Trash2 size={18} />
                                             </button>

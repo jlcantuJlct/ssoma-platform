@@ -412,7 +412,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
 
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
                         <ActivityIcon className="text-rose-500" size={32} />
@@ -420,8 +420,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                     </h1>
                     <p className="text-slate-400 font-medium">Registro de Exámenes Médicos Ocupacionales</p>
                 </div>
-                <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
+                <div className="bg-slate-950 px-6 py-3 rounded-xl border border-slate-800">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Registros</p>
                     <p className="text-2xl font-black text-white">{records.length}</p>
                 </div>
             </header>
@@ -430,7 +430,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                 {/* FORMULARIO DE REGISTRO */}
                 <div className="xl:col-span-1">
                     <div className={`border rounded-2xl p-6 shadow-2xl sticky top-6 transition-colors ${editingId ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-slate-900 border-slate-800'}`}>
-                        <h3 className={`${editingId ? 'text-indigo-400' : 'text-emerald-400'} font-bold text-lg mb-6 flex flex-wrap items-center gap-2`}>
+                        <h3 className={`${editingId ? 'text-indigo-400' : 'text-rose-400'} font-bold text-lg mb-6 flex flex-wrap items-center gap-2`}>
                             {editingId ? <Edit size={20} /> : <Upload size={20} />}
                             {editingId ? 'Editando Evidencia' : 'Registro de Evidencia'}
                             {isSyncing && (
