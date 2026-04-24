@@ -10,10 +10,10 @@ export interface ObjectiveGroup {
 }
 
 export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords?: string[], excludeKeywords?: string[] })[] = [
-    // --- GESTIÓN DE SEGURIDAD ---
+    // --- GESTIÓN DE SEGURIDAD (OBJ) ---
     {
         id: 'obj-1',
-        title: 'OBJETIVO 1: SCSST Y CUMPLIMIENTO LEGAL',
+        title: 'OBJ 01: SCSST',
         description: 'Conformación, reuniones e inspecciones del SCSST y cumplimiento normativo.',
         area: 'safety',
         keywords: [
@@ -23,7 +23,7 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
     },
     {
         id: 'obj-2',
-        title: 'OBJETIVO 2: PARTICIPACIÓN Y CAPACITACIÓN',
+        title: 'OBJ 02: CAPACITACIÓN',
         description: 'Asegurar la participación, información y capacitación.',
         area: 'safety',
         keywords: [
@@ -35,11 +35,11 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
             "ats", "materiales y químicos", "cinturón",
             "difusión del passt", "passt"
         ],
-        excludeKeywords: ["inspección"] // Si dice inspección, NO es objetivo 2 (capacitación)
+        excludeKeywords: ["inspección"] 
     },
     {
         id: 'obj-3',
-        title: 'OBJETIVO 3: IDENTIFICACIÓN DE PELIGROS Y CONTROL DE RIESGOS',
+        title: 'OBJ 03: INSPECCIONES SEGURIDAD',
         description: 'Identificar y evaluar permanentemente los peligros y controlar los riesgos.',
         area: 'safety',
         keywords: [
@@ -52,62 +52,75 @@ export const OBJECTIVES_CONFIG: (Omit<ObjectiveGroup, 'activities'> & { keywords
             "extintores", "generador", "tableros", "tablero eléctrico",
             "almacén de productos químicos", "msds", "hoja msds"
         ],
-        excludeKeywords: ["ambulancia", "hidratación", "botiquines"] // Para no confundir con salud
+        excludeKeywords: ["ambulancia", "hidratación", "botiquines", "salud", "ambiental"]
     },
     {
         id: 'obj-4',
-        title: 'OBJETIVO 4: REPORTE DE ACTOS Y CONDICIONES (RAC)',
+        title: 'OBJ 04: REPORTE A/C INSEGURAS',
         description: 'Elaborar reporte de actos y condiciones inseguras para la reducción de accidentes.',
         area: 'safety',
-        keywords: ["rac", "actos y condiciones", "sistema de rac"]
+        keywords: ["rac", "actos y condiciones", "sistema de rac", "observación preventiva"]
     },
-
-    // --- GESTIÓN DE SALUD ---
     {
         id: 'obj-5',
-        title: 'OBJETIVO 5: CAPACITACIÓN EN SALUD',
+        title: 'OBJ 05: EMO REALIZADOS',
+        description: 'Vigilancia de la salud y exámenes médicos ocupacionales.',
+        area: 'health',
+        keywords: [
+            "emo", "exámenes médicos", "certificado", "resultados",
+            "aptitud", "clínica"
+        ]
+    },
+
+    // --- SEGUIMIENTO (SEG) ---
+    {
+        id: 'obj-6',
+        title: 'SEG 01: INSPECCIONES DE SALUD',
+        description: 'Inspecciones de infraestructura y recursos de salud.',
+        area: 'health',
+        keywords: ["ambulancia", "hidratación", "comedor", "vestuarios", "servicios higiénicos", "botiquines", "estaciones de emergencia", "sshh", "lava manos", "lavamanos", "inspección de salud"]
+    },
+    {
+        id: 'obj-7',
+        title: 'SEG 02: FORMACIONES DE SALUD',
         description: 'Capacitación para reducir enfermedades ocupacionales.',
         area: 'health',
         keywords: [
-            "salud del paso", "hipoacusia", "respiratoria", "visual", "piel", // Capacitación
+            "salud del paso", "hipoacusia", "respiratoria", "visual", "piel",
             "primeros auxilios", "vida saludable", "pausas activas",
             "estrés", "vih", "sida", "cuidado de ojo", "ojos",
-            "mental", "ley 30947", "30947" // Salud Mental
+            "mental", "ley 30947", "30947", "monitoreo", "agentes", "psicosociales", "físico", "ergonómicos"
         ]
     },
-    {
-        id: 'obj-6',
-        title: 'OBJETIVO 6: VIGILANCIA Y SEGUIMIENTO A EO',
-        description: 'EMO, certificados y Monitoreo de Agentes Físicos, Ergonómicos y Psicosociales.',
-        area: 'health',
-        keywords: [
-            "emo", "exámenes médicos", "certificado", "resultados", // Vigilancia
-            "monitoreo", "agentes", "psicosociales", "físico", "ergonómicos" // Monitoreo
-        ]
-    },
-    {
-
-        id: 'obj-7',
-        title: 'OBJETIVO 7: INSPECCIONES DE SALUD',
-        description: 'Inspecciones de infraestructura y recursos de salud.',
-        area: 'health',
-        keywords: ["ambulancia", "hidratación", "comedor", "vestuarios", "servicios higiénicos", "botiquines", "estaciones de emergencia", "sshh", "lava manos", "lavamanos"]
-    },
-
-    // --- GESTIÓN DE MEDIO AMBIENTE ---
     {
         id: 'obj-8',
-        title: 'OBJETIVO 8: FORMACIÓN DE MEDIO AMBIENTE',
-        description: 'Formación en riesgos ambientales.',
+        title: 'SEG 03: INSPECCIONES M. AMBIENTE',
+        description: 'Inspecciones y reducción de riesgos ambientales.',
         area: 'environment',
-        keywords: ["polvo", "ambiental", "flora", "fauna"]
+        keywords: ["inspecciones medio ambiente", "inspección ambiental", "residuos", "segregación", "kit antiderrames", "trampas de grasa"]
     },
     {
         id: 'obj-9',
-        title: 'OBJETIVO 9: INSPECCIONES AMBIENTALES',
-        description: 'Inspecciones y reducción de riesgos ambientales.',
+        title: 'SEG 04: FORMACIONES M. AMBIENTE',
+        description: 'Formación en riesgos ambientales.',
         area: 'environment',
-        keywords: ["inspecciones medio ambiente", "inspección ambiental"]
+        keywords: ["polvo", "ambiental", "flora", "fauna", "capacitación ambiental"]
+    },
+    {
+        id: 'obj-10',
+        title: 'SEG 05: CONTROL DE SIMULACROS',
+        description: 'Planificación y ejecución de simulacros de emergencia.',
+        area: 'safety',
+        keywords: ["simulacro", "drill", "ensayo de emergencia", "sismo", "incendio"]
+    },
+    {
+        id: 'obj-11',
+        title: 'SEG 06: CONTROL DE BRIGADISTAS',
+        description: 'Capacitación y operatividad de las brigadas de emergencia.',
+        area: 'safety',
+        keywords: ["brigada", "brigadista", "primeros auxilios", "evacuación", "rescate"]
+    }
+];pecciones medio ambiente", "inspección ambiental"]
     }
 ];
 

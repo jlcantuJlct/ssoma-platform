@@ -333,17 +333,17 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     };
 
     const OBJECTIVES_LIST = [
-        { id: 'obj1', label: 'Programas de SCSST' },
-        { id: 'obj2', label: 'Capacitación' },
-        { id: 'obj3', label: 'Inspecciones' },
-        { id: 'obj4', label: 'Reporte A/C Inseguras' },
-        { id: 'obj5', label: 'EMO Realizados' },
-        { id: 'obj6', label: 'Inspecciones de Salud' },
-        { id: 'obj7', label: 'Formaciones de Salud' },
-        { id: 'obj8', label: 'Inspecciones M. Ambiente' },
-        { id: 'obj9', label: 'Formaciones M. Ambiente' },
-        { id: 'obj10', label: 'Control Segregación RRSS' },
-        { id: 'obj11', label: 'Control Acopios Temporales' },
+        { id: 'obj1', label: 'OBJ 01: SCSST' },
+        { id: 'obj2', label: 'OBJ 02: Capacitación' },
+        { id: 'obj3', label: 'OBJ 03: Inspecciones Seguridad' },
+        { id: 'obj4', label: 'OBJ 04: Reporte A/C Inseguras' },
+        { id: 'obj5', label: 'OBJ 05: EMO Realizados' },
+        { id: 'obj6', label: 'SEG 01: Inspecciones de Salud' },
+        { id: 'obj7', label: 'SEG 02: Formaciones de Salud' },
+        { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente' },
+        { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente' },
+        { id: 'obj10', label: 'SEG 05: Control de Simulacros' },
+        { id: 'obj11', label: 'SEG 06: Control de Brigadistas' },
     ];
 
     // --- IMPORT / EXPORT LOGIC ---

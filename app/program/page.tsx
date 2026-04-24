@@ -374,16 +374,37 @@ export default function ProgramPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        console.log("📂 Iniciando importación de:", file.name, "Tipo:", file.type);
+
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
-                const data = new Uint8Array(event.target?.result as ArrayBuffer);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                // KEY FIX: raw: false ensures we get displayed text (e.g. "ENE" from a date, or "1" from a number)
-                const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: false }) as any[][];
+                const arrayBuffer = event.target?.result as ArrayBuffer;
+                if (!arrayBuffer) throw new Error("No se pudo obtener el contenido del archivo.");
 
-                if (worksheet.length === 0) return;
+                // Leer el libro
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                    throw new Error("El archivo Excel no contiene hojas de trabajo.");
+                }
+
+                const sheetName = workbook.SheetNames[0];
+                const worksheetRaw = workbook.Sheets[sheetName];
+                
+                if (!worksheetRaw) {
+                    throw new Error(`No se pudo leer la hoja: ${sheetName}`);
+                }
+
+                // Convertir a JSON (array de arrays)
+                const worksheet = XLSX.utils.sheet_to_json(worksheetRaw, { header: 1, raw: false }) as any[][];
+
+                if (worksheet.length === 0) {
+                    alert("⚠️ El archivo está vacío.");
+                    return;
+                }
+
+                console.log("📊 Hoja leída correctamente. Filas:", worksheet.length);
 
                 // --- HELPER: Normalize Text ---
                 const norm = (s: any) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -395,8 +416,8 @@ export default function ProgramPage() {
                 const monthNamesShortEn = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
                 const monthNamesFull = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SETIEMBRE", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
-                // Scan first 30 rows
-                for (let r = 0; r < Math.min(30, worksheet.length); r++) {
+                // Scan first 50 rows (increased range)
+                for (let r = 0; r < Math.min(50, worksheet.length); r++) {
                     const row = worksheet[r].map(c => norm(c));
                     const countMatches = (list: string[]) => list.filter(m => row.some(cell => cell === m || cell.startsWith(m) || cell.includes(m))).length;
 
@@ -420,6 +441,7 @@ export default function ProgramPage() {
                 const newRecords: ProgramItem[] = [];
 
                 if (isMatrix) {
+                    console.log("📌 Formato MATRIZ detectado en fila:", headerRowIdx);
                     const headers = worksheet[headerRowIdx].map(h => norm(h));
 
                     // Detect Plan/Type Column
@@ -463,7 +485,6 @@ export default function ProgramPage() {
                         monthColIndices.forEach((colIdx, monthIndex) => {
                             if (colIdx === -1) return;
                             const val = row[colIdx];
-                            // Parse int from the specific cell string
                             const numEvents = parseInt(String(val || '0').replace(/\D/g, ''));
 
                             if (!isNaN(numEvents) && numEvents > 0) {
@@ -483,6 +504,7 @@ export default function ProgramPage() {
                     });
 
                 } else {
+                    console.log("📌 Formato LISTA detectado.");
                     // --- 2. HEURISTIC LIST LOGIC ---
                     const stats: { dateScore: number, textScore: number }[] = [];
                     const maxCols = 20;
@@ -495,9 +517,9 @@ export default function ProgramPage() {
                         row.forEach((cell, colIdx) => {
                             if (colIdx >= maxCols) return;
                             if (cell === undefined || cell === null) return;
-                            const valStr = norm(cell); // now checking string representation
+                            const valStr = norm(cell);
 
-                            if (valStr.match(/^\d{5}$/)) stats[colIdx].dateScore += 2; // Excel serial as string
+                            if (valStr.match(/^\d{5}$/)) stats[colIdx].dateScore += 2;
                             else if (valStr.match(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/)) stats[colIdx].dateScore += 2;
                             else if (valStr.match(/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/)) stats[colIdx].dateScore += 2;
                             else if (["ENE", "FEB", "MAR", "APR", "DEC", "JAN", "AUG"].some(m => valStr.startsWith(m))) stats[colIdx].dateScore += 1;
@@ -528,8 +550,7 @@ export default function ProgramPage() {
                         let dateStr = "";
                         const stringVal = norm(dateVal);
 
-                        // Handle stringified dates/numbers
-                        if (stringVal.match(/^\d{5}$/)) { // Serial
+                        if (stringVal.match(/^\d{5}$/)) {
                             const d = new Date(Math.round((parseInt(stringVal) - 25569) * 86400 * 1000));
                             if (!isNaN(d.getTime())) dateStr = d.toISOString().split('T')[0];
                         } else if (stringVal.match(/^\d{4}-\d{2}-\d{2}/)) {
@@ -580,11 +601,11 @@ export default function ProgramPage() {
                         : `✅ CARGA EXITOSA (AGREGADO): ${count} registros importados.`);
                 } else {
                     const hint = isMatrix ? "Formato Matriz detectado pero 0 registros creados." : "No se detectó formato Matriz ni Lista.";
-                    alert(`⚠️ ALERTA: ${hint}\nSugerencia: Revisar que los meses tengan valores numéricos y la columna 'Plan' no diga 'Ejecutado' en todas las filas.`);
+                    alert(`⚠️ ALERTA: ${hint}\nSugerencia: Revisar que el archivo contenga datos válidos.`);
                 }
-            } catch (error) {
-                console.error(error);
-                alert("❌ ERROR: El archivo no pudo ser leído. Guarde como CSV UTF-8 o Excel Estándar.");
+            } catch (error: any) {
+                console.error("❌ Error de lectura:", error);
+                alert(`❌ ERROR: No se pudo leer el archivo.\n\nDetalle: ${error.message || 'Formato no soportado'}\n\nSugerencia: Intenta abrir el archivo en Excel y "Guardar como" un nuevo archivo .xlsx.`);
             }
         };
         reader.readAsArrayBuffer(file);
