@@ -52,6 +52,11 @@ export function DashboardCharts({ activities, mode = 'general', currentMonth = -
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos' });
+    const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
+    const [programMonthFilter, setProgramMonthFilter] = useState<number>(new Date().getMonth());
+    const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as const, tipo: 'capacitacion' as const });
+    const [isDraggingHhcPdf, setIsDraggingHhcPdf] = useState(false);
+    const [isDraggingHhcImgs, setIsDraggingHhcImgs] = useState(false);
 
     // --- ACCIDENTABILITY STATS ---
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
