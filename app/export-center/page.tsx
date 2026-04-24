@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Download, FolderSync, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 
@@ -48,14 +47,12 @@ export default function ExportCenterPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
-            <Sidebar />
-            <main className="flex-1 p-8">
-                <div className="max-w-4xl mx-auto">
-                    <header className="mb-8">
-                        <h1 className="text-3xl font-bold text-slate-800">Centro de Exportación SharePoint</h1>
-                        <p className="text-slate-500 mt-2">Organiza y descarga toda la evidencia mensual directamente en tu escritorio.</p>
-                    </header>
+        <div className="p-8 bg-slate-50 min-h-full flex-1">
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-8">
+                    <h1 className="text-3xl font-bold text-slate-800">Centro de Exportación SharePoint</h1>
+                    <p className="text-slate-500 mt-2">Organiza y descarga toda la evidencia mensual directamente en tu escritorio.</p>
+                </header>
 
                     <div className="grid gap-6">
                         <Card className="border-none shadow-md overflow-hidden">
