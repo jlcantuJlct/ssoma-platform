@@ -418,7 +418,7 @@ export default function ProgramPage() {
 
                 // Scan first 50 rows (increased range)
                 for (let r = 0; r < Math.min(50, worksheet.length); r++) {
-                    const row = worksheet[r].map(c => norm(c));
+                    const row = Array.from(worksheet[r] || []).map(c => norm(c));
                     const countMatches = (list: string[]) => list.filter(m => row.some(cell => cell && (cell === m || cell.startsWith(m) || cell.includes(m)))).length;
 
                     if (countMatches(monthNamesShort) >= 2 || countMatches(monthNamesFull) >= 2 || countMatches(monthNamesShortEn) >= 2) {
@@ -429,7 +429,7 @@ export default function ProgramPage() {
 
                 // Identify Indices
                 if (headerRowIdx !== -1) {
-                    const row = worksheet[headerRowIdx].map(c => norm(c));
+                    const row = Array.from(worksheet[headerRowIdx] || []).map(c => norm(c));
                     const findMonthCol = (searchList: string[]) => searchList.map(m => row.findIndex(cell => cell && (cell === m || cell.startsWith(m) || cell.includes(m))));
 
                     let bestIndices = findMonthCol(monthNamesShort);
@@ -442,18 +442,18 @@ export default function ProgramPage() {
 
                 if (isMatrix) {
                     console.log("📌 Formato MATRIZ detectado en fila:", headerRowIdx);
-                    const headers = worksheet[headerRowIdx].map(h => norm(h));
+                    const headers = Array.from(worksheet[headerRowIdx] || []).map(h => norm(h));
 
                     // Detect Plan/Type Column
-                    const planIndex = headers.findIndex(h => h.includes('PLAN') || h.includes('TIPO') || h.includes('ESTADO'));
+                    const planIndex = headers.findIndex(h => h && (h.includes('PLAN') || h.includes('TIPO') || h.includes('ESTADO')));
 
                     // Detect Description Column
-                    let descIndex = headers.findIndex(h => h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE'));
+                    let descIndex = headers.findIndex(h => h && (h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE')));
 
                     // Fallback: Check the row ABOVE the header (common in some templates)
                     if (descIndex === -1 && headerRowIdx > 0) {
-                        const aboveHeaders = worksheet[headerRowIdx - 1].map(h => norm(h));
-                        descIndex = aboveHeaders.findIndex(h => h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE'));
+                        const aboveHeaders = Array.from(worksheet[headerRowIdx - 1] || []).map(h => norm(h));
+                        descIndex = aboveHeaders.findIndex(h => h && (h.includes('DESC') || h.includes('ACTIVIDAD') || h.includes('TEMA') || h.includes('ITEM') || h.includes('ASPECTO') || h.includes('DETALLE')));
                     }
 
                     if (descIndex === -1) {
@@ -475,7 +475,7 @@ export default function ProgramPage() {
                     let lastDescription = "";
 
                     worksheet.slice(headerRowIdx + 1).forEach((row, rowIndex) => {
-                        const normalizedRow = row.map(c => norm(c));
+                        const normalizedRow = Array.from(row || []).map(c => norm(c));
 
                         // A) Filter out "Executed" rows
                         if (planIndex !== -1 && row[planIndex]) {
