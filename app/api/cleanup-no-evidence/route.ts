@@ -70,13 +70,6 @@ export async function GET() {
         `);
         cleanupLog.brigadista_records = briRes.rowCount;
 
-        // 10. RISSTMA
-        const risRes = await db.execute(`
-            DELETE FROM risstma_records 
-            WHERE (file_url IS NULL OR LENGTH(TRIM(file_url)) < 10)
-        `);
-        cleanupLog.risstma_records = risRes.rowCount;
-
         return NextResponse.json({ 
             success: true, 
             message: "Limpieza de registros sin evidencia completada.",
