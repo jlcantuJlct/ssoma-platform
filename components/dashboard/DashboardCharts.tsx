@@ -2364,11 +2364,11 @@ export function DashboardCharts({
                                     </select>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
-                                    <div className="flex items-end gap-1">
+                                    <div className="flex items-end gap-1" title="Sumatoria de (Participantes × Horas según tipo de capacitación)">
                                         <span className="text-2xl font-black text-white">{totalHHCMonth}</span>
                                         <span className="text-[9px] text-slate-500 mb-1">Horas</span>
                                     </div>
-                                    <div className="pt-1 border-t border-white/5">
+                                    <div className="pt-1 border-t border-white/5" title="(Total HHC / HHT del Mes) × 100">
                                         <span className="text-[10px] font-black text-emerald-400">Indice: {indiceHHCValue}%</span>
                                     </div>
                                 </div>
@@ -2398,7 +2398,7 @@ export function DashboardCharts({
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                                    <div className="flex items-center justify-between pt-1 border-t border-white/5" title="Suma de Empleados + Obreros">
                                         <span className="text-[9px] text-slate-400 font-bold uppercase">Total Trab:</span>
                                         <span className="text-[12px] font-black text-white">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
@@ -2427,7 +2427,7 @@ export function DashboardCharts({
                             </div>
 
                             {/* Card 5: % Mensual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between" title="(Ejecutado / Programado) × 100 - Datos del mes seleccionado">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
@@ -2439,7 +2439,7 @@ export function DashboardCharts({
                             </div>
 
                             {/* Card 6: % Anual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between" title="(Ejecutado / Programado) × 100 - Datos acumulados del año">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Capacitado Anual</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
