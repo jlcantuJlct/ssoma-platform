@@ -2350,20 +2350,8 @@ export function DashboardCharts({
                     <div className="flex flex-col gap-6 relative z-10">
                         {/* 1. KPIs RESUMEN */}
                         {/* 1. KPIs RESUMEN */}
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                            {/* Card 1: Meta */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Meta Anual</p>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-2xl font-black text-white">{complianceGoal}%</span>
-                                    <span className="text-[10px] text-slate-500 mb-1">Objetivo</span>
-                                </div>
-                                <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
-                                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-full" style={{ width: `${complianceGoal}%` }}></div>
-                                </div>
-                            </div>
-
-                            {/* Card 2: Total HHC & Indice */}
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                            {/* Card 1: Total HHC & Indice */}
                             <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
                                 <div className="flex justify-between items-start mb-1">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">Total HHC</p>
