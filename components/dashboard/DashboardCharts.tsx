@@ -2338,7 +2338,7 @@ export function DashboardCharts({
                                     key={ta                        {/* 1. KPIs RESUMEN */}
                         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4">
                             {/* Card 1: Total HHC & Indice */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2">
+                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-emerald-500/30 transition-all duration-300">
                                 <div className="flex justify-between items-start mb-1">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">Total HHC</p>
                                     <select
@@ -2350,18 +2350,30 @@ export function DashboardCharts({
                                     </select>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
-                                    <div className="flex items-end gap-1" title="Sumatoria de (Participantes × Horas según tipo de capacitación)">
+                                    <div className="flex items-end gap-1">
                                         <span className="text-3xl font-black text-white tracking-tighter">{totalHHCMonth}</span>
                                         <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Horas</span>
                                     </div>
-                                    <div className="pt-1 border-t border-white/5" title="(Total HHC / HHT del Mes) × 100">
+                                    <div className="pt-1 border-t border-white/5">
                                         <span className="text-[10px] font-black text-emerald-400">Indice: {indiceHHCValue}%</span>
                                     </div>
+                                </div>
+
+                                {/* Custom Tooltip */}
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
+                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md">
+                                        <p className="text-[8px] text-emerald-400 font-black uppercase tracking-wider mb-0.5">Fórmula de Cálculo</p>
+                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Σ (Participantes × Horas según capacitación)</p>
+                                        <div className="mt-1 pt-1 border-t border-white/5">
+                                            <p className="text-[9px] text-slate-400">Indice = (HHC / HHT) × 100</p>
+                                        </div>
+                                    </div>
+                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
                                 </div>
                             </div>
 
                             {/* Card 2: Dotación Personal (WIDE) */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
+                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3 hover:border-pink-500/30 transition-all duration-300">
                                 <div className="flex justify-between items-start">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">Dotación Personal</p>
                                     <div className="flex gap-2">
@@ -2386,7 +2398,7 @@ export function DashboardCharts({
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-0.5 mt-2">
-                                    <div className="flex items-end gap-1" title="Suma de Empleados + Obreros">
+                                    <div className="flex items-end gap-1">
                                         <span className="text-3xl font-black text-white tracking-tighter">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
@@ -2396,6 +2408,15 @@ export function DashboardCharts({
                                     <div className="pt-1 border-t border-white/5">
                                         <span className="text-[9px] text-slate-500 font-medium italic">Suma automática de dotación</span>
                                     </div>
+                                </div>
+
+                                {/* Custom Tooltip */}
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
+                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
+                                        <p className="text-[8px] text-pink-400 font-black uppercase tracking-wider mb-0.5">Cálculo de Personal</p>
+                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Suma de Empleados + Obreros registrados</p>
+                                    </div>
+                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
                                 </div>
                             </div>
 
@@ -2424,7 +2445,7 @@ export function DashboardCharts({
                             </div>
 
                             {/* Card 4: % Mensual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2" title="(Ejecutado / Programado) × 100 - Datos del mes seleccionado">
+                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-blue-500/30 transition-all duration-300">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
@@ -2433,10 +2454,19 @@ export function DashboardCharts({
                                 <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
                                     <div className="bg-emerald-500 h-full" style={{ width: `${monthlyIndex}%` }}></div>
                                 </div>
+
+                                {/* Custom Tooltip */}
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
+                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
+                                        <p className="text-[8px] text-blue-400 font-black uppercase tracking-wider mb-0.5">Indicador Mensual</p>
+                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">(Act. Ejecutadas / Act. Programadas) × 100</p>
+                                    </div>
+                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
+                                </div>
                             </div>
 
                             {/* Card 5: % Anual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2" title="(Ejecutado / Programado) × 100 - Datos acumulados del año">
+                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-purple-500/30 transition-all duration-300">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Capacitado Anual</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
@@ -2444,6 +2474,15 @@ export function DashboardCharts({
                                 </div>
                                 <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
                                     <div className="bg-purple-500 h-full" style={{ width: `${annualIndex}%` }}></div>
+                                </div>
+
+                                {/* Custom Tooltip */}
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
+                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
+                                        <p className="text-[8px] text-purple-400 font-black uppercase tracking-wider mb-0.5">Indicador Anual</p>
+                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Promedio acumulado de cumplimiento del año</p>
+                                    </div>
+                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
                                 </div>
                             </div>
                         </div>
