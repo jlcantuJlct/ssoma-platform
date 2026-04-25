@@ -2096,21 +2096,12 @@ export function DashboardCharts({
                 <div className="flex flex-col gap-6 animate-in fade-in zoom-in duration-500">
                     {/* 1. TOP ROW: GAUGES + OVERALL SUMMARY */}
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                        {/* KPI VELOCÍMETRO - CAPACITACIÓN */}
-                        <div className="xl:col-span-1 h-full min-h-[280px]">
-                            <ComplianceGauge
-                                value={Number(annualIndex)}
-                                title="ÍNDICE DE CAPACITACIÓN"
-                                height={220}
-                            />
-                        </div>
-
-                        {/* KPI VELOCÍMETRO - INSPECCIONES (NUEVO) */}
-                        <div className="xl:col-span-1 h-full min-h-[280px]">
+                        {/* KPI VELOCÍMETRO - INSPECCIONES (ENLARGED) */}
+                        <div className="xl:col-span-2 h-full min-h-[300px] bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-slate-700/50 p-6 shadow-2xl">
                             <ComplianceGauge
                                 value={inspectionIndex}
-                                title="AVANCE DE INSPECCIONES"
-                                height={220}
+                                title="AVANCE GLOBAL DE INSPECCIONES"
+                                height={240}
                             />
                         </div>
 
@@ -2496,33 +2487,6 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 5: % Anual (PURPLE) */}
-                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-purple-500/5">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
-                                        <Award size={12} />
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">% Anual</p>
-                                </div>
-                                <div className="mt-4">
-                                    <div className="flex items-end gap-2">
-                                        <span className={`text-5xl font-black tracking-tighter drop-shadow-md ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
-                                        <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">{currentYear}</span>
-                                    </div>
-                                    <div className="w-full bg-slate-950 h-2 mt-4 rounded-full overflow-hidden border border-white/5 p-[1px]">
-                                        <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full transition-all duration-1000 rounded-full" style={{ width: `${annualIndex}%` }}></div>
-                                    </div>
-                                </div>
-
-                                {/* Tooltip */}
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
-                                    <div className="bg-slate-950/95 border border-purple-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
-                                        <p className="text-[9px] text-purple-400 font-black uppercase tracking-widest mb-1">Cumplimiento Acumulado</p>
-                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">Promedio global del Programa de Capacitación</p>
-                                    </div>
-                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-purple-500/30 rotate-45 mx-auto -mt-1.5"></div>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="flex flex-col xl:flex-row gap-6 items-start">

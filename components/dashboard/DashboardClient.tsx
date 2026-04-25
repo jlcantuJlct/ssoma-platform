@@ -771,6 +771,20 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     CONTROL SCSST
                 </button>
 
+                {/* NEW: HHC Control Button */}
+                <button
+                    onClick={() => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set('view', 'control_hhc');
+                        router.push(`?${params.toString()}`);
+                        setShowAnalytics(true);
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20 border border-indigo-400/20"
+                >
+                    <Clock size={16} />
+                    CONTROL HHC
+                </button>
+
                 {/* Report Tools Button */}
                 <button
                     onClick={() => setShowReportTools(true)}
