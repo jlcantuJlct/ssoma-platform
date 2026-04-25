@@ -33,7 +33,8 @@ import {
     Image as ImageIcon,
     TrendingUp,
     Wrench,
-    Leaf
+    Leaf,
+    Clock
 } from "lucide-react";
 import { ReportCommandCenter } from "./ReportCommandCenter";
 
