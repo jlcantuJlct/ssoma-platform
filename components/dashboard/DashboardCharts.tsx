@@ -1802,50 +1802,102 @@ export function DashboardCharts({
         return monthlyData;
     };
 
-    // Calculate overall achievement by area based on OBJECTIVES GROUPS (DYNAMIC)
+    // Helper: filter records by month or all year
+    const matchesMonth = (dateStr: string) => {
+        const m = getMonthFromDateStr(dateStr);
+        return currentMonth === -1 ? m >= 0 : m === currentMonth;
+    };
+
+    // Count ProgramData items for given objIds filtered by month
+    const countProgramItems = (objIds: string[]) =>
+        objIds.reduce((sum, id) =>
+            sum + (programData[id] || []).filter((item: any) => matchesMonth(item.date)).length
+        , 0);
+
+    // Count real records filtered by month (with optional predicate)
+    const countRecords = (records: any[], pred?: (r: any) => boolean) =>
+        records.filter(r => matchesMonth(r.date) && (!pred || pred(r))).length;
+
+    // Calculate overall achievement by area using programData + real records
+    // ─── SEGURIDAD: OBJ01+OBJ02+OBJ03+OBJ04 + SEG05(obj10)+SEG06(obj11) + RISSTMA + Desvío
+    // ─── SALUD:     OBJ05(obj5) + SEG01(obj6) + SEG02(obj7)
+    // ─── AMBIENTE:  SEG03(obj8) + SEG04(obj9)
     const calculateOverallAchievement = () => {
-        const areas = { 
-            safety: { plan: 0, exec: 0 }, 
-            health: { plan: 0, exec: 0 }, 
-            environment: { plan: 0, exec: 0 } 
-        };
+        // Months to add for fixed-plan tools (RISSTMA, Desvío = 1 P per month)
+        const fixedMonths = currentMonth === -1 ? 12 : 1;
 
-        activities.forEach(act => {
-            const areaKey = act.managementArea as 'safety' | 'health' | 'environment' || 'safety';
-            if (!areas[areaKey]) return;
+        // ── SEGURIDAD ────────────────────────────────────────────────────────
+        const safetyP =
+            countProgramItems(['obj1', 'obj2', 'obj3', 'obj4', 'obj10', 'obj11'])
+            + fixedMonths   // RISSTMA: 1 P por mes
+            + fixedMonths;  // Desvío:  1 P por mes
 
-            if (currentMonth === -1) {
-                // Anual: Sumar todos los meses
-                areas[areaKey].plan += (act.data?.plan?.reduce((a, b) => a + (Number(b) || 0), 0) || 0);
-                areas[areaKey].exec += (act.data?.executed?.reduce((a, b) => a + (Number(b) || 0), 0) || 0);
-            } else {
-                // Mensual: Solo el mes seleccionado
-                areas[areaKey].plan += (Number(act.data?.plan?.[currentMonth]) || 0);
-                areas[areaKey].exec += (Number(act.data?.executed?.[currentMonth]) || 0);
-            }
-        });
+        const safetyE =
+            // OBJ01: evidenceRecords SCSST
+            countRecords(evidenceRecords, r => (r.objective || '').toLowerCase().includes('scsst') || (r.objective || '').includes('01'))
+            // OBJ02: Capacitación → HHC
+            + countRecords(hhcRecords)
+            // OBJ03: Inspecciones Seguridad
+            + countRecords(executedInspections, r => {
+                const t = (r.inspectionType || '').toLowerCase();
+                return !t.includes('salud') && !t.includes('ambiente') && !t.includes('health') && !t.includes('enviro');
+            })
+            // OBJ04: ya contado en detourRecords abajo (no duplicar con desvio)
+            // SEG05: Simulacros
+            + countRecords(simulacroRecords)
+            // SEG06: Brigadistas
+            + countRecords(brigadistaRecords)
+            // RISSTMA: cada archivo subido = 1 E
+            + countRecords(risstmaRecords)
+            // Desvío: cada registro = 1 E
+            + countRecords(detourRecords);
+
+        // ── SALUD ────────────────────────────────────────────────────────────
+        const healthP = countProgramItems(['obj5', 'obj6', 'obj7']);
+        const healthE =
+            // OBJ05: EMO → evidenceRecords EMO
+            countRecords(evidenceRecords, r => (r.type || r.category || '').toLowerCase().includes('emo'))
+            // SEG01: Inspecciones Salud
+            + countRecords(executedInspections, r => {
+                const t = (r.inspectionType || '').toLowerCase();
+                return t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health');
+            })
+            // SEG02: Formaciones Salud → HHC area=salud
+            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('salud'));
+
+        // ── MEDIO AMBIENTE ───────────────────────────────────────────────────
+        const envP = countProgramItems(['obj8', 'obj9']);
+        const envE =
+            // SEG03: Inspecciones Ambiente + PMA
+            countRecords(executedInspections, r => {
+                const t = (r.inspectionType || '').toLowerCase();
+                return t.includes('ambiente') || t.includes('environment') || t.includes('ambiental');
+            })
+            + countRecords(pmaRecords)
+            // SEG04: Formaciones Ambiente → HHC area=ambiente
+            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('ambiente'));
 
         return [
             {
                 name: 'Seguridad',
-                value: areas.safety.plan > 0 ? Math.round((areas.safety.exec / areas.safety.plan) * 100) : (areas.safety.exec > 0 ? 100 : 0),
+                value: safetyP > 0 ? Math.min(100, Math.round((safetyE / safetyP) * 100)) : (safetyE > 0 ? 100 : 0),
                 color: '#10b981',
-                plan: areas.safety.plan,
-                exec: areas.safety.exec
+                plan: safetyP,
+                exec: safetyE
             },
             {
                 name: 'Salud',
-                value: areas.health.plan > 0 ? Math.round((areas.health.exec / areas.health.plan) * 100) : (areas.health.exec > 0 ? 100 : 0),
+                value: healthP > 0 ? Math.min(100, Math.round((healthE / healthP) * 100)) : (healthE > 0 ? 100 : 0),
                 color: '#ec4899',
-                plan: areas.health.plan,
-                exec: areas.health.exec
+                plan: healthP,
+                exec: healthE
             },
             {
                 name: 'Medio Ambiente',
-                value: areas.environment.plan > 0 ? Math.round((areas.environment.exec / areas.environment.plan) * 100) : (areas.environment.exec > 0 ? 100 : 0),
+                value: envP > 0 ? Math.min(100, Math.round((envE / envP) * 100)) : (envE > 0 ? 100 : 0),
                 color: '#3b82f6',
-                plan: areas.environment.plan,
-                exec: areas.environment.exec
+                plan: envP,
+                exec: envE
             }
         ];
     };
