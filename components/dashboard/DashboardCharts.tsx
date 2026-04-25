@@ -2313,7 +2313,7 @@ export function DashboardCharts({
             )}
             {/* INDICADORES DE GESTIÓN (PERSONAL & HHC AVANZADO) */}
             {mode === 'hhc' && (
-                <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-700 relative overflow-hidden">
+                <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-700 relative">
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
 
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 relative z-10 border-b border-white/5 pb-4">
@@ -2323,8 +2323,13 @@ export function DashboardCharts({
                             </div>
                             <div>
                                 <h3 className="text-lg font-black text-white">Centro de Control HHC</h3>
-                                <p className="text-xs                        {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4">
+                                <p className="text-xs text-slate-400 font-medium">Gestión de Horas Hombre Capacitadas e Indicadores</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4 relative z-10">
                             
                             {/* Card 1: Total HHC (EMERALD) */}
                             <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-emerald-500/5">
@@ -2355,7 +2360,7 @@ export function DashboardCharts({
                                 </div>
 
                                 {/* Tooltip */}
-                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
                                     <div className="bg-slate-950/95 border border-emerald-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10">
                                         <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mb-1">Cálculo de Capacitación</p>
                                         <p className="text-[11px] text-white font-medium whitespace-nowrap">Σ (Personal × Horas por Tipo)</p>
@@ -2410,7 +2415,7 @@ export function DashboardCharts({
                                 </div>
 
                                 {/* Tooltip */}
-                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
                                     <div className="bg-slate-950/95 border border-pink-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
                                         <p className="text-[9px] text-pink-400 font-black uppercase tracking-widest mb-1">Población Laboral</p>
                                         <p className="text-[11px] text-white font-medium whitespace-nowrap">Empleados + Obreros registrados en el mes</p>
@@ -2454,7 +2459,7 @@ export function DashboardCharts({
                                 </div>
 
                                 {/* Tooltip */}
-                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
                                     <div className="bg-slate-950/95 border border-cyan-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
                                         <p className="text-[9px] text-cyan-400 font-black uppercase tracking-widest mb-1">Cálculo de HHT</p>
                                         <p className="text-[11px] text-white font-medium whitespace-nowrap">Horas Hombre Trabajadas totales en el proyecto</p>
@@ -2482,7 +2487,7 @@ export function DashboardCharts({
                                 </div>
 
                                 {/* Tooltip */}
-                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
                                     <div className="bg-slate-950/95 border border-blue-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
                                         <p className="text-[9px] text-blue-400 font-black uppercase tracking-widest mb-1">Avance del Mes</p>
                                         <p className="text-[11px] text-white font-medium whitespace-nowrap">(Ejecutado / Programado) × 100</p>
@@ -2510,7 +2515,7 @@ export function DashboardCharts({
                                 </div>
 
                                 {/* Tooltip */}
-                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-90 group-hover:scale-100 group-hover:-translate-y-2">
                                     <div className="bg-slate-950/95 border border-purple-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
                                         <p className="text-[9px] text-purple-400 font-black uppercase tracking-widest mb-1">Cumplimiento Acumulado</p>
                                         <p className="text-[11px] text-white font-medium whitespace-nowrap">Promedio global del Programa de Capacitación</p>
