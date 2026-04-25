@@ -2404,8 +2404,15 @@ export function DashboardCharts({
                                             />
                                         </div>
                                     </div>
-                                    <div className="mt-1 pt-1 border-t border-white/5">
+                                    <div className="mt-1 pt-1 border-t border-white/5 flex justify-between items-center">
                                         <span className="text-[9px] font-black text-blue-400">Indice: {indiceHHCValue}%</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[7px] text-slate-500 font-bold uppercase">Total Trab:</span>
+                                            <span className="text-[10px] font-black text-white">
+                                                {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
+                                                 (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
