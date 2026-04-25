@@ -2323,166 +2323,199 @@ export function DashboardCharts({
                             </div>
                             <div>
                                 <h3 className="text-lg font-black text-white">Centro de Control HHC</h3>
-                                <p className="text-xs text-slate-400 font-medium">Gestión de Horas Hombre Capacitadas e Indicadores</p>
-                            </div>
-                        </div>
-
-                        <div className="flex bg-slate-950/50 p-1 rounded-xl border border-slate-700">
-                            {[
-                                { id: 'todos', label: 'TODOS', color: 'text-white' },
-                                { id: 'seguridad', label: 'SEGURIDAD', color: 'text-emerald-400' },
-                                { id: 'salud', label: 'SALUD', color: 'text-pink-400' },
-                                { id: 'ambiente', label: 'MEDIO AMBIENTE', color: 'text-blue-400' }
-                            ].map(tab => (
-                                <button
-                                    key={ta                        {/* 1. KPIs RESUMEN */}
+                                <p className="text-xs                        {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
                         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4">
-                            {/* Card 1: Total HHC & Indice */}
-                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-emerald-500/30 transition-all duration-300">
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Total HHC</p>
+                            
+                            {/* Card 1: Total HHC (EMERALD) */}
+                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-emerald-500/5">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400">
+                                            <Clock size={12} />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Total HHC</p>
+                                    </div>
                                     <select
                                         value={hhcMonthFilter}
                                         onChange={(e) => setHhcMonthFilter(Number(e.target.value))}
-                                        className="bg-slate-900 border border-slate-700 text-[8px] text-white rounded px-1 py-0.5 outline-none focus:border-emerald-500"
+                                        className="bg-slate-950 border border-slate-800 text-[8px] text-emerald-400 font-bold rounded-lg px-1.5 py-0.5 outline-none focus:border-emerald-500 cursor-pointer"
                                     >
                                         {MONTHS.map((m, i) => <option key={i} value={i}>{m.substring(0, 3).toUpperCase()}</option>)}
                                     </select>
                                 </div>
-                                <div className="flex flex-col gap-0.5">
-                                    <div className="flex items-end gap-1">
-                                        <span className="text-3xl font-black text-white tracking-tighter">{totalHHCMonth}</span>
+                                <div className="mt-4">
+                                    <div className="flex items-end gap-1.5">
+                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">{totalHHCMonth}</span>
                                         <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Horas</span>
                                     </div>
-                                    <div className="pt-1 border-t border-white/5">
-                                        <span className="text-[10px] font-black text-emerald-400">Indice: {indiceHHCValue}%</span>
+                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-tight">Indice: {indiceHHCValue}%</span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                     </div>
                                 </div>
 
-                                {/* Custom Tooltip */}
-                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
-                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md">
-                                        <p className="text-[8px] text-emerald-400 font-black uppercase tracking-wider mb-0.5">Fórmula de Cálculo</p>
-                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Σ (Participantes × Horas según capacitación)</p>
-                                        <div className="mt-1 pt-1 border-t border-white/5">
-                                            <p className="text-[9px] text-slate-400">Indice = (HHC / HHT) × 100</p>
-                                        </div>
+                                {/* Tooltip */}
+                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                    <div className="bg-slate-950/95 border border-emerald-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10">
+                                        <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest mb-1">Cálculo de Capacitación</p>
+                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">Σ (Personal × Horas por Tipo)</p>
+                                        <p className="text-[9px] text-slate-500 mt-1 border-t border-white/5 pt-1">Eficiencia: (HHC / HHT) × 100</p>
                                     </div>
-                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
+                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-emerald-500/30 rotate-45 mx-auto -mt-1.5"></div>
                                 </div>
                             </div>
 
-                            {/* Card 2: Dotación Personal (WIDE) */}
-                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3 hover:border-pink-500/30 transition-all duration-300">
+                            {/* Card 2: Dotación Personal (PINK) */}
+                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-pink-500/50 transition-all duration-300 xl:col-span-3 flex flex-col justify-between shadow-2xl shadow-pink-500/5">
                                 <div className="flex justify-between items-start">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Dotación Personal</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-pink-500/10 rounded-lg text-pink-400">
+                                            <Users size={12} />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Dotación</p>
+                                    </div>
                                     <div className="flex gap-2">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[7px] text-slate-500 font-bold">EMP:</span>
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded-lg border border-white/5">
+                                            <span className="text-[8px] text-pink-500 font-black">E:</span>
                                             <input
                                                 type="number"
                                                 value={monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('empleados', e.target.value)}
-                                                className="w-10 bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-pink-400 font-bold outline-none focus:border-pink-500"
+                                                className="w-10 bg-transparent text-[10px] text-white font-black outline-none"
                                             />
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[7px] text-slate-500 font-bold">OBR:</span>
+                                        <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded-lg border border-white/5">
+                                            <span className="text-[8px] text-blue-500 font-black">O:</span>
                                             <input
                                                 type="number"
                                                 value={monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('obreros', e.target.value)}
-                                                className="w-10 bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-blue-400 font-bold outline-none focus:border-blue-500"
+                                                className="w-10 bg-transparent text-[10px] text-white font-black outline-none"
                                             />
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-0.5 mt-2">
-                                    <div className="flex items-end gap-1">
-                                        <span className="text-3xl font-black text-white tracking-tighter">
+                                <div className="mt-4">
+                                    <div className="flex items-end gap-1.5">
+                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
                                         </span>
                                         <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Total Trab.</span>
                                     </div>
-                                    <div className="pt-1 border-t border-white/5">
-                                        <span className="text-[9px] text-slate-500 font-medium italic">Suma automática de dotación</span>
+                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-pink-400 uppercase tracking-tight">Suma de Personal</span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
                                     </div>
                                 </div>
 
-                                {/* Custom Tooltip */}
-                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
-                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
-                                        <p className="text-[8px] text-pink-400 font-black uppercase tracking-wider mb-0.5">Cálculo de Personal</p>
-                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Suma de Empleados + Obreros registrados</p>
+                                {/* Tooltip */}
+                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                    <div className="bg-slate-950/95 border border-pink-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
+                                        <p className="text-[9px] text-pink-400 font-black uppercase tracking-widest mb-1">Población Laboral</p>
+                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">Empleados + Obreros registrados en el mes</p>
                                     </div>
-                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
+                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-pink-500/30 rotate-45 mx-auto -mt-1.5"></div>
                                 </div>
                             </div>
 
-                            {/* Card 3: HHT Mensual (WIDE) */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase">HHT Mensual</p>
-                                <div className="flex flex-col gap-0.5 mt-2">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-3xl font-black text-emerald-400 tracking-tighter">
+                            {/* Card 3: HHT Mensual (CYAN) */}
+                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 xl:col-span-3 flex flex-col justify-between shadow-2xl shadow-cyan-500/5">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-400">
+                                            <TrendingUp size={12} />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">HHT del Mes</p>
+                                    </div>
+                                    <div className="bg-slate-950/50 px-2 py-1 rounded-lg border border-cyan-500/20">
+                                        <span className="text-[8px] text-cyan-400 font-black">EDITAR VALOR</span>
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">
                                             {Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0}
                                         </span>
                                         <div className="flex-1">
                                             <input
                                                 type="number"
-                                                placeholder="Editar HHT..."
+                                                placeholder="Ingresar HHT..."
                                                 value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
-                                                className="w-full bg-slate-900/50 border border-emerald-500/30 rounded-lg px-2 py-1 text-[10px] text-white font-bold outline-none focus:border-emerald-500"
+                                                className="w-full bg-slate-950/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-cyan-400 font-black outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
                                             />
                                         </div>
                                     </div>
-                                    <div className="pt-1 border-t border-white/5">
-                                        <span className="text-[9px] text-slate-500 font-medium italic">H. Hombre Trabajadas del mes</span>
+                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-cyan-400 uppercase tracking-tight">Base para Índices</span>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce"></div>
                                     </div>
+                                </div>
+
+                                {/* Tooltip */}
+                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                    <div className="bg-slate-950/95 border border-cyan-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
+                                        <p className="text-[9px] text-cyan-400 font-black uppercase tracking-widest mb-1">Cálculo de HHT</p>
+                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">Horas Hombre Trabajadas totales en el proyecto</p>
+                                    </div>
+                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-cyan-500/30 rotate-45 mx-auto -mt-1.5"></div>
                                 </div>
                             </div>
 
-                            {/* Card 4: % Mensual */}
-                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-blue-500/30 transition-all duration-300">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado</p>
-                                <div className="flex items-end gap-2">
-                                    <span className={`text-2xl font-black ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
-                                    <span className="text-[10px] text-slate-500 mb-1">{MONTHS[hhcMonthFilter].substring(0,3).toUpperCase()}</span>
+                            {/* Card 4: % Mensual (BLUE) */}
+                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-blue-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-blue-500/5">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
+                                        <Target size={12} />
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">% Mensual</p>
                                 </div>
-                                <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
-                                    <div className="bg-emerald-500 h-full" style={{ width: `${monthlyIndex}%` }}></div>
+                                <div className="mt-4">
+                                    <div className="flex items-end gap-1.5">
+                                        <span className={`text-3xl font-black tracking-tighter ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
+                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">{MONTHS[hhcMonthFilter].substring(0,3)}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-950 h-1.5 mt-3 rounded-full overflow-hidden border border-white/5">
+                                        <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-full transition-all duration-1000" style={{ width: `${monthlyIndex}%` }}></div>
+                                    </div>
                                 </div>
 
-                                {/* Custom Tooltip */}
-                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
-                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
-                                        <p className="text-[8px] text-blue-400 font-black uppercase tracking-wider mb-0.5">Indicador Mensual</p>
-                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">(Act. Ejecutadas / Act. Programadas) × 100</p>
+                                {/* Tooltip */}
+                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                    <div className="bg-slate-950/95 border border-blue-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
+                                        <p className="text-[9px] text-blue-400 font-black uppercase tracking-widest mb-1">Avance del Mes</p>
+                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">(Ejecutado / Programado) × 100</p>
                                     </div>
-                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
+                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-blue-500/30 rotate-45 mx-auto -mt-1.5"></div>
                                 </div>
                             </div>
 
-                            {/* Card 5: % Anual */}
-                            <div className="group relative bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2 hover:border-purple-500/30 transition-all duration-300">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Capacitado Anual</p>
-                                <div className="flex items-end gap-2">
-                                    <span className={`text-2xl font-black ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
-                                    <span className="text-[10px] text-slate-500 mb-1">{currentYear}</span>
+                            {/* Card 5: % Anual (PURPLE) */}
+                            <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-purple-500/5">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
+                                        <Award size={12} />
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">% Anual</p>
                                 </div>
-                                <div className="w-full bg-slate-700 h-1 mt-2 rounded-full overflow-hidden">
-                                    <div className="bg-purple-500 h-full" style={{ width: `${annualIndex}%` }}></div>
+                                <div className="mt-4">
+                                    <div className="flex items-end gap-1.5">
+                                        <span className={`text-3xl font-black tracking-tighter ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
+                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">{currentYear}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-950 h-1.5 mt-3 rounded-full overflow-hidden border border-white/5">
+                                        <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full transition-all duration-1000" style={{ width: `${annualIndex}%` }}></div>
+                                    </div>
                                 </div>
 
-                                {/* Custom Tooltip */}
-                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50">
-                                    <div className="bg-slate-900/95 border border-slate-700 px-3 py-2 rounded-xl shadow-2xl backdrop-blur-md text-center">
-                                        <p className="text-[8px] text-purple-400 font-black uppercase tracking-wider mb-0.5">Indicador Anual</p>
-                                        <p className="text-[10px] text-white font-medium whitespace-nowrap">Promedio acumulado de cumplimiento del año</p>
+                                {/* Tooltip */}
+                                <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none z-50 scale-95 group-hover:scale-100">
+                                    <div className="bg-slate-950/95 border border-purple-500/30 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl ring-1 ring-white/10 text-center">
+                                        <p className="text-[9px] text-purple-400 font-black uppercase tracking-widest mb-1">Cumplimiento Acumulado</p>
+                                        <p className="text-[11px] text-white font-medium whitespace-nowrap">Promedio global del Programa de Capacitación</p>
                                     </div>
-                                    <div className="w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45 mx-auto -mt-1"></div>
+                                    <div className="w-3 h-3 bg-slate-950 border-b border-r border-purple-500/30 rotate-45 mx-auto -mt-1.5"></div>
                                 </div>
                             </div>
                         </div>
