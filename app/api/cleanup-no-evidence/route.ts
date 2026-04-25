@@ -59,14 +59,14 @@ export async function GET() {
         // 8. Simulacro
         const simRes = await db.execute(`
             DELETE FROM simulacro_records 
-            WHERE (evidence_url IS NULL OR LENGTH(TRIM(evidence_url)) < 10)
+            WHERE (file_url IS NULL OR LENGTH(TRIM(file_url)) < 10)
         `);
         cleanupLog.simulacro_records = simRes.rowCount;
 
         // 9. Brigadista
         const briRes = await db.execute(`
             DELETE FROM brigadista_records 
-            WHERE (evidence_url IS NULL OR LENGTH(TRIM(evidence_url)) < 10)
+            WHERE (file_url IS NULL OR LENGTH(TRIM(file_url)) < 10)
         `);
         cleanupLog.brigadista_records = briRes.rowCount;
 
