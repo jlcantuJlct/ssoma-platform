@@ -211,6 +211,26 @@ export function DashboardCharts({
         } catch { return -1; }
     };
 
+    // Helper: Verify if a record has at least one evidence file (URL or non-empty array)
+    const hasEvidence = (r: any): boolean => {
+        if (!r) return false;
+        // Check for PDF fields
+        const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url;
+        if (pdf && typeof pdf === 'string' && pdf.trim().length > 10) return true;
+        
+        // Check for Image fields (arrays or strings)
+        const imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl;
+        if (imgs) {
+            if (Array.isArray(imgs) && imgs.length > 0) return true;
+            if (typeof imgs === 'string' && imgs.trim().length > 10) return true;
+        }
+
+        // Specific field for some modules like Manifiesto
+        if (r.files && Array.isArray(r.files) && r.files.length > 0) return true;
+
+        return false;
+    };
+
     // ── FUZZY MATCHING HELPERS (identical to Programa Anual getMatrixData logic) ──
     const normStr = (s: string) =>
         (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -272,7 +292,8 @@ export function DashboardCharts({
             records.forEach(r => {
                 const m = getMonthFromDateStr(r.date);
                 if (m < 0 || m > 11) return;
-                if (matcher(searchFn(r))) monthlyData[m].E++;
+                // Only count if it matches the objective AND has evidence
+                if (matcher(searchFn(r)) && hasEvidence(r)) monthlyData[m].E++;
             });
         };
 
@@ -1837,7 +1858,7 @@ export function DashboardCharts({
 
     // Count real records filtered by month (with optional predicate)
     const countRecords = (records: any[], pred?: (r: any) => boolean) =>
-        records.filter(r => matchesMonth(r.date) && (!pred || pred(r))).length;
+        records.filter(r => matchesMonth(r.date) && hasEvidence(r) && (!pred || pred(r))).length;
 
     // Calculate overall achievement by area using programData + real records
     // ─── SEGURIDAD: OBJ01+OBJ02+OBJ03+OBJ04 + SEG05(obj10)+SEG06(obj11) + RISSTMA + Desvío

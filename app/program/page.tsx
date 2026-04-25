@@ -734,6 +734,26 @@ export default function ProgramPage() {
             return isNaN(d.getTime()) ? -1 : d.getMonth();
         };
 
+        // Helper: Verificar si un registro tiene evidencia válida (archivo cargado)
+        const hasEvidence = (r: any): boolean => {
+            if (!r) return false;
+            // Campos de PDF
+            const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url;
+            if (pdf && typeof pdf === 'string' && pdf.trim().length > 10) return true;
+            
+            // Campos de Imágenes (arrays o strings)
+            const imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl;
+            if (imgs) {
+                if (Array.isArray(imgs) && imgs.length > 0) return true;
+                if (typeof imgs === 'string' && imgs.trim().length > 10) return true;
+            }
+
+            // Campo específico para Manifiestos o arrays genéricos
+            if (r.files && Array.isArray(r.files) && r.files.length > 0) return true;
+
+            return false;
+        };
+
         // Pre-initialize preferred order
         const baseAreas = ['SEGURIDAD', 'MEDIO AMBIENTE', 'SALUD'];
         baseAreas.forEach(a => grouped[a] = {});
@@ -807,7 +827,7 @@ export default function ProgramPage() {
         // 2. Map Executed Inspections
         executedInspections.forEach(exec => {
             const m = getMonthFromStr(exec.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(exec)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, exec.inspectionType);
@@ -822,7 +842,7 @@ export default function ProgramPage() {
         // 3. Map HHC Records
         hhcRecords.forEach(hhc => {
             const m = getMonthFromStr(hhc.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(hhc)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, hhc.tema);
@@ -848,7 +868,7 @@ export default function ProgramPage() {
             if (!isMatch) return;
 
             const m = getMonthFromStr(ev.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(ev)) return;
 
             for (const areaKey in grouped) {
                 // If it's EMO, we try to match "EMO" keyword if no direct match
@@ -867,7 +887,7 @@ export default function ProgramPage() {
             if (targetObjId !== 'obj-8') return; 
 
             const m = getMonthFromStr(pma.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(pma)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, pma.category || pma.description);
@@ -882,7 +902,7 @@ export default function ProgramPage() {
         // 6. Map ATS Records (OBJ 02/03/04 usually)
         atsRecords.forEach(ats => {
             const m = getMonthFromStr(ats.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(ats)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, 'ATS' || ats.location);
@@ -897,7 +917,7 @@ export default function ProgramPage() {
         // 7. Map PETAR Records
         petarRecords.forEach(petar => {
             const m = getMonthFromStr(petar.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(petar)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, petar.type || 'PETAR');
@@ -912,7 +932,7 @@ export default function ProgramPage() {
         // 8. Map Desvío Records
         detourRecords.forEach(det => {
             const m = getMonthFromStr(det.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(det)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, det.category || 'Desvío');
@@ -929,7 +949,7 @@ export default function ProgramPage() {
             if (targetObjId !== 'obj10') return;
 
             const m = getMonthFromStr(sim.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(sim)) return;
 
             for (const areaKey in grouped) {
                 // Fuzzy match for drill type
@@ -947,7 +967,7 @@ export default function ProgramPage() {
             if (targetObjId !== 'obj11') return;
 
             const m = getMonthFromStr(bri.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(bri)) return;
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, bri.brigadistaType || 'Brigadista');
@@ -963,7 +983,7 @@ export default function ProgramPage() {
         risstmaRecords.forEach(ris => {
             if (!ris || !ris.date) return;
             const m = getMonthFromStr(ris.date);
-            if (m < 0 || m > 11) return;
+            if (m < 0 || m > 11 || !hasEvidence(ris)) return;
 
             for (const areaKey in grouped) {
                 // In Folder 03, we often have items like "Entrega de RISST" or "Declaración Jurada"

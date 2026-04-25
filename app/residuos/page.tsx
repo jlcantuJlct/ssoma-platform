@@ -37,6 +37,7 @@ type WasteWeightRecord = {
     weight: number;
     location: string;
     category: 'Peligroso' | 'No Peligroso' | 'RAEE';
+    files: string[];
 };
 
 const WASTE_CATEGORIES = [
@@ -62,6 +63,9 @@ export default function WasteManagementPage() {
         weight: '',
         location: ''
     });
+    const [files, setFiles] = useState<string[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -109,6 +113,45 @@ export default function WasteManagementPage() {
     }, [records]);
 
     // --- HANDLERS ---
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const inputFiles = e.target.files;
+        if (!inputFiles) return;
+
+        if (!form.wasteType || !form.location) {
+            alert("⚠️ Por favor completa el Tipo de Residuo y el lugar antes de subir la evidencia.");
+            e.target.value = '';
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+            const { uploadEvidence } = await import("@/lib/uploadClient");
+            const uploadedUrls: string[] = [];
+            const filesArray = Array.from(inputFiles);
+
+            for (const file of filesArray) {
+                const url = await uploadEvidence(
+                    file,
+                    'PMA',
+                    `PESAJE_${form.wasteType.replace(/\s+/g, '_')}`,
+                    form.date,
+                    user?.name || 'S/N',
+                    'pma',
+                    'medio_ambiente',
+                    form.location,
+                    'Pesaje de Residuos'
+                );
+                uploadedUrls.push(url);
+            }
+
+            setFiles(prev => [...prev, ...uploadedUrls]);
+        } catch (error: any) {
+            alert(`Error al subir: ${error.message}`);
+        } finally {
+            setIsUploading(false);
+            e.target.value = '';
+        }
+    };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const categoryInfo = WASTE_CATEGORIES.find(c => c.label === form.wasteType);
@@ -119,11 +162,13 @@ export default function WasteManagementPage() {
             wasteType: form.wasteType,
             weight: Number(form.weight),
             location: form.location,
-            category: (categoryInfo?.type as any) || 'No Peligroso'
+            category: (categoryInfo?.type as any) || 'No Peligroso',
+            files: files
         };
 
         setRecords(prev => [newRecord, ...prev]);
         setForm(prev => ({ ...prev, weight: '' }));
+        setFiles([]);
         alert("Pesaje registrado correctamente.");
     };
 
@@ -195,16 +240,32 @@ export default function WasteManagementPage() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Lugar / Sede</label>
-                                        <select value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required>
-                                            <option value="">Seleccionar Lugar...</option>
-                                            {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                        </select>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Foto de Ticket o Registro)</label>
+                                        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
+                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" multiple />
+                                            <div className="mx-auto w-10 h-10 bg-slate-950 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                <Plus className="text-slate-600 group-hover:text-emerald-500" size={20} />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">CLICK O ARRASTRAR PARA SUBIR</p>
+                                        </div>
                                     </div>
 
-                                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                        <Save size={18} /> Guardar Pesaje
+                                    {files.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800">
+                                            {files.map((f, i) => (
+                                                <div key={i} className="group/file relative w-12 h-12 rounded-lg overflow-hidden border border-slate-800">
+                                                    <img src={f} className="w-full h-full object-cover" />
+                                                    <button type="button" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-red-500/80 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <Trash2 size={14} className="text-white" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <button type="submit" disabled={isUploading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Pesaje</>}
                                     </button>
                                 </form>
                             </div>
@@ -299,6 +360,7 @@ export default function WasteManagementPage() {
                                                 <th className="pb-4">Residuo</th>
                                                 <th className="pb-4">Categoría</th>
                                                 <th className="pb-4">Sede / Lugar</th>
+                                                <th className="pb-4 text-center">Evidencia</th>
                                                 <th className="pb-4 text-right">Peso (kg)</th>
                                                 <th className="pb-4 text-right pr-4">Acciones</th>
                                             </tr>
@@ -318,6 +380,19 @@ export default function WasteManagementPage() {
                                                         </span>
                                                     </td>
                                                     <td className="py-4 text-xs text-slate-400">{r.location}</td>
+                                                    <td className="py-4">
+                                                        <div className="flex justify-center gap-1">
+                                                            {r.files && r.files.length > 0 ? (
+                                                                r.files.map((f, i) => (
+                                                                    <button key={i} onClick={() => setPreviewFile({url: f, type: 'image'})} className="w-8 h-8 rounded bg-slate-800 border border-slate-700 overflow-hidden hover:border-emerald-500 transition-colors">
+                                                                        <img src={f} className="w-full h-full object-cover" />
+                                                                    </button>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-[9px] text-slate-600 font-bold uppercase italic">Sin archivo</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td className="py-4 text-right text-sm font-mono font-black text-white">
                                                         {r.weight.toFixed(2)}
                                                     </td>
@@ -337,6 +412,23 @@ export default function WasteManagementPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Preview Modal */}
+            {previewFile && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm" onClick={() => setPreviewFile(null)}>
+                    <div className="relative max-w-4xl w-full flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+                        <img src={previewFile.url} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl border border-white/10" />
+                        <div className="flex gap-4">
+                            <a href={previewFile.url} download target="_blank" className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-all">
+                                Descargar Original
+                            </a>
+                            <button onClick={() => setPreviewFile(null)} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-xl font-bold transition-all">
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
