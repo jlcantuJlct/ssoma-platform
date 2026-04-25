@@ -121,9 +121,9 @@ export default function Sidebar() {
                         <SidebarItem icon={<Clipboard size={16} />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
-                        <SidebarItem icon={<ShieldCheck size={16} className="text-blue-400" />} label="06 Control de EPP" href="/epp" active={pathname === '/epp'} />
+                        <SidebarItem icon={<ShieldCheck size={16} className="text-blue-400" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
-                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="10 Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
@@ -136,13 +136,13 @@ export default function Sidebar() {
                             <>
                                 <SidebarItem
                                     icon={<FileText size={16} className="text-amber-500" />}
-                                    label="07 Informe del Mes"
+                                    label="Informe del Mes"
                                     href="/monthly-report"
                                     active={pathname === '/monthly-report'}
                                 />
                                 <SidebarItem
                                     icon={<ExternalLink size={16} className="text-cyan-500" />}
-                                    label="08 Comunicación con Cliente"
+                                    label="Comunicación con Cliente"
                                     href="/cliente"
                                     active={pathname === '/cliente'}
                                 />
