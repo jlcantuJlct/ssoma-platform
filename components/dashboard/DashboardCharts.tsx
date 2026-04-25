@@ -194,7 +194,7 @@ export function DashboardCharts({
         return categorizeActivitiesByObjective(activities);
     }, [activities]);
 
-    // Helper: get month index from a date string (YYYY-MM-DD or DD/MM/YYYY)
+    // Helper: parse month index (0-11) from YYYY-MM-DD or DD/MM/YYYY strings
     const getMonthFromDateStr = (dateStr: any): number => {
         if (!dateStr || typeof dateStr !== 'string') return -1;
         if (dateStr.includes('-')) {
@@ -211,24 +211,53 @@ export function DashboardCharts({
         } catch { return -1; }
     };
 
-    // Compute P/E per month for a given objective using the SAME data source as the Annual Program:
-    // - P = count of ProgramItems (programData[objId]) by month
-    // - E = count of real executed records by month, mapped to each objective
+    // ── FUZZY MATCHING HELPERS (identical to Programa Anual getMatrixData logic) ──
+    const normStr = (s: string) =>
+        (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const getWords = (s: string) => s.split(/\s+/).filter(w => w.length > 2);
+    const isWordSubset = (subset: string[], superset: string[]) =>
+        subset.every(sw => superset.some(pw => pw.includes(sw) || sw.includes(pw)));
+
+
+    // Build a fuzzy-matcher function for all descriptions of a given objective
+    const buildMatcher = (objId: string) => {
+        const list = (programData[objId] || []) as any[];
+        const descSet = new Set<string>(list.map((i: any) => i.description || '').filter(Boolean));
+        const cache: Record<string, { norm: string; words: string[] }> = {};
+        descSet.forEach(d => {
+            const dn = normStr(d);
+            cache[d] = { norm: dn, words: getWords(dn) };
+        });
+        return (searchStr: string): boolean => {
+            const sn = normStr(searchStr || '');
+            const sw = getWords(sn);
+            if (sw.length === 0) return false;
+            for (const d of descSet) {
+                const c = cache[d];
+                if (!c) continue;
+                if (c.norm === sn) return true;
+                if (c.words.length > 0 && (isWordSubset(c.words, sw) || isWordSubset(sw, c.words))) return true;
+            }
+            return false;
+        };
+    };
+
+    // Compute P/E per month using programData + fuzzy-matched real records
+    // E matches the EXACT same totals shown in the Programa Anual sidebar
     const getObjectiveMonthlyStats = (objId?: string) => {
         const monthlyData = Array(12).fill(0).map((_, i) => ({ name: MONTHS[i], P: 0, E: 0 }));
 
-        // ── PROGRAMADO (P): Count ProgramItems by month ──────────────────────────
         const normalizedId = objId
             ? (objId.includes('-') ? objId.replace('obj-', 'obj') : objId)
             : null;
 
+        // ── PROGRAMADO (P) ────────────────────────────────────────────────────
         if (normalizedId && programData[normalizedId]) {
-            programData[normalizedId].forEach((item: any) => {
+            (programData[normalizedId] as any[]).forEach((item: any) => {
                 const m = getMonthFromDateStr(item.date);
                 if (m >= 0 && m <= 11) monthlyData[m].P++;
             });
         } else if (!normalizedId) {
-            // No objId → sum ALL programData
             Object.values(programData).forEach((items: any) => {
                 (items as any[]).forEach((item: any) => {
                     const m = getMonthFromDateStr(item.date);
@@ -237,87 +266,69 @@ export function DashboardCharts({
             });
         }
 
-        // ── EJECUTADO (E): Count real records by month, mapped per objective ─────
-        const addE = (records: any[], monthFn: (r: any) => number, objFilter?: (r: any) => boolean) => {
+        // ── EJECUTADO (E) via fuzzy matching ──────────────────────────────────
+        // addFuzzyE: count records where the search string fuzzy-matches any programmed description
+        const addFuzzyE = (matcher: (s: string) => boolean, records: any[], searchFn: (r: any) => string) => {
             records.forEach(r => {
-                if (objFilter && !objFilter(r)) return;
-                const m = monthFn(r);
-                if (m >= 0 && m <= 11) monthlyData[m].E++;
+                const m = getMonthFromDateStr(r.date);
+                if (m < 0 || m > 11) return;
+                if (matcher(searchFn(r))) monthlyData[m].E++;
             });
         };
 
-        if (!normalizedId || normalizedId === 'obj1') {
-            // OBJ 01: SCSST → evidenceRecords with SCSST objective
-            addE(evidenceRecords, r => getMonthFromDateStr(r.date), r => {
-                const obj = (r.objective || '').toLowerCase();
-                return obj.includes('scsst') || obj.includes('01');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj2') {
-            // OBJ 02: Capacitación → hhcRecords
-            addE(hhcRecords, r => getMonthFromDateStr(r.date));
-        }
-        if (!normalizedId || normalizedId === 'obj3') {
-            // OBJ 03: Inspecciones Seguridad → executedInspections (safety)
-            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
-                const t = (r.inspectionType || r.area || '').toLowerCase();
-                return !t.includes('salud') && !t.includes('ambiente') && !t.includes('health') && !t.includes('enviro');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj4') {
-            // OBJ 04: Reporte A/C Inseguras → detourRecords
-            addE(detourRecords, r => getMonthFromDateStr(r.date));
-        }
-        if (!normalizedId || normalizedId === 'obj5') {
-            // OBJ 05: EMO → evidenceRecords EMO
-            addE(evidenceRecords, r => getMonthFromDateStr(r.date), r => {
-                const t = (r.type || r.category || '').toLowerCase();
-                return t.includes('emo');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj6') {
-            // SEG 01: Inspecciones Salud
-            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
-                const t = (r.inspectionType || '').toLowerCase();
-                return t.includes('salud') || t.includes('health') || t.includes('médico') || t.includes('medico');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj7') {
-            // SEG 02: Formaciones Salud → hhcRecords area=salud
-            addE(hhcRecords, r => getMonthFromDateStr(r.date), r => {
-                const a = (r.area || '').toLowerCase();
-                return a.includes('salud');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj8') {
-            // SEG 03: Inspecciones M. Ambiente → executedInspections ambiente + pmaRecords
-            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
-                const t = (r.inspectionType || '').toLowerCase();
-                return t.includes('ambiente') || t.includes('environment') || t.includes('ambiental');
-            });
-            addE(pmaRecords, r => getMonthFromDateStr(r.date));
-        }
-        if (!normalizedId || normalizedId === 'obj9') {
-            // SEG 04: Formaciones M. Ambiente → hhcRecords area=ambiente
-            addE(hhcRecords, r => getMonthFromDateStr(r.date), r => {
-                const a = (r.area || '').toLowerCase();
-                return a.includes('ambiente');
-            });
-        }
-        if (!normalizedId || normalizedId === 'obj10') {
-            // SEG 05: Simulacros
-            addE(simulacroRecords, r => getMonthFromDateStr(r.date));
-        }
-        if (!normalizedId || normalizedId === 'obj11') {
-            // SEG 06: Brigadistas
-            addE(brigadistaRecords, r => getMonthFromDateStr(r.date));
-        }
+        const objsToProcess = normalizedId
+            ? [normalizedId]
+            : ['obj1','obj2','obj3','obj4','obj5','obj6','obj7','obj8','obj9','obj10','obj11'];
+
+        objsToProcess.forEach(id => {
+            const match = buildMatcher(id);
+            switch (id) {
+                case 'obj1': // SCSST → evidenceRecords
+                    addFuzzyE(match, evidenceRecords, r => r.description || r.activity || r.type || '');
+                    break;
+                case 'obj2': // Capacitación → HHC (match by tema)
+                    addFuzzyE(match, hhcRecords, r => r.tema || '');
+                    break;
+                case 'obj3': // Inspecciones Seguridad → inspections + risstma
+                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
+                    addFuzzyE(match, risstmaRecords, r => r.documentType || 'RISSTMA');
+                    break;
+                case 'obj4': // A/C Inseguras → desvíos + ATS + PETAR
+                    addFuzzyE(match, detourRecords, r => r.category || 'Desvío');
+                    addFuzzyE(match, atsRecords, r => 'ATS');
+                    addFuzzyE(match, petarRecords, r => r.type || 'PETAR');
+                    break;
+                case 'obj5': // EMO → evidenceRecords
+                    addFuzzyE(match, evidenceRecords, r => r.description || r.type || r.category || '');
+                    break;
+                case 'obj6': // SEG01: Inspecciones Salud → inspections (fuzzy vs obj6 descriptions)
+                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
+                    break;
+                case 'obj7': // SEG02: Formaciones Salud → HHC
+                    addFuzzyE(match, hhcRecords, r => r.tema || '');
+                    break;
+                case 'obj8': // SEG03: Inspecciones Ambiente → inspections + PMA
+                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
+                    addFuzzyE(match, pmaRecords, r => r.category || r.description || '');
+                    break;
+                case 'obj9': // SEG04: Formaciones Ambiente → HHC
+                    addFuzzyE(match, hhcRecords, r => r.tema || '');
+                    break;
+                case 'obj10': // SEG05: Simulacros
+                    addFuzzyE(match, simulacroRecords, r => r.drillType || 'Simulacro');
+                    break;
+                case 'obj11': // SEG06: Brigadistas
+                    addFuzzyE(match, brigadistaRecords, r => r.brigadistaType || 'Brigadista');
+                    break;
+            }
+        });
 
         return monthlyData;
     };
 
 
     const calculateTrainingIndex = () => {
+
         const stats = getObjectiveMonthlyStats('obj2');
         const totalP = stats.reduce((acc, curr) => acc + curr.P, 0);
         const totalE = stats.reduce((acc, curr) => acc + curr.E, 0);
