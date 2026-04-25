@@ -1717,7 +1717,19 @@ export default function ProgramPage() {
                                                             const data = await res.json();
                                                             if (data.success) {
                                                                 alert(`✅ Registro redireccionado con éxito.`);
-                                                                window.location.reload(); 
+                                                                
+                                                                // Update local states instead of reload
+                                                                setHhcRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setExecutedInspections(prev => prev.filter(r => r.id !== rec.id));
+                                                                setEvidenceRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setPmaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setAtsRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setPetarRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setDetourRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setSimulacroRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setBrigadistaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                
+                                                                setSelectedRecords(prev => prev ? { ...prev, records: prev.records.filter(r => r.id !== rec.id) } : null);
                                                             } else {
                                                                 alert(`❌ Error: ${data.error}`);
                                                             }
@@ -1748,7 +1760,19 @@ export default function ProgramPage() {
                                                             const data = await res.json();
                                                             if (data.success) {
                                                                 alert(`🗑️ Registro eliminado correctamente.`);
-                                                                window.location.reload(); 
+                                                                
+                                                                // Update local states instead of reload
+                                                                setHhcRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setExecutedInspections(prev => prev.filter(r => r.id !== rec.id));
+                                                                setEvidenceRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setPmaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setAtsRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setPetarRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setDetourRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setSimulacroRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                setBrigadistaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                                
+                                                                setSelectedRecords(prev => prev ? { ...prev, records: prev.records.filter(r => r.id !== rec.id) } : null);
                                                             } else {
                                                                 alert(`❌ Error al eliminar: ${data.error}`);
                                                             }
