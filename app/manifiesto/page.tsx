@@ -146,7 +146,7 @@ export default function ManifestPage() {
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <FileText size={40} className="text-emerald-500" />
-                                10 Manifiesto de Residuos Peligrosos
+                                Manifiesto de Residuos Peligrosos
                             </h1>
                             <p className="text-slate-400 font-bold max-w-2xl">
                                 Gestión de manifiestos de transporte de residuos peligrosos. Asegure la trazabilidad ambiental y el cumplimiento normativo.

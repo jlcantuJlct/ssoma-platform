@@ -44,6 +44,8 @@ export function DashboardCharts({
     const [simulacroRecords, setSimulacroRecords] = useState<any[]>([]);
     const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
     const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
+    const [manifiestoRecords, setManifiestoRecords] = useState<any[]>([]);
+    const [residuosRecords, setResiduosRecords] = useState<any[]>([]);
 
     // --- AUTH CONTEXT ---
     const { user } = useAuth();
@@ -136,6 +138,14 @@ export function DashboardCharts({
                 setSimulacroRecords(simRes.records || []);
                 setBrigadistaRecords(briRes.records || []);
                 setRisstmaRecords(risRes.records || []);
+
+                // Load localStorage-only records (manifiesto + residuos)
+                try {
+                    const mStored = localStorage.getItem('manifest_records_v1');
+                    if (mStored) setManifiestoRecords(JSON.parse(mStored));
+                    const rStored = localStorage.getItem('waste_weight_records_v1');
+                    if (rStored) setResiduosRecords(JSON.parse(rStored));
+                } catch (e) { console.error('Error loading localStorage records', e); }
                 
                 setIsLoaded(true);
             } catch (error) {
@@ -1866,7 +1876,11 @@ export function DashboardCharts({
             + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('salud'));
 
         // ── MEDIO AMBIENTE ───────────────────────────────────────────────────
-        const envP = countProgramItems(['obj8', 'obj9']);
+        const envP =
+            countProgramItems(['obj8', 'obj9'])
+            + fixedMonths   // Manifiesto de Residuos: 1 P por mes
+            + fixedMonths;  // Pesaje de Residuos:     1 P por mes
+
         const envE =
             // SEG03: Inspecciones Ambiente + PMA
             countRecords(executedInspections, r => {
@@ -1875,7 +1889,11 @@ export function DashboardCharts({
             })
             + countRecords(pmaRecords)
             // SEG04: Formaciones Ambiente → HHC area=ambiente
-            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('ambiente'));
+            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('ambiente'))
+            // Manifiesto de Residuos: cada registro guardado = 1 E
+            + countRecords(manifiestoRecords)
+            // Pesaje de Residuos: cada registro guardado = 1 E
+            + countRecords(residuosRecords);
 
         return [
             {
