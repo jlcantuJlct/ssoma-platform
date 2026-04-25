@@ -2344,13 +2344,13 @@ export function DashboardCharts({
                                     </select>
                                 </div>
                                 <div className="mt-4">
-                                    <div className="flex items-end gap-1.5">
-                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">{totalHHCMonth}</span>
-                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Horas</span>
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">{totalHHCMonth}</span>
+                                        <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">Horas</span>
                                     </div>
-                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-tight">Indice: {indiceHHCValue}%</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">Indice: {indiceHHCValue}%</span>
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                                     </div>
                                 </div>
 
@@ -2396,16 +2396,16 @@ export function DashboardCharts({
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                    <div className="flex items-end gap-1.5">
-                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
                                         </span>
-                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Total Trab.</span>
+                                        <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">Trabajadores</span>
                                     </div>
-                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-pink-400 uppercase tracking-tight">Suma de Personal</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
+                                    <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[11px] font-black text-pink-400 uppercase tracking-wider">Suma de Dotación</span>
+                                        <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]"></div>
                                     </div>
                                 </div>
 
@@ -2433,23 +2433,23 @@ export function DashboardCharts({
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-3xl font-black text-white tracking-tighter drop-shadow-sm">
+                                    <div className="flex items-center gap-6">
+                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
                                             {Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0}
                                         </span>
                                         <div className="flex-1">
                                             <input
                                                 type="number"
-                                                placeholder="Ingresar HHT..."
+                                                placeholder="Editar HHT..."
                                                 value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
-                                                className="w-full bg-slate-950/80 border border-white/5 rounded-xl px-3 py-2 text-xs text-cyan-400 font-black outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all"
+                                                className="w-full bg-slate-950/80 border border-white/5 rounded-xl px-3 py-2 text-[11px] text-cyan-400 font-black outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all text-center"
                                             />
                                         </div>
                                     </div>
-                                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-cyan-400 uppercase tracking-tight">Base para Índices</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-bounce"></div>
+                                    <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">HHT Mensual</span>
+                                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
                                     </div>
                                 </div>
 
@@ -2472,12 +2472,12 @@ export function DashboardCharts({
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">% Mensual</p>
                                 </div>
                                 <div className="mt-4">
-                                    <div className="flex items-end gap-1.5">
-                                        <span className={`text-3xl font-black tracking-tighter ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
-                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">{MONTHS[hhcMonthFilter].substring(0,3)}</span>
+                                    <div className="flex items-end gap-2">
+                                        <span className={`text-5xl font-black tracking-tighter drop-shadow-md ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
+                                        <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">{MONTHS[hhcMonthFilter].substring(0,3)}</span>
                                     </div>
-                                    <div className="w-full bg-slate-950 h-1.5 mt-3 rounded-full overflow-hidden border border-white/5">
-                                        <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-full transition-all duration-1000" style={{ width: `${monthlyIndex}%` }}></div>
+                                    <div className="w-full bg-slate-950 h-2 mt-4 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                                        <div className="bg-gradient-to-r from-blue-600 to-blue-400 h-full transition-all duration-1000 rounded-full" style={{ width: `${monthlyIndex}%` }}></div>
                                     </div>
                                 </div>
 
@@ -2500,12 +2500,12 @@ export function DashboardCharts({
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">% Anual</p>
                                 </div>
                                 <div className="mt-4">
-                                    <div className="flex items-end gap-1.5">
-                                        <span className={`text-3xl font-black tracking-tighter ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
-                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">{currentYear}</span>
+                                    <div className="flex items-end gap-2">
+                                        <span className={`text-5xl font-black tracking-tighter drop-shadow-md ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
+                                        <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">{currentYear}</span>
                                     </div>
-                                    <div className="w-full bg-slate-950 h-1.5 mt-3 rounded-full overflow-hidden border border-white/5">
-                                        <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full transition-all duration-1000" style={{ width: `${annualIndex}%` }}></div>
+                                    <div className="w-full bg-slate-950 h-2 mt-4 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                                        <div className="bg-gradient-to-r from-purple-600 to-purple-400 h-full transition-all duration-1000 rounded-full" style={{ width: `${annualIndex}%` }}></div>
                                     </div>
                                 </div>
 
