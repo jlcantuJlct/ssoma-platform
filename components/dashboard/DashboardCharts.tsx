@@ -2351,8 +2351,8 @@ export function DashboardCharts({
                                 </div>
                                 <div className="flex flex-col gap-0.5">
                                     <div className="flex items-end gap-1" title="Sumatoria de (Participantes × Horas según tipo de capacitación)">
-                                        <span className="text-2xl font-black text-white">{totalHHCMonth}</span>
-                                        <span className="text-[9px] text-slate-500 mb-1">Horas</span>
+                                        <span className="text-3xl font-black text-white tracking-tighter">{totalHHCMonth}</span>
+                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Horas</span>
                                     </div>
                                     <div className="pt-1 border-t border-white/5" title="(Total HHC / HHT del Mes) × 100">
                                         <span className="text-[10px] font-black text-emerald-400">Indice: {indiceHHCValue}%</span>
@@ -2362,53 +2362,64 @@ export function DashboardCharts({
 
                             {/* Card 2: Dotación Personal (WIDE) */}
                             <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Dotación Personal</p>
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Empleados:</label>
+                                <div className="flex justify-between items-start">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Dotación Personal</p>
+                                    <div className="flex gap-2">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[7px] text-slate-500 font-bold">EMP:</span>
                                             <input
                                                 type="number"
                                                 value={monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('empleados', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono outline-none focus:border-pink-500"
+                                                className="w-10 bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-pink-400 font-bold outline-none focus:border-pink-500"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Obreros:</label>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[7px] text-slate-500 font-bold">OBR:</span>
                                             <input
                                                 type="number"
                                                 value={monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('obreros', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono outline-none focus:border-blue-500"
+                                                className="w-10 bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-blue-400 font-bold outline-none focus:border-blue-500"
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/10" title="Suma de Empleados + Obreros">
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase">Total Trabajadores:</span>
-                                        <span className="text-2xl font-black text-white bg-slate-900/50 px-3 py-1 rounded-xl border border-white/5">
+                                </div>
+                                <div className="flex flex-col gap-0.5 mt-2">
+                                    <div className="flex items-end gap-1" title="Suma de Empleados + Obreros">
+                                        <span className="text-3xl font-black text-white tracking-tighter">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
                                         </span>
+                                        <span className="text-[10px] text-slate-500 mb-1.5 font-bold uppercase">Total Trab.</span>
+                                    </div>
+                                    <div className="pt-1 border-t border-white/5">
+                                        <span className="text-[9px] text-slate-500 font-medium italic">Suma automática de dotación</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Card 3: HHT Mensual (WIDE) */}
                             <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">HHT del Mes</p>
-                                <div className="space-y-3">
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-[8px] text-slate-500 uppercase font-bold">Horas Hombre Trabajadas (HHT):</label>
-                                        <input
-                                            type="number"
-                                            placeholder="Ingresar total..."
-                                            value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
-                                            onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
-                                            className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-3 text-xl text-white font-black font-mono outline-none focus:border-emerald-500 shadow-inner"
-                                        />
+                                <p className="text-[10px] text-slate-400 font-bold uppercase">HHT Mensual</p>
+                                <div className="flex flex-col gap-0.5 mt-2">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-3xl font-black text-emerald-400 tracking-tighter">
+                                            {Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0}
+                                        </span>
+                                        <div className="flex-1">
+                                            <input
+                                                type="number"
+                                                placeholder="Editar HHT..."
+                                                value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
+                                                onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
+                                                className="w-full bg-slate-900/50 border border-emerald-500/30 rounded-lg px-2 py-1 text-[10px] text-white font-bold outline-none focus:border-emerald-500"
+                                            />
+                                        </div>
                                     </div>
-                                    <p className="text-[8px] text-slate-500 italic font-medium leading-tight">* Dato indispensable para el cálculo del Índice de Capacitación HHC.</p>
+                                    <div className="pt-1 border-t border-white/5">
+                                        <span className="text-[9px] text-slate-500 font-medium italic">H. Hombre Trabajadas del mes</span>
+                                    </div>
                                 </div>
                             </div>
 
