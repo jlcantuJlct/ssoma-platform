@@ -670,7 +670,9 @@ export function DashboardCharts({
             const resena = `Tipo: ${tipoStr} | Área: ${record.area?.toUpperCase()} | Resp: ${record.responsable} | Lugar: ${record.lugar || 'N/A'}`;
             doc.text(resena, 20, y);
             y += 5;
-            doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${(Number(record.hombres)||0)+(Number(record.mujeres)||0)} | HHC: ${record.hhc}`, 20, y);
+            const totalPers = (Number(record.hombres)||0)+(Number(record.mujeres)||0);
+            const hhcCalc = (totalPers * (FORMATION_DURATIONS[record.tipo] || 0)).toFixed(1);
+            doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${totalPers} | Cant. HHC: ${hhcCalc}`, 20, y);
             y += 10;
 
             if (y > 270) { doc.addPage(); y = 20; }
@@ -872,7 +874,9 @@ export function DashboardCharts({
                 const resena = `Tipo: ${tipoStr} | Área: ${record.area?.toUpperCase()} | Resp: ${record.responsable} | Lugar: ${record.lugar || 'N/A'}`;
                 doc.text(resena, 20, y);
                 y += 5;
-                doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${(Number(record.hombres)||0)+(Number(record.mujeres)||0)} | HHC: ${record.hhc}`, 20, y);
+                const totalPers = (Number(record.hombres)||0)+(Number(record.mujeres)||0);
+                const hhcCalc = (totalPers * (FORMATION_DURATIONS[record.tipo] || 0)).toFixed(1);
+                doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${totalPers} | Cant. HHC: ${hhcCalc}`, 20, y);
                 y += 10;
 
                 if (y > 270) { doc.addPage(); y = 20; }
@@ -2684,6 +2688,7 @@ export function DashboardCharts({
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-center w-[120px] pt-2">Tipo</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Planilla</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Pers. Cap.</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Cant. HHC</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[90px] pt-2">Indice</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[120px] pt-2">Archivo</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 pl-2 pr-4 text-right pt-2">Acciones</th>
@@ -2707,6 +2712,13 @@ export function DashboardCharts({
                                                                 </td>
                                                                 <td className="py-2 px-2 text-right text-slate-500 font-mono text-[10px] w-[80px]">{r.hht}</td>
                                                                 <td className="py-2 px-2 text-right text-blue-400 font-bold font-mono text-[10px] w-[80px]">{(Number(r.hombres) || 0) + (Number(r.mujeres) || 0)}</td>
+                                                                <td className="py-2 px-2 text-right text-indigo-400 font-bold font-mono text-[10px] w-[80px]">
+                                                                    {(() => {
+                                                                        const total = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
+                                                                        const duration = FORMATION_DURATIONS[r.tipo] || 0;
+                                                                        return (total * duration).toFixed(1);
+                                                                    })()}
+                                                                </td>
                                                                 <td className="py-2 px-2 text-right text-emerald-400 font-bold font-mono text-[10px] w-[90px]">
                                                                     {(() => {
                                                                         const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
