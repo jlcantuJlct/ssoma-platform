@@ -24,6 +24,8 @@ import {
     RotateCcw,
     Edit2,
     Check,
+    CheckSquare,
+    Square,
     X,
     ExternalLink,
     Image as ImageIcon,
@@ -91,6 +93,7 @@ export default function ProgramPage() {
     const [autoReplace, setAutoReplace] = useState(false); // Default to APPEND as requested
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
     const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string, tema?: string, area?: string, date?: string } | null>(null);
     const [newTema, setNewTema] = useState(''); // For custom tema input
@@ -1264,13 +1267,75 @@ export default function ProgramPage() {
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => { setSelectedRecords(null); setReconfigRecord(null); }} />
                     <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-1">Evidencias de Ejecución</h3>
-                                <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedRecords.activity} • {selectedRecords.month}</p>
+                            <div className="flex items-center gap-4">
+                                {selectedRecords.records.length > 0 && (
+                                    <button 
+                                        onClick={() => {
+                                            if (selectedIds.size === selectedRecords.records.length) {
+                                                setSelectedIds(new Set());
+                                            } else {
+                                                setSelectedIds(new Set(selectedRecords.records.map(r => r.id)));
+                                            }
+                                        }}
+                                        className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors"
+                                        title="Seleccionar todo"
+                                    >
+                                        {selectedIds.size === selectedRecords.records.length ? <CheckSquare size={20} className="text-emerald-400" /> : <Square size={20} />}
+                                    </button>
+                                )}
+                                <div>
+                                    <h3 className="text-lg font-bold text-white mb-1">Evidencias de Ejecución</h3>
+                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedRecords.activity} • {selectedRecords.month}</p>
+                                </div>
                             </div>
-                            <button onClick={() => { setSelectedRecords(null); setReconfigRecord(null); }} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
-                                <X size={20} />
-                            </button>
+                            
+                            <div className="flex items-center gap-3">
+                                {selectedIds.size > 0 && (
+                                    <button 
+                                        onClick={async () => {
+                                            const confirm = window.confirm(`⚠️ ADVERTENCIA\n¿Eliminar los ${selectedIds.size} registros seleccionados permanentemente?`);
+                                            if (!confirm) return;
+                                            
+                                            try {
+                                                for (const id of Array.from(selectedIds)) {
+                                                    const rec = selectedRecords.records.find(r => r.id === id);
+                                                    if (!rec) continue;
+                                                    await fetch('/api/reconfigure', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ record: rec, action: 'delete' })
+                                                    });
+                                                }
+                                                
+                                                // Update local states
+                                                const idsToRemove = Array.from(selectedIds);
+                                                setHhcRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setExecutedInspections(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setEvidenceRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setPmaRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setAtsRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setPetarRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setDetourRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setSimulacroRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                setBrigadistaRecords(prev => prev.filter(r => !idsToRemove.includes(r.id)));
+                                                
+                                                setSelectedRecords(prev => prev ? { ...prev, records: prev.records.filter(r => !idsToRemove.includes(r.id)) } : null);
+                                                setSelectedIds(new Set());
+                                                alert(`✅ ${idsToRemove.length} registros eliminados.`);
+                                            } catch (e) {
+                                                alert('❌ Error al eliminar algunos registros.');
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-500/20 transition-all"
+                                    >
+                                        <Trash2 size={16} />
+                                        ELIMINAR SELECCIONADOS ({selectedIds.size})
+                                    </button>
+                                )}
+                                <button onClick={() => { setSelectedRecords(null); setReconfigRecord(null); setSelectedIds(new Set()); }} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
@@ -1278,6 +1343,21 @@ export default function ProgramPage() {
                                 <div key={ri} className="space-y-3">
                                     <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex items-center justify-between group hover:border-blue-500/50 transition-colors">
                                     <div className="flex items-center gap-4">
+                                        <button 
+                                            onClick={() => {
+                                                const newSelected = new Set(selectedIds);
+                                                if (newSelected.has(rec.id)) newSelected.delete(rec.id);
+                                                else newSelected.add(rec.id);
+                                                setSelectedIds(newSelected);
+                                            }}
+                                            className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${
+                                                selectedIds.has(rec.id)
+                                                ? 'bg-blue-500 border-blue-400 text-white'
+                                                : 'bg-slate-900 border-slate-800 text-transparent hover:border-slate-700'
+                                            }`}
+                                        >
+                                            <Check size={14} />
+                                        </button>
                                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                                             <ClipboardCheck size={20} />
                                         </div>
@@ -1341,7 +1421,21 @@ export default function ProgramPage() {
                                                         body: JSON.stringify({ record: rec, action: 'delete' })
                                                     });
                                                     const data = await res.json();
-                                                    if (data.success) { alert('🗑️ Registro eliminado.'); window.location.reload(); }
+                                                    if (data.success) { 
+                                                        // Update local states instead of reload
+                                                        setHhcRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setExecutedInspections(prev => prev.filter(r => r.id !== rec.id));
+                                                        setEvidenceRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setPmaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setAtsRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setPetarRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setDetourRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setSimulacroRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        setBrigadistaRecords(prev => prev.filter(r => r.id !== rec.id));
+                                                        
+                                                        setSelectedRecords(prev => prev ? { ...prev, records: prev.records.filter(r => r.id !== rec.id) } : null);
+                                                        alert('🗑️ Registro eliminado.'); 
+                                                    }
                                                     else alert(`❌ Error: ${data.error}`);
                                                 } catch { alert('❌ Error de conexión'); }
                                             }}
