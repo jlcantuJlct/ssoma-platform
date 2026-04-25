@@ -737,19 +737,23 @@ export default function ProgramPage() {
         // Helper: Verificar si un registro tiene evidencia válida (archivo cargado)
         const hasEvidence = (r: any): boolean => {
             if (!r) return false;
-            // Campos de PDF
+            // Check for PDF fields
             const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url;
-            if (pdf && typeof pdf === 'string' && pdf.trim().length > 10) return true;
+            if (pdf && typeof pdf === 'string' && pdf.trim().length > 10 && !pdf.includes('undefined') && !pdf.includes('null')) return true;
             
-            // Campos de Imágenes (arrays o strings)
-            const imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl;
+            // Check for Image fields (arrays or strings)
+            let imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl || r.files;
             if (imgs) {
-                if (Array.isArray(imgs) && imgs.length > 0) return true;
-                if (typeof imgs === 'string' && imgs.trim().length > 10) return true;
-            }
+                if (typeof imgs === 'string' && imgs.trim().startsWith('[') && imgs.trim().endsWith(']')) {
+                    try { imgs = JSON.parse(imgs); } catch { }
+                }
 
-            // Campo específico para Manifiestos o arrays genéricos
-            if (r.files && Array.isArray(r.files) && r.files.length > 0) return true;
+                if (Array.isArray(imgs)) {
+                    return imgs.some(url => typeof url === 'string' && url.trim().length > 10 && !url.includes('undefined') && !url.includes('null'));
+                }
+                
+                if (typeof imgs === 'string' && imgs.trim().length > 10 && !imgs.includes('undefined') && !imgs.includes('null')) return true;
+            }
 
             return false;
         };

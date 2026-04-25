@@ -216,17 +216,21 @@ export function DashboardCharts({
         if (!r) return false;
         // Check for PDF fields
         const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url;
-        if (pdf && typeof pdf === 'string' && pdf.trim().length > 10) return true;
+        if (pdf && typeof pdf === 'string' && pdf.trim().length > 10 && !pdf.includes('undefined') && !pdf.includes('null')) return true;
         
         // Check for Image fields (arrays or strings)
-        const imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl;
+        let imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl || r.files;
         if (imgs) {
-            if (Array.isArray(imgs) && imgs.length > 0) return true;
-            if (typeof imgs === 'string' && imgs.trim().length > 10) return true;
-        }
+            if (typeof imgs === 'string' && imgs.trim().startsWith('[') && imgs.trim().endsWith(']')) {
+                try { imgs = JSON.parse(imgs); } catch { }
+            }
 
-        // Specific field for some modules like Manifiesto
-        if (r.files && Array.isArray(r.files) && r.files.length > 0) return true;
+            if (Array.isArray(imgs)) {
+                return imgs.some(url => typeof url === 'string' && url.trim().length > 10 && !url.includes('undefined') && !url.includes('null'));
+            }
+            
+            if (typeof imgs === 'string' && imgs.trim().length > 10 && !imgs.includes('undefined') && !imgs.includes('null')) return true;
+        }
 
         return false;
     };
