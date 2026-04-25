@@ -23,6 +23,15 @@ interface DashboardChartsProps {
     currentYear?: number;
 }
 
+const FORMATION_DURATIONS: Record<string, number> = {
+    'induccion_gen': 4,
+    'induccion_esp': 8,
+    'capacitacion': 1,
+    'difusion': 0.5,
+    'entrenamiento': 0.5,
+    'charla': 0.25
+};
+
 export function DashboardCharts({ 
     activities, 
     mode = 'general', 
@@ -1507,14 +1516,6 @@ export function DashboardCharts({
             }));
     };
 
-    const FORMATION_DURATIONS: Record<string, number> = {
-        'induccion_gen': 4,
-        'induccion_esp': 8,
-        'capacitacion': 1,
-        'difusion': 0.5,
-        'entrenamiento': 0.5,
-        'charla': 0.25
-    };
 
     const handleDateChange = (selectedDate: string) => {
         const programMatch = trainingProgram.find(p => p.date === selectedDate);
