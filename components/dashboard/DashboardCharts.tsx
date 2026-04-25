@@ -532,8 +532,7 @@ export function DashboardCharts({
     };
 
     // Calculate Indice HHC for the selected month
-    const indiceHHCValue = useMemo(() => {
-        // 1. Sum HHC for the selected month/year from records
+    const monthlyHHCStats = useMemo(() => {
         const monthlyRecords = hhcRecords.filter(r => {
             if (!r || !r.date) return false;
             try {
@@ -544,15 +543,25 @@ export function DashboardCharts({
                 return rYear === currentYear && rMonth === hhcMonthFilter;
             } catch (e) { return false; }
         });
-        const totalHHC = monthlyRecords.reduce((acc, r) => acc + (Number(r.hhc) || 0), 0);
 
-        // 2. Get Manually input HHT
+        // Use the same formula as in the table for consistency
+        const totalHHCSum = monthlyRecords.reduce((acc, r) => {
+            const total = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
+            const duration = FORMATION_DURATIONS[r.tipo] || 0;
+            return acc + (total * duration);
+        }, 0);
+
         const totalHHT = Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0;
+        const index = totalHHT > 0 ? ((totalHHCSum / totalHHT) * 100).toFixed(2) : "0.00";
 
-        // 3. Calc Index
-        if (totalHHT > 0) return ((totalHHC / totalHHT) * 100).toFixed(2);
-        return "0.00";
+        return {
+            totalHHC: totalHHCSum.toFixed(1),
+            index: index
+        };
     }, [hhcRecords, currentYear, hhcMonthFilter, monthlyHHTInputs]);
+
+    const indiceHHCValue = monthlyHHCStats.index;
+    const totalHHCMonth = monthlyHHCStats.totalHHC;
 
     // Calculate Training Index for the selected month/area
     const trainingIndexValue = useMemo(() => {
@@ -2350,8 +2359,11 @@ export function DashboardCharts({
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-end gap-2">
-                                        <span className={`text-2xl font-black ${Number(indiceHHCValue) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{indiceHHCValue}%</span>
-                                        <span className="text-[10px] text-slate-500 mb-1">Del Mes</span>
+                                        <span className="text-2xl font-black text-white">{totalHHCMonth}</span>
+                                        <span className="text-[10px] text-slate-500 mb-1">Total HHC</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-bold text-blue-400">Indice: {indiceHHCValue}%</span>
                                     </div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <label className="text-[8px] text-slate-500 uppercase font-bold">H. Trab:</label>
