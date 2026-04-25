@@ -2335,24 +2335,10 @@ export function DashboardCharts({
                                 { id: 'ambiente', label: 'MEDIO AMBIENTE', color: 'text-blue-400' }
                             ].map(tab => (
                                 <button
-                                    key={tab.id}
-                                    onClick={() => setSelectedArea(tab.id as any)}
-                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all ${selectedArea === tab.id
-                                        ? 'bg-slate-800 text-white shadow-lg border border-slate-600'
-                                        : 'text-slate-500 hover:text-slate-300'
-                                        }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-6 relative z-10">
-                        {/* 1. KPIs RESUMEN */}
-                        {/* 1. KPIs RESUMEN */}
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                                    key={ta                        {/* 1. KPIs RESUMEN */}
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4">
                             {/* Card 1: Total HHC & Indice */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2">
                                 <div className="flex justify-between items-start mb-1">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">Total HHC</p>
                                     <select
@@ -2374,33 +2360,33 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 3: Dotación Personal */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                            {/* Card 2: Dotación Personal (WIDE) */}
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Dotación Personal</p>
-                                <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div className="flex flex-col gap-1">
-                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Emp:</label>
+                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Empleados:</label>
                                             <input
                                                 type="number"
                                                 value={monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('empleados', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-white font-mono outline-none focus:border-pink-500"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono outline-none focus:border-pink-500"
                                             />
                                         </div>
                                         <div className="flex flex-col gap-1">
-                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Obr:</label>
+                                            <label className="text-[8px] text-slate-500 uppercase font-bold">Obreros:</label>
                                             <input
                                                 type="number"
                                                 value={monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                                 onChange={(e) => handleMonthlyInputChange('obreros', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-white font-mono outline-none focus:border-blue-500"
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-mono outline-none focus:border-blue-500"
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-1 border-t border-white/5" title="Suma de Empleados + Obreros">
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase">Total Trab:</span>
-                                        <span className="text-[12px] font-black text-white">
+                                    <div className="flex items-center justify-between pt-2 border-t border-white/10" title="Suma de Empleados + Obreros">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase">Total Trabajadores:</span>
+                                        <span className="text-2xl font-black text-white bg-slate-900/50 px-3 py-1 rounded-xl border border-white/5">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
                                         </span>
@@ -2408,26 +2394,26 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 4: HHT Mensual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between">
+                            {/* Card 3: HHT Mensual (WIDE) */}
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-3">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">HHT del Mes</p>
                                 <div className="space-y-3">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[8px] text-slate-500 uppercase font-bold">Horas Hombre Trabajadas:</label>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-[8px] text-slate-500 uppercase font-bold">Horas Hombre Trabajadas (HHT):</label>
                                         <input
                                             type="number"
-                                            placeholder="Ingresar HHT..."
+                                            placeholder="Ingresar total..."
                                             value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
                                             onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white font-black font-mono outline-none focus:border-emerald-500"
+                                            className="w-full bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-3 text-xl text-white font-black font-mono outline-none focus:border-emerald-500 shadow-inner"
                                         />
                                     </div>
-                                    <p className="text-[8px] text-slate-500 italic">* Valor necesario para el Índice HHC</p>
+                                    <p className="text-[8px] text-slate-500 italic font-medium leading-tight">* Dato indispensable para el cálculo del Índice de Capacitación HHC.</p>
                                 </div>
                             </div>
 
-                            {/* Card 5: % Mensual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between" title="(Ejecutado / Programado) × 100 - Datos del mes seleccionado">
+                            {/* Card 4: % Mensual */}
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2" title="(Ejecutado / Programado) × 100 - Datos del mes seleccionado">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Personal Capacitado</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
@@ -2438,8 +2424,8 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 6: % Anual */}
-                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between" title="(Ejecutado / Programado) × 100 - Datos acumulados del año">
+                            {/* Card 5: % Anual */}
+                            <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-lg flex flex-col justify-between xl:col-span-2" title="(Ejecutado / Programado) × 100 - Datos acumulados del año">
                                 <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">% Capacitado Anual</p>
                                 <div className="flex items-end gap-2">
                                     <span className={`text-2xl font-black ${Number(annualIndex) >= complianceGoal ? 'text-emerald-400' : 'text-purple-400'}`}>{annualIndex}%</span>
