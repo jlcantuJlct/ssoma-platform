@@ -508,27 +508,40 @@ export function DashboardCharts({
 
     // --- STATE FOR NEW HHC INDEX LOGIC ---
     const [hhcMonthFilter, setHhcMonthFilter] = useState<number>(new Date().getMonth());
-    // Store manually input HHT (Horas Hombre Trabajadas) per month "YYYY-M" -> value
+    // Store manually input HHT, Empleados, Obreros per month "YYYY-M" -> value
     const [monthlyHHTInputs, setMonthlyHHTInputs] = useState<Record<string, number>>({});
+    const [monthlyEmpleadosInputs, setMonthlyEmpleadosInputs] = useState<Record<string, number>>({});
+    const [monthlyObrerosInputs, setMonthlyObrerosInputs] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        // Load HHT inputs
-        const saved = localStorage.getItem('monthly_hht_inputs');
-        if (saved) {
-            try {
-                setMonthlyHHTInputs(JSON.parse(saved));
-            } catch (e) {
-                console.error("Error loading HHT inputs", e);
-            }
-        }
+        // Load inputs
+        const savedHHT = localStorage.getItem('monthly_hht_inputs');
+        if (savedHHT) try { setMonthlyHHTInputs(JSON.parse(savedHHT)); } catch (e) {}
+        
+        const savedEmp = localStorage.getItem('monthly_empleados_inputs');
+        if (savedEmp) try { setMonthlyEmpleadosInputs(JSON.parse(savedEmp)); } catch (e) {}
+
+        const savedObr = localStorage.getItem('monthly_obreros_inputs');
+        if (savedObr) try { setMonthlyObrerosInputs(JSON.parse(savedObr)); } catch (e) {}
     }, []);
 
-    const handleHHTInputChange = (val: string) => {
+    const handleMonthlyInputChange = (key: 'hht' | 'empleados' | 'obreros', val: string) => {
         const numericVal = Number(val);
-        const key = `${currentYear}-${hhcMonthFilter}`;
-        const updated = { ...monthlyHHTInputs, [key]: numericVal };
-        setMonthlyHHTInputs(updated);
-        localStorage.setItem('monthly_hht_inputs', JSON.stringify(updated));
+        const monthKey = `${currentYear}-${hhcMonthFilter}`;
+        
+        if (key === 'hht') {
+            const updated = { ...monthlyHHTInputs, [monthKey]: numericVal };
+            setMonthlyHHTInputs(updated);
+            localStorage.setItem('monthly_hht_inputs', JSON.stringify(updated));
+        } else if (key === 'empleados') {
+            const updated = { ...monthlyEmpleadosInputs, [monthKey]: numericVal };
+            setMonthlyEmpleadosInputs(updated);
+            localStorage.setItem('monthly_empleados_inputs', JSON.stringify(updated));
+        } else if (key === 'obreros') {
+            const updated = { ...monthlyObrerosInputs, [monthKey]: numericVal };
+            setMonthlyObrerosInputs(updated);
+            localStorage.setItem('monthly_obreros_inputs', JSON.stringify(updated));
+        }
     };
 
     // Calculate Indice HHC for the selected month
@@ -2362,18 +2375,37 @@ export function DashboardCharts({
                                         <span className="text-2xl font-black text-white">{totalHHCMonth}</span>
                                         <span className="text-[10px] text-slate-500 mb-1">Total HHC</span>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] font-bold text-blue-400">Indice: {indiceHHCValue}%</span>
+                                    <div className="grid grid-cols-2 gap-2 mt-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <label className="text-[7px] text-slate-500 uppercase font-bold whitespace-nowrap">Emp:</label>
+                                            <input
+                                                type="number"
+                                                value={monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
+                                                onChange={(e) => handleMonthlyInputChange('empleados', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-white font-mono outline-none focus:border-pink-500"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <label className="text-[7px] text-slate-500 uppercase font-bold whitespace-nowrap">Obr:</label>
+                                            <input
+                                                type="number"
+                                                value={monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
+                                                onChange={(e) => handleMonthlyInputChange('obreros', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-white font-mono outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-1.5 col-span-2">
+                                            <label className="text-[7px] text-slate-500 uppercase font-bold whitespace-nowrap">HHT Mes:</label>
+                                            <input
+                                                type="number"
+                                                value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
+                                                onChange={(e) => handleMonthlyInputChange('hht', e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[9px] text-white font-mono outline-none focus:border-emerald-500"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <label className="text-[8px] text-slate-500 uppercase font-bold">H. Trab:</label>
-                                        <input
-                                            type="number"
-                                            placeholder="HHT Mes"
-                                            value={monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
-                                            onChange={(e) => handleHHTInputChange(e.target.value)}
-                                            className="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-white font-mono outline-none focus:border-blue-500"
-                                        />
+                                    <div className="mt-1 pt-1 border-t border-white/5">
+                                        <span className="text-[9px] font-black text-blue-400">Indice: {indiceHHCValue}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -2546,10 +2578,6 @@ export function DashboardCharts({
 
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div>
-                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">N° Planilla</label>
-                                        <input type="number" placeholder="Total Pers." value={newHHC.hht} onChange={(e) => updateStat('hht', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-blue-500" />
-                                    </div>
-                                    <div>
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
                                         <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
                                     </div>
@@ -2698,10 +2726,8 @@ export function DashboardCharts({
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[100px] pt-2">Area</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-auto min-w-[220px] pt-2">Tema / Actividad</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-center w-[120px] pt-2">Tipo</th>
-                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Planilla</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Pers. Cap.</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Cant. HHC</th>
-                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[90px] pt-2">Indice</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[120px] pt-2">Archivo</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 pl-2 pr-4 text-right pt-2">Acciones</th>
                                                 </tr>
@@ -2722,7 +2748,6 @@ export function DashboardCharts({
                                                                         {(r.tipo || '').replace('_', ' ')}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-2 px-2 text-right text-slate-500 font-mono text-[10px] w-[80px]">{r.hht}</td>
                                                                 <td className="py-2 px-2 text-right text-blue-400 font-bold font-mono text-[10px] w-[80px]">{(Number(r.hombres) || 0) + (Number(r.mujeres) || 0)}</td>
                                                                 <td className="py-2 px-2 text-right text-indigo-400 font-bold font-mono text-[10px] w-[80px]">
                                                                     {(() => {
@@ -2730,13 +2755,6 @@ export function DashboardCharts({
                                                                         const duration = FORMATION_DURATIONS[r.tipo] || 0;
                                                                         return (total * duration).toFixed(1);
                                                                     })()}
-                                                                </td>
-                                                                <td className="py-2 px-2 text-right text-emerald-400 font-bold font-mono text-[10px] w-[90px]">
-                                                                    {(() => {
-                                                                        const assistants = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
-                                                                        const planilla = Number(r.hht) || 1;
-                                                                        return planilla > 0 ? ((assistants / planilla) * 100).toFixed(2) : "0.00";
-                                                                    })()}%
                                                                 </td>
                                                                 <td className="py-2 px-2 text-left w-[120px]">
                                                                     <div className="flex flex-col gap-1">
