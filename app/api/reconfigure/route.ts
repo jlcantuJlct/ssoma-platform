@@ -3,9 +3,9 @@ import db from '@/lib/db';
 
 export async function POST(req: NextRequest) {
     try {
-        const { record, targetCategory, targetSubtype } = await req.json();
+        const { record, targetCategory, targetSubtype, targetTema, targetArea, targetDate, action } = await req.json();
         
-        if (!record || !targetCategory) {
+        if (!record || (!targetCategory && action !== 'delete')) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -26,13 +26,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: `Invalid source module: ${sourceModule}` }, { status: 400 });
         }
 
+        // --- Handle Delete Action ---
+        if (action === 'delete') {
+            await db.execute(`DELETE FROM ${sourceTable} WHERE id = ? OR id = ?`, [recordId, String(recordId)]);
+            return NextResponse.json({ success: true, message: 'Record deleted successfully' });
+        }
+
         // --- 2. DEFINE TARGET MAPPING ---
         const TABLE_MAPPING: Record<string, any> = {
             'Control de ATS': {
                 table: 'ats_records',
                 columns: ['date', 'responsible', 'location', 'file_url'],
                 map: (rec: any) => [
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     rec.location || rec.zone || rec.zona || rec.lugar || '', 
                     rec.evidencePdf || rec.fileUrl || rec.file_url || ''
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
                 table: 'petar_records',
                 columns: ['date', 'responsible', 'location', 'type', 'file_url'],
                 map: (rec: any) => [
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     rec.location || rec.zone || rec.zona || rec.lugar || '', 
                     targetSubtype || 'Caliente', 
@@ -51,13 +57,15 @@ export async function POST(req: NextRequest) {
             },
             'Control de HHC': {
                 table: 'hhc_records',
+                // Adding 'area' to columns to support area filtering if table has it?
+                // Actually hhc_records only has these columns in standard setup, but let's assume 'tema' and 'tipo' are main ones.
                 columns: ['date', 'responsable', 'lugar', 'tema', 'tipo', 'evidence_pdf', 'evidence_imgs'],
                 map: (rec: any) => [
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     rec.location || rec.zone || rec.zona || rec.lugar || '', 
-                    targetSubtype || '', 
-                    'capacitacion', 
+                    targetTema || targetSubtype || '', 
+                    targetSubtype || 'capacitacion', 
                     rec.evidencePdf || rec.fileUrl || rec.file_url || '', 
                     JSON.stringify(rec.evidenceImgs || (rec.images ? rec.images : []))
                 ]
@@ -67,10 +75,10 @@ export async function POST(req: NextRequest) {
                 columns: ['id', 'date', 'responsible', 'inspection_type', 'area', 'zone', 'status', 'observations', 'evidence_pdf', 'evidence_imgs'],
                 map: (rec: any) => [
                     Date.now(), 
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     targetSubtype || '', 
-                    'Seguridad', 
+                    targetArea || 'Seguridad', 
                     rec.location || rec.zone || rec.zona || rec.lugar || '', 
                     'Completado', 
                     rec.observations || rec.description || '', 
@@ -83,7 +91,7 @@ export async function POST(req: NextRequest) {
                 columns: ['record_id', 'date', 'responsible', 'category', 'description', 'location', 'images'],
                 map: (rec: any) => [
                     String(Date.now()), 
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     targetSubtype || '', 
                     rec.observations || rec.description || '', 
@@ -96,7 +104,7 @@ export async function POST(req: NextRequest) {
                 columns: ['record_id', 'date', 'responsible', 'category', 'description', 'location', 'images'],
                 map: (rec: any) => [
                     String(Date.now()), 
-                    rec.date, 
+                    targetDate || rec.date, 
                     rec.responsible || rec.responsable, 
                     targetSubtype || '', 
                     rec.observations || rec.description || '', 
@@ -145,7 +153,6 @@ export async function POST(req: NextRequest) {
         );
 
         // Delete from source
-        // Handle different ID types (numeric vs string)
         await db.execute(`DELETE FROM ${sourceTable} WHERE id = ? OR id = ?`, [recordId, String(recordId)]);
 
         return NextResponse.json({ 

@@ -47,12 +47,12 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
     );
 
     const atsRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM ats_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zone')}`,
+        `SELECT COUNT(*) as count FROM ats_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
         [`${datePrefix}%`, ...locationFilters]
     );
 
     const petarRes = await db.fetchOne(
-        `SELECT COUNT(*) as count FROM petar_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zone')}`,
+        `SELECT COUNT(*) as count FROM petar_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
         [`${datePrefix}%`, ...locationFilters]
     );
 
@@ -72,18 +72,17 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
 
     // 3. PMA Compliance
     const pmaRecords = await db.fetchAll(
-        `SELECT p.*, a.name as activity_name, a.responsible 
-         FROM pma_records p
-         JOIN activities a ON p.topic = a.name
-         WHERE p.month = ? AND ${generateWhere('p.location')}`,
-        [`${monthName.toUpperCase()} ${year}`, ...locationFilters]
+        `SELECT category as activity_name, responsible, 'OK' as status
+         FROM pma_evidence_records
+         WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
+        [`${datePrefix}%`, ...locationFilters]
     );
 
     // 4. Evidence & Annexes
     const evidence = await db.fetchAll(
         `SELECT * FROM evidence_center_records 
-         WHERE month = ? AND ${generateWhere('location')}`,
-        [monthName.toUpperCase(), ...locationFilters]
+         WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zona')}`,
+        [`${datePrefix}%`, ...locationFilters]
     );
 
     const annexes = await db.fetchAll(

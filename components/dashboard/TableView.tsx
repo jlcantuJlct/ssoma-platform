@@ -2,7 +2,7 @@
 
 import { Activity, MONTHS, AuditLog } from "@/lib/types";
 import React, { useState } from "react";
-import { Edit3, Check, X, FileText, Calendar, User, History, Eye, ExternalLink, ShieldAlert, Plus, Trash2, Shield, TrendingUp, Activity as ActivityIcon, Download, FileSpreadsheet, ArrowUp, ArrowDown } from "lucide-react";
+import { Edit3, Check, X, FileText, Calendar, User, History, Eye, ExternalLink, ShieldAlert, Plus, Trash2, Shield, TrendingUp, Activity as ActivityIcon, Download, FileSpreadsheet, ArrowUp, ArrowDown, ShieldCheck } from "lucide-react";
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { exportToPDF, exportToExcel } from '@/lib/exportUtils';
@@ -115,7 +115,7 @@ export function TableView({
                         {activities.map((activity, index) => {
                             const totalPlan = (activity.data?.plan || new Array(12).fill(0)).reduce((a, b) => a + b, 0);
                             const totalExec = (activity.data?.executed || new Array(12).fill(0)).reduce((a, b) => a + b, 0);
-                            const percent = totalPlan > 0 ? Math.round((totalExec / totalPlan) * 100) : 0;
+                            const percent = totalPlan > 0 ? Math.round((totalExec / totalPlan) * 100) : (totalExec > 0 ? 100 : 0);
 
                             const showHeader = index === 0 || activities[index - 1].managementArea !== activity.managementArea;
                             const areaLabels: Record<string, { label: string, icon: React.ReactNode, color: string, bg: string }> = {
@@ -123,7 +123,6 @@ export function TableView({
                                 health: { label: 'GESTIÓN DE LA SALUD', icon: <ActivityIcon size={16} />, color: 'text-rose-700', bg: 'bg-rose-50' },
                                 environment: { label: 'GESTIÓN DE MEDIO AMBIENTE', icon: <TrendingUp size={16} />, color: 'text-blue-700', bg: 'bg-blue-50' }
                             };
-
                             const currentArea = activity.managementArea ? areaLabels[activity.managementArea] : null;
 
                             return (
@@ -159,39 +158,15 @@ export function TableView({
                                                 ) : (
                                                     <div className="flex justify-between items-center w-full">
                                                         <div className="flex items-start gap-2 pr-4 py-1">
-                                                            {onMoveActivity && (
-                                                                <div className="flex flex-col gap-0.5 pt-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        onClick={() => onMoveActivity(activity.id, 'up')}
-                                                                        className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"
-                                                                        title="Subir"
-                                                                        disabled={index === 0}
-                                                                    >
-                                                                        <ArrowUp size={10} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => onMoveActivity(activity.id, 'down')}
-                                                                        className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"
-                                                                        title="Bajar"
-                                                                        disabled={index === activities.length - 1}
-                                                                    >
-                                                                        <ArrowDown size={10} />
-                                                                    </button>
-                                                                </div>
-                                                            )}
                                                             <div className="flex-1">
                                                                 <span className={`text-[12px] block leading-snug ${isSCSST ? 'text-blue-900 font-extrabold underline decoration-blue-300 underline-offset-4' : 'font-bold text-slate-800'}`} title={activity.name}>{activity.name}</span>
-                                                                {(activity.target || activity.frequency) && (
-                                                                    <div className="flex gap-2 mt-1 text-[9px] text-slate-400 font-medium">
-                                                                        {activity.target && <span>Meta: {activity.target}</span>}
-                                                                        {activity.frequency && (
-                                                                            <>
-                                                                                <span>•</span>
-                                                                                <span>{activity.frequency}</span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                )}
+                                                                <div className="flex gap-2 mt-1 text-[9px] text-slate-400 font-bold uppercase">
+                                                                    <span>Resp: {activity.responsible || 'Por asignar'}</span>
+                                                                    <span>•</span>
+                                                                    <span>Meta: {activity.target || '100%'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{activity.frequency}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -202,15 +177,6 @@ export function TableView({
                                                             >
                                                                 <Edit3 size={12} />
                                                             </button>
-                                                            {onDeleteActivity && (
-                                                                <button
-                                                                    onClick={() => onDeleteActivity(activity.id)}
-                                                                    className="p-2 bg-rose-500 text-white rounded-lg shadow-lg shrink-0 hover:bg-rose-600 transition"
-                                                                    title="Eliminar Fila"
-                                                                >
-                                                                    <Trash2 size={12} />
-                                                                </button>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -235,7 +201,7 @@ export function TableView({
                                                 ) : val || '-'}
                                             </td>
                                         ))}
-                                        <td className="px-1 py-1 text-center font-black text-blue-900 bg-blue-50/50 border-r border-slate-100 text-xs">{totalPlan}</td>
+                                        <td className="px-0 py-0 bg-blue-50/50 border-r border-slate-100 text-center font-black text-blue-900 text-[11px] align-middle">{totalPlan}</td>
                                         <td rowSpan={2} className="px-2 py-2 text-center border-slate-100 align-middle">
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-xl border-2 flex flex-col items-center justify-center font-black shadow-md ${percent >= 100 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-amber-400 bg-amber-50 text-amber-700'}`}>
@@ -249,6 +215,14 @@ export function TableView({
                                                     >
                                                         <History size={12} />
                                                     </button>
+                                                    {onDeleteActivity && (
+                                                        <button
+                                                            onClick={() => onDeleteActivity(activity.id)}
+                                                            className="p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition shadow-lg"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -284,12 +258,95 @@ export function TableView({
                                                 </button>
                                             </td>
                                         ))}
-                                        <td className="px-1 py-1 text-center font-black text-emerald-900 bg-emerald-50/50 border-r border-slate-100 text-xs">{totalExec}</td>
+                                        <td className="px-0 py-0 bg-emerald-50/50 border-r border-slate-100 text-center font-black text-emerald-900 text-[11px] align-middle">{totalExec}</td>
                                     </tr>
                                 </React.Fragment>
                             )
                         })}
+
+                        {/* FILA DE TOTALES POR SECCIÓN / OBJETIVO */}
+                        <tr className="bg-slate-900 text-white font-black uppercase text-[10px] border-t-2 border-slate-700 shadow-xl">
+                            <td className="px-4 py-4 sticky left-0 bg-slate-900 z-20 border-r border-slate-700 text-right">
+                                <div className="flex items-center justify-end gap-2 text-indigo-400">
+                                    <TrendingUp size={14} />
+                                    <span>TOTAL OBJETIVO / SECCIÓN</span>
+                                </div>
+                            </td>
+                            <td className="px-1 py-1 text-center bg-slate-800 border-r border-slate-700">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[7px] bg-blue-900 px-1 rounded">PLAN</span>
+                                    <span className="text-[7px] bg-emerald-900 px-1 rounded">EJEC</span>
+                                </div>
+                            </td>
+                            {Array.from({ length: 12 }).map((_, i) => {
+                                const mTotalP = activities.reduce((sum, a) => sum + (a.data?.plan?.[i] || 0), 0);
+                                const mTotalE = activities.reduce((sum, a) => sum + (a.data?.executed?.[i] || 0), 0);
+                                return (
+                                    <td key={i} className="px-0 py-0 border-r border-slate-700">
+                                        <div className="flex flex-col h-full text-[11px]">
+                                            <div className="flex-1 text-center py-1.5 bg-blue-900/30 text-blue-300 border-b border-slate-700/30">{mTotalP || '-'}</div>
+                                            <div className="flex-1 text-center py-1.5 bg-emerald-900/30 text-emerald-300">{mTotalE || '-'}</div>
+                                        </div>
+                                    </td>
+                                );
+                            })}
+                            <td className="px-0 py-0 border-r border-slate-700 bg-slate-800">
+                                <div className="flex flex-col h-full font-black text-[12px]">
+                                    <div className="flex-1 text-center py-1.5 bg-blue-600 text-white border-b border-white/10">
+                                        {activities.reduce((sum, a) => sum + (a.data?.plan?.reduce((s, v) => s + v, 0) || 0), 0)}
+                                    </div>
+                                    <div className="flex-1 text-center py-1.5 bg-emerald-600 text-white">
+                                        {activities.reduce((sum, a) => sum + (a.data?.executed?.reduce((s, v) => s + v, 0) || 0), 0)}
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="bg-slate-900"></td>
+                        </tr>
                     </tbody>
+                    <tfoot className="sticky bottom-0 z-40">
+                        <tr className="bg-slate-950 text-white font-black uppercase text-[11px] border-t-4 border-slate-700 shadow-[0_-5px_25px_rgba(0,0,0,0.5)]">
+                            <td className="px-4 py-5 sticky left-0 bg-slate-950 z-20 border-r border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl shadow-lg border border-blue-400/30">
+                                        <ShieldCheck size={20} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[12px] tracking-[0.3em] font-black">TOTAL GENERAL PROGRAMA</div>
+                                        <div className="text-[8px] text-slate-500 font-bold">CONSOLIDADO ANUAL SSOMA 2026</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="px-1 py-1 text-center bg-slate-900 border-r border-slate-700">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[7px] bg-blue-600 px-1 rounded text-white">PLAN</span>
+                                    <span className="text-[7px] bg-emerald-600 px-1 rounded text-white">EJEC</span>
+                                </div>
+                            </td>
+                            {Array.from({ length: 12 }).map((_, i) => {
+                                const mTotalP = activities.reduce((sum, a) => sum + (a.data?.plan?.[i] || 0), 0);
+                                const mTotalE = activities.reduce((sum, a) => sum + (a.data?.executed?.[i] || 0), 0);
+                                return (
+                                    <td key={i} className="px-0 py-0 border-r border-slate-800">
+                                        <div className="flex flex-col h-full text-[13px]">
+                                            <div className="flex-1 text-center py-3 bg-blue-950 text-blue-400 font-black border-b border-slate-800 shadow-inner">{mTotalP}</div>
+                                            <div className="flex-1 text-center py-3 bg-emerald-950 text-emerald-400 font-black shadow-inner">{mTotalE}</div>
+                                        </div>
+                                    </td>
+                                );
+                            })}
+                            <td className="px-0 py-0 border-r border-slate-800 bg-slate-900 shadow-2xl">
+                                <div className="flex flex-col h-full font-black text-[15px]">
+                                    <div className="flex-1 text-center py-3 bg-blue-600 text-white border-b border-white/20 shadow-lg">
+                                        {activities.reduce((sum, a) => sum + (a.data?.plan?.reduce((s, v) => s + v, 0) || 0), 0)}
+                                    </div>
+                                    <div className="flex-1 text-center py-3 bg-emerald-600 text-white shadow-lg">
+                                        {activities.reduce((sum, a) => sum + (a.data?.executed?.reduce((s, v) => s + v, 0) || 0), 0)}
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="bg-slate-950"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 

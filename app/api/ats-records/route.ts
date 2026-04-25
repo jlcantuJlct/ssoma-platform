@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
         const { action, data, id } = body;
 
         if (action === 'create') {
+            // VALIDACIÓN: Requiere archivo adjunto
+            if (!data.fileUrl || data.fileUrl.trim() === '') {
+                return NextResponse.json({ 
+                    success: false, 
+                    error: '⚠️ No se puede registrar sin archivo. Adjunte el PDF del ATS.' 
+                }, { status: 400 });
+            }
+
             const res = await db.execute(
                 `INSERT INTO ats_records (date, responsible, location, file_url)
                  VALUES (?, ?, ?, ?) RETURNING id`,

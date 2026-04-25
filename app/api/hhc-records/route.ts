@@ -149,6 +149,16 @@ export async function POST(req: NextRequest) {
         const { action, data, id } = body;
 
         if (action === 'create') {
+            // VALIDACIÓN: Requiere al menos un archivo adjunto (PDF o imagen)
+            const hasPdf = data.evidencePdf && data.evidencePdf.trim() !== '';
+            const hasImgs = data.evidenceImgs && Array.isArray(data.evidenceImgs) && data.evidenceImgs.length > 0;
+            if (!hasPdf && !hasImgs) {
+                return NextResponse.json({ 
+                    success: false, 
+                    error: '⚠️ No se puede registrar sin archivo. Adjunte al menos una imagen o PDF como evidencia.' 
+                }, { status: 400 });
+            }
+
             const res = await withRetry(() => db.execute(
                 `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,

@@ -180,141 +180,40 @@ export function DashboardCharts({
     }, [user]);
 
     // --- CALCULATE FUNCTIONS ---
-    const getObjectiveMonthlyStats = (objId: string) => {
-        const items = programData[objId] || [];
+    const memoizedCategorizedActivities = useMemo(() => {
+        return categorizeActivitiesByObjective(activities);
+    }, [activities]);
+
+    const getObjectiveMonthlyStats = (objId?: string) => {
         const monthlyData = Array(12).fill(0).map((_, i) => ({ name: MONTHS[i], P: 0, E: 0 }));
 
-        items.forEach(item => {
-            if (!item || !item.date) return;
-            try {
-                const dateParts = String(item.date).split('-');
-                if (dateParts.length < 2) return;
-                const m = parseInt(dateParts[1], 10) - 1;
-                if (m >= 0 && m <= 11) monthlyData[m].P++;
-            } catch (e) { }
-        });
-
-        const countRecordsByMonth = (records: any[], monthTarget: number) => {
-            return records.filter(r => {
-                if (!r || !r.date) return false;
-                const d = new Date(r.date);
-                return d.getFullYear() === currentYear && d.getMonth() === monthTarget;
-            }).length;
-        };
-
-        const findMonthInItemDate = (dateStr: string) => {
-            const d = new Date(dateStr);
-            return d.getMonth();
-        };
-
-        // --- DYNAMIC EXECUTION COUNTING ---
-        for (let m = 0; m < 12; m++) {
-            switch(objId) {
-                case 'obj1': // SCSST
-                    monthlyData[m].E = countRecordsByMonth(risstmaRecords, m);
-                    break;
-                case 'obj2': // Capacitación
-                    monthlyData[m].E = countRecordsByMonth(hhcRecords, m);
-                    break;
-                case 'obj3': // Inspecciones Seguridad
-            // 1. Conteo manual desde la matriz del Programa Anual (items)
-            let matrixCount = 0;
-            items.forEach(item => {
-                if (!item || !item.date) return;
-                const itemMonth = findMonthInItemDate(item.date);
-                if (itemMonth === m && (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0)) {
-                    matrixCount++;
-                }
-            });
-
-            // 2. Conteo dinámico desde registros reales
-            let dynamicCount = 0;
-            switch (objId) {
-                case 'obj1': // HHC
-                    dynamicCount = countRecordsByMonth(hhcRecords, m);
-                    break;
-                case 'obj2': // Capacitación
-                    dynamicCount = evidenceRecords.filter(r => {
-                        const d = new Date(r.date);
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (r.category === 'Capacitación' || r.type === 'Capacitación');
-                    }).length;
-                    break;
-                case 'obj3': // Inspecciones (Seguridad)
-                    dynamicCount = executedInspections.filter(r => {
-                        const d = new Date(r.date);
-                        const type = (r.inspectionType || '').toLowerCase();
-                        const area = (r.area || '').toLowerCase();
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (area === 'seguridad' || (!area.includes('salud') && !area.includes('ambiente') && !type.includes('comedor') && !type.includes('tópico') && !type.includes('botiquín')));
-                    }).length;
-                    break;
-                case 'obj4': // RAC
-                    dynamicCount = countRecordsByMonth(detourRecords, m);
-                    break;
-                case 'obj5': // EMO
-                    dynamicCount = evidenceRecords.filter(r => {
-                        const d = new Date(r.date);
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (r.category === 'EMO' || r.type === 'EMO');
-                    }).length;
-                    break;
-                case 'obj6': // SEG 01 (Salud)
-                    dynamicCount = executedInspections.filter(r => {
-                        const d = new Date(r.date);
-                        const type = (r.inspectionType || '').toLowerCase();
-                        const area = (r.area || '').toLowerCase();
-                        const healthKeywords = ['comedor', 'tópico', 'botiquín', 'emergencia', 'hidratación', 'solar', 'lavadero', 'alcotest', 'salud', 'ocupacional'];
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (area.includes('salud') || healthKeywords.some(kw => type.includes(kw)));
-                    }).length;
-                    break;
-                case 'obj7': // SEG 02 (Formaciones Salud)
-                    dynamicCount = evidenceRecords.filter(r => {
-                        const d = new Date(r.date);
-                        const type = (r.type || r.category || '').toLowerCase();
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               (type.includes('salud') && (type.includes('capacitación') || type.includes('formación')));
-                    }).length;
-                    break;
-                case 'obj8': // SEG 03 (Medio Ambiente)
-                    dynamicCount = pmaRecords.filter(r => {
-                        const d = new Date(r.date);
-                        return d.getFullYear() === currentYear && d.getMonth() === m;
-                    }).length;
-                    break;
-                case 'obj9': // SEG 04 (Formaciones MA)
-                    dynamicCount = evidenceRecords.filter(r => {
-                        const d = new Date(r.date);
-                        const type = (r.type || r.category || '').toLowerCase();
-                        return d.getFullYear() === currentYear && d.getMonth() === m && 
-                               ((type.includes('ambiente') || type.includes('pma')) && (type.includes('capacitación') || type.includes('formación')));
-                    }).length;
-                    break;
-                case 'obj10': // Simulacros
-                    dynamicCount = countRecordsByMonth(simulacroRecords, m);
-                    break;
-                case 'obj11': // Brigadistas
-                    dynamicCount = countRecordsByMonth(brigadistaRecords, m);
-                    break;
-            }
-
-            // Usamos el máximo entre lo manual (Programa Anual) y lo dinámico (Registros)
-            monthlyData[m].E = Math.max(matrixCount, dynamicCount);
-                default:
-                    // Fallback to manual status in programData
-                    items.forEach(item => {
-                        if (!item || !item.date) return;
-                        const itemMonth = findMonthInItemDate(item.date);
-                        if (itemMonth === m && (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0)) {
-                            monthlyData[m].E++;
-                        }
-                    });
-            }
+        // Si se proporciona un objId (e.g. 'obj1'), filtramos las actividades que pertenecen a ese objetivo
+        // usando la misma lógica de categorización para asegurar consistencia.
+        // Si no se proporciona objId, usamos todas las actividades actuales (ya filtradas por el padre)
+        
+        let targetActivities = activities;
+        
+        if (objId) {
+            const normalizedObjId = objId.includes('-') ? objId : `obj-${objId.replace('obj', '')}`;
+            // Categorizamos las actividades actuales para ver cuáles caen en este objetivo
+            const groups = categorizeActivitiesByObjective(activities);
+            const match = groups.find(g => g.id === normalizedObjId);
+            targetActivities = match ? match.activities : [];
         }
+
+        targetActivities.forEach(act => {
+            if (!act.data) return;
+            const pArr = act.data.plan || [];
+            const eArr = act.data.executed || [];
+            for (let m = 0; m < 12; m++) {
+                monthlyData[m].P += (Number(pArr[m]) || 0);
+                monthlyData[m].E += (Number(eArr[m]) || 0);
+            }
+        });
 
         return monthlyData;
     };
+
 
     const calculateTrainingIndex = () => {
         const stats = getObjectiveMonthlyStats('obj2');
@@ -1813,52 +1712,45 @@ export function DashboardCharts({
 
     // Calculate overall achievement by area based on OBJECTIVES GROUPS (DYNAMIC)
     const calculateOverallAchievement = () => {
-        const areas = { safety: { plan: 0, exec: 0 }, health: { plan: 0, exec: 0 }, environment: { plan: 0, exec: 0 } };
+        const areas = { 
+            safety: { plan: 0, exec: 0 }, 
+            health: { plan: 0, exec: 0 }, 
+            environment: { plan: 0, exec: 0 } 
+        };
 
-        OBJECTIVES_LIST.forEach(obj => {
-            const stats = getObjectiveMonthlyStats(obj.id);
-            let p = 0;
-            let e = 0;
+        activities.forEach(act => {
+            const areaKey = act.managementArea as 'safety' | 'health' | 'environment' || 'safety';
+            if (!areas[areaKey]) return;
 
             if (currentMonth === -1) {
-                p = stats.reduce((acc, curr) => acc + curr.P, 0);
-                e = stats.reduce((acc, curr) => acc + curr.E, 0);
+                // Anual: Sumar todos los meses
+                areas[areaKey].plan += (act.data?.plan?.reduce((a, b) => a + (Number(b) || 0), 0) || 0);
+                areas[areaKey].exec += (act.data?.executed?.reduce((a, b) => a + (Number(b) || 0), 0) || 0);
             } else {
-                p = stats[currentMonth]?.P || 0;
-                e = stats[currentMonth]?.E || 0;
-            }
-
-            const labelLower = obj.label.toLowerCase();
-            if (labelLower.includes('salud') || labelLower.includes('emo')) {
-                areas.health.plan += p;
-                areas.health.exec += e;
-            } else if (labelLower.includes('ambiente') || labelLower.includes('rrss') || labelLower.includes('residuos')) {
-                areas.environment.plan += p;
-                areas.environment.exec += e;
-            } else {
-                areas.safety.plan += p;
-                areas.safety.exec += e;
+                // Mensual: Solo el mes seleccionado
+                areas[areaKey].plan += (Number(act.data?.plan?.[currentMonth]) || 0);
+                areas[areaKey].exec += (Number(act.data?.executed?.[currentMonth]) || 0);
             }
         });
 
         return [
             {
                 name: 'Seguridad',
-                value: areas.safety.plan > 0 ? Math.round((areas.safety.exec / areas.safety.plan) * 100) : 0,
+                value: areas.safety.plan > 0 ? Math.round((areas.safety.exec / areas.safety.plan) * 100) : (areas.safety.exec > 0 ? 100 : 0),
                 color: '#10b981',
                 plan: areas.safety.plan,
                 exec: areas.safety.exec
             },
             {
                 name: 'Salud',
-                value: areas.health.plan > 0 ? Math.round((areas.health.exec / areas.health.plan) * 100) : 0,
+                value: areas.health.plan > 0 ? Math.round((areas.health.exec / areas.health.plan) * 100) : (areas.health.exec > 0 ? 100 : 0),
                 color: '#ec4899',
                 plan: areas.health.plan,
                 exec: areas.health.exec
             },
             {
                 name: 'Medio Ambiente',
-                value: areas.environment.plan > 0 ? Math.round((areas.environment.exec / areas.environment.plan) * 100) : 0,
+                value: areas.environment.plan > 0 ? Math.round((areas.environment.exec / areas.environment.plan) * 100) : (areas.environment.exec > 0 ? 100 : 0),
                 color: '#3b82f6',
                 plan: areas.environment.plan,
                 exec: areas.environment.exec

@@ -957,8 +957,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
             )}
 
             {/* Modal Evidence y Otros (Mismos de antes) */}
-            {
-                evidenceModal && (
+            {evidenceModal && (
                     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[200] p-4">
                         <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
                             <div className="bg-slate-900 p-6 text-white text-center">
@@ -1002,6 +1001,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     currentYear={selectedYear}
                     location="SAN CLEMENTE"
                 />
+            )}
 
             {/* Audit Log Drawer */}
             {showLogs && (
@@ -1067,7 +1067,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     </div>
                 </div>
             )}
-        </div >
+            </div>
+        </div>
     );
 }
 

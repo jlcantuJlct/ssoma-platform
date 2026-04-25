@@ -1,3 +1,10 @@
+"use server";
+
+import db from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+import { join } from 'path';
+import { writeFile } from 'fs/promises';
+import crypto from 'crypto';
 
 // --- AUDIT LOG SYSTEM ---
 
@@ -104,6 +111,66 @@ export async function deleteActivity(activityId: string, userName: string = 'Usu
         return { success: true, deleted: (result.rowCount || 0) > 0 };
     } catch (error) {
         return { success: false, error: 'Error al eliminar' };
+    }
+}
+
+export async function ensureInspectionTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS inspection_records (
+            id INT PRIMARY KEY,
+            date VARCHAR(50),
+            responsible VARCHAR(100),
+            inspection_type VARCHAR(200),
+            area VARCHAR(50),
+            zone VARCHAR(100),
+            status VARCHAR(50),
+            observations TEXT,
+            evidence_pdf TEXT,
+            evidence_imgs TEXT
+        )
+    `);
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS monthly_program_records (
+            id VARCHAR(50) PRIMARY KEY,
+            responsible VARCHAR(100),
+            type VARCHAR(200),
+            quantity INT,
+            month INT,
+            area VARCHAR(50)
+        )
+    `);
+}
+
+export async function saveMonthlyProgram(items: any[], type: string, month: number) {
+    try {
+        await ensureInspectionTable();
+        // Clear old ones for this area and month
+        if (type !== 'General') {
+            await db.execute('DELETE FROM monthly_program_records WHERE area = ? AND month = ?', [type, month]);
+        } else {
+            // General import overwrites all
+            await db.execute('DELETE FROM monthly_program_records');
+        }
+
+        for (const item of items) {
+            await db.execute(
+                'INSERT INTO monthly_program_records (id, responsible, type, quantity, month, area) VALUES (?, ?, ?, ?, ?, ?)',
+                [crypto.randomUUID(), item.responsible, item.type, item.quantity, item.month, item.area]
+            );
+        }
+        return { success: true };
+    } catch (e) {
+        return { success: false };
+    }
+}
+
+export async function getMonthlyProgram() {
+    try {
+        await ensureInspectionTable();
+        const rows = await db.fetchAll('SELECT * FROM monthly_program_records');
+        return { success: true, data: rows };
+    } catch (e) {
+        return { success: true, data: [] }; // Fallback to empty array
     }
 }
 

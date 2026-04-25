@@ -52,6 +52,18 @@ export async function GET(req: NextRequest) {
 
         console.log(`✅ Reporte generado y guardado en: ${finalPath}`);
 
+        // 7. Notificar por WhatsApp
+        try {
+            const adminPhone = '+51949260281'; // CC Admin phone from send-alerts
+            const waMsg = `📄 *REPORTE MENSUAL LISTO*\n\nHola,\nEl reporte de gestión mensual de *${location}* correspondiente a *${reportData.monthName} ${year}* ha sido generado exitosamente.\n\n📍 Guardado en:\n${finalPath}`;
+            
+            const { sendAutomatedWhatsApp } = await import('@/lib/whatsappAutomation');
+            await sendAutomatedWhatsApp(adminPhone, waMsg);
+            console.log(`✅ Notificación enviada a ${adminPhone}`);
+        } catch (waError) {
+            console.error("⚠️ No se pudo enviar notificación de WhatsApp:", waError);
+        }
+
         return NextResponse.json({
             success: true,
             message: `Reporte de ${location} para ${reportData.monthName} generado con éxito.`,

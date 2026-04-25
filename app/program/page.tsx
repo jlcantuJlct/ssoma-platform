@@ -31,7 +31,7 @@ import {
     Siren,
     Users
 } from 'lucide-react';
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -92,7 +92,8 @@ export default function ProgramPage() {
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
     const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
-    const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string } | null>(null);
+    const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string, tema?: string, area?: string, date?: string } | null>(null);
+    const [newTema, setNewTema] = useState(''); // For custom tema input
 
     const RECONFIG_CATEGORIES = [
         { id: 'Control de ATS', label: 'Control de ATS' },
@@ -700,9 +701,9 @@ export default function ProgramPage() {
     const currentObj = OBJECTIVES.find(o => o.id === selectedObjId);
 
     // Generate Matrix Data
-    const getMatrixData = () => {
-        const currentList = (programData && programData[selectedObjId]) || [];
-        const currentObj = OBJECTIVES.find(o => o.id === selectedObjId);
+    const getMatrixData = (targetObjId = selectedObjId) => {
+        const currentList = (programData && programData[targetObjId]) || [];
+        const currentObj = OBJECTIVES.find(o => o.id === targetObjId);
         const currentObjLabel = currentObj?.label || '';
         const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
 
@@ -731,24 +732,6 @@ export default function ProgramPage() {
             // Fallback for native Date objects stringified
             const d = new Date(dateStr);
             return isNaN(d.getTime()) ? -1 : d.getMonth();
-        };
-
-        const findMatch = (areaKey: string, searchStr: string) => {
-            const tNorm = normalize(searchStr || '');
-            const tWords = getWords(tNorm);
-            if (tWords.length === 0) return null;
-
-            return Object.keys(grouped[areaKey]).find(desc => {
-                const dNorm = normalize(desc);
-                // 1. Coincidencia Directa
-                if (dNorm === tNorm) return true;
-
-                // 2. Coincidencia por Palabras (Bidirectional Subset logic)
-                const dWords = getWords(dNorm);
-                if (dWords.length === 0) return false;
-
-                return isSubset(dWords, tWords) || isSubset(tWords, dWords);
-            });
         };
 
         // Pre-initialize preferred order
@@ -792,6 +775,35 @@ export default function ProgramPage() {
             if (m >= 0 && m <= 11) grouped[key][item.description].programmed[m]++;
         });
 
+        // Cache descriptions to avoid millions of string operations
+        const descCache: Record<string, { norm: string, words: string[] }> = {};
+        for (const area in grouped) {
+            for (const desc in grouped[area]) {
+                const dNorm = normalize(desc);
+                descCache[desc] = { norm: dNorm, words: getWords(dNorm) };
+            }
+        }
+
+        const findMatch = (areaKey: string, searchStr: string) => {
+            if (!grouped[areaKey]) return null;
+            const tNorm = normalize(searchStr || '');
+            const tWords = getWords(tNorm);
+            if (tWords.length === 0) return null;
+
+            return Object.keys(grouped[areaKey]).find(desc => {
+                const cache = descCache[desc];
+                if (!cache) return false;
+                
+                // 1. Coincidencia Directa
+                if (cache.norm === tNorm) return true;
+
+                // 2. Coincidencia por Palabras (Bidirectional Subset logic)
+                if (cache.words.length === 0) return false;
+                return isSubset(cache.words, tWords) || isSubset(tWords, cache.words);
+            });
+        };
+
+
         // 2. Map Executed Inspections
         executedInspections.forEach(exec => {
             const m = getMonthFromStr(exec.date);
@@ -824,9 +836,9 @@ export default function ProgramPage() {
 
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
-            const objIdNum = selectedObjId.replace('obj', '');
+            const objIdNum = targetObjId.replace('obj', '');
             // EMO Special Case: If it's an EMO and we are in OBJ 05, it matches even if objective field is missing
-            const isEmoMatch = (selectedObjId === 'obj5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
+            const isEmoMatch = (targetObjId === 'obj5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
             
             const isMatch = isEmoMatch || (ev.objective && (
                 currentObjLabel.startsWith(ev.objective) || 
@@ -852,7 +864,7 @@ export default function ProgramPage() {
         // 5. Map PMA Records (Objective 08 - Photos / SEG 03)
         pmaRecords.forEach(pma => {
             // PMA is now SEG 03 (obj-8)
-            if (selectedObjId !== 'obj-8') return; 
+            if (targetObjId !== 'obj-8') return; 
 
             const m = getMonthFromStr(pma.date);
             if (m < 0 || m > 11) return;
@@ -914,7 +926,7 @@ export default function ProgramPage() {
 
         // 9. Map Simulacro Records (SEG 05 - obj10)
         simulacroRecords.forEach(sim => {
-            if (selectedObjId !== 'obj10') return;
+            if (targetObjId !== 'obj10') return;
 
             const m = getMonthFromStr(sim.date);
             if (m < 0 || m > 11) return;
@@ -932,7 +944,7 @@ export default function ProgramPage() {
 
         // 10. Map Brigadista Records (SEG 06 - obj11)
         brigadistaRecords.forEach(bri => {
-            if (selectedObjId !== 'obj11') return;
+            if (targetObjId !== 'obj11') return;
 
             const m = getMonthFromStr(bri.date);
             if (m < 0 || m > 11) return;
@@ -974,6 +986,24 @@ export default function ProgramPage() {
     // 100% - 29% = 71% / 12 = ~5.9%
     // Using Grid template columns for absolute precision
 
+    // Precalculate totals for all objectives to prevent UI freezing on render
+    const sidebarTotals = useMemo(() => {
+        const totals: Record<string, { p: number, e: number }> = {};
+        OBJECTIVES.forEach(obj => {
+            const pTotal = (programData[obj.id] || []).length;
+            const objMatrix = getMatrixData(obj.id);
+            let eTotal = 0;
+            Object.values(objMatrix).forEach(area => {
+                Object.values(area).forEach(item => {
+                    eTotal += item.executed.reduce((acc, val) => acc + val, 0);
+                });
+            });
+            totals[obj.id] = { p: pTotal, e: eTotal };
+        });
+        return totals;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords]);
+
     return (
         <div className="relative h-full flex flex-col md:flex-row bg-slate-950 overflow-hidden">
             {/* SIDEBAR */}
@@ -981,7 +1011,7 @@ export default function ProgramPage() {
                 <div className="p-6 border-b border-slate-800">
                     <h2 className="text-xl font-black text-white px-2 flex items-center gap-2">
                         <Calendar className="text-emerald-500" />
-                        Programa 2025
+                        Programa 2026
                     </h2>
                     <p className="text-xs text-slate-500 px-2 mt-1">Selecciona un objetivo estratégico</p>
                 </div>
@@ -989,7 +1019,9 @@ export default function ProgramPage() {
                     {OBJECTIVES.map(obj => {
                         const ItemIcon = obj.icon;
                         const isSelected = selectedObjId === obj.id;
-                        const count = (programData[obj.id] || []).length;
+                        const pTotal = sidebarTotals[obj.id]?.p || 0;
+                        const eTotal = sidebarTotals[obj.id]?.e || 0;
+
                         return (
                             <button
                                 key={obj.id}
@@ -1005,7 +1037,16 @@ export default function ProgramPage() {
                                         <h3 className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${isSelected ? 'text-white' : ''}`}>{obj.label.split(':')[0]}</h3>
                                         <p className={`text-[11px] font-medium leading-tight ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{obj.label.split(':')[1]}</p>
                                     </div>
-                                    {count > 0 && <span className="text-[10px] font-mono bg-slate-950 px-2 py-0.5 rounded text-slate-500">{count}</span>}
+                                    <div className="flex flex-col gap-1 items-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[9px] text-slate-500 font-bold">P:</span>
+                                            <span className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded text-emerald-500">{pTotal}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[9px] text-slate-500 font-bold">E:</span>
+                                            <span className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded text-blue-500">{eTotal}</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />}
                             </button>
@@ -1140,6 +1181,47 @@ export default function ProgramPage() {
                                 })}
                             </div>
 
+                            {/* Fila de Totales por Objetivo */}
+                            {matrixData && Object.values(matrixData).some(g => Object.keys(g).length > 0) && (() => {
+                                const totalsP = new Array(12).fill(0);
+                                const totalsE = new Array(12).fill(0);
+                                Object.values(matrixData).forEach(area => {
+                                    Object.values(area).forEach(data => {
+                                        data.programmed.forEach((p, i) => totalsP[i] += p);
+                                        data.executed.forEach((e, i) => totalsE[i] += e);
+                                    });
+                                });
+                                return (
+                                    <div className="grid grid-cols-[25%_4%_repeat(12,1fr)] bg-slate-950 border-t-2 border-emerald-500/50 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] text-xs z-20 relative opacity-0 hover:opacity-100 transition-all duration-300">
+                                        <div className="row-span-2 px-4 py-2 border-r border-slate-800 font-black text-emerald-400 flex items-center justify-end bg-slate-950 sticky left-0 z-20">
+                                            <div className="uppercase tracking-widest text-[12px] flex items-center gap-2">
+                                                <BarChart2 size={16} /> TOTAL {currentObj?.label?.split(':')[0]}
+                                            </div>
+                                        </div>
+
+                                        {/* Total Programmed Row */}
+                                        <div className="h-[40px] font-black text-center bg-emerald-950/40 text-emerald-500 border-r border-b border-emerald-900/50 flex items-center justify-center">
+                                            P
+                                        </div>
+                                        {totalsP.map((c, i) => (
+                                            <div key={`tp-${i}`} className="h-[40px] font-black border-r border-b border-emerald-900/50 flex items-center justify-center bg-emerald-950/20 text-emerald-400 text-sm">
+                                                {c}
+                                            </div>
+                                        ))}
+
+                                        {/* Total Executed Row */}
+                                        <div className="h-[40px] font-black text-center bg-blue-950/40 text-blue-500 border-r border-blue-900/50 flex items-center justify-center">
+                                            E
+                                        </div>
+                                        {totalsE.map((c, i) => (
+                                            <div key={`te-${i}`} className="h-[40px] font-black border-r border-blue-900/50 flex items-center justify-center bg-blue-950/20 text-blue-400 text-sm">
+                                                {c}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+
                             {/* Empty State */}
                             {Object.values(matrixData || {}).every(g => Object.keys(g).length === 0) && (
                                 <div className="p-12 text-center text-slate-500">
@@ -1223,9 +1305,31 @@ export default function ProgramPage() {
                                             {sendingObs === ri ? 'ENVIANDO...' : 'NO CONFORME'}
                                         </button>
 
+                                        {/* BOTÓN ELIMINAR RÁPIDO */}
+                                        <button 
+                                            onClick={async () => {
+                                                const confirm = window.confirm(`⚠️ ADVERTENCIA\n¿Eliminar permanentemente este registro defectuoso? Esta acción no se puede deshacer.`);
+                                                if (!confirm) return;
+                                                try {
+                                                    const res = await fetch('/api/reconfigure', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ record: rec, action: 'delete' })
+                                                    });
+                                                    const data = await res.json();
+                                                    if (data.success) { alert('🗑️ Registro eliminado.'); window.location.reload(); }
+                                                    else alert(`❌ Error: ${data.error}`);
+                                                } catch { alert('❌ Error de conexión'); }
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all bg-red-900/20 hover:bg-red-600 hover:text-white text-red-400 border-red-500/20"
+                                        >
+                                            <Trash2 size={12} />
+                                            ELIMINAR
+                                        </button>
+
                                         {/* BOTÓN RECONFIGURAR (NUEVO) */}
                                         <button 
-                                            onClick={() => setReconfigRecord(reconfigRecord?.index === ri ? null : { index: ri, category: '', subtype: '' })}
+                                            onClick={() => setReconfigRecord(reconfigRecord?.index === ri ? null : { index: ri, category: '', subtype: '', date: rec.date || '', area: 'Seguridad', tema: '' })}
                                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
                                                 reconfigRecord?.index === ri
                                                 ? 'bg-amber-500 text-white border-amber-400'
@@ -1241,67 +1345,305 @@ export default function ProgramPage() {
                                 {/* PANEL DE RECONFIGURACIÓN (DESPLEGABLE) */}
                                 {reconfigRecord?.index === ri && (
                                     <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 mt-2 animate-in slide-in-from-top-2 duration-200 min-h-[350px]">
-                                        <div className="flex flex-col md:flex-row gap-4 items-end">
-                                            <div className="flex-1 space-y-2">
-                                                <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nueva Categoría</label>
-                                                <select 
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
-                                                    value={reconfigRecord.category}
-                                                    onChange={(e) => setReconfigRecord({ ...reconfigRecord, category: e.target.value, subtype: '' })}
-                                                >
-                                                    <option value="">Seleccione Categoría...</option>
-                                                    {RECONFIG_CATEGORIES.map(cat => (
-                                                        <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                                    ))}
-                                                </select>
+                                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <div className="flex gap-4">
+                                                    <div className="flex-1 space-y-2">
+                                                        <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nueva Categoría</label>
+                                                        <select 
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
+                                                            value={reconfigRecord.category}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                let updates: any = { category: val, subtype: '' };
+                                                                
+                                                                if (val === 'Control de HHC' && programData['obj2']) {
+                                                                    const dateStr = reconfigRecord.date;
+                                                                    
+                                                                    const getMonthVal = (dStr: string) => {
+                                                                        if (!dStr || typeof dStr !== 'string') return -1;
+                                                                        if (dStr.includes('-')) {
+                                                                            const p = dStr.split('-');
+                                                                            if (p[0].length === 4) return parseInt(p[1], 10) - 1; // YYYY-MM-DD
+                                                                            return parseInt(p[1], 10) - 1; // DD-MM-YYYY
+                                                                        }
+                                                                        if (dStr.includes('/')) {
+                                                                            const p = dStr.split('/');
+                                                                            if (p[0].length === 4) return parseInt(p[1], 10) - 1; // YYYY/MM/DD
+                                                                            return parseInt(p[1], 10) - 1; // DD/MM/YYYY
+                                                                        }
+                                                                        const up = dStr.toUpperCase();
+                                                                        const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
+                                                                        const idx = months.findIndex(m => up.startsWith(m));
+                                                                        if (idx !== -1) return idx;
+                                                                        const d = new Date(dStr);
+                                                                        return isNaN(d.getTime()) ? -1 : d.getMonth();
+                                                                    };
+
+                                                                    const targetMonth = getMonthVal(dateStr || '');
+                                                                    
+                                                                    // Primero buscar coincidencia exacta de fecha
+                                                                    let match = programData['obj2'].find((p: any) => p.date === dateStr);
+                                                                    
+                                                                    // Si no, coincidencia por mes
+                                                                    if (!match && targetMonth !== -1) {
+                                                                        match = programData['obj2'].find((p: any) => getMonthVal(p.date) === targetMonth);
+                                                                    }
+
+                                                                    if (match) {
+                                                                        updates.tema = match.description;
+                                                                        updates.area = match.area || 'Seguridad';
+                                                                        const dLow = match.description.toLowerCase();
+                                                                        if (dLow.includes('induc')) updates.subtype = 'INDUCCIÓN (4H)';
+                                                                        else if (dLow.includes('charla')) updates.subtype = 'CHARLA (15 MIN)';
+                                                                        else if (dLow.includes('difusi')) updates.subtype = 'DIFUSIÓN (30 MIN)';
+                                                                        else if (dLow.includes('entren')) updates.subtype = 'ENTRENAMIENTO (30 MIN)';
+                                                                        else updates.subtype = 'CAPACITACIÓN (1H)';
+                                                                    }
+                                                                }
+                                                                setReconfigRecord({ ...reconfigRecord, ...updates });
+                                                            }}
+                                                        >
+                                                            <option value="">Seleccione Categoría...</option>
+                                                            {RECONFIG_CATEGORIES.map(cat => (
+                                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+
+                                                    {reconfigRecord.category && RECONFIG_SUBTYPES[reconfigRecord.category] && (
+                                                        <div className="flex-1 space-y-2">
+                                                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nuevo Tipo / Tema</label>
+                                                            <SearchableSelect
+                                                                options={RECONFIG_SUBTYPES[reconfigRecord.category]}
+                                                                value={reconfigRecord.subtype}
+                                                                onChange={(val) => setReconfigRecord({ ...reconfigRecord, subtype: val })}
+                                                                placeholder="Seleccione Tipo..."
+                                                                className="text-white"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {reconfigRecord.category === 'Control de HHC' && (
+                                                    <div className="flex gap-4 p-3 border border-slate-800 rounded-xl bg-slate-950/50">
+                                                        <div className="flex-1 space-y-2">
+                                                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Fecha a Reportar</label>
+                                                            <input 
+                                                                type="date"
+                                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                                                                value={reconfigRecord.date}
+                                                                onChange={(e) => {
+                                                                    const dateStr = e.target.value;
+                                                                    let updates: any = { date: dateStr };
+                                                                    if (programData['obj2']) {
+                                                                        const getMonthVal = (dStr: string) => {
+                                                                            if (!dStr || typeof dStr !== 'string') return -1;
+                                                                            if (dStr.includes('-')) {
+                                                                                const p = dStr.split('-');
+                                                                                if (p[0].length === 4) return parseInt(p[1], 10) - 1; // YYYY-MM-DD
+                                                                                return parseInt(p[1], 10) - 1; // DD-MM-YYYY
+                                                                            }
+                                                                            if (dStr.includes('/')) {
+                                                                                const p = dStr.split('/');
+                                                                                if (p[0].length === 4) return parseInt(p[1], 10) - 1; // YYYY/MM/DD
+                                                                                return parseInt(p[1], 10) - 1; // DD/MM/YYYY
+                                                                            }
+                                                                            const up = dStr.toUpperCase();
+                                                                            const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
+                                                                            const idx = months.findIndex(m => up.startsWith(m));
+                                                                            if (idx !== -1) return idx;
+                                                                            const d = new Date(dStr);
+                                                                            return isNaN(d.getTime()) ? -1 : d.getMonth();
+                                                                        };
+
+                                                                        const targetMonth = getMonthVal(dateStr || '');
+                                                                        
+                                                                        // Primero buscar coincidencia exacta
+                                                                        let match = programData['obj2'].find((p: any) => p.date === dateStr);
+                                                                        
+                                                                        // Si no, coincidir por mes
+                                                                        if (!match && targetMonth !== -1) {
+                                                                            match = programData['obj2'].find((p: any) => getMonthVal(p.date) === targetMonth);
+                                                                        }
+
+                                                                        if (match) {
+                                                                            updates.tema = match.description;
+                                                                            updates.area = match.area || 'Seguridad';
+                                                                            const dLow = match.description.toLowerCase();
+                                                                            if (dLow.includes('induc')) updates.subtype = 'INDUCCIÓN (4H)';
+                                                                            else if (dLow.includes('charla')) updates.subtype = 'CHARLA (15 MIN)';
+                                                                            else if (dLow.includes('difusi')) updates.subtype = 'DIFUSIÓN (30 MIN)';
+                                                                            else if (dLow.includes('entren')) updates.subtype = 'ENTRENAMIENTO (30 MIN)';
+                                                                            else updates.subtype = 'CAPACITACIÓN (1H)';
+                                                                        }
+                                                                    }
+                                                                    setReconfigRecord({ ...reconfigRecord, ...updates });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1 space-y-2">
+                                                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Área Programada</label>
+                                                            <select 
+                                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                                                                value={reconfigRecord.area}
+                                                                onChange={(e) => setReconfigRecord({ ...reconfigRecord, area: e.target.value })}
+                                                            >
+                                                                <option value="Seguridad">Seguridad</option>
+                                                                <option value="Salud">Salud</option>
+                                                                <option value="Medio Ambiente">Medio Ambiente</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="flex-[2] space-y-2">
+                                                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Tema del Programa (Mes Seleccionado)</label>
+                                                            {(() => {
+                                                                // Extraer número de mes desde cualquier formato de fecha
+                                                                const getMes = (d: string) => {
+                                                                    if (!d) return -1;
+                                                                    if (d.includes('-')) { const p = d.split('-'); return p[0].length === 4 ? parseInt(p[1]) - 1 : parseInt(p[1]) - 1; }
+                                                                    if (d.includes('/')) { const p = d.split('/'); return p[0].length === 4 ? parseInt(p[1]) - 1 : parseInt(p[1]) - 1; }
+                                                                    const MESES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SET","OCT","NOV","DIC"];
+                                                                    const mi = MESES.findIndex(m => d.toUpperCase().startsWith(m));
+                                                                    if (mi !== -1) return mi;
+                                                                    const dt = new Date(d); return isNaN(dt.getTime()) ? -1 : dt.getMonth();
+                                                                };
+                                                                // Normalizar texto para deduplicar correctamente
+                                                                const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+                                                                const mesSeleccionado = getMes(reconfigRecord.date || '');
+                                                                const todosLosTemas = programData['obj2'] || [];
+                                                                const temasDelMes = mesSeleccionado === -1 ? todosLosTemas : todosLosTemas.filter((item: any) => getMes(item.date) === mesSeleccionado);
+                                                                
+                                                                // Deduplicar usando texto normalizado como clave
+                                                                const seenNorm = new Set<string>();
+                                                                const temasUnicos: any[] = [];
+                                                                temasDelMes.forEach((item: any) => {
+                                                                    if (!item.description) return;
+                                                                    const key = norm(item.description);
+                                                                    if (!seenNorm.has(key)) {
+                                                                        seenNorm.add(key);
+                                                                        temasUnicos.push(item);
+                                                                    }
+                                                                });
+
+                                                                const isNuevoTema = reconfigRecord.tema === '__NUEVO__';
+                                                                return (
+                                                                    <div className="space-y-2">
+                                                                        <select 
+                                                                            className="w-full bg-slate-900 border border-amber-500/50 rounded-lg px-3 py-1.5 text-xs text-white"
+                                                                            value={isNuevoTema ? '__NUEVO__' : (reconfigRecord.tema || '')}
+                                                                            onChange={(e) => {
+                                                                                const desc = e.target.value;
+                                                                                if (desc === '__NUEVO__') {
+                                                                                    setNewTema('');
+                                                                                    setReconfigRecord({ ...reconfigRecord, tema: '__NUEVO__' });
+                                                                                    return;
+                                                                                }
+                                                                                const itemData = temasUnicos.find((item: any) => item.description === desc);
+                                                                                const areaVal = (itemData?.area || 'SEGURIDAD').toLowerCase().includes('salud') ? 'Salud' : (itemData?.area || 'SEGURIDAD').toLowerCase().includes('ambiente') ? 'Medio Ambiente' : 'Seguridad';
+                                                                                const dLow = desc.toLowerCase();
+                                                                                let subtype = 'CAPACITACIÓN (1H)';
+                                                                                if (dLow.includes('induc')) subtype = 'INDUCCIÓN (4H)';
+                                                                                else if (dLow.includes('charla')) subtype = 'CHARLA (15 MIN)';
+                                                                                else if (dLow.includes('difusi')) subtype = 'DIFUSIÓN (30 MIN)';
+                                                                                else if (dLow.includes('entren')) subtype = 'ENTRENAMIENTO (30 MIN)';
+                                                                                setReconfigRecord({ ...reconfigRecord, tema: desc, area: areaVal, subtype });
+                                                                            }}
+                                                                        >
+                                                                            <option value="">{mesSeleccionado === -1 ? '⚠ Seleccione una fecha primero...' : temasUnicos.length === 0 ? 'Sin temas programados ese mes' : '— Seleccione Tema Programado —'}</option>
+                                                                            {temasUnicos.map((item: any, idx: number) => (
+                                                                                <option key={idx} value={item.description}>{item.description}</option>
+                                                                            ))}
+                                                                            <option value="__NUEVO__">➕ Ingresar tema nuevo...</option>
+                                                                        </select>
+                                                                        {isNuevoTema && (
+                                                                            <input
+                                                                                type="text"
+                                                                                placeholder="Escribe el tema de la capacitación..."
+                                                                                className="w-full bg-slate-800 border border-amber-400/60 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
+                                                                                value={newTema}
+                                                                                onChange={(e) => setNewTema(e.target.value)}
+                                                                                autoFocus
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {reconfigRecord.category && RECONFIG_SUBTYPES[reconfigRecord.category] && (
-                                                <div className="flex-1 space-y-2">
-                                                    <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nuevo Tipo / Tema</label>
-                                                    <SearchableSelect
-                                                        options={RECONFIG_SUBTYPES[reconfigRecord.category]}
-                                                        value={reconfigRecord.subtype}
-                                                        onChange={(val) => setReconfigRecord({ ...reconfigRecord, subtype: val })}
-                                                        placeholder="Seleccione Tipo..."
-                                                        className="text-white"
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="flex flex-col gap-2 min-w-[140px] pt-6">
+                                                <button 
+                                                    disabled={!reconfigRecord.category || (!reconfigRecord.subtype && RECONFIG_SUBTYPES[reconfigRecord.category]) || (reconfigRecord.category === 'Control de HHC' && (!reconfigRecord.tema || (reconfigRecord.tema === '__NUEVO__' && !newTema.trim())))}
+                                                    className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-[10px] px-4 py-2 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95 text-center"
+                                                    onClick={async () => {
+                                                        const rec = selectedRecords.records[ri];
+                                                        const confirm = window.confirm(`¿Estás seguro de REDIRECCIONAR este registro a ${reconfigRecord.category}?`);
+                                                        if (!confirm) return;
 
-                                            <button 
-                                                disabled={!reconfigRecord.category || (!reconfigRecord.subtype && RECONFIG_SUBTYPES[reconfigRecord.category])}
-                                                className="bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-xs px-6 py-2 rounded-xl transition-all shadow-lg shadow-amber-500/10 active:scale-95"
-                                                onClick={async () => {
-                                                    const rec = selectedRecords.records[ri];
-                                                    const confirm = window.confirm(`¿Estás seguro de REDIRECCIONAR este registro a ${reconfigRecord.category} > ${reconfigRecord.subtype}?`);
-                                                    if (!confirm) return;
-
-                                                    try {
-                                                        const res = await fetch('/api/reconfigure', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({
-                                                                record: rec,
-                                                                targetCategory: reconfigRecord.category,
-                                                                targetSubtype: reconfigRecord.subtype
-                                                            })
-                                                        });
-                                                        const data = await res.json();
-                                                        if (data.success) {
-                                                            alert(`✅ Registro redireccionado con éxito.`);
-                                                            window.location.reload(); // Simple refresh to update all states
-                                                        } else {
-                                                            alert(`❌ Error: ${data.error}`);
+                                                        try {
+                                                            const res = await fetch('/api/reconfigure', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({
+                                                                    record: rec,
+                                                                    targetCategory: reconfigRecord.category,
+                                                                    targetSubtype: reconfigRecord.subtype,
+                                                                    targetTema: reconfigRecord.tema === '__NUEVO__' ? newTema.trim() : reconfigRecord.tema,
+                                                                    targetArea: reconfigRecord.area,
+                                                                    targetDate: reconfigRecord.date
+                                                                })
+                                                            });
+                                                            const data = await res.json();
+                                                            if (data.success) {
+                                                                alert(`✅ Registro redireccionado con éxito.`);
+                                                                window.location.reload(); 
+                                                            } else {
+                                                                alert(`❌ Error: ${data.error}`);
+                                                            }
+                                                        } catch (err) {
+                                                            alert(`❌ Error de conexión`);
                                                         }
-                                                    } catch (err) {
-                                                        alert(`❌ Error de conexión`);
-                                                    }
-                                                    setReconfigRecord(null);
-                                                }}
-                                            >
-                                                REDIRECCIONAR
-                                            </button>
+                                                        setReconfigRecord(null);
+                                                    }}
+                                                >
+                                                    REDIRECCIONAR
+                                                </button>
+                                                <button 
+                                                    className="w-full bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/30 text-red-400 font-bold text-[10px] px-4 py-2 rounded-xl transition-all active:scale-95 text-center"
+                                                    onClick={async () => {
+                                                        const rec = selectedRecords.records[ri];
+                                                        const confirm = window.confirm(`⚠️ ADVERTENCIA ⚠️\n¿Estás completamente seguro de ELIMINAR este registro defectuoso? Esta acción no se puede deshacer.`);
+                                                        if (!confirm) return;
+
+                                                        try {
+                                                            const res = await fetch('/api/reconfigure', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({
+                                                                    record: rec,
+                                                                    action: 'delete'
+                                                                })
+                                                            });
+                                                            const data = await res.json();
+                                                            if (data.success) {
+                                                                alert(`🗑️ Registro eliminado correctamente.`);
+                                                                window.location.reload(); 
+                                                            } else {
+                                                                alert(`❌ Error al eliminar: ${data.error}`);
+                                                            }
+                                                        } catch (err) {
+                                                            alert(`❌ Error de conexión`);
+                                                        }
+                                                        setReconfigRecord(null);
+                                                    }}
+                                                >
+                                                    <Trash2 size={12} className="inline-block mr-1" />
+                                                    ELIMINAR 
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
