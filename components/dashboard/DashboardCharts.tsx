@@ -184,32 +184,124 @@ export function DashboardCharts({
         return categorizeActivitiesByObjective(activities);
     }, [activities]);
 
+    // Helper: get month index from a date string (YYYY-MM-DD or DD/MM/YYYY)
+    const getMonthFromDateStr = (dateStr: any): number => {
+        if (!dateStr || typeof dateStr !== 'string') return -1;
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            if (parts.length >= 2) return parseInt(parts[1]) - 1;
+        }
+        if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length >= 2) return parseInt(parts[1]) - 1;
+        }
+        try {
+            const d = new Date(dateStr);
+            return isNaN(d.getTime()) ? -1 : d.getMonth();
+        } catch { return -1; }
+    };
+
+    // Compute P/E per month for a given objective using the SAME data source as the Annual Program:
+    // - P = count of ProgramItems (programData[objId]) by month
+    // - E = count of real executed records by month, mapped to each objective
     const getObjectiveMonthlyStats = (objId?: string) => {
         const monthlyData = Array(12).fill(0).map((_, i) => ({ name: MONTHS[i], P: 0, E: 0 }));
 
-        // Si se proporciona un objId (e.g. 'obj1'), filtramos las actividades que pertenecen a ese objetivo
-        // usando la misma lógica de categorización para asegurar consistencia.
-        // Si no se proporciona objId, usamos todas las actividades actuales (ya filtradas por el padre)
-        
-        let targetActivities = activities;
-        
-        if (objId) {
-            const normalizedObjId = objId.includes('-') ? objId : `obj-${objId.replace('obj', '')}`;
-            // Categorizamos las actividades actuales para ver cuáles caen en este objetivo
-            const groups = categorizeActivitiesByObjective(activities);
-            const match = groups.find(g => g.id === normalizedObjId);
-            targetActivities = match ? match.activities : [];
+        // ── PROGRAMADO (P): Count ProgramItems by month ──────────────────────────
+        const normalizedId = objId
+            ? (objId.includes('-') ? objId.replace('obj-', 'obj') : objId)
+            : null;
+
+        if (normalizedId && programData[normalizedId]) {
+            programData[normalizedId].forEach((item: any) => {
+                const m = getMonthFromDateStr(item.date);
+                if (m >= 0 && m <= 11) monthlyData[m].P++;
+            });
+        } else if (!normalizedId) {
+            // No objId → sum ALL programData
+            Object.values(programData).forEach((items: any) => {
+                (items as any[]).forEach((item: any) => {
+                    const m = getMonthFromDateStr(item.date);
+                    if (m >= 0 && m <= 11) monthlyData[m].P++;
+                });
+            });
         }
 
-        targetActivities.forEach(act => {
-            if (!act.data) return;
-            const pArr = act.data.plan || [];
-            const eArr = act.data.executed || [];
-            for (let m = 0; m < 12; m++) {
-                monthlyData[m].P += (Number(pArr[m]) || 0);
-                monthlyData[m].E += (Number(eArr[m]) || 0);
-            }
-        });
+        // ── EJECUTADO (E): Count real records by month, mapped per objective ─────
+        const addE = (records: any[], monthFn: (r: any) => number, objFilter?: (r: any) => boolean) => {
+            records.forEach(r => {
+                if (objFilter && !objFilter(r)) return;
+                const m = monthFn(r);
+                if (m >= 0 && m <= 11) monthlyData[m].E++;
+            });
+        };
+
+        if (!normalizedId || normalizedId === 'obj1') {
+            // OBJ 01: SCSST → evidenceRecords with SCSST objective
+            addE(evidenceRecords, r => getMonthFromDateStr(r.date), r => {
+                const obj = (r.objective || '').toLowerCase();
+                return obj.includes('scsst') || obj.includes('01');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj2') {
+            // OBJ 02: Capacitación → hhcRecords
+            addE(hhcRecords, r => getMonthFromDateStr(r.date));
+        }
+        if (!normalizedId || normalizedId === 'obj3') {
+            // OBJ 03: Inspecciones Seguridad → executedInspections (safety)
+            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
+                const t = (r.inspectionType || r.area || '').toLowerCase();
+                return !t.includes('salud') && !t.includes('ambiente') && !t.includes('health') && !t.includes('enviro');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj4') {
+            // OBJ 04: Reporte A/C Inseguras → detourRecords
+            addE(detourRecords, r => getMonthFromDateStr(r.date));
+        }
+        if (!normalizedId || normalizedId === 'obj5') {
+            // OBJ 05: EMO → evidenceRecords EMO
+            addE(evidenceRecords, r => getMonthFromDateStr(r.date), r => {
+                const t = (r.type || r.category || '').toLowerCase();
+                return t.includes('emo');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj6') {
+            // SEG 01: Inspecciones Salud
+            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
+                const t = (r.inspectionType || '').toLowerCase();
+                return t.includes('salud') || t.includes('health') || t.includes('médico') || t.includes('medico');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj7') {
+            // SEG 02: Formaciones Salud → hhcRecords area=salud
+            addE(hhcRecords, r => getMonthFromDateStr(r.date), r => {
+                const a = (r.area || '').toLowerCase();
+                return a.includes('salud');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj8') {
+            // SEG 03: Inspecciones M. Ambiente → executedInspections ambiente + pmaRecords
+            addE(executedInspections, r => getMonthFromDateStr(r.date), r => {
+                const t = (r.inspectionType || '').toLowerCase();
+                return t.includes('ambiente') || t.includes('environment') || t.includes('ambiental');
+            });
+            addE(pmaRecords, r => getMonthFromDateStr(r.date));
+        }
+        if (!normalizedId || normalizedId === 'obj9') {
+            // SEG 04: Formaciones M. Ambiente → hhcRecords area=ambiente
+            addE(hhcRecords, r => getMonthFromDateStr(r.date), r => {
+                const a = (r.area || '').toLowerCase();
+                return a.includes('ambiente');
+            });
+        }
+        if (!normalizedId || normalizedId === 'obj10') {
+            // SEG 05: Simulacros
+            addE(simulacroRecords, r => getMonthFromDateStr(r.date));
+        }
+        if (!normalizedId || normalizedId === 'obj11') {
+            // SEG 06: Brigadistas
+            addE(brigadistaRecords, r => getMonthFromDateStr(r.date));
+        }
 
         return monthlyData;
     };
