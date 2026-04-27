@@ -63,6 +63,15 @@ export function Header() {
                     <Activity size={14} className="text-emerald-500" />
                     SSOMA Antigravity
                 </div>
+
+                {/* Recordatorio de Pago y Mudanza */}
+                <div className="hidden xl:flex items-center gap-3 px-4 py-1.5 bg-amber-500/5 border border-amber-500/20 rounded-full ml-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></div>
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Mantenimiento:</span>
+                    <span className="text-[10px] text-amber-200/60 font-medium">
+                        20 May (Mudar a Supabase) | 25 May (Cortar Pago Neon)
+                    </span>
+                </div>
             </div>
 
             {/* Right side: Notifications, Active Users, Profile */}

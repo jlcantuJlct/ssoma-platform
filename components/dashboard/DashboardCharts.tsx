@@ -142,8 +142,8 @@ export function DashboardCharts({
 
     const [performanceDetail, setPerformanceDetail] = useState<{
         userName: string,
-        type: 'P' | 'Pending',
-        items: any[]
+        executedItems: any[],
+        pendingItems: any[]
     } | null>(null);
 
     // LOAD ALL RECORDS - Consolidated
@@ -2402,6 +2402,7 @@ export function DashboardCharts({
                                 const getProgramLists = () => {
                                     const allPlanned: any[] = [];
                                     const allPending: any[] = [];
+                                    const allExecuted: any[] = [];
 
                                     OBJECTIVES_CONFIG.forEach(obj => {
                                         const idNoHyphen = obj.id.replace('-', '');
@@ -2423,7 +2424,15 @@ export function DashboardCharts({
                                             if ((itemYear === currentYear || itemYear === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
                                                 const formattedItem = { ...item, objectiveName: obj.title };
                                                 allPlanned.push(formattedItem);
-                                                if (item.status !== 'Realizado' && (Number(item.compliance) || 0) === 0) {
+                                                
+                                                const isDone = item.status === 'Realizado' || (Number(item.compliance) || 0) > 0;
+                                                
+                                                if (isDone) {
+                                                    // Only if the user is the responsible
+                                                    if (item.responsible === user || item.responsable === user) {
+                                                        allExecuted.push(formattedItem);
+                                                    }
+                                                } else {
                                                     allPending.push(formattedItem);
                                                 }
                                             }
@@ -2489,27 +2498,21 @@ export function DashboardCharts({
                                         </div>
 
                                         {/* Footer Metrics - Executive Table Style */}
-                                        <div className={`w-full grid grid-cols-2 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 ${isDeactivated ? 'bg-slate-900/80' : ''}`}>
-                                            <button 
-                                                onClick={() => {
-                                                    const { allPlanned } = getProgramLists();
-                                                    setPerformanceDetail({ userName: user, type: 'P', items: allPlanned });
-                                                }}
-                                                className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group/stat hover:bg-slate-800 transition-colors"
-                                            >
-                                                <span className="text-[8px] text-slate-500 font-black uppercase tracking-tighter group-hover/stat:text-slate-300 transition-colors">Programado</span>
-                                                <span className="text-sm font-black text-white tabular-nums">{planned}</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => {
-                                                    const { allPending } = getProgramLists();
-                                                    setPerformanceDetail({ userName: user, type: 'Pending', items: allPending });
-                                                }}
-                                                className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group/stat hover:bg-slate-800 transition-colors"
-                                            >
-                                                <span className="text-[8px] text-emerald-500/70 font-black uppercase tracking-tighter group-hover/stat:text-emerald-400 transition-colors">Ejecutado</span>
+                                        <div 
+                                            onClick={() => {
+                                                const { allExecuted, allPending } = getProgramLists();
+                                                setPerformanceDetail({ userName: user, executedItems: allExecuted, pendingItems: allPending });
+                                            }}
+                                            className={`w-full grid grid-cols-2 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
+                                        >
+                                            <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors">
+                                                <span className="text-[8px] text-emerald-500/70 font-black uppercase tracking-tighter group-hover/footer:text-emerald-400 transition-colors">Ejecutado</span>
                                                 <span className="text-sm font-black text-emerald-400 tabular-nums">{executed}</span>
-                                            </button>
+                                            </div>
+                                            <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors border-l border-slate-800/50">
+                                                <span className="text-[8px] text-amber-500/70 font-black uppercase tracking-tighter group-hover/footer:text-amber-400 transition-colors">Pendiente</span>
+                                                <span className="text-sm font-black text-amber-400 tabular-nums">{planned - executed < 0 ? 0 : planned - executed}</span>
+                                            </div>
                                         </div>
 
                                         {/* Progress Bar (Subtle) */}
@@ -3325,11 +3328,16 @@ export function DashboardCharts({
                         {/* Header */}
                         <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                             <div className="flex items-center gap-5">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${performanceDetail.type === 'P' ? 'bg-indigo-600' : 'bg-amber-600'}`}>
-                                    {performanceDetail.type === 'P' ? <Target size={28} /> : <Clock size={28} />}
+                                <div className="p-4 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl shadow-xl">
+                                    <ClipboardCheck size={32} className="text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-2xl font-black text-white">{performanceDetail.type === 'P' ? 'Actividades Programadas' : 'Pendientes por Ejecutar'}</h3>
+                                    <h3 className="text-2xl font-black text-white">
+                                        Seguimiento de Rendimiento 
+                                        <span className="text-indigo-400 ml-2">
+                                            - {currentMonth !== -1 ? MONTHS[currentMonth].toUpperCase() : `AÑO ${currentYear}`}
+                                        </span>
+                                    </h3>
                                     <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-1">Responsable: {performanceDetail.userName}</p>
                                 </div>
                             </div>
@@ -3338,49 +3346,76 @@ export function DashboardCharts({
                             </button>
                         </div>
 
-                        {/* List Content */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
-                            {performanceDetail.items.length === 0 ? (
-                                <div className="py-20 text-center text-slate-500">
-                                    <ClipboardCheck size={64} className="mx-auto mb-4 opacity-20" />
-                                    <p className="text-lg font-bold">No hay actividades para mostrar</p>
+                        {/* Dual Column Content */}
+                        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                            {/* Column 1: Executed (Left) */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-4 border-r border-slate-800 scrollbar-thin scrollbar-thumb-slate-700">
+                                <div className="flex items-center gap-2 mb-4 px-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                    <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest">Actividades Realizadas ({performanceDetail.executedItems.length})</h4>
                                 </div>
-                            ) : (
-                                performanceDetail.items.map((item, idx) => (
-                                    <div key={idx} className="group/item relative bg-slate-950/50 border border-slate-800/50 rounded-2xl p-5 hover:border-indigo-500/50 transition-all hover:bg-slate-800/30 flex items-center justify-between">
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-2 h-10 rounded-full bg-slate-800 group-hover/item:bg-indigo-500 transition-colors"></div>
-                                            <div>
-                                                <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
-                                                <h4 className="text-sm font-bold text-white group-hover/item:text-indigo-100 transition-colors">{item.description}</h4>
-                                                <div className="flex items-center gap-4 mt-2">
-                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
-                                                        <Calendar size={12} />
-                                                        {item.date}
-                                                    </div>
-                                                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${item.status === 'Realizado' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                                                        {item.status}
-                                                    </span>
-                                                </div>
+                                
+                                {performanceDetail.executedItems.length === 0 ? (
+                                    <div className="py-10 text-center text-slate-600 border border-dashed border-slate-800 rounded-2xl">
+                                        <p className="text-xs font-bold">Sin registros ejecutados aún</p>
+                                    </div>
+                                ) : (
+                                    performanceDetail.executedItems.map((item, idx) => (
+                                        <div key={idx} className="bg-slate-950/40 border border-slate-800/50 rounded-xl p-4 hover:border-emerald-500/30 transition-all">
+                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                            <h5 className="text-[11px] font-bold text-white line-clamp-2">{item.description}</h5>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-[9px] text-slate-500 flex items-center gap-1 font-bold">
+                                                    <Calendar size={10} /> {item.date}
+                                                </span>
+                                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Completado</span>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest block mb-1">Cumplimiento</span>
-                                            <span className={`text-lg font-black ${item.compliance >= 100 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                                {item.compliance}%
-                                            </span>
-                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Column 2: Pending (Right) */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/20 scrollbar-thin scrollbar-thumb-slate-700">
+                                <div className="flex items-center gap-2 mb-4 px-2">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                                    <h4 className="text-xs font-black text-amber-500 uppercase tracking-widest">Pendientes por Ejecutar ({performanceDetail.pendingItems.length})</h4>
+                                </div>
+
+                                {performanceDetail.pendingItems.length === 0 ? (
+                                    <div className="py-10 text-center text-slate-600 border border-dashed border-slate-800 rounded-2xl">
+                                        <p className="text-xs font-bold">¡Todo al día!</p>
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    performanceDetail.pendingItems.map((item, idx) => (
+                                        <div key={idx} className="bg-slate-950/60 border border-slate-800/50 rounded-xl p-4 hover:border-amber-500/30 transition-all">
+                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                            <h5 className="text-[11px] font-bold text-white line-clamp-2">{item.description}</h5>
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-[9px] text-slate-500 flex items-center gap-1 font-bold">
+                                                    <Calendar size={10} /> {item.date}
+                                                </span>
+                                                <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase">Pendiente</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                         
                         {/* Footer Summary */}
-                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-between items-center px-10">
-                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Total de registros: {performanceDetail.items.length}</span>
-                            <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
+                        <div className="p-5 bg-slate-950/80 border-t border-slate-800 flex justify-between items-center px-8">
+                            <div className="flex gap-6">
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                    Total: {performanceDetail.executedItems.length + performanceDetail.pendingItems.length}
+                                </span>
+                                <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">
+                                    Eficacia: {Math.round((performanceDetail.executedItems.length / (performanceDetail.executedItems.length + performanceDetail.pendingItems.length || 1)) * 100)}%
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-500/20">
                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Seguimiento 2026</span>
+                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Visión Ejecutiva 2026</span>
                             </div>
                         </div>
                     </div>

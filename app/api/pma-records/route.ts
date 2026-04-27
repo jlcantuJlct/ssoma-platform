@@ -5,7 +5,7 @@ import { logActivity } from '@/app/actions';
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS pma_evidence_records (
-            id SERIAL PRIMARY KEY,
+            id BIGINT PRIMARY KEY,
             record_id VARCHAR(100),
             date VARCHAR(20),
             responsible VARCHAR(100),
@@ -76,10 +76,12 @@ export async function POST(req: NextRequest) {
         await db.execute('DELETE FROM pma_evidence_records');
 
         for (const r of uniqueRecords) {
+            const rid = r.id || (Date.now() + Math.random());
             await db.execute(
-                `INSERT INTO pma_evidence_records (record_id, date, responsible, category, description, location, images)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO pma_evidence_records (id, record_id, date, responsible, category, description, location, images)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
+                    rid,
                     String(r.id),
                     r.date || '',
                     r.responsible || '',

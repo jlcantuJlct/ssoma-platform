@@ -8,7 +8,6 @@ const ALERT_USERS = [
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        phone: '+51943697255' },
     { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     phone: '+51969683799' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', phone: '+51929906173' },
-    { username: 'brayan.pena',         name: 'Brayan Jeanpool Peña Villafuerte', phone: '+51971087023' },
 ];
 
 const ADMIN_PHONE = '+51949260281';
@@ -63,7 +62,6 @@ async function getDetailedPending(user: any): Promise<string[]> {
     const pendingDetails: string[] = [];
     const firstName = user.name.split(' ')[0];
     const isGladys = firstName.toLowerCase() === 'gladys' || firstName.toLowerCase() === 'gladis';
-    const isBrayan = firstName.toLowerCase() === 'brayan';
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
@@ -71,30 +69,6 @@ async function getDetailedPending(user: any): Promise<string[]> {
     const monthName = now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric', timeZone: 'America/Lima' });
     const pmaMonthFormatted = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-    // 2. Tareas de Brayan (SOLO Fotos PMA y Control Desvio)
-    if (isBrayan) {
-        // Fotos PMA
-        try {
-            const rows = await db.fetchAll(
-                `SELECT e.id FROM evidence e 
-                 JOIN activities a ON e.activity_id = a.id 
-                 WHERE e.created_at LIKE ? AND a.responsible LIKE ?`,
-                [`${todayStr}%`, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pendingDetails.push('Fotos PMA');
-        } catch {}
-
-        // Control Desvíos
-        try {
-            const rows = await db.fetchAll(
-                `SELECT id FROM desvio_evidence_records WHERE date = ? AND responsible LIKE ?`,
-                [todayStr, `%${firstName}%`]
-            );
-            if (!rows || rows.length === 0) pendingDetails.push('Control de Desvíos');
-        } catch {}
-
-        return pendingDetails; // Fin para Brayan
-    }
 
     // ─── Tareas Diarias (Solo si NO es Gladys o Brayan) ───
     if (!isGladys) {
