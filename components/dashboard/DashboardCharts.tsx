@@ -152,7 +152,7 @@ export function DashboardCharts({
             try {
                 const [
                     progRes, inspRes, hhcRes, evRes, pmaRes, 
-                    atsRes, petarRes, detourRes, simRes, briRes, risRes
+                    atsRes, petarRes, detourRes, simRes, briRes, risRes, trainingRes
                 ] = await Promise.all([
                     fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} })),
                     fetch('/api/inspections').then(r => r.json()).catch(() => ({ records: [] })),
@@ -164,7 +164,8 @@ export function DashboardCharts({
                     fetch('/api/desvio-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/simulacro-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/brigadista-records').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/risstma-records').then(r => r.json()).catch(() => ({ records: [] }))
+                    fetch('/api/risstma-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/training-program').then(r => r.json()).catch(() => ({ records: [] }))
                 ]);
 
                 setProgramData(progRes.programData || {});
@@ -178,6 +179,7 @@ export function DashboardCharts({
                 setSimulacroRecords(simRes.records || []);
                 setBrigadistaRecords(briRes.records || []);
                 setRisstmaRecords(risRes.records || []);
+                setTrainingProgram(trainingRes.records || []);
 
                 // Load localStorage-only records (manifiesto + residuos)
                 try {
