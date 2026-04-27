@@ -2305,6 +2305,33 @@ export function DashboardCharts({
                                     
                                     const items = [...(programData[idNoHyphen] || []), ...(programData[idWithHyphen] || [])];
                                     
+                                    // Special handling for OBJ 05: Count as 1 unit per month as requested
+                                    if (obj.id === 'obj5' || obj.id === 'obj-5') {
+                                        const monthsWithPlanned = new Set();
+                                        const monthsWithExecuted = new Set();
+                                        
+                                        items.forEach(item => {
+                                            const d = new Date(item.date);
+                                            const itemYear = d.getFullYear();
+                                            const itemMonth = d.getMonth();
+                                            const descLower = (item.description || '').toLowerCase();
+                                            
+                                            if (descLower.includes('inducción') || descLower.includes('induccion')) return;
+                                            
+                                            const isYearMatch = itemYear === currentYear || itemYear === 2025;
+                                            if (isYearMatch && (currentMonth === -1 || itemMonth === currentMonth)) {
+                                                monthsWithPlanned.add(itemMonth);
+                                                if ((item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) &&
+                                                    (item.responsible === user || item.responsable === user)) {
+                                                    monthsWithExecuted.add(itemMonth);
+                                                }
+                                            }
+                                        });
+                                        planned += monthsWithPlanned.size;
+                                        executed += monthsWithExecuted.size;
+                                        return;
+                                    }
+
                                     items.forEach(item => {
                                         const d = new Date(item.date);
                                         const itemYear = d.getFullYear();
@@ -2379,12 +2406,40 @@ export function DashboardCharts({
                                     executed += filterByResponsible(residuosRecords);
                                 } else if (isGroup2) {
                                     // Health records - Gladis Aroste
-                                    // Check evidence records by objective or keywords in description/activity
+                                    
+                                    // 1. EMOs / OBJ 05: Count as 1 unit per month if there's at least one record
+                                    const emoMonths = new Set();
+                                    evidenceRecords.forEach(r => {
+                                        const d = new Date(r.date);
+                                        const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
+                                        const desc = (r.description || r.activity || '').toLowerCase();
+                                        if (obj.includes('obj5') || desc.includes('emo')) {
+                                            const rName = String(r.responsible || r.responsable || '').toLowerCase();
+                                            const uName = user.toLowerCase();
+                                            let isMatch = rName === uName || (rName !== '' && uName.includes(rName)) || (uName !== '' && rName.includes(uName));
+                                            
+                                            // Fuzzy match for Gladis
+                                            if (!isMatch) {
+                                                const uFirst = uName.split(' ')[0];
+                                                const rFirst = rName.split(' ')[0];
+                                                if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) isMatch = true;
+                                            }
+
+                                            if (isMatch && (d.getFullYear() === currentYear || d.getFullYear() === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                                emoMonths.add(d.getMonth());
+                                            }
+                                        }
+                                    });
+                                    executed += emoMonths.size;
+
+                                    // 2. Other Health records (Individual counts)
                                     executed += filterByResponsible(evidenceRecords.filter(r => {
                                         const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
                                         const desc = (r.description || r.activity || '').toLowerCase();
-                                        return obj.includes('obj5') || obj.includes('seg01') || obj.includes('seg02') || 
-                                               desc.includes('emo') || desc.includes('salud') || desc.includes('médico') || desc.includes('medico');
+                                        const isEmo = obj.includes('obj5') || desc.includes('emo');
+                                        if (isEmo) return false;
+                                        return obj.includes('seg01') || obj.includes('seg02') || 
+                                               desc.includes('salud') || desc.includes('médico') || desc.includes('medico');
                                     }));
                                     executed += filterByResponsible(executedInspections.filter(r => {
                                         const t = String(r.inspectionType || '').toLowerCase();
