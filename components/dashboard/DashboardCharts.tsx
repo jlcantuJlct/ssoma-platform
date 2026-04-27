@@ -3381,7 +3381,7 @@ export function DashboardCharts({
             {performanceDetail && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setPerformanceDetail(null)} />
-                    <div className="relative w-full max-w-4xl bg-slate-900/90 border border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-300">
+                    <div className="relative w-full max-w-5xl bg-slate-900/90 border border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-300">
                         {/* Header */}
                         <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                             <div className="flex items-center gap-5">
