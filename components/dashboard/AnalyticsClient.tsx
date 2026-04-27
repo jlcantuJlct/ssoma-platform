@@ -54,8 +54,6 @@ export default function AnalyticsClient({ activities }: AnalyticsClientProps) {
                     currentYear={selectedYear}
                 />
             </div>
-
-            </div>
         </div>
     );
 }
