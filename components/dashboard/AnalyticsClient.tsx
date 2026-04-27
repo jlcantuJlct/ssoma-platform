@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Calculator, ShieldCheck } from "lucide-react";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
-import { ResponsibleProgress } from "@/components/dashboard/ResponsibleProgress";
 import { Activity } from "@/lib/types";
 
 interface AnalyticsClientProps {
@@ -56,8 +55,7 @@ export default function AnalyticsClient({ activities }: AnalyticsClientProps) {
                 />
             </div>
 
-            {/* Sección Dinámica de Progreso por Responsable */}
-            <ResponsibleProgress />
+            </div>
         </div>
     );
 }
