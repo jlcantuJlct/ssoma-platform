@@ -2496,7 +2496,7 @@ export function DashboardCharts({
                                         });
                                     });
 
-                                    return { allPlanned, allPending };
+                                    return { allPlanned, allPending, allExecuted };
                                 };
 
                                 const performance = planned > 0 ? Math.round((executed / planned) * 100) : (executed > 0 ? 100 : 0);
