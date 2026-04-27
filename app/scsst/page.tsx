@@ -110,7 +110,7 @@ export default function SCSSTPage() {
             const res = await fetch('/api/evidence-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords })
+                body: JSON.stringify({ records: allRecords, userName: user?.name })
             });
 
             if (res.ok) {
@@ -138,7 +138,7 @@ export default function SCSSTPage() {
             await fetch('/api/evidence-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updated })
+                body: JSON.stringify({ records: updated, userName: user?.name })
             });
             fetchData();
         } catch (error) {
@@ -302,7 +302,7 @@ export default function SCSSTPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
                         <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <FileText size={18} className="text-emerald-500" />
-                            Historial de Cargas SCSST
+                            Rastro de Cargas SCSST
                         </h2>
                         <div className="flex items-center gap-2">
                             {(filters.date || filters.activity || filters.responsable || filters.zona) && (
@@ -394,12 +394,15 @@ export default function SCSSTPage() {
                                                 >
                                                     <FileText size={14} />
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDelete(rec.id)}
-                                                    className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
+                                                    <button 
+                                                        onClick={() => handleDelete(rec.id)}
+                                                        className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                        title="Eliminar Registro"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 

@@ -648,7 +648,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest border border-slate-700 active:scale-95"
                         >
                             <History size={16} />
-                            Historial
+                            Rastro
                         </button>
                     </div>
                 </div>
@@ -753,47 +753,6 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                         {showAnalytics ? 'PROGRAMA DE ACTIVIDADES' : 'ANALÍTICA'}
                     </button>
                 )}
-
-                {/* PMA Tool Button */}
-                <button
-                    onClick={() => router.push('/pma')}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-teal-600 text-white hover:bg-teal-500 shadow-teal-900/20 border border-teal-400/20"
-                >
-                    <Leaf size={16} />
-                    FOTOS PMA
-                </button>
-
-                {/* SCSST Tool Button */}
-                <button
-                    onClick={() => router.push('/scsst')}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20 border border-emerald-400/20"
-                >
-                    <ShieldCheck size={16} />
-                    CONTROL SCSST
-                </button>
-
-                {/* NEW: HHC Control Button */}
-                <button
-                    onClick={() => {
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.set('view', 'control_hhc');
-                        router.push(`?${params.toString()}`);
-                        setShowAnalytics(true);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20 border border-indigo-400/20"
-                >
-                    <Clock size={16} />
-                    CONTROL HHC
-                </button>
-
-                {/* Report Tools Button */}
-                <button
-                    onClick={() => setShowReportTools(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/20 border border-indigo-400/20"
-                >
-                    <Wrench size={16} />
-                    HERRAMIENTAS DE REPORTE
-                </button>
             </div>
 
             {/* Navigation Tabs Dinámicas */}
@@ -928,6 +887,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                                         onAddActivity={handleAddActivity}
                                                         onDeleteActivity={handleDeleteActivity}
                                                         onMoveActivity={handleMoveActivity}
+                                                        user={user}
                                                     />
                                                 ) : (
                                                     <ActivityTable
@@ -953,6 +913,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                             onAddActivity={handleAddActivity}
                                             onDeleteActivity={handleDeleteActivity}
                                             onMoveActivity={handleMoveActivity}
+                                            user={user}
                                         />
                                     ) : (
                                         <ActivityTable
@@ -1029,8 +990,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                     <History className="text-emerald-500" size={20} />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm font-black text-white uppercase tracking-widest">Historial de Actividad</h2>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Rastro global de la plataforma</p>
+                                    <h2 className="text-sm font-black text-white uppercase tracking-widest">Rastro de Actividad</h2>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Bitácora global de la plataforma</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowLogs(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors">

@@ -1,12 +1,39 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
-import { LogOut, User, Activity, Bell, Search, Settings } from "lucide-react";
-import { useState } from "react";
+import { LogOut, User, Activity, Bell, Search, Settings, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function Header() {
     const { user, logout } = useAuth();
     const [showProfile, setShowProfile] = useState(false);
+    const [onlineUsers, setOnlineUsers] = useState<Record<string, { name: string, lastSeen: number }>>({});
+
+    // Real-time Presence System
+    useEffect(() => {
+        if (!user) return;
+
+        const heartbeat = async () => {
+            try {
+                const res = await fetch('/api/presence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user.username, name: user.name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setOnlineUsers(data.presence);
+                }
+            } catch (e) {
+                console.error("Presence heartbeat failed:", e);
+            }
+        };
+
+        heartbeat(); // Initial
+        const interval = setInterval(heartbeat, 30000); // Every 30s
+
+        return () => clearInterval(interval);
+    }, [user]);
 
     if (!user) return null;
 
@@ -16,6 +43,9 @@ export function Header() {
         .join('')
         .toUpperCase()
         .substring(0, 2);
+
+    // Other users excluding me
+    const othersOnline = Object.entries(onlineUsers).filter(([username]) => username !== user.username);
 
     return (
         <header className="sticky top-0 z-40 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-3 flex items-center justify-between">
@@ -37,10 +67,33 @@ export function Header() {
 
             {/* Right side: Notifications, Active Users, Profile */}
             <div className="flex items-center gap-4">
-                {/* Real-time Presence Mock */}
-                <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">En línea</span>
+                {/* Real-time Presence List */}
+                <div className="hidden lg:flex items-center gap-2 pr-4 border-r border-slate-800">
+                    <div className="flex -space-x-2">
+                        {othersOnline.map(([username, data]) => {
+                            const userInitials = data.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                            return (
+                                <div 
+                                    key={username}
+                                    title={`${data.name} (En línea)`}
+                                    className="w-7 h-7 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[9px] font-black text-emerald-400 relative group transition-transform hover:z-10 hover:scale-110"
+                                >
+                                    {userInitials}
+                                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {othersOnline.length > 0 ? (
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                            {othersOnline.length} {othersOnline.length === 1 ? 'otro' : 'otros'}
+                        </span>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-800">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Solo tú</span>
+                        </div>
+                    )}
                 </div>
 
                 <button className="relative p-2 text-slate-400 hover:text-white transition-colors">

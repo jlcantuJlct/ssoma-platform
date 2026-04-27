@@ -67,7 +67,7 @@ export default function RISSTMAPage() {
             const res = await fetch('/api/risstma-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newRecord)
+                body: JSON.stringify({ ...newRecord, userName: user?.name })
             });
 
             if (res.ok) {
@@ -97,7 +97,7 @@ export default function RISSTMAPage() {
             const res = await fetch('/api/risstma-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete', id })
+                body: JSON.stringify({ action: 'delete', id, userName: user?.name })
             });
 
             if (res.ok) {
@@ -317,12 +317,15 @@ export default function RISSTMAPage() {
                                             )}
                                         </td>
                                         <td className="p-4 text-right pr-6">
-                                            <button 
-                                                onClick={() => handleDelete(rec.id)}
-                                                className="p-2 text-slate-600 hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {(user?.role === 'developer' || user?.role === 'manager' || user?.name === rec.responsable) && (
+                                                <button 
+                                                    onClick={() => handleDelete(rec.id)}
+                                                    className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                                    title="Eliminar Registro"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

@@ -229,7 +229,7 @@ export default function EPPPage() {
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl min-h-[600px]">
                                 <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-slate-500" /> Historial de Entregas
+                                    <FileText size={20} className="text-slate-500" /> Rastro de Entregas
                                 </h3>
 
                                 <div className="overflow-x-auto">

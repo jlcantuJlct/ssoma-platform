@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -32,9 +33,11 @@ export async function POST(req: NextRequest) {
     try {
         await ensureTable();
         const body = await req.json();
+        const { action, data, id, userName } = body;
+        const actingUser = userName || 'Admin';
 
         // 1. MODO LEGADO
-        if (body.records && Array.isArray(body.records) && !body.action) {
+        if (body.records && Array.isArray(body.records) && !action) {
             const newRecords = body.records.filter((r: any) => !r.id);
             let insertedCount = 0;
             for (const r of newRecords) {
@@ -44,17 +47,19 @@ export async function POST(req: NextRequest) {
                 );
                 insertedCount++;
             }
+            if (insertedCount > 0) {
+                await logActivity(actingUser, `SINCRONIZACIÓN PROGRAMA FORMACIÓN: ${insertedCount} items`, 'Formación');
+            }
             return NextResponse.json({ success: true, message: "Legacy Sync: Appended new records", count: insertedCount });
         }
 
         // 2. MODO ACCIONES
-        const { action, data, id } = body;
-
         if (action === 'create') {
             const res = await db.execute(
                 `INSERT INTO training_program (date, tema, area, tipo) VALUES (?, ?, ?, ?) RETURNING id`,
                 [data.date || '', data.tema || '', data.area || 'seguridad', data.tipo || 'capacitacion']
             );
+            await logActivity(actingUser, `NUEVO TEMA FORMACIÓN: ${data.tema}`, 'Formación', `Fecha: ${data.date}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
@@ -64,12 +69,14 @@ export async function POST(req: NextRequest) {
                 `UPDATE training_program SET date=?, tema=?, area=?, tipo=? WHERE id=?`,
                 [data.date, data.tema, data.area, data.tipo, id]
             );
+            await logActivity(actingUser, `ACTUALIZACIÓN TEMA FORMACIÓN: ${data.tema}`, 'Formación', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
             await db.execute('DELETE FROM training_program WHERE id=?', [id]);
+            await logActivity(actingUser, `ELIMINACIÓN TEMA FORMACIÓN`, 'Formación', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
@@ -81,6 +88,7 @@ export async function POST(req: NextRequest) {
             const pattern = `${year}-${monthStr}-%`;
 
             await db.execute('DELETE FROM training_program WHERE date LIKE ?', [pattern]);
+            await logActivity(actingUser, `LIMPIEZA MES PROGRAMA`, 'Formación', `Mes: ${monthStr}, Año: ${year}`);
             return NextResponse.json({ success: true });
         }
 
@@ -94,6 +102,7 @@ export async function POST(req: NextRequest) {
                 );
                 count++;
             }
+            await logActivity(actingUser, `BULK CREATE PROGRAMA: ${count} items`, 'Formación');
             return NextResponse.json({ success: true, count });
         }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 async function ensureTables() {
     // 1. Table for Monthly Statistics (HHT, Accidents, Waste)
@@ -17,7 +18,6 @@ async function ensureTables() {
     `);
 
     // 2. Table for Report Annexes (SCTR, EMOs, etc.)
-    // Supporting permanent documents with location 'GLOBAL' or specific
     await db.execute(`
         CREATE TABLE IF NOT EXISTS report_annexes (
             id SERIAL PRIMARY KEY,
@@ -51,7 +51,6 @@ export async function GET(req: NextRequest) {
         }
 
         if (type === 'annexes') {
-            // Get Monthly Annexes + Permanent Annexes
             const annexes = await db.fetchAll(
                 `SELECT * FROM report_annexes 
                  WHERE (month = ? AND year = ? AND location = ?) 
@@ -72,10 +71,10 @@ export async function POST(req: NextRequest) {
     try {
         await ensureTables();
         const body = await req.json();
-        const { type, month, year, location, data } = body;
+        const { type, month, year, location, data, userName } = body;
+        const actingUser = userName || 'Admin';
 
         if (type === 'stats') {
-            // data should be an object like { HHT: 500, ATT: 1, ... }
             for (const [key, val] of Object.entries(data)) {
                 await db.execute(
                     `INSERT INTO monthly_stats_records (month, year, location, stat_key, stat_value)
@@ -85,14 +84,13 @@ export async function POST(req: NextRequest) {
                     [month, year, location, key, val]
                 );
             }
+            await logActivity(actingUser, `ACTUALIZACIÓN KPIs: Mes ${month}/${year}`, 'Reportes', `Lugar: ${location}`);
             return NextResponse.json({ success: true });
         }
 
         if (type === 'annexes') {
-            // data should be an annex object
             const { annex_id, label, file_path, is_permanent } = data;
             
-            // If permanent, we replace any existing permanent for that ID and location
             if (is_permanent) {
                 await db.execute(
                     'DELETE FROM report_annexes WHERE annex_id = ? AND location = ? AND is_permanent = TRUE',
@@ -103,8 +101,8 @@ export async function POST(req: NextRequest) {
                      VALUES (?, ?, ?, ?, TRUE)`,
                     [location, annex_id, label, file_path]
                 );
+                await logActivity(actingUser, `NUEVO ANEXO PERMANENTE: ${label}`, 'Reportes', `Lugar: ${location}`);
             } else {
-                // Monthly: replace for that specific month
                 await db.execute(
                     'DELETE FROM report_annexes WHERE month = ? AND year = ? AND location = ? AND annex_id = ?',
                     [month, year, location, annex_id]
@@ -114,6 +112,7 @@ export async function POST(req: NextRequest) {
                      VALUES (?, ?, ?, ?, ?, ?, FALSE)`,
                     [month, year, location, annex_id, label, file_path]
                 );
+                await logActivity(actingUser, `NUEVO ANEXO MENSUAL: ${label}`, 'Reportes', `${month}/${year} - ${location}`);
             }
             return NextResponse.json({ success: true });
         }
@@ -129,9 +128,11 @@ export async function DELETE(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
+        const userName = searchParams.get('userName') || 'Admin';
         if (!id) return NextResponse.json({ success: false }, { status: 400 });
 
         await db.execute('DELETE FROM report_annexes WHERE id = ?', [id]);
+        await logActivity(userName, `ELIMINACIÓN ANEXO`, 'Reportes', `ID: ${id}`);
         return NextResponse.json({ success: true });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -350,7 +350,7 @@ export default function WasteManagementPage() {
                             {/* History Table */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
                                 <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
-                                    <BarChart size={20} className="text-slate-500" /> Historial de Pesajes
+                                    <BarChart size={20} className="text-slate-500" /> Rastro de Pesajes
                                 </h3>
                                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
                                     <table className="w-full text-left">

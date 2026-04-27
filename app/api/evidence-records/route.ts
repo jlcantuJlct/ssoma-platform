@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -48,7 +49,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const { records } = await req.json();
+        const { records, userName } = await req.json();
+        const actingUser = userName || 'Usuario';
 
         if (!Array.isArray(records)) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
@@ -90,6 +92,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        if (uniqueRecords.length > 0) {
+            await logActivity(actingUser, `SINCRONIZACIÓN EVIDENCIAS: ${uniqueRecords.length} items`, 'PMA', `Objetivos: ${Array.from(objectivesToClear).join(', ')}`);
+        }
         return NextResponse.json({ success: true, count: uniqueRecords.length });
     } catch (error: any) {
         console.error('Error saving evidence records:', error);

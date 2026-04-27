@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logActivity } from '@/app/actions';
 
 // Simulación de base de datos en memoria para desarrollo inicial. 
 // En producción, esto se sincroniza con localStorage en el cliente o una DB real.
@@ -11,15 +12,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { action, data, id } = body;
+        const { action, data, id, userName } = body;
+        const actingUser = userName || 'Usuario';
 
         if (action === 'bulk-sync') {
             risstmaRecords = data;
+            await logActivity(actingUser, `SINCRONIZACIÓN RISSTMA: ${data.length} items`, 'RISSTMA');
             return NextResponse.json({ success: true });
         }
 
         if (action === 'delete') {
             risstmaRecords = risstmaRecords.filter(r => r.id !== id);
+            await logActivity(actingUser, `ELIMINACIÓN RISSTMA`, 'RISSTMA', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
             createdAt: new Date().toISOString()
         };
         risstmaRecords.push(newRecord);
+        await logActivity(actingUser, `NUEVO REGISTRO RISSTMA`, 'RISSTMA');
 
         return NextResponse.json({ success: true, record: newRecord });
     } catch (error: any) {

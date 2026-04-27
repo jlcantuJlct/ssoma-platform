@@ -160,7 +160,7 @@ export default function AtsPage() {
                 const res = await fetch('/api/ats-records', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'update', id: editingId, data: newRecord })
+                    body: JSON.stringify({ action: 'update', id: editingId, data: newRecord, userName: user?.name })
                 });
                 const result = await res.json();
 
@@ -184,7 +184,7 @@ export default function AtsPage() {
                 const res = await fetch('/api/ats-records', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'create', data: newRecord })
+                    body: JSON.stringify({ action: 'create', data: newRecord, userName: user?.name })
                 });
                 const result = await res.json();
 
@@ -239,7 +239,7 @@ export default function AtsPage() {
                 const res = await fetch('/api/ats-records', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete', id })
+                    body: JSON.stringify({ action: 'delete', id, userName: user?.name })
                 });
                 const result = await res.json();
 
@@ -393,7 +393,7 @@ export default function AtsPage() {
                         <div className="xl:col-span-2 space-y-6">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden min-h-[500px]">
                                 <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                    <Activity className="text-blue-500" size={20} /> Historial de Registros
+                                    <Activity className="text-blue-500" size={20} /> Rastro de Registros
                                 </h3>
 
                                 {/* FILTERS */}
@@ -498,19 +498,26 @@ export default function AtsPage() {
                                                             </a>
                                                         </td>
                                                         <td className="py-4 text-right pr-4">
-                                                            <button
-                                                                onClick={() => handleEdit(record)}
-                                                                className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                                                title="Editar"
-                                                            >
-                                                                <Pencil size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(record.id)}
-                                                                className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
+                                                            <div className="flex justify-end gap-1">
+                                                                {(user?.role === 'developer' || user?.role === 'manager' || record.responsible === user?.name) && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleEdit(record)}
+                                                                            className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                                            title="Editar"
+                                                                        >
+                                                                            <Pencil size={16} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDelete(record.id)}
+                                                                            className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                            title="Eliminar"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))

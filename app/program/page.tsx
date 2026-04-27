@@ -529,7 +529,7 @@ export default function ProgramPage() {
                                     const monthStr = String(monthIndex + 1).padStart(2, '0');
                                     newRecords.push({
                                         id: Date.now() + rowIndex * 1000 + monthIndex * 100 + i + Math.random(),
-                                        date: `2025-${monthStr}-15`,
+                                        date: `2026-${monthStr}-15`,
                                         description: String(description).trim(),
                                         status: 'Pendiente',
                                         compliance: 0,
@@ -594,7 +594,7 @@ export default function ProgramPage() {
                             dateStr = stringVal.substring(0, 10);
                         } else if (stringVal.match(/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/)) {
                             const parts = stringVal.split(/[\/-]/);
-                            let y = parts[2] || '2025';
+                            let y = parts[2] || '2026';
                             if (y.length === 2) y = "20" + y;
                             dateStr = `${y}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                         } else {
@@ -602,7 +602,7 @@ export default function ProgramPage() {
                             const monthsFull = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SETIEMBRE", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
                             let mIdx = months.findIndex(m => stringVal.startsWith(m));
                             if (mIdx === -1) mIdx = monthsFull.findIndex(m => stringVal.startsWith(m));
-                            if (mIdx !== -1) dateStr = `2025-${String((mIdx % 12) + 1).padStart(2, '0')}-15`;
+                            if (mIdx !== -1) dateStr = `2026-${String((mIdx % 12) + 1).padStart(2, '0')}-15`;
                         }
 
                         if (dateStr && String(descVal).trim()) {
@@ -679,7 +679,7 @@ export default function ProgramPage() {
             const mStr = String(monthIdx + 1).padStart(2, '0');
             newItems.push({
                 id: Date.now() + i + Math.random(),
-                date: `2025-${mStr}-15`,
+                date: `2026-${mStr}-15`,
                 description: desc,
                 status: 'Pendiente',
                 compliance: 0,

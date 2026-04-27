@@ -150,7 +150,7 @@ export default function PMAPage() {
             fetch('/api/pma-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records })
+                body: JSON.stringify({ records, userName: user?.name })
             })
                 .catch(e => console.warn('PMA cloud sync failed:', e))
                 .finally(() => setIsSyncing(false));
@@ -543,7 +543,7 @@ export default function PMAPage() {
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
                                 <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-blue-400" /> Historial de Cargas
+                                    <FileText size={20} className="text-blue-400" /> Rastro de Cargas
                                 </h3>
 
                                 {/* FILTERS */}
@@ -615,7 +615,7 @@ export default function PMAPage() {
                                             }).length === 0 ? (
                                                 <tr>
                                                     <td colSpan={7} className="py-12 text-center text-slate-600 italic">
-                                                        {records.length === 0 ? "No hay evidencias registradas en el historial." : "No se encontraron registros con los filtros aplicados."}
+                                                        {records.length === 0 ? "No hay evidencias registradas en el rastro." : "No se encontraron registros con los filtros aplicados."}
                                                     </td>
                                                 </tr>
                                             ) : (
@@ -680,22 +680,24 @@ export default function PMAPage() {
                                                                 </div>
                                                             </td>
                                                             <td className="py-4 align-top">
-                                                                <div className="flex items-center justify-center gap-2">
-                                                                    <button
-                                                                        onClick={() => generatePDF(record)}
-                                                                        className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors border border-slate-700"
-                                                                        title="Descargar Reporte PDF"
-                                                                    >
-                                                                        <FileText size={14} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDelete(record.id)}
-                                                                        className="p-1.5 bg-slate-800 hover:bg-red-900/30 text-red-400 rounded-lg transition-colors border border-slate-700"
-                                                                        title="Eliminar Registro"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                    </button>
-                                                                </div>
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        <button
+                                                                            onClick={() => generatePDF(record)}
+                                                                            className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors border border-slate-700"
+                                                                            title="Descargar Reporte PDF"
+                                                                        >
+                                                                            <FileText size={14} />
+                                                                        </button>
+                                                                        {(user?.role === 'developer' || user?.role === 'manager' || user?.name === record.responsible) && (
+                                                                            <button
+                                                                                onClick={() => handleDelete(record.id)}
+                                                                                className="p-1.5 bg-slate-800 hover:bg-red-900/30 text-red-400 rounded-lg transition-colors border border-slate-700"
+                                                                                title="Eliminar Registro"
+                                                                            >
+                                                                                <Trash2 size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                             </td>
                                                         </tr>
                                                     );

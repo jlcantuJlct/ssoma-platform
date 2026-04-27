@@ -115,6 +115,37 @@ export function DashboardCharts({
         }
     }, [mode, currentYear]);
 
+    const [deactivatedUsers, setDeactivatedUsers] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        const saved = localStorage.getItem('deactivated_dashboard_users');
+        if (saved) {
+            try {
+                setDeactivatedUsers(new Set(JSON.parse(saved)));
+            } catch (e) {
+                console.error('Error parsing deactivated users', e);
+            }
+        }
+    }, []);
+
+    const toggleParticipation = (username: string) => {
+        const newSet = new Set(deactivatedUsers);
+        if (newSet.has(username)) {
+            newSet.delete(username);
+        } else {
+            newSet.add(username);
+        }
+        setDeactivatedUsers(newSet);
+        localStorage.setItem('deactivated_dashboard_users', JSON.stringify(Array.from(newSet)));
+    };
+
+
+    const [performanceDetail, setPerformanceDetail] = useState<{
+        userName: string,
+        type: 'P' | 'Pending',
+        items: any[]
+    } | null>(null);
+
     // LOAD ALL RECORDS - Consolidated
     useEffect(() => {
         const loadAllRecords = async () => {
@@ -2215,91 +2246,287 @@ export function DashboardCharts({
                         {renderObjectiveList(followupData)}
                     </div>
 
-                    {/* 3. PERFORMANCE BY RESPONSIBLE (NEW SECTION) */}
-                    <div className="bg-slate-900 rounded-[2rem] p-8 shadow-2xl border border-slate-800 relative overflow-hidden mt-8">
-                        {/* Background Decoration */}
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    {/* 3. PERFORMANCE BY RESPONSIBLE (PREMIUM EXECUTIVE SECTION) */}
+                    <div className="bg-[#0f172a] rounded-[3rem] p-10 shadow-2xl border border-slate-800/50 relative overflow-hidden mt-10 group">
+                        {/* Executive Background Decoration */}
+                        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] -mr-40 -mt-40 pointer-events-none group-hover:bg-indigo-500/15 transition-colors duration-700"></div>
+                        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -ml-20 -mb-20 pointer-events-none"></div>
 
-                        <div className="flex items-center gap-4 mb-8 relative z-10">
-                            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20">
-                                <Users size={24} className="text-white" />
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12 relative z-10">
+                            <div className="flex items-center gap-5">
+                                <div className="p-4 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl shadow-2xl shadow-indigo-500/20 ring-1 ring-white/20">
+                                    <Users size={28} className="text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                                        Rendimiento por Responsable
+                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 font-bold uppercase tracking-widest">Executive Dashboard</span>
+                                    </h3>
+                                    <p className="text-slate-400 font-medium mt-1">Eficacia de Ejecución (Ejecutado / Programado) · Año {currentYear}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-white tracking-tight">Rendimiento por Responsable</h3>
-                                <p className="text-sm text-slate-400 font-medium">Eficacia de Ejecución (Ejecutado / Programado) del Año {currentYear}</p>
+                            <div className="flex items-center gap-2 bg-slate-900/50 backdrop-blur-sm px-4 py-2 rounded-2xl border border-slate-800">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Actualizado en Tiempo Real</span>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative z-10 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 w-full">
                             {USER_LIST.filter(u => u.username !== 'jose.cancino' && u.username !== 'gerencia').map((userObj, idx) => {
                                 const user = userObj.name;
+                                const isDeactivated = deactivatedUsers.has(userObj.username);
                                 
-                                // Dynamic Calculation for this user
+                                // Dynamic Calculation for this user based on their specific responsibilities
                                 let planned = 0;
                                 let executed = 0;
 
-                                OBJECTIVES_LIST.forEach(obj => {
-                                    const items = programData[obj.id] || [];
+                                // Define objective mapping for groups
+                                const group1Ids = ['obj2', 'obj-2', 'obj3', 'obj-3', 'obj4', 'obj-4', 'obj8', 'obj-8', 'obj9', 'obj-9', 'obj10', 'obj-10', 'obj11', 'obj-11'];
+                                const group2Ids = ['obj5', 'obj-5', 'obj6', 'obj-6', 'obj7', 'obj-7'];
+                                
+                                const group1Usernames = ['jose.galliquio', 'albert.chuquispuma', 'jesus.villalovos', 'adrian.suarez', 'fabricio.galvez', 'benjy.vega'];
+                                const isGroup1 = group1Usernames.includes(userObj.username);
+                                const isGroup2 = userObj.username === 'gladis.aroste';
+
+                                // Filter allowed objectives for this specific user
+                                const allowedObjIds = isGroup1 ? group1Ids : (isGroup2 ? group2Ids : OBJECTIVES_CONFIG.map(o => o.id));
+
+                                // 1. Calculate P and E from Annual Program
+                                // For P, we sum ALL items in the assigned objectives (team goal)
+                                // For E, we only sum if they are specifically assigned as responsible in the program
+                                OBJECTIVES_CONFIG.forEach(obj => {
+                                    // Check both hyphenated and non-hyphenated versions
+                                    const idNoHyphen = obj.id.replace('-', '');
+                                    const idWithHyphen = obj.id.includes('-') ? obj.id : `obj-${obj.id.replace('obj', '')}`;
+                                    
+                                    if (!allowedObjIds.includes(idNoHyphen) && !allowedObjIds.includes(idWithHyphen)) return;
+                                    
+                                    const items = [...(programData[idNoHyphen] || []), ...(programData[idWithHyphen] || [])];
+                                    
                                     items.forEach(item => {
-                                        if (item.responsible === user || item.responsable === user) {
-                                            const d = new Date(item.date);
-                                            if (d.getFullYear() === currentYear && (currentMonth === -1 || d.getMonth() === currentMonth)) {
-                                                planned++;
-                                                if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) executed++;
+                                        const d = new Date(item.date);
+                                        const itemYear = d.getFullYear();
+                                        const descLower = (item.description || '').toLowerCase();
+                                        
+                                        // Exclude Inductions as requested
+                                        if (descLower.includes('inducción') || descLower.includes('induccion')) return;
+                                        
+                                        // Exclude RAC Implementation from OBJ 04
+                                        if (descLower.includes('implementación') && (obj.id === 'obj4' || obj.id === 'obj-4')) return;
+
+                                        // Support both 2026 (current target) and 2025 (legacy/template)
+                                        const isYearMatch = itemYear === currentYear || itemYear === 2025;
+                                        
+                                        if (isYearMatch && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                            // Everyone in the group shares the same "Planned" total for their objectives
+                                            planned++;
+
+                                            // Execution from program: only if explicitly assigned to this user
+                                            if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
+                                                if (item.responsible === user || item.responsable === user) {
+                                                    executed++;
+                                                }
                                             }
                                         }
                                     });
                                 });
 
-                                // Add real records execution for this user
+                                // 2. Add real records execution for this user (Individual contribution)
                                 const filterByResponsible = (recs: any[]) => recs.filter(r => {
                                     const d = new Date(r.date);
-                                    return (r.responsible === user || r.responsable === user) && 
-                                           d.getFullYear() === currentYear && 
+                                    const descLower = (r.description || r.tema || r.activity || r.inspectionType || '').toLowerCase();
+                                    
+                                    // Exclude Inductions
+                                    if (descLower.includes('inducción') || descLower.includes('induccion')) return false;
+                                    
+                                    // Exclude RAC Implementation from OBJ 04
+                                    if (descLower.includes('implementación') && descLower.includes('rac')) return false;
+
+                                    const rName = String(r.responsible || r.responsable || '').toLowerCase();
+                                    const uName = user.toLowerCase();
+                                    
+                                    // Robust Name Matching (Fuzzy for Gladis/Gladys and partial matches)
+                                    let isUserMatch = rName === uName || (rName !== '' && uName.includes(rName)) || (uName !== '' && rName.includes(uName));
+                                    
+                                    // Special case for Gladis/Gladys variations
+                                    if (!isUserMatch) {
+                                        const uFirst = uName.split(' ')[0];
+                                        const rFirst = rName.split(' ')[0];
+                                        if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) {
+                                            isUserMatch = true;
+                                        }
+                                    }
+
+                                    return isUserMatch && 
+                                           (d.getFullYear() === currentYear || d.getFullYear() === 2025) && 
                                            (currentMonth === -1 || d.getMonth() === currentMonth);
                                 }).length;
 
-                                executed += filterByResponsible(hhcRecords);
-                                executed += filterByResponsible(executedInspections);
-                                executed += filterByResponsible(detourRecords);
-                                executed += filterByResponsible(simulacroRecords);
-                                executed += filterByResponsible(brigadistaRecords);
+                                if (isGroup1) {
+                                    // Safety & Environment records
+                                    executed += filterByResponsible(hhcRecords.filter(r => !String(r.area || '').toLowerCase().includes('salud')));
+                                    executed += filterByResponsible(executedInspections.filter(r => {
+                                        const t = String(r.inspectionType || '').toLowerCase();
+                                        return !t.includes('salud') && !t.includes('medico') && !t.includes('médico') && !t.includes('health');
+                                    }));
+                                    executed += filterByResponsible(detourRecords);
+                                    executed += filterByResponsible(simulacroRecords);
+                                    executed += filterByResponsible(brigadistaRecords);
+                                    executed += filterByResponsible(pmaRecords);
+                                    executed += filterByResponsible(manifiestoRecords);
+                                    executed += filterByResponsible(residuosRecords);
+                                } else if (isGroup2) {
+                                    // Health records - Gladis Aroste
+                                    // Check evidence records by objective or keywords in description/activity
+                                    executed += filterByResponsible(evidenceRecords.filter(r => {
+                                        const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
+                                        const desc = (r.description || r.activity || '').toLowerCase();
+                                        return obj.includes('obj5') || obj.includes('seg01') || obj.includes('seg02') || 
+                                               desc.includes('emo') || desc.includes('salud') || desc.includes('médico') || desc.includes('medico');
+                                    }));
+                                    executed += filterByResponsible(executedInspections.filter(r => {
+                                        const t = String(r.inspectionType || '').toLowerCase();
+                                        return t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health');
+                                    }));
+                                    executed += filterByResponsible(hhcRecords.filter(r => String(r.area || '').toLowerCase().includes('salud')));
+                                } else {
+                                    // Others: Add everything
+                                    executed += filterByResponsible(hhcRecords);
+                                    executed += filterByResponsible(executedInspections);
+                                    executed += filterByResponsible(detourRecords);
+                                    executed += filterByResponsible(simulacroRecords);
+                                    executed += filterByResponsible(brigadistaRecords);
+                                }
+
+                                // Helper to get the lists for the modal
+                                const getProgramLists = () => {
+                                    const allPlanned: any[] = [];
+                                    const allPending: any[] = [];
+
+                                    OBJECTIVES_CONFIG.forEach(obj => {
+                                        const idNoHyphen = obj.id.replace('-', '');
+                                        const idWithHyphen = obj.id.includes('-') ? obj.id : `obj-${obj.id.replace('obj', '')}`;
+                                        if (!allowedObjIds.includes(idNoHyphen) && !allowedObjIds.includes(idWithHyphen)) return;
+                                        
+                                        const items = [...(programData[idNoHyphen] || []), ...(programData[idWithHyphen] || [])];
+                                        items.forEach(item => {
+                                            const d = new Date(item.date);
+                                            const itemYear = d.getFullYear();
+                                            const descLower = (item.description || '').toLowerCase();
+                                            
+                                            // Exclude Inductions
+                                            if (descLower.includes('inducción') || descLower.includes('induccion')) return;
+                                            
+                                            // Exclude RAC Implementation from OBJ 04
+                                            if (descLower.includes('implementación') && (obj.id === 'obj4' || obj.id === 'obj-4')) return;
+
+                                            if ((itemYear === currentYear || itemYear === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                                const formattedItem = { ...item, objectiveName: obj.title };
+                                                allPlanned.push(formattedItem);
+                                                if (item.status !== 'Realizado' && (Number(item.compliance) || 0) === 0) {
+                                                    allPending.push(formattedItem);
+                                                }
+                                            }
+                                        });
+                                    });
+
+                                    return { allPlanned, allPending };
+                                };
 
                                 const performance = planned > 0 ? Math.round((executed / planned) * 100) : (executed > 0 ? 100 : 0);
 
                                 return (
-                                    <div key={idx} className="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50 flex flex-col items-center hover:bg-slate-800 transition-colors group">
+                                    <div 
+                                        key={idx} 
+                                        className={`group/card relative bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-5 border transition-all duration-500 flex flex-col items-center hover:scale-[1.03] hover:shadow-2xl shadow-black/40 ${isDeactivated ? 'opacity-40 grayscale border-slate-800' : 'border-slate-700/50 hover:border-indigo-500/50'}`}
+                                    >
+                                        {/* Status Glow */}
+                                        {!isDeactivated && (
+                                            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity rounded-[2.5rem]"></div>
+                                        )}
 
-                                        {/* Header Compacto */}
-                                        <div className="flex items-center justify-between w-full mb-2 gap-2">
-                                            <div className="w-8 h-8 min-w-[32px] rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-white border border-slate-600 shadow-sm">
+                                        {/* Top Actions: Toggle Participation */}
+                                        <div className="flex items-center justify-between w-full mb-4 z-10">
+                                            <div className="flex items-center gap-2">
+                                                <button 
+                                                    onClick={() => toggleParticipation(userObj.username)}
+                                                    className={`w-10 h-5 rounded-full relative transition-colors duration-300 flex items-center px-1 ${isDeactivated ? 'bg-slate-700' : 'bg-emerald-500'}`}
+                                                    title={isDeactivated ? "Activar participación" : "Desactivar participación"}
+                                                >
+                                                    <div className={`w-3.5 h-3.5 bg-white rounded-full shadow-sm transition-transform duration-300 ${isDeactivated ? 'translate-x-0' : 'translate-x-5'}`}></div>
+                                                </button>
+                                                <span className={`text-[8px] font-black uppercase tracking-widest ${isDeactivated ? 'text-slate-500' : 'text-emerald-400'}`}>
+                                                    {isDeactivated ? 'Inactivo' : 'Activo'}
+                                                </span>
+                                            </div>
+                                            {!isDeactivated && performance >= 90 && (
+                                                <div className="p-1.5 bg-amber-500/20 rounded-lg text-amber-500 animate-bounce">
+                                                    <Award size={14} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Profile Avatar & Info */}
+                                        <div className="flex flex-col items-center gap-3 mb-6 relative z-10 w-full">
+                                            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-black border-2 transition-all duration-500 ${isDeactivated ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-950 border-indigo-500/30 text-white group-hover/card:border-indigo-500 shadow-xl group-hover/card:shadow-indigo-500/20'}`}>
                                                 {getInitials(user)}
                                             </div>
-                                            <h4 className="text-[10px] font-bold text-slate-300 text-right leading-tight truncate" title={user}>{user}</h4>
-                                        </div>
-
-                                        {/* Gauge Compacto (Fixed Size) */}
-                                        <div className="flex justify-center mb-1 py-2">
-                                            <ComplianceGauge value={performance} width={110} height={60} title="" />
-                                        </div>
-
-                                        {/* Footer Stats */}
-                                        <div className="flex justify-between w-full px-2 text-[9px] font-mono bg-slate-950/50 py-1.5 rounded-lg border border-slate-800 mt-1">
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-slate-500 font-bold">P:</span>
-                                                <span className="text-white font-black">{planned}</span>
-                                            </div>
-                                            <div className="w-px bg-slate-800 h-full"></div>
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-emerald-500 font-bold">E:</span>
-                                                <span className="text-white font-black">{executed}</span>
+                                            <div className="text-center overflow-hidden w-full">
+                                                <h4 className="text-xs font-black text-white tracking-tight truncate px-2" title={user}>{user}</h4>
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">Líder SSOMA</p>
                                             </div>
                                         </div>
+
+                                        {/* Gauge Premium Rendering */}
+                                        <div className={`flex justify-center mb-6 py-2 transition-all duration-500 ${isDeactivated ? 'blur-[2px]' : ''}`}>
+                                            <ComplianceGauge 
+                                                value={performance} 
+                                                width={140} 
+                                                height={80} 
+                                                title="" 
+                                                color={isDeactivated ? '#475569' : (performance >= 90 ? '#10b981' : performance >= 75 ? '#f59e0b' : '#ef4444')} 
+                                            />
+                                        </div>
+
+                                        {/* Footer Metrics - Executive Table Style */}
+                                        <div className={`w-full grid grid-cols-2 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 ${isDeactivated ? 'bg-slate-900/80' : ''}`}>
+                                            <button 
+                                                onClick={() => {
+                                                    const { allPlanned } = getProgramLists();
+                                                    setPerformanceDetail({ userName: user, type: 'P', items: allPlanned });
+                                                }}
+                                                className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group/stat hover:bg-slate-800 transition-colors"
+                                            >
+                                                <span className="text-[8px] text-slate-500 font-black uppercase tracking-tighter group-hover/stat:text-slate-300 transition-colors">Programado</span>
+                                                <span className="text-sm font-black text-white tabular-nums">{planned}</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    const { allPending } = getProgramLists();
+                                                    setPerformanceDetail({ userName: user, type: 'Pending', items: allPending });
+                                                }}
+                                                className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group/stat hover:bg-slate-800 transition-colors"
+                                            >
+                                                <span className="text-[8px] text-emerald-500/70 font-black uppercase tracking-tighter group-hover/stat:text-emerald-400 transition-colors">Ejecutado</span>
+                                                <span className="text-sm font-black text-emerald-400 tabular-nums">{executed}</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Progress Bar (Subtle) */}
+                                        {!isDeactivated && (
+                                            <div className="w-full h-1 bg-slate-950 rounded-full mt-4 overflow-hidden border border-white/5">
+                                                <div 
+                                                    className="h-full bg-gradient-to-r from-indigo-600 to-emerald-500 transition-all duration-1000"
+                                                    style={{ width: `${performance}%` }}
+                                                ></div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
+
                 </div>
             )}
             {/* INDICADORES DE GESTIÓN (PERSONAL & HHC AVANZADO) */}
@@ -2740,7 +2967,7 @@ export function DashboardCharts({
                                 <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-2xl">
                                     <div className="flex flex-col gap-4 mb-6">
                                         <h4 className="text-white font-bold flex items-center gap-2 text-sm">
-                                            <History size={18} className="text-blue-400" /> Historial de Formación
+                                            <History size={18} className="text-blue-400" /> Rastro de Formación
                                         </h4>
                                         <button
                                             onClick={generateBulkHHCPDF}
@@ -3062,7 +3289,6 @@ export function DashboardCharts({
                             </div>
                         )}
                     </div>
-                </div>
             )}
 
             {/* PREVIEW MODAL PARA IMAGENES DE FORMACION */}
@@ -3087,6 +3313,75 @@ export function DashboardCharts({
                                     className="w-full h-full min-h-[60vh] object-contain rounded-lg shadow-2xl border border-slate-800" 
                                 />
                             ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Performance Detail Modal */}
+            {performanceDetail && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setPerformanceDetail(null)} />
+                    <div className="relative w-full max-w-4xl bg-slate-900/90 border border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-300">
+                        {/* Header */}
+                        <div className="p-8 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <div className="flex items-center gap-5">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${performanceDetail.type === 'P' ? 'bg-indigo-600' : 'bg-amber-600'}`}>
+                                    {performanceDetail.type === 'P' ? <Target size={28} /> : <Clock size={28} />}
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-white">{performanceDetail.type === 'P' ? 'Actividades Programadas' : 'Pendientes por Ejecutar'}</h3>
+                                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-1">Responsable: {performanceDetail.userName}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setPerformanceDetail(null)} className="p-3 hover:bg-slate-800 rounded-2xl text-slate-400 transition-all hover:rotate-90">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* List Content */}
+                        <div className="flex-1 overflow-y-auto p-8 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
+                            {performanceDetail.items.length === 0 ? (
+                                <div className="py-20 text-center text-slate-500">
+                                    <ClipboardCheck size={64} className="mx-auto mb-4 opacity-20" />
+                                    <p className="text-lg font-bold">No hay actividades para mostrar</p>
+                                </div>
+                            ) : (
+                                performanceDetail.items.map((item, idx) => (
+                                    <div key={idx} className="group/item relative bg-slate-950/50 border border-slate-800/50 rounded-2xl p-5 hover:border-indigo-500/50 transition-all hover:bg-slate-800/30 flex items-center justify-between">
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-2 h-10 rounded-full bg-slate-800 group-hover/item:bg-indigo-500 transition-colors"></div>
+                                            <div>
+                                                <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                                <h4 className="text-sm font-bold text-white group-hover/item:text-indigo-100 transition-colors">{item.description}</h4>
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
+                                                        <Calendar size={12} />
+                                                        {item.date}
+                                                    </div>
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${item.status === 'Realizado' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest block mb-1">Cumplimiento</span>
+                                            <span className={`text-lg font-black ${item.compliance >= 100 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                                {item.compliance}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        
+                        {/* Footer Summary */}
+                        <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-between items-center px-10">
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Total de registros: {performanceDetail.items.length}</span>
+                            <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-2 rounded-xl border border-indigo-500/20">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Seguimiento 2026</span>
+                            </div>
                         </div>
                     </div>
                 </div>

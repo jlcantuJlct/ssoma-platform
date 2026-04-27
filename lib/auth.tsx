@@ -48,11 +48,19 @@ export const INITIAL_USERS: Record<string, { password: string, name: string, rol
     'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000' },
     'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000' },
     'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799' },
-    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023' },
+    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023', deactivated: true },
 };
 
-// Exportar lista para el Login
-export const USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS).map(key => ({
+// Exportar lista para el Login y Selectores Activos (Solo usuarios activos)
+export const USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS)
+    .filter(key => !(INITIAL_USERS[key] as any).deactivated)
+    .map(key => ({
+        username: key,
+        name: INITIAL_USERS[key].name
+    }));
+
+// Exportar lista completa para Filtros e Historial (Incluye desactivados para mantener trazabilidad)
+export const ALL_USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS).map(key => ({
     username: key,
     name: INITIAL_USERS[key].name
 }));

@@ -20,6 +20,7 @@ import {
     Unlock
 } from "lucide-react";
 import { uploadEvidence } from "@/app/actions";
+import { useAuth } from "@/lib/auth";
 
 const ANNEXES_TYPES = [
     { id: 0, label: "INFORME SIMULACRO", isPermanent: false },
@@ -50,6 +51,7 @@ interface ReportCommandCenterProps {
 }
 
 export function ReportCommandCenter({ onClose, currentMonth, currentYear, location }: ReportCommandCenterProps) {
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'stats' | 'annexes'>('stats');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -106,7 +108,8 @@ export function ReportCommandCenter({ onClose, currentMonth, currentYear, locati
                     month: currentMonth + 1,
                     year: currentYear,
                     location,
-                    data: stats
+                    data: stats,
+                    userName: user?.name
                 })
             });
             if (res.ok) alert("✅ Estadísticas sincronizadas con la Nube");
@@ -141,7 +144,8 @@ export function ReportCommandCenter({ onClose, currentMonth, currentYear, locati
                         label: label,
                         file_path: uploadRes.path,
                         is_permanent: isPermanent
-                    }
+                    },
+                    userName: user?.name
                 })
             });
             if (res.ok) loadData();
@@ -156,7 +160,7 @@ export function ReportCommandCenter({ onClose, currentMonth, currentYear, locati
         if (!confirm("¿Eliminar este anexo?")) return;
         setSaving(true);
         try {
-            await fetch(`/api/report-tools?id=${id}`, { method: 'DELETE' });
+            await fetch(`/api/report-tools?id=${id}&userName=${encodeURIComponent(user?.name || 'Admin')}`, { method: 'DELETE' });
             loadData();
         } catch (e) {
             console.error(e);

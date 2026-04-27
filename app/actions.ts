@@ -211,6 +211,7 @@ export async function updateInspection(record: any) {
             record.id
         ]);
 
+        await logActivity(record.responsible || 'Usuario', `ACTUALIZACIÓN INSPECCIÓN: ${record.inspectionType}`, 'Inspecciones', `ID: ${record.id}`);
         revalidatePath('/inspections');
         return { success: true };
     } catch (e: any) {
@@ -262,6 +263,7 @@ export async function deleteInspectionRecord(id: number) {
     try {
         await ensureInspectionTable();
         await db.execute('DELETE FROM inspection_records WHERE id = ?', [id]);
+        await logActivity('Admin', `ELIMINACIÓN INSPECCIÓN`, 'Inspecciones', `ID: ${id}`);
         revalidatePath('/inspections');
         return { success: true };
     } catch (e) {

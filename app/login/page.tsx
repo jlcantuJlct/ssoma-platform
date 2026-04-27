@@ -46,7 +46,12 @@ export default function LoginPage() {
             }
         }
 
-        if (!login(selectedUser, password)) {
+        if (login(selectedUser, password)) {
+            // Log successful login
+            import('@/app/actions').then(({ logActivity }) => {
+                logActivity(selectedUser, 'INICIO DE SESIÓN', 'Auth', 'Ingreso exitoso a la plataforma');
+            });
+        } else {
             setError('Credenciales incorrectas. Intente nuevamente.');
         }
     };

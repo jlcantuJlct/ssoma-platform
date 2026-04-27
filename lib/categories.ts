@@ -1,8 +1,9 @@
 // SSOMA Categories and Types - Centralized Configuration
 // Use this file as the single source of truth for categories across the platform.
-import { USER_LIST } from "@/lib/auth";
+import { USER_LIST, ALL_USER_LIST } from "@/lib/auth";
 
 export const RESPONSIBLES = USER_LIST.map(user => user.name);
+export const ALL_RESPONSIBLES = ALL_USER_LIST.map(user => user.name);
 
 export type PMACategory = {
     id: string;

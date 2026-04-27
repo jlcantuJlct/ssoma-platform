@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuth, USER_LIST } from '@/lib/auth';
+import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -48,7 +48,7 @@ type InspectionRecord = {
 };
 
 // Listas de opciones
-const INITIAL_RESPONSIBLES = USER_LIST.map(user => user.name);
+const INITIAL_RESPONSIBLES = ALL_USER_LIST.map(user => user.name);
 
 const AREAS = [
     "Seguridad",
@@ -1327,8 +1327,8 @@ export default function InspectionsPage() {
                                                     required
                                                 >
                                                     <option value="">Seleccionar Responsable...</option>
-                                                    {RESPONSIBLES.map(r => (
-                                                        <option key={r} value={r}>{r}</option>
+                                                    {USER_LIST.map(r => (
+                                                        <option key={r.name} value={r.name}>{r.name}</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -1552,7 +1552,7 @@ export default function InspectionsPage() {
                                 <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
                                     <h2 className="font-bold text-lg text-white flex items-center gap-2">
                                         <ClipboardCheck className="text-emerald-500" />
-                                        Historial de Registros
+                                        Rastro de Registros
                                     </h2>
                                     <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
                                         Total: {filteredInspections.length}

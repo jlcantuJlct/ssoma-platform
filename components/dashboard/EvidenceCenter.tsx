@@ -551,7 +551,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                             <h3 className="text-white font-bold text-lg flex items-center gap-2">
                                 <ActivityIcon size={20} className="text-blue-400" />
-                                Historial de Cargas
+                                Rastro de Cargas
                             </h3>
                             <div className="flex items-center gap-2">
                                 {(filters.date || filters.activity || filters.responsible || filters.location || filters.objective) && (
@@ -703,22 +703,26 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                             </button>
 
                                                             {/* EDITAR */}
-                                                            <button
-                                                                onClick={() => handleEdit(r)}
-                                                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition-colors border border-slate-700"
-                                                                title="Editar"
-                                                            >
-                                                                <Edit size={16} />
-                                                            </button>
+                                                            {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
+                                                                <button
+                                                                    onClick={() => handleEdit(r)}
+                                                                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition-colors border border-slate-700"
+                                                                    title="Editar"
+                                                                >
+                                                                    <Edit size={16} />
+                                                                </button>
+                                                            )}
 
                                                             {/* ELIMINAR */}
-                                                            <button
-                                                                onClick={() => handleDelete(r.id)}
-                                                                className="p-1.5 bg-slate-800 hover:bg-red-900/30 text-red-400 rounded-lg transition-colors border border-slate-700"
-                                                                title="Eliminar"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
+                                                            {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
+                                                                <button
+                                                                    onClick={() => handleDelete(r.id)}
+                                                                    className="p-1.5 bg-slate-800 hover:bg-red-900/30 text-red-400 rounded-lg transition-colors border border-slate-700"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>

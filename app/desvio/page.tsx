@@ -107,7 +107,7 @@ export default function DetourPage() {
             fetch('/api/desvio-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records })
+                body: JSON.stringify({ records, userName: user?.name })
             })
                 .catch(e => console.warn('Desvio cloud sync failed:', e))
                 .finally(() => setIsSyncing(false));
@@ -450,7 +450,7 @@ export default function DetourPage() {
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl overflow-hidden">
                                 <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-emerald-400" /> Historial de Controles
+                                    <FileText size={20} className="text-emerald-400" /> Rastro de Controles
                                 </h3>
 
                                 {/* FILTERS */}
@@ -561,8 +561,10 @@ export default function DetourPage() {
                                                         </td>
                                                         <td className="py-4">
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => generatePDF(r)} className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-slate-700 transition-colors"><FileText size={14}/></button>
-                                                                <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-500/20 text-red-500 rounded-lg border border-slate-700 transition-colors"><Trash2 size={14}/></button>
+                                                                <button onClick={() => generatePDF(r)} className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-slate-700 transition-colors" title="Ver PDF"><FileText size={14}/></button>
+                                                                {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
+                                                                    <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-500/20 text-red-500 rounded-lg border border-slate-700 transition-colors" title="Eliminar"><Trash2 size={14}/></button>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>

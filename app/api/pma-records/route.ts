@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 async function ensureTable() {
     await db.execute(`
@@ -52,7 +53,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const { records } = await req.json();
+        const { records, userName } = await req.json();
+        const actingUser = userName || 'Usuario';
 
         if (!Array.isArray(records)) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
@@ -87,6 +89,10 @@ export async function POST(req: NextRequest) {
                     JSON.stringify(r.images || [])
                 ]
             );
+        }
+
+        if (uniqueRecords.length > 0) {
+            await logActivity(actingUser, `SINCRONIZACIÓN PMA: ${uniqueRecords.length} items`, 'PMA', `Última carga`);
         }
 
         return NextResponse.json({ success: true, count: uniqueRecords.length });

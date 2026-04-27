@@ -16,6 +16,7 @@ interface TableViewProps {
     onAddActivity?: () => void;
     onDeleteActivity?: (id: string) => void;
     onMoveActivity?: (activityId: string, direction: 'up' | 'down') => void;
+    user?: any;
 }
 
 export function TableView({
@@ -26,7 +27,8 @@ export function TableView({
     isSCSST,
     onAddActivity,
     onDeleteActivity,
-    onMoveActivity
+    onMoveActivity,
+    user
 }: TableViewProps) {
     const [editingCell, setEditingCell] = useState<{ id: string, month: number, type: 'plan' | 'executed' } | null>(null);
     const [editValue, setEditValue] = useState<string>("");
@@ -170,13 +172,15 @@ export function TableView({
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                                            <button
-                                                                onClick={() => handleStartNameEdit(activity)}
-                                                                className="p-2 bg-slate-900 text-white rounded-lg shadow-lg shrink-0 hover:bg-emerald-600 transition"
-                                                                title="Editar Nombre"
-                                                            >
-                                                                <Edit3 size={12} />
-                                                            </button>
+                                                            {(user?.role === 'admin' || activity.responsible === user?.name) && (
+                                                                <button
+                                                                    onClick={() => handleStartNameEdit(activity)}
+                                                                    className="p-2 bg-slate-900 text-white rounded-lg shadow-lg shrink-0 hover:bg-emerald-600 transition"
+                                                                    title="Editar Nombre"
+                                                                >
+                                                                    <Edit3 size={12} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -211,11 +215,11 @@ export function TableView({
                                                     <button
                                                         onClick={() => setHistoryActivity(activity)}
                                                         className="p-1.5 bg-slate-900 text-white rounded-lg hover:bg-blue-600 transition shadow-lg"
-                                                        title="Ver Historial"
+                                                        title="Ver Rastro"
                                                     >
                                                         <History size={12} />
                                                     </button>
-                                                    {onDeleteActivity && (
+                                                    {onDeleteActivity && (user?.role === 'admin' || activity.responsible === user?.name) && (
                                                         <button
                                                             onClick={() => onDeleteActivity(activity.id)}
                                                             className="p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition shadow-lg"
@@ -360,8 +364,8 @@ export function TableView({
                                     <History size={18} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Audit Log</p>
-                                    <h4 className="font-black text-sm uppercase tracking-tighter">Historial de Cambios</h4>
+                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Rastro de Cambios</p>
+                                    <h4 className="font-black text-sm uppercase tracking-tighter">Bitácora de Modificaciones</h4>
                                 </div>
                             </div>
                             <button

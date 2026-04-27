@@ -25,7 +25,7 @@ export default function AnalyticsClient({ activities }: AnalyticsClientProps) {
                         <h1 className="text-3xl font-black text-white tracking-tighter mb-1 flex items-center gap-3 uppercase">
                             Centro de Control <span className="text-emerald-500">HHC</span>
                         </h1>
-                        <p className="text-slate-400 font-medium">Historial de Índices y Gestión de Formación</p>
+                        <p className="text-slate-400 font-medium">Rastro de Índices y Gestión de Formación</p>
                     </div>
                 </div>
                 <div className="flex gap-2 bg-slate-950/50 p-1 rounded-xl border border-slate-800 items-center">

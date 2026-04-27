@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -45,7 +46,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // MODO ACCIONES
-        const { action, data, id } = body;
+        const { action, data, id, userName } = body;
+        const actingUser = userName || (data && data.responsible) || 'Usuario';
 
         if (action === 'create') {
             // VALIDACIÓN: Requiere archivo adjunto
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
                     data.fileUrl || ''
                 ]
             );
+            await logActivity(actingUser, `NUEVO ATS: ${data.location}`, 'ATS', `Fecha: ${data.date}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
@@ -84,12 +87,14 @@ export async function POST(req: NextRequest) {
                     id
                 ]
             );
+            await logActivity(actingUser, `ACTUALIZACIÓN ATS: ${data.location}`, 'ATS', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required for delete' }, { status: 400 });
             await db.execute('DELETE FROM ats_records WHERE id=?', [id]);
+            await logActivity(actingUser, `ELIMINACIÓN ATS`, 'ATS', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 

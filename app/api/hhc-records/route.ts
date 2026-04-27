@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { logActivity } from '@/app/actions';
 
 // Crear tabla si no existe y verificar columnas
 async function ensureTable() {
@@ -31,6 +32,7 @@ async function ensureTable() {
         console.warn('Migration hhc column:', e.message?.substring(0, 50));
     }
 
+    // Migración: Cambiar columnas hht a NUMERIC si son INTEGER
     try {
         await db.execute(`ALTER TABLE hhc_records ALTER COLUMN hht TYPE NUMERIC(10,2)`);
     } catch (e: any) {
@@ -104,20 +106,11 @@ export async function POST(req: NextRequest) {
         await withRetry(() => ensureTable());
         const body = await req.json();
 
+        const { action, data, id, userName } = body;
+        const actingUser = userName || (data && data.responsable) || 'Usuario';
+
         // 1. MODO LEGADO (Protección contra sobreescritura accidental)
-        // Si recibimos "records" (array) y no hay "action", es el modo antiguo.
-        // Lo desactivamos o lo convertimos a "insertar lo que falta"?
-        // Por seguridad, si llega un array completo, asumimos que es una sincronización masiva
-        // PERO esto es lo que causa el error. Vamos a cambiarlo a SOLO INSERTAR los que no tengan ID?
-        // No, mejor forzamos a usar acciones. Si detectamos el formato antiguo, devolvemos error o
-        // intentamos procesarlo de forma segura (ignorar IDs existentes).
-
-        if (body.records && Array.isArray(body.records) && !body.action) {
-            // STRATEGY: "Smart Sync" (Upsert-ish)
-            // No borramos nada. Solo insertamos registros que no tengan ID.
-            // Los registros con ID se asume que ya existen.
-            // Esto evita borrar datos de otros.
-
+        if (body.records && Array.isArray(body.records) && !action) {
             const newRecords = body.records.filter((r: any) => !r.id);
             let insertedCount = 0;
 
@@ -126,30 +119,21 @@ export async function POST(req: NextRequest) {
                     `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
-                        r.date || '',
-                        r.hhc || 0,
-                        r.hht || 0,
-                        r.hombres || 0,
-                        r.mujeres || 0,
-                        r.area || 'seguridad',
-                        r.tipo || 'capacitacion',
-                        r.tema || '',
-                        r.responsable || '',
-                        JSON.stringify(r.evidenceImgs || []),
-                        r.evidencePdf || '',
-                        r.lugar || ''
+                        r.date || '', r.hhc || 0, r.hht || 0, r.hombres || 0, r.mujeres || 0,
+                        r.area || 'seguridad', r.tipo || 'capacitacion', r.tema || '', r.responsable || '',
+                        JSON.stringify(r.evidenceImgs || []), r.evidencePdf || '', r.lugar || ''
                     ]
                 );
                 insertedCount++;
+            }
+            if (insertedCount > 0) {
+                await logActivity(actingUser, `SINCRONIZACIÓN HHC/HHT: ${insertedCount} items`, 'HHC');
             }
             return NextResponse.json({ success: true, message: "Legacy Sync: Appended new records only", count: insertedCount });
         }
 
         // 2. MODO ACCIONES (Nuevo estándar)
-        const { action, data, id } = body;
-
         if (action === 'create') {
-            // VALIDACIÓN: Requiere al menos un archivo adjunto (PDF o imagen)
             const hasPdf = data.evidencePdf && data.evidencePdf.trim() !== '';
             const hasImgs = data.evidenceImgs && Array.isArray(data.evidenceImgs) && data.evidenceImgs.length > 0;
             if (!hasPdf && !hasImgs) {
@@ -163,20 +147,12 @@ export async function POST(req: NextRequest) {
                 `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
-                    data.date || '',
-                    data.hhc || 0,
-                    data.hht || 0,
-                    data.hombres || 0,
-                    data.mujeres || 0,
-                    data.area || 'seguridad',
-                    data.tipo || 'capacitacion',
-                    data.tema || '',
-                    data.responsable || '',
-                    JSON.stringify(data.evidenceImgs || []),
-                    data.evidencePdf || '',
-                    data.lugar || ''
+                    data.date || '', data.hhc || 0, data.hht || 0, data.hombres || 0, data.mujeres || 0,
+                    data.area || 'seguridad', data.tipo || 'capacitacion', data.tema || '', data.responsable || '',
+                    JSON.stringify(data.evidenceImgs || []), data.evidencePdf || '', data.lugar || ''
                 ]
             ));
+            await logActivity(actingUser, `NUEVO REGISTRO HHC/HHT: ${data.tema}`, 'HHC', `HHC: ${data.hhc}, HHT: ${data.hht}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
@@ -193,12 +169,14 @@ export async function POST(req: NextRequest) {
                     id
                 ]
             ));
+            await logActivity(actingUser, `ACTUALIZACIÓN HHC/HHT: ${data.tema}`, 'HHC', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required for delete' }, { status: 400 });
             await withRetry(() => db.execute('DELETE FROM hhc_records WHERE id=?', [id]));
+            await logActivity(actingUser, `ELIMINACIÓN HHC/HHT`, 'HHC', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
@@ -210,35 +188,21 @@ export async function POST(req: NextRequest) {
                     `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
-                        r.date || '',
-                        r.hhc || 0,
-                        r.hht || 0,
-                        r.hombres || 0,
-                        r.mujeres || 0,
-                        r.area || 'seguridad',
-                        r.tipo || 'capacitacion',
-                        r.tema || '',
-                        r.responsable || '',
-                        JSON.stringify(r.evidenceImgs || []),
-                        r.evidencePdf || '',
-                        r.lugar || ''
+                        r.date || '', r.hhc || 0, r.hht || 0, r.hombres || 0, r.mujeres || 0,
+                        r.area || 'seguridad', r.tipo || 'capacitacion', r.tema || '', r.responsable || '',
+                        JSON.stringify(r.evidenceImgs || []), r.evidencePdf || '', r.lugar || ''
                     ]
                 );
                 count++;
             }
+            await logActivity(actingUser, `BULK CREATE HHC/HHT: ${count} items`, 'HHC');
             return NextResponse.json({ success: true, count });
         }
 
         return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
 
     } catch (error: any) {
-        console.error('Error saving HHC records:', {
-            message: error.message,
-            stack: error.stack,
-            code: error.code,
-            detail: error.detail
-        });
-        const errorDetail = error.detail || error.message || 'Error desconocido en BD';
-        return NextResponse.json({ success: false, error: errorDetail }, { status: 500 });
+        console.error('Error saving HHC records:', error);
+        return NextResponse.json({ success: false, error: error.message || 'Error en BD' }, { status: 500 });
     }
 }
