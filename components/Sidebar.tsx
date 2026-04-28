@@ -158,6 +158,12 @@ export default function Sidebar() {
                                     href="/export-center"
                                     active={pathname === '/export-center'}
                                 />
+                                <SidebarItem
+                                    icon={<FileText size={16} className="text-amber-500" />}
+                                    label="Informe OSITRAN"
+                                    href="/ositran-report"
+                                    active={pathname === '/ositran-report'}
+                                />
                             </>
                         )}
                         {/* SOLO DEVELOPER - Configuración de Maestros */}

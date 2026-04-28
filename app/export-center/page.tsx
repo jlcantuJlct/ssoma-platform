@@ -24,25 +24,44 @@ export default function ExportCenterPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     month: selectedMonth,
-                    year: 2025,
-                    timestamp: new Date().toISOString()
+                    year: 2025
                 })
             });
 
             const data = await res.json();
 
             if (data.success) {
+                const requestId = data.requestId;
                 setStatus({ 
                     type: 'success', 
-                    message: '✅ ¡Solicitud enviada! Asegúrate de que el Robot Local esté encendido para que comience a crear las carpetas en tu escritorio.' 
+                    message: '⏳ Solicitud enviada. El Robot Local está trabajando... Por favor, no cierres esta ventana.' 
                 });
+
+                // Polling for completion
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const statusRes = await fetch(`/api/export-center?action=check-status&id=${requestId}`);
+                        const statusData = await statusRes.json();
+
+                        if (statusData.status === 'completed') {
+                            clearInterval(pollInterval);
+                            setIsRequesting(false);
+                            setStatus({ 
+                                type: 'success', 
+                                message: '✅ ¡TRABAJO TERMINADO! El robot ha finalizado la descarga y organización en tu escritorio.' 
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Error polling:", e);
+                    }
+                }, 5000); // Check every 5 seconds
+
             } else {
                 throw new Error(data.error || 'Error al procesar la solicitud');
             }
         } catch (error: any) {
-            setStatus({ type: 'error', message: `❌ Error: ${error.message}` });
-        } finally {
             setIsRequesting(false);
+            setStatus({ type: 'error', message: `❌ Error: ${error.message}` });
         }
     };
 
