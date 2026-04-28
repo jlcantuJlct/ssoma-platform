@@ -319,7 +319,6 @@ export default function PetarPage() {
                                 Control de PETAR
                             </h1>
                             <p className="text-slate-400 font-medium">Permisos Escritos de Trabajo de Alto Riesgo</p>
-                            <p className="text-xs text-red-500 font-mono mt-2">DEBUG RECORDS: {records.length} | LOADED: {isLoaded ? 'YES' : 'NO'}</p>
                         </div>
                         <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>

@@ -1,0 +1,40 @@
+
+const { google } = require('googleapis');
+const fs = require('fs');
+const path = require('path');
+const { Readable } = require('stream');
+
+const ROBOT_CREDENTIALS = {
+    client_email: "obot-ssoma-nuevo@ssoma-app-485301.iam.gserviceaccount.com",
+    private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDAunQ5YvjzV0a0\nA2HoQwd4BzMSdP03Nww7jPYXleKTmgc1bev/hgDW5Z4hV0CPnNeJx8/K/2ALXYHw\nCNzThyBvgc4i2BEr3v8mNdB1Z15yyVVSeFwvtDz4JB/bcGrMkl53dhvOTsBPpkz7\nNEMPVF9HblnjWuGwkTCcnsdwHsSMfwUyhoWBPPmZjLYLC4kcO4zZdwPLNEgqqVkN\nHeiCQXSUbS42m5m85mnlhs9arC/CWb8527mfWCwoT3t/svYW/IQsF6F3gjwQOLxj\nx9Im+bfv7+PbMTt6MB8ev9/ITssj+P++zrIr1BEAY9HmmjhEsBT6LmHeGP7v/cVH\njs1HtuZJAgMBAAECggEAXfeq6j381pyTjvplNrrTvex4tMOQoGa5EqHwbOB6B/Be\nGmldWwkpiJ2M44GoqzzUBEwFXtrzp6bwTynrDUGBiYyXBnslqCfCbI1pdYywSrQq\nYxrnC6VL4squM65UjCjDYWiXNxhDgLI7L3G0TpmbGPdPYWAy0QWBV6O85shBmaQN\nUVVSqTOB/goCVBzhDhg35LcljfyLxRDtYgjd6EbAofpwe0dQBkRblAws+c6P0L1R\ngst6BN2W1eS/KoAYhN/x3qk5JQ0FubebNg/TVwtLdTiEqZIgWH1QzdhYjsJ2spuw\ndvTT1nuOEhsIKW2rd7Hns4Gftf72xNBo7iI0iXggZwKBgQDzYvAL0RLSm4kzidyi\nih3+VaN7pcykAONQiz9GJjbHDHIKq/1dz0N+3zZiwt/AixBTPGmzPvCm/cE6A7WQ\nlMbt2SVvWupsytWlY0o00SwREnb4c8b0rnHx+KADgoZmEpZPiUyZkgu3UQm4hHk4\ngm/X+yfZvIXdfJNhQiftuX+tWwKBgQDKt2xuJ7qjAARAfeF4hu3T0v42MKDbvTG3\n1qB35Y1gYp4+gcVZN9txAhP1y+Xh53pOju/abhNL0rMJabJ4s2ShLc6vii3NKHZe\n1TxL5NSAcv1jk/AB7k3GUXZUs+cTYnfd033NsogMaEq3+mQ5v4YkAzmar2ZAV2zs\np8G2PwDYKwKBgD1+3yYtMnNSZ01FZSEQgtmTa9Y/I0DBFK5yMI+Z8jdC9sGpiUAd\nsXEqFwTHNl/hA0P0vMRUf9vBvAPbkhGw9b59Ik9LinXonijGuKY1v8ukfbjzD+8c\n8J9x8YRRg4Hg6me4Skl3NEyiRjGAD1zu4DGTPRNv5eb7pgVqAMq5FwCHAoGAUmCH\nZ5wtc9+l2q9M2LW8H8A2Hb9VHvabJaHKQ+68rNZmh/AkSkUwn5PAmLnrCQoP4ayk\nO5dPsBhHOSQCqpn74qPCwgLc6envcEom3pB26lvQLI8JkT9Ny7F+7JzO4km5fCNd\nlCFgt+oJswnFgNIbqLbGyd1NKAhe8yyYw36G0VECgYBVSklbsxv/TY3vB4M8Hba6\nlcPLfLc387ap7m0pVK7jl1Wnxd3WTM9OwZ4l/ifkPi52esF7lzcKtGLU45GbUmJA\nEgc+yrrgidRBvFe4tthCulPA7No5bmnfbg6belAaLDK5q7kG8u8aSyHLQm7T52Rs\nnBVZa4/iMeLq/U/u91vkLA==\n-----END PRIVATE KEY-----\n"
+};
+
+async function testNativeUpload() {
+    console.log("🚀 Testing native upload with exact credentials from code...");
+    const privateKey = ROBOT_CREDENTIALS.private_key.replace(/\\n/g, '\n');
+    const auth = new google.auth.GoogleAuth({
+        credentials: {
+            client_email: ROBOT_CREDENTIALS.client_email,
+            private_key: privateKey
+        },
+        scopes: ['https://www.googleapis.com/auth/drive'],
+    });
+    const drive = google.drive({ version: 'v3', auth });
+
+    const folderId = '1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5';
+    const fileName = 'Test_Native_' + Date.now() + '.txt';
+    const stream = Readable.from(Buffer.from("Test content"));
+
+    try {
+        const res = await drive.files.create({
+            requestBody: { name: fileName, parents: [folderId] },
+            media: { mimeType: 'text/plain', body: stream },
+            fields: 'id',
+            supportsAllDrives: true
+        });
+        console.log("✅ Success! ID:", res.data.id);
+    } catch (error) {
+        console.error("❌ Error:", error.message);
+    }
+}
+testNativeUpload();
