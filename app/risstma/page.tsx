@@ -5,6 +5,7 @@ import { useAuth, USER_LIST } from '@/lib/auth';
 import { Search, Plus, FileText, Calendar, User, Upload, Shield, Trash2, Check, X, Filter, BookOpen } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
+import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl } from "@/lib/utils";
 
@@ -22,14 +23,16 @@ export default function RISSTMAPage() {
         dni: '',
         documentType: 'RISST + RITMA',
         responsable: user?.name || '',
-        fileUrl: ''
+        fileUrl: '',
+        lugar: ''
     });
 
     // Filter state
     const [filters, setFilters] = useState({
         date: '',
         workerName: '',
-        documentType: ''
+        documentType: '',
+        lugar: ''
     });
 
     useEffect(() => {
@@ -79,7 +82,8 @@ export default function RISSTMAPage() {
                     dni: '',
                     documentType: 'RISST + RITMA',
                     responsable: user?.name || '',
-                    fileUrl: ''
+                    fileUrl: '',
+                    lugar: ''
                 });
                 alert('✅ Registro guardado con éxito.');
             }
@@ -112,7 +116,8 @@ export default function RISSTMAPage() {
         const matchDate = !filters.date || rec.date === filters.date;
         const matchName = !filters.workerName || rec.workerName.toLowerCase().includes(filters.workerName.toLowerCase());
         const matchType = !filters.documentType || rec.documentType === filters.documentType;
-        return matchDate && matchName && matchType;
+        const matchLugar = !filters.lugar || rec.lugar === filters.lugar;
+        return matchDate && matchName && matchType && matchLugar;
     });
 
     return (
@@ -188,6 +193,20 @@ export default function RISSTMAPage() {
                                     </select>
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                                        Lugar / Sede
+                                    </label>
+                                    <select 
+                                        value={formData.lugar}
+                                        onChange={e => setFormData({...formData, lugar: e.target.value})}
+                                        className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                    </select>
+                                </div>
+
                                 <div className="md:col-span-2 space-y-2">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         <Upload size={12} /> Cargo / Declaración Jurada (PDF o Imagen)
@@ -258,6 +277,14 @@ export default function RISSTMAPage() {
                         onChange={e => setFilters({...filters, workerName: e.target.value})}
                         className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none w-48 focus:border-indigo-500"
                     />
+                    <select 
+                        value={filters.lugar}
+                        onChange={e => setFilters({...filters, lugar: e.target.value})}
+                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
+                    >
+                        <option value="">Todos los lugares...</option>
+                        {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
                 </div>
 
                 {/* Records Table */}
@@ -269,6 +296,7 @@ export default function RISSTMAPage() {
                                     <th className="p-4 pl-6">Fecha Entrega</th>
                                     <th className="p-4">Trabajador</th>
                                     <th className="p-4">Documento</th>
+                                    <th className="p-4">Lugar</th>
                                     <th className="p-4">Evidencia</th>
                                     <th className="p-4 text-right pr-6">Acciones</th>
                                 </tr>
@@ -302,6 +330,9 @@ export default function RISSTMAPage() {
                                             <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-[10px] font-bold border border-indigo-500/20 uppercase">
                                                 {rec.documentType}
                                             </span>
+                                        </td>
+                                        <td className="p-4 text-sm font-bold text-slate-300">
+                                            {rec.lugar || '---'}
                                         </td>
                                         <td className="p-4">
                                             {rec.fileUrl ? (

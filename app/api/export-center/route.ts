@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 // Nota: Importamos las acciones para obtener datos reales si estuvieran disponibles en el servidor
 // Por ahora, simulamos la agregación de datos para no romper la estructura.

@@ -82,7 +82,7 @@ async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promis
 }
 
 // URL del puente Apps Script para subida directa (evita límite Vercel 4.5MB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
 
 /**
  * Sube archivo directamente a Google Drive via Apps Script Bridge
@@ -109,7 +109,7 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             filename: fileName,
             mimeType: file.type || 'application/octet-stream',
             fileBase64: base64,
-            folderId: "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I", // Carpeta raíz SSOMA (Actualizado)
+            folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA (Actualizado a 1j6w activo)
             folderPath: folderName, // NEW: Match 'folderPath' expected by Bridge
             folderName: folderName
         };
@@ -315,12 +315,11 @@ export async function uploadEvidence(
                 return data.path;
             } else {
                 const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.error || `Error del servidor: ${response.status}`;
-                console.error(`❌ Error Crítico del Servidor: ${errorMessage}`);
-                throw new Error(errorMessage);
+                console.warn(`⚠️ Servidor rechazó subida: ${errorData.error || response.status}. Reintentando por Bridge...`);
+                // No lanzamos error aquí, dejamos que caiga al bloque B (Bridge)
             }
         } catch (serverError: any) {
-            console.warn("⚠️ Reintentando por Bridge debido a error de servidor.");
+            console.warn("⚠️ Error de conexión con servidor. Reintentando por Bridge...");
         }
     } else {
         console.log("📦 Archivo > 4MB. Saltando servidor y usando Bridge directo.");

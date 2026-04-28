@@ -17,7 +17,8 @@ import {
     Clipboard,
     Search,
     Shield,
-    Pencil
+    Pencil,
+    CheckCircle2
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
 
@@ -58,12 +59,51 @@ export default function AtsPage() {
             try {
                 const res = await fetch('/api/ats-records');
                 const data = await res.json();
+                
+                let apiRecords: any[] = [];
                 if (data.success && Array.isArray(data.records)) {
-                    setRecords(data.records);
+                    apiRecords = data.records;
                 }
+
+                const stored = localStorage.getItem('ats_records');
+                let mergedRecords = [...apiRecords];
+                let hasUnsyncedLocal = false;
+                let localRecordsToSync: any[] = [];
+
+                if (stored) {
+                    try {
+                        const localRecords = JSON.parse(stored);
+                        if (Array.isArray(localRecords) && localRecords.length > 0) {
+                            for (const localRec of localRecords) {
+                                const exists = apiRecords.find(r => 
+                                    r.date === localRec.date && 
+                                    r.responsible === localRec.responsible &&
+                                    r.location === localRec.location
+                                );
+                                if (!exists) {
+                                    mergedRecords.push(localRec);
+                                    localRecordsToSync.push(localRec);
+                                    hasUnsyncedLocal = true;
+                                }
+                            }
+                        }
+                    } catch (parseErr) {
+                        console.error("Error parsing ats_records", parseErr);
+                    }
+                }
+
+                if (hasUnsyncedLocal && localRecordsToSync.length > 0) {
+                    fetch('/api/ats-records', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'bulk-create', data: localRecordsToSync })
+                    }).catch(console.error);
+                }
+
+                mergedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(mergedRecords);
             } catch (e) {
                 console.error("Error loading ATS records from API:", e);
-                // Fallback: try localStorage
                 const stored = localStorage.getItem('ats_records');
                 if (stored) {
                     try {
@@ -346,8 +386,9 @@ export default function AtsPage() {
                                                         {isUploading ? (
                                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                                                         ) : file ? (
-                                                            <div className="bg-teal-500/20 p-3 rounded-full">
+                                                            <div className="bg-teal-500/20 p-3 rounded-full relative">
                                                                 <FileText className="text-teal-400" size={24} />
+                                                                <CheckCircle2 size={12} className="absolute -top-1 -right-1 text-emerald-400 bg-slate-900 rounded-full" />
                                                             </div>
                                                         ) : (
                                                             <div className="bg-slate-800 p-3 rounded-full group-hover:bg-slate-700 transition-colors">

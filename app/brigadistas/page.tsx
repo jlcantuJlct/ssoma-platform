@@ -15,7 +15,8 @@ import {
     Shield,
     Pencil,
     Users,
-    Image as ImageIcon
+    Image as ImageIcon,
+    CheckCircle2
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
 
@@ -337,8 +338,9 @@ export default function BrigadistasPage() {
                                                     {isUploading ? (
                                                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500"></div>
                                                     ) : file ? (
-                                                        <div className="bg-teal-500/20 p-3 rounded-full">
+                                                        <div className="bg-teal-500/20 p-3 rounded-full relative">
                                                             {file.type.startsWith('image/') ? <ImageIcon className="text-teal-400" size={24} /> : <FileText className="text-teal-400" size={24} />}
+                                                            <CheckCircle2 size={12} className="absolute -top-1 -right-1 text-emerald-400 bg-slate-900 rounded-full" />
                                                         </div>
                                                     ) : (
                                                         <div className="bg-slate-800 p-3 rounded-full group-hover:bg-slate-700 transition-colors">

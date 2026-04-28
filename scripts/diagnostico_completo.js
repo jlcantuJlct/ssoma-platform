@@ -91,7 +91,7 @@ async function runDiagnostic() {
 
     // 4. PRUEBA DE APPS SCRIPT BRIDGE
     console.log("\n4. Prueba de Apps Script Bridge...");
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxvAgdYNiYcklJs08N87wL4APgZ0fR-uTdP6m7naZGli3wzQ2oeLTgO52fqIg5pF5EwQ/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
 
     try {
         const fetch = (await import('node-fetch')).default;

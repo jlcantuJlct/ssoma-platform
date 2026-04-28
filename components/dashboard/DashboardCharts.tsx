@@ -3,7 +3,7 @@
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Rectangle, ComposedChart, Area, AreaChart, LabelList, ReferenceLine } from 'recharts';
-import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PieChart as PieChartIcon } from 'lucide-react';
+import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PieChart as PieChartIcon, CheckCircle2 } from 'lucide-react';
 import { categorizeActivitiesByObjective, OBJECTIVES_CONFIG } from "@/lib/objective-categorization";
 import { USER_LIST, useAuth } from "@/lib/auth";
 import { useState, useEffect, useMemo } from "react";
@@ -69,7 +69,7 @@ export function DashboardCharts({
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos' });
+    const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' });
     const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
     const [programMonthFilter, setProgramMonthFilter] = useState<number>(new Date().getMonth());
     const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as const, tipo: 'capacitacion' as const });
@@ -1019,6 +1019,7 @@ export function DashboardCharts({
     const finalFilteredHistory = useMemo(() => {
         return filteredRecords.filter(r => {
             const matchResp = !filters.responsable || (r.responsable || '').toLowerCase().includes(filters.responsable.toLowerCase());
+            const matchLugar = !filters.lugar || (r.lugar || '').toLowerCase().includes(filters.lugar.toLowerCase());
             const matchTema = !filters.tema || (r.tema || '').toLowerCase().includes(filters.tema.toLowerCase());
             const matchDateStart = !filters.startDate || (r.date || '') >= filters.startDate;
             const matchDateEnd = !filters.endDate || (r.date || '') <= filters.endDate;
@@ -1027,7 +1028,7 @@ export function DashboardCharts({
             // OCULTAR "ACTIVIDAD IMPORTADA" PARA OPTIMIZAR ESPACIO VISUAL
             const notImported = (r.tema || '') !== 'Actividad Importada';
 
-            return matchResp && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
+            return matchResp && matchLugar && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
         });
     }, [filteredRecords, filters]);
 
@@ -1142,8 +1143,8 @@ export function DashboardCharts({
 
     const handleAddHHCRecord = () => {
         // STRICT VALIDATION
-        if (!newHHC.date || !newHHC.hhc || !newHHC.hht || !newHHC.area || !newHHC.tipo || !newHHC.tema || !newHHC.responsable || !newHHC.lugar) {
-            alert("⚠️ ALERTA DE REGISTRO\n\nPara guardar, debe completar TODOS los campos:\n\n- Fecha\n- Responsable\n- Área y Tipo\n- Lugar\n- Tema / Actividad\n- Cálculo de Horas (Personal, HHT, HHC)");
+        if (!newHHC.date || !newHHC.area || !newHHC.tipo || !newHHC.tema || !newHHC.responsable || !newHHC.lugar) {
+            alert("⚠️ ALERTA DE REGISTRO\n\nPara guardar, debe completar TODOS los campos:\n\n- Fecha\n- Responsable\n- Área y Tipo\n- Lugar\n- Tema / Actividad");
             return;
         }
 
@@ -2278,6 +2279,20 @@ export function DashboardCharts({
                                 const user = userObj.name;
                                 const isDeactivated = deactivatedUsers.has(userObj.username);
                                 
+                                const uName = user.toLowerCase();
+                                const uFirst = uName.split(' ')[0];
+                                const isUserMatch = (rName1: any, rName2: any) => {
+                                    const rNameStr = String(rName1 || rName2 || '').toLowerCase();
+                                    if (!rNameStr) return false;
+                                    let isMatch = rNameStr === uName || uName.includes(rNameStr) || rNameStr.includes(uName);
+                                    if (!isMatch) {
+                                        const rFirst = rNameStr.split(' ')[0];
+                                        if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) isMatch = true;
+                                    }
+                                    return isMatch;
+                                };
+                                
+
                                 // Dynamic Calculation for this user based on their specific responsibilities
                                 let planned = 0;
                                 let executed = 0;
@@ -2322,7 +2337,7 @@ export function DashboardCharts({
                                             if (isYearMatch && (currentMonth === -1 || itemMonth === currentMonth)) {
                                                 monthsWithPlanned.add(itemMonth);
                                                 if ((item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) &&
-                                                    (item.responsible === user || item.responsable === user)) {
+                                                    isUserMatch(item.responsible, item.responsable)) {
                                                     monthsWithExecuted.add(itemMonth);
                                                 }
                                             }
@@ -2352,7 +2367,7 @@ export function DashboardCharts({
 
                                             // Execution from program: only if explicitly assigned to this user
                                             if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
-                                                if (item.responsible === user || item.responsable === user) {
+                                                if (isUserMatch(item.responsible, item.responsable)) {
                                                     executed++;
                                                 }
                                             }
@@ -2371,22 +2386,7 @@ export function DashboardCharts({
                                     // Exclude RAC Implementation from OBJ 04
                                     if (descLower.includes('implementación') && descLower.includes('rac')) return false;
 
-                                    const rName = String(r.responsible || r.responsable || '').toLowerCase();
-                                    const uName = user.toLowerCase();
-                                    
-                                    // Robust Name Matching (Fuzzy for Gladis/Gladys and partial matches)
-                                    let isUserMatch = rName === uName || (rName !== '' && uName.includes(rName)) || (uName !== '' && rName.includes(uName));
-                                    
-                                    // Special case for Gladis/Gladys variations
-                                    if (!isUserMatch) {
-                                        const uFirst = uName.split(' ')[0];
-                                        const rFirst = rName.split(' ')[0];
-                                        if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) {
-                                            isUserMatch = true;
-                                        }
-                                    }
-
-                                    return isUserMatch && 
+                                    return isUserMatch(r.responsible, r.responsable) && 
                                            (d.getFullYear() === currentYear || d.getFullYear() === 2025) && 
                                            (currentMonth === -1 || d.getMonth() === currentMonth);
                                 }).length;
@@ -2414,18 +2414,7 @@ export function DashboardCharts({
                                         const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
                                         const desc = (r.description || r.activity || '').toLowerCase();
                                         if (obj.includes('obj5') || desc.includes('emo')) {
-                                            const rName = String(r.responsible || r.responsable || '').toLowerCase();
-                                            const uName = user.toLowerCase();
-                                            let isMatch = rName === uName || (rName !== '' && uName.includes(rName)) || (uName !== '' && rName.includes(uName));
-                                            
-                                            // Fuzzy match for Gladis
-                                            if (!isMatch) {
-                                                const uFirst = uName.split(' ')[0];
-                                                const rFirst = rName.split(' ')[0];
-                                                if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) isMatch = true;
-                                            }
-
-                                            if (isMatch && (d.getFullYear() === currentYear || d.getFullYear() === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                            if (isUserMatch(r.responsible, r.responsable) && (d.getFullYear() === currentYear || d.getFullYear() === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
                                                 emoMonths.add(d.getMonth());
                                             }
                                         }
@@ -2486,7 +2475,7 @@ export function DashboardCharts({
                                                 
                                                 if (isDone) {
                                                     // Only if the user is the responsible
-                                                    if (item.responsible === user || item.responsable === user) {
+                                                    if (isUserMatch(item.responsible, item.responsable)) {
                                                         allExecuted.push(formattedItem);
                                                     }
                                                 } else {
@@ -2966,8 +2955,14 @@ export function DashboardCharts({
                                                 className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.05]' : (newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer')} rounded-lg p-2 transition-all flex-1 text-center min-h-[48px]`}
                                             >
                                                 <div className="flex items-center gap-1">
-                                                    <ImageIcon size={14} />
-                                                    <span className="text-[9px] font-bold">FOTOS ({newHHC.evidenceImgs.length}/4)</span>
+                                                    {newHHC.evidenceImgs.length > 0 ? (
+                                                        <CheckCircle2 size={14} className="text-emerald-400 animate-in zoom-in duration-300" />
+                                                    ) : (
+                                                        <ImageIcon size={14} />
+                                                    )}
+                                                    <span className={`text-[9px] font-bold ${newHHC.evidenceImgs.length > 0 ? 'text-emerald-400' : ''}`}>
+                                                        FOTOS ({newHHC.evidenceImgs.length}/4)
+                                                    </span>
                                                 </div>
                                                 {isDraggingHhcImgs && <span className="text-[7px] text-blue-400 font-black animate-pulse uppercase">¡Suelta fotos!</span>}
                                             </label>
@@ -2987,8 +2982,14 @@ export function DashboardCharts({
                                                 className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.05]' : (newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500')} rounded-lg p-2 transition-all flex-1 cursor-pointer text-center min-h-[48px]`}
                                             >
                                                 <div className="flex items-center gap-1">
-                                                    <FileText size={14} />
-                                                    <span className="text-[9px] font-bold">{newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}</span>
+                                                    {newHHC.evidencePdf ? (
+                                                        <CheckCircle2 size={14} className="text-emerald-400 animate-in zoom-in duration-300" />
+                                                    ) : (
+                                                        <FileText size={14} />
+                                                    )}
+                                                    <span className={`text-[9px] font-bold ${newHHC.evidencePdf ? 'text-emerald-400' : ''}`}>
+                                                        {newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}
+                                                    </span>
                                                 </div>
                                                 {isDraggingHhcPdf && <span className="text-[7px] text-emerald-400 font-black animate-pulse uppercase">¡Suelta PDF!</span>}
                                             </label>
@@ -3036,10 +3037,14 @@ export function DashboardCharts({
                                             <Download size={12} /> Exportar PDF (.pdf)
                                         </button>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                             <div className="md:col-span-1">
                                                 <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Responsable</label>
                                                 <input type="text" placeholder="Buscar..." value={filters.responsable} onChange={(e) => setFilters(prev => ({ ...prev, responsable: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Lugar</label>
+                                                <input type="text" placeholder="Buscar lugar..." value={filters.lugar} onChange={(e) => setFilters(prev => ({ ...prev, lugar: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
                                             </div>
                                             <div className="md:col-span-1">
                                                 <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Desde</label>
@@ -3074,7 +3079,8 @@ export function DashboardCharts({
                                                 <tr className="text-slate-500 border-b border-slate-800 text-[10px] uppercase font-bold">
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 pl-4 pr-2 w-[110px] text-left pt-2">Fecha</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[150px] pt-2">Responsable</th>
-                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[100px] pt-2">Area</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[80px] pt-2">Area</th>
+                                                    <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-[100px] pt-2">Lugar</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-left w-auto min-w-[220px] pt-2">Tema / Actividad</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-center w-[120px] pt-2">Tipo</th>
                                                     <th className="sticky top-0 bg-slate-900 z-10 pb-3 px-2 text-right w-[80px] pt-2">Pers. Cap.</th>
@@ -3092,7 +3098,8 @@ export function DashboardCharts({
                                                             <tr key={i} className="hover:bg-slate-800/50 transition-colors group text-[11px]">
                                                                 <td className="py-2 pl-4 pr-2 font-medium text-slate-300 w-[110px] whitespace-nowrap">{r.date}</td>
                                                                 <td className="py-2 px-2 max-w-[150px] truncate text-slate-400" title={r.responsable || 'Sin asignar'}>{getInitials(r.responsable) || '-'}</td>
-                                                                <td className="py-2 px-2 text-slate-500 uppercase text-[9px] font-bold">{r.area}</td>
+                                                                <td className="py-2 px-2 text-slate-500 uppercase text-[9px] font-bold max-w-[80px]">{r.area}</td>
+                                                                <td className="py-2 px-2 text-slate-400 max-w-[100px] truncate" title={r.lugar || 'N/A'}>{r.lugar || '-'}</td>
                                                                 <td className="py-2 px-2 font-medium text-white max-w-[220px] truncate" title={r.tema}>{r.tema}</td>
                                                                 <td className="py-2 px-2 text-center w-[120px]">
                                                                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${r.tipo === 'charla' ? 'bg-slate-700 text-slate-300' : 'bg-blue-900/40 text-blue-300 border border-blue-800/30'}`}>

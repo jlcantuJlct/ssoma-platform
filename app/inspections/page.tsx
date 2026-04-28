@@ -8,7 +8,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ComplianceGauge } from "@/components/dashboard/ComplianceGauge";
+
 import {
     ClipboardCheck,
     Calendar,
@@ -26,7 +26,8 @@ import {
     Settings,
     X,
     Image as ImageIcon,
-    Pencil
+    Pencil,
+    CheckCircle2
 } from "lucide-react";
 import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
@@ -146,7 +147,6 @@ export default function InspectionsPage() {
             return next;
         });
     }, [RESPONSIBLES]);
-    const [showGoals, setShowGoals] = useState(true);
     const [showQuotaSettings, setShowQuotaSettings] = useState(false);
 
     // Estado para el formulario
@@ -1147,7 +1147,7 @@ export default function InspectionsPage() {
                             {/* Botón Configurar Metas (Manual) */}
                             {user?.role === 'developer' && (
                                 <button
-                                    onClick={() => { setShowQuotaSettings(!showQuotaSettings); setShowGoals(true); }}
+                                    onClick={() => { setShowQuotaSettings(!showQuotaSettings); }}
                                     className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${showQuotaSettings ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
                                 >
                                     <Settings size={20} className={showQuotaSettings ? "animate-spin-slow" : ""} />
@@ -1155,13 +1155,7 @@ export default function InspectionsPage() {
                                 </button>
                             )}
 
-                            <button
-                                onClick={() => setShowGoals(!showGoals)}
-                                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-3 rounded-xl font-bold transition-all border border-slate-700"
-                            >
-                                <ActivityIcon size={20} className={showGoals ? "text-emerald-500" : ""} />
-                                {showGoals ? 'Ocultar' : 'Ver Avance'}
-                            </button>
+
 
                             {/* Exportar - SOLO NO MANAGERS (Según requerimiento: "No podra descargar") */}
                             {user?.role !== 'manager' && (
@@ -1410,7 +1404,12 @@ export default function InspectionsPage() {
                                                         />
                                                         {isDraggingPdf && <span className="text-[9px] text-emerald-400 font-bold animate-bounce text-center">¡Suelta el PDF aquí!</span>}
                                                     </div>
-                                                    {newEvidence.pdf && <span className="absolute right-2 top-2 text-[10px] text-emerald-500 font-bold">✅</span>}
+                                                    {newEvidence.pdf && (
+                                                        <div className="absolute right-2 top-2 flex items-center gap-1 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 animate-in zoom-in duration-300">
+                                                            <CheckCircle2 size={10} className="text-emerald-400" />
+                                                            <span className="text-[8px] text-emerald-400 font-black">CARGADO</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
@@ -1432,6 +1431,12 @@ export default function InspectionsPage() {
                                                         />
                                                         {isDraggingImgs && <span className="text-[9px] text-blue-400 font-bold animate-bounce text-center">¡Suelta imágenes aquí!</span>}
                                                     </div>
+                                                    {newEvidence.imgs.length > 0 && (
+                                                        <div className="absolute right-2 top-2 flex items-center gap-1 bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-500/30 animate-in zoom-in duration-300">
+                                                            <CheckCircle2 size={10} className="text-blue-400" />
+                                                            <span className="text-[8px] text-blue-400 font-black">{newEvidence.imgs.length} FOTOS</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1698,54 +1703,7 @@ export default function InspectionsPage() {
                         </div>
                     </div>
 
-                    {/* SECTION: METAS Y AVANCE (3D Gauges) - REPOSICIONADO */}
-                    {showGoals && (
-                        <div className="animate-in slide-in-from-top-4 duration-500 hidden md:block">
-                            <div className="flex items-center justify-between mb-4 px-2">
-                                <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp className="text-emerald-500" />
-                                    Avance Mensual (Objetivo 3)
-                                </h3>
-                            </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
-                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => {
-                                    const stats = getProgressStats(resp);
-
-                                    // Determinar Color NEON según reglas de usuario:
-                                    // 0% - 80%  -> Rojo Neon (#ef4444)
-                                    // 81% - 95% -> Naranja Neon (#f97316)
-                                    // 96% - 100%-> Verde Neon (#22c55e)
-                                    let gaugeColor = '#ef4444';
-                                    if (stats.percent >= 96) {
-                                        gaugeColor = '#22c55e';
-                                    } else if (stats.percent >= 81) {
-                                        gaugeColor = '#f97316';
-                                    }
-
-                                    return (
-                                        <div key={resp} className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-[2rem] p-4 border border-slate-700/50 shadow-2xl flex flex-col items-center justify-between group hover:scale-105 transition-transform duration-300 relative overflow-hidden">
-                                            {/* Spotlight Effect */}
-                                            <div className="absolute top-0 left-0 w-full h-1/2 bg-white/5 blur-xl pointer-events-none"></div>
-
-                                            <ComplianceGauge
-                                                title={resp}
-                                                value={stats.executed}
-                                                max={stats.planned}
-                                                width={130}
-                                                height={90}
-                                                color={gaugeColor}
-                                            />
-                                            <div className="mt-3 w-full flex justify-between px-2 text-[10px] font-mono font-bold text-slate-500 border-t border-slate-800/50 pt-2">
-                                                <span className="flex items-center gap-1">E: <span style={{ color: gaugeColor }} className="text-xs drop-shadow-md">{stats.executed}</span></span>
-                                                <span className="flex items-center gap-1">P: <span className="text-slate-300 text-xs">{stats.planned}</span></span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </main >
 

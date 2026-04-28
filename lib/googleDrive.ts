@@ -66,7 +66,7 @@ async function getDriveService() {
 }
 
 // NUEVO: URL del Puente Apps Script (Actualizado para usar cuota del usuario de 2TB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzapkKUP2aYCoVrDk5nkJUy03u3K10LRCV2Hmt2KyKlEsdHgi4vXseSEbaIiKcudVzW/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
 
 async function uploadViaAppsScript(file: File, folderName: string, fileName: string, folderIdOverride?: string) {
     try {
@@ -81,7 +81,7 @@ async function uploadViaAppsScript(file: File, folderName: string, fileName: str
             filename: fileName,
             mimetype: file.type || 'application/octet-stream',
             fileBase64: base64Info,
-            folderId: folderIdOverride || "1eJ7QWEpAcqM1cwDJFSHsvE43WJJwQG0I",
+            folderId: folderIdOverride || "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
             // Si nos pasan un path explícito, lo enviamos. Si no, usamos folderName original o undefined si hay override.
             folderPath: folderName,
             folderName: folderName // FIX: Enviar SIEMPRE, incluso si hay Override (para que el Bridge cree carpetas dentro del ID)
@@ -192,7 +192,7 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
     // 2. Robot: Intenta subir archivo.
     // 3. Fallback (Bridge): Sube archivo SI Robot falla, PERO usando el ID de carpeta que el Robot encontró/creó.
 
-    let rootFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // User Confirmed ID (1j6w...)
+    let rootFolderId = "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5"; // Actualizando a ID activo (1j6w...)
     let finalTargetFolderId = rootFolderId; // Por defecto Root
 
     const hasCreds = !!getCredentials();

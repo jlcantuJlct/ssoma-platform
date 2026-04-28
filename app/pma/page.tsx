@@ -14,6 +14,7 @@ import {
     Save,
     Target,
     Filter,
+    CheckCircle2
 } from "lucide-react";
 import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -479,7 +480,7 @@ export default function PMAPage() {
                                     {/* Upload Files */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Archivos de Evidencia (PDF o Imagen, Max 9)</label>
-                                        <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative">
+                                        <div className={`border-2 border-dashed ${images.length > 0 ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-700'} rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative`}>
                                             <input
                                                 type="file"
                                                 onChange={handleFileUpload}
@@ -487,9 +488,11 @@ export default function PMAPage() {
                                                 multiple
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                                             />
-                                            <div className="flex flex-col items-center gap-2 text-slate-400 group-hover:text-emerald-400">
-                                                <Upload size={24} />
-                                                <span className="text-xs font-medium">Click para agregar PDF o Fotos (Máx 9 en total)</span>
+                                            <div className={`flex flex-col items-center gap-2 ${images.length > 0 ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400'}`}>
+                                                {images.length > 0 ? <CheckCircle2 size={24} className="animate-in zoom-in duration-300" /> : <Upload size={24} />}
+                                                <span className="text-xs font-medium">
+                                                    {images.length > 0 ? `${images.length} Archivos Cargados` : 'Click para agregar PDF o Fotos (Máx 9 en total)'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

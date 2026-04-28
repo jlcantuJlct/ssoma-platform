@@ -17,7 +17,8 @@ import {
     Activity,
     Clipboard,
     Search,
-    Pencil
+    Pencil,
+    CheckCircle2
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
 
@@ -60,9 +61,54 @@ export default function PetarPage() {
             try {
                 const res = await fetch('/api/petar-records');
                 const data = await res.json();
+                
+                let apiRecords: any[] = [];
                 if (data.success && Array.isArray(data.records)) {
-                    setRecords(data.records);
+                    apiRecords = data.records;
                 }
+
+                const stored = localStorage.getItem('petar_records');
+                let mergedRecords = [...apiRecords];
+                let hasUnsyncedLocal = false;
+                let localRecordsToSync: any[] = [];
+
+                if (stored) {
+                    try {
+                        const localRecords = JSON.parse(stored);
+                        if (Array.isArray(localRecords) && localRecords.length > 0) {
+                            // Encontrar registros locales que no estén en la base de datos (por fecha, tipo, etc. O simplemente por ID temporal)
+                            // Como los IDs de DB son números pequeños, los locales antiguos pueden tener IDs generados por Date.now()
+                            for (const localRec of localRecords) {
+                                // Comprobación simple para evitar duplicados exactos
+                                const exists = apiRecords.find(r => 
+                                    r.date === localRec.date && 
+                                    r.responsible === localRec.responsible &&
+                                    r.type === localRec.type
+                                );
+                                if (!exists) {
+                                    mergedRecords.push(localRec);
+                                    localRecordsToSync.push(localRec);
+                                    hasUnsyncedLocal = true;
+                                }
+                            }
+                        }
+                    } catch (parseErr) {
+                        console.error("Error parsing petar_records", parseErr);
+                    }
+                }
+
+                if (hasUnsyncedLocal && localRecordsToSync.length > 0) {
+                    // Sincronizar automáticamente con la base de datos
+                    fetch('/api/petar-records', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'bulk-create', data: localRecordsToSync })
+                    }).catch(console.error);
+                }
+                
+                // Ordenar por fecha descendente
+                mergedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(mergedRecords);
             } catch (e) {
                 console.error("Error loading PETAR records from API:", e);
                 // Fallback: try localStorage
@@ -273,6 +319,7 @@ export default function PetarPage() {
                                 Control de PETAR
                             </h1>
                             <p className="text-slate-400 font-medium">Permisos Escritos de Trabajo de Alto Riesgo</p>
+                            <p className="text-xs text-red-500 font-mono mt-2">DEBUG RECORDS: {records.length} | LOADED: {isLoaded ? 'YES' : 'NO'}</p>
                         </div>
                         <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
@@ -360,8 +407,9 @@ export default function PetarPage() {
                                                         {isUploading ? (
                                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                                                         ) : file ? (
-                                                            <div className="bg-emerald-500/20 p-3 rounded-full">
+                                                            <div className="bg-emerald-500/20 p-3 rounded-full relative">
                                                                 <FileText className="text-emerald-400" size={24} />
+                                                                <CheckCircle2 size={12} className="absolute -top-1 -right-1 text-emerald-400 bg-slate-900 rounded-full" />
                                                             </div>
                                                         ) : (
                                                             <div className="bg-slate-800 p-3 rounded-full group-hover:bg-slate-700 transition-colors">

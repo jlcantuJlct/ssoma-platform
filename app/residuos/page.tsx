@@ -12,7 +12,8 @@ import {
     BarChart,
     PieChart as PieIcon,
     ArrowDownRight,
-    Scale
+    Scale,
+    CheckCircle2
 } from "lucide-react";
 import { 
     BarChart as RechartsBarChart, 
@@ -63,6 +64,7 @@ export default function WasteManagementPage() {
         weight: '',
         location: ''
     });
+    const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
@@ -242,12 +244,14 @@ export default function WasteManagementPage() {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Foto de Ticket o Registro)</label>
-                                        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
+                                        <div className={`border-2 border-dashed ${files.length > 0 ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800'} rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative`}>
                                             <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" multiple />
                                             <div className="mx-auto w-10 h-10 bg-slate-950 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                <Plus className="text-slate-600 group-hover:text-emerald-500" size={20} />
+                                                {files.length > 0 ? <CheckCircle2 className="text-emerald-500 animate-in zoom-in duration-300" size={20} /> : <Plus className="text-slate-600 group-hover:text-emerald-500" size={20} />}
                                             </div>
-                                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">CLICK O ARRASTRAR PARA SUBIR</p>
+                                            <p className={`text-[10px] font-bold ${files.length > 0 ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                                                {files.length > 0 ? `${files.length} ARCHIVOS CARGADOS` : 'CLICK O ARRASTRAR PARA SUBIR'}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -349,9 +353,19 @@ export default function WasteManagementPage() {
 
                             {/* History Table */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                                <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
-                                    <BarChart size={20} className="text-slate-500" /> Rastro de Pesajes
-                                </h3>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                                    <h3 className="text-white font-black text-lg flex items-center gap-2">
+                                        <BarChart size={20} className="text-slate-500" /> Rastro de Pesajes
+                                    </h3>
+                                    <select 
+                                        value={filterLocation}
+                                        onChange={e => setFilterLocation(e.target.value)}
+                                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                    >
+                                        <option value="">Filtrar por Lugar...</option>
+                                        {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                    </select>
+                                </div>
                                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
                                     <table className="w-full text-left">
                                         <thead>
@@ -366,7 +380,7 @@ export default function WasteManagementPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
-                                            {records.map(r => (
+                                            {records.filter(r => !filterLocation || r.location === filterLocation).map(r => (
                                                 <tr key={r.id} className="group hover:bg-slate-800/30 transition-colors">
                                                     <td className="py-4 pl-4 text-xs font-mono text-slate-400">{r.date}</td>
                                                     <td className="py-4 text-sm font-bold text-white">{r.wasteType}</td>

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchMonthlyReportData } from '@/lib/reportDataFetch';
 import { generateWordReport } from '@/lib/wordGenerator';

@@ -49,6 +49,7 @@ export default function ManifestPage() {
         unit: 'kg',
         location: ''
     });
+    const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
@@ -253,9 +254,19 @@ export default function ManifestPage() {
                         {/* List */}
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl min-h-[600px]">
-                                <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
-                                    <Truck size={20} className="text-slate-500" /> Rastro de Manifiestos
-                                </h3>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                                    <h3 className="text-white font-black text-lg flex items-center gap-2">
+                                        <FileText size={20} className="text-slate-500" /> Registro Histórico de Manifiestos
+                                    </h3>
+                                    <select 
+                                        value={filterLocation}
+                                        onChange={e => setFilterLocation(e.target.value)}
+                                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+                                    >
+                                        <option value="">Filtrar por Lugar...</option>
+                                        {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                    </select>
+                                </div>
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
@@ -271,7 +282,7 @@ export default function ManifestPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
-                                            {records.map(r => (
+                                            {records.filter(r => !filterLocation || r.location === filterLocation).map(r => (
                                                 <tr key={r.id} className="group hover:bg-slate-800/30 transition-colors">
                                                     <td className="py-4 text-xs font-mono text-slate-400">{r.date}</td>
                                                     <td className="py-4 font-black text-white text-xs">{r.manifestNumber}</td>
