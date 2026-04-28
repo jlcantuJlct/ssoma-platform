@@ -23,7 +23,8 @@ import {
     Clipboard,
     ArrowUpRight,
     BookOpen,
-    Trash2
+    Trash2,
+    Truck
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -123,7 +124,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<ShieldCheck size={16} className="text-blue-400" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
                         <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
-                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="Control de Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
@@ -151,6 +152,18 @@ export default function Sidebar() {
                                     label="Monitoreo Ocupacional"
                                     href="/monitoreos"
                                     active={pathname === '/monitoreos'}
+                                />
+                                <SidebarItem
+                                    icon={<ShieldCheck size={16} className="text-emerald-500" />}
+                                    label="Control de SCTR"
+                                    href="/sctr"
+                                    active={pathname === '/sctr'}
+                                />
+                                <SidebarItem
+                                    icon={<Truck size={16} className="text-blue-500" />}
+                                    label="Certificados de Equipo"
+                                    href="/equipment-certs"
+                                    active={pathname === '/equipment-certs'}
                                 />
                                 <SidebarItem
                                     icon={<ExternalLink size={16} className="text-cyan-500" />}
