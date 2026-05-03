@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
-import { FileText, Image as ImageIcon, Download, Eye, X, ClipboardCheck, Calendar, Search, Shield, ChevronDown } from 'lucide-react';
+import { FileText, Image as ImageIcon, Download, Eye, X, ClipboardCheck, Calendar, Search, Shield, ChevronDown, BookOpen } from 'lucide-react';
 import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import SearchableSelect from "@/components/SearchableSelect";
