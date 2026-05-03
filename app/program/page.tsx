@@ -1390,7 +1390,7 @@ export default function ProgramPage() {
                                     <div className="flex items-center gap-3">
                                         {/* BOTÓN PDF */}
                                         {(() => {
-                                            const pdfUrl = rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || 
+                                            const pdfUrl = rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || rec.evidenceUrl || rec.evidence_url ||
                                                          (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf') ? rec.fileUrl : '') || 
                                                          (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf') ? rec.file_url : '') ||
                                                          (rec.file_type && String(rec.file_type).toLowerCase().includes('pdf') ? (rec.fileUrl || rec.file_url) : '');
@@ -1413,23 +1413,24 @@ export default function ProgramPage() {
 
                                         {/* BOTÓN IMÁGENES / EVIDENCIA GENERAL */}
                                         {(() => {
-                                            const hasImgs = (rec.evidenceImgs && rec.evidenceImgs.length > 0) || 
+                                            const hasImgs = (rec.evidenceImgs && Array.isArray(rec.evidenceImgs) && rec.evidenceImgs.length > 0) || 
                                                           (rec.evidence_imgs && typeof rec.evidence_imgs === 'string' && rec.evidence_imgs.length > 5) ||
-                                                          (rec.images && rec.images.length > 0) || 
-                                                          (rec.imageUrl) || (rec.files) ||
+                                                          (rec.images && Array.isArray(rec.images) && rec.images.length > 0) || 
+                                                          (rec.imageUrl) || (rec.files && Array.isArray(rec.files) && rec.files.length > 0) ||
                                                           (rec.fileUrl && !String(rec.fileUrl).toLowerCase().includes('.pdf')) ||
                                                           (rec.file_url && !String(rec.file_url).toLowerCase().includes('.pdf'));
 
                                             if (hasImgs) {
-                                                const imgUrl = (rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : 
-                                                              (rec.images && rec.images.length > 0) ? rec.images[0] : 
+                                                const imgUrl = (rec.evidenceImgs && Array.isArray(rec.evidenceImgs) && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : 
+                                                              (rec.images && Array.isArray(rec.images) && rec.images.length > 0) ? rec.images[0] : 
                                                               (rec.imageUrl || rec.fileUrl || rec.file_url || rec.evidence_imgs);
                                                 
-                                                // Handle evidence_imgs as string if needed
                                                 let finalUrl = imgUrl;
                                                 if (typeof imgUrl === 'string' && imgUrl.startsWith('[') && imgUrl.endsWith(']')) {
                                                     try { const arr = JSON.parse(imgUrl); if(arr.length > 0) finalUrl = arr[0]; } catch(e){}
                                                 }
+
+                                                const count = (Array.isArray(rec.evidenceImgs) ? rec.evidenceImgs.length : 0) || (Array.isArray(rec.images) ? rec.images.length : 0) || 0;
 
                                                 return (
                                                     <button 
@@ -1438,10 +1439,23 @@ export default function ProgramPage() {
                                                     >
                                                         <ImageIcon size={12} />
                                                         {(rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf')) || (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf'))) ? 'FOTOS' : 'VER EVIDENCIA'}
-                                                        {(rec.evidenceImgs || rec.images) ? `(${(rec.evidenceImgs || rec.images).length})` : ''}
+                                                        {count > 0 ? ` (${count})` : ''}
                                                     </button>
                                                 );
                                             }
+                                            
+                                            const hasPdf = !!(rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || rec.evidenceUrl || rec.evidence_url ||
+                                                          (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf')) || 
+                                                          (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf')));
+                                            
+                                            if (!hasPdf) {
+                                                return (
+                                                    <div className="text-[9px] font-black text-red-500/70 bg-red-500/5 px-2 py-1 rounded border border-red-500/10 uppercase italic">
+                                                        Sin archivo adjunto
+                                                    </div>
+                                                );
+                                            }
+
                                             return null;
                                         })()}
                                         <button 
