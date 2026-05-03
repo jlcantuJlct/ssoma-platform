@@ -2336,15 +2336,15 @@ export function DashboardCharts({
                                 let executed = 0;
 
                                 // Define objective mapping for groups
+                                // Group 1 (General): OBJ 02, OBJ 03, OBJ 04, SEG 03, SEG 04, SEG 05, SEG 06
                                 const group1Ids = ['obj2', 'obj-2', 'obj3', 'obj-3', 'obj4', 'obj-4', 'obj8', 'obj-8', 'obj9', 'obj-9', 'obj10', 'obj-10', 'obj11', 'obj-11'];
+                                // Group 2 (Health - Gladis): OBJ 05, SEG 01, SEG 02
                                 const group2Ids = ['obj5', 'obj-5', 'obj6', 'obj-6', 'obj7', 'obj-7'];
                                 
-                                const group1Usernames = ['jose.galliquio', 'albert.chuquispuma', 'jesus.villalovos', 'adrian.suarez', 'fabricio.galvez', 'benjy.vega'];
-                                const isGroup1 = group1Usernames.includes(userObj.username);
-                                const isGroup2 = userObj.username === 'gladis.aroste';
-
+                                const isGladis = userObj.username === 'gladis.aroste';
+                                
                                 // Filter allowed objectives for this specific user
-                                const allowedObjIds = isGroup1 ? group1Ids : (isGroup2 ? group2Ids : OBJECTIVES_CONFIG.map(o => o.id));
+                                const allowedObjIds = isGladis ? group2Ids : group1Ids;
 
                                 // 1. Calculate P and E from Annual Program
                                 // For P, we sum ALL items in the assigned objectives (team goal)
@@ -2450,9 +2450,9 @@ export function DashboardCharts({
                                 // Filter records based on user's group responsibilities
                                 // Note: Individual performance always counts all work registered by the user
                                 let filteredMyRecords = allMyRecords;
-                                if (isGroup1) {
+                                if (!isGladis) {
                                     filteredMyRecords = allMyRecords.filter(r => !r.isHealth);
-                                } else if (isGroup2) {
+                                } else {
                                     filteredMyRecords = allMyRecords.filter(r => r.isHealth || r.recType === 'EVIDENCIA');
                                 }
 
@@ -2529,7 +2529,7 @@ export function DashboardCharts({
                                 const modalData = getProgramLists();
                                 executed = modalData.allExecuted.length;
                                 // Special case for Group 2 (EMO OBJ 05): Correct the total executed if needed (EMOs as 1 per month)
-                                if (isGroup2) {
+                                if (isGladis) {
                                     // The count above might be higher if multiple EMOs exist, but we stick to the modal total for consistency
                                     // unless we want to keep the "1 per month" rule strictly for the gauge.
                                     // Let's stick to the modal total so the gauge and modal match perfectly.
@@ -2607,7 +2607,7 @@ export function DashboardCharts({
                                             </div>
                                             <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors border-l border-slate-800/50">
                                                 <span className="text-[8px] text-amber-500/70 font-black uppercase tracking-tighter group-hover/footer:text-amber-400 transition-colors">Pendiente</span>
-                                                <span className="text-sm font-black text-amber-400 tabular-nums">{planned - executed < 0 ? 0 : planned - executed}</span>
+                                                <span className="text-sm font-black text-amber-400 tabular-nums">{modalData.allPending.length}</span>
                                             </div>
                                         </div>
 
