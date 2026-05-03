@@ -35,12 +35,8 @@ interface EvidencePageProps {
     data: DashboardData;
 }
 
-// Actividades específicas por objetivo (Solo EMO)
-const ACTIVITIES_BY_OBJECTIVE: Record<string, string[]> = {
-    'EMO': [
-        "Exámenes Médico Ocupacional (EMO)"
-    ]
-};
+// REMOVED STATIC ACTIVITIES - Now fetched from Annual Program OBJ 05
+const INITIAL_EMO_ACTIVITIES = ["Exámenes Médico Ocupacional (EMO)"];
 
 // Objetivos específicos solicitados (Solo EMO)
 const TARGET_OBJECTIVES = [
@@ -64,6 +60,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     // STATE
     const [records, setRecords] = useState<EvidenceRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
 
     const [form, setForm] = useState({
@@ -76,8 +73,32 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
 
     const [files, setFiles] = useState<{ url: string, type: 'pdf' | 'image' | 'word' | 'excel' } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [viewingFile, setViewingFile] = useState<EvidenceRecord | null>(null);
+    const [emoActivities, setEmoActivities] = useState<string[]>(INITIAL_EMO_ACTIVITIES);
+
+    // LOAD DYNAMIC ACTIVITIES FROM ANNUAL PROGRAM (OBJ 05)
+    useEffect(() => {
+        const loadProgram = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success && data.programData['obj5']) {
+                    const items = data.programData['obj5'] as any[];
+                    const uniqueDescs = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                    if (uniqueDescs.length > 0) {
+                        setEmoActivities(uniqueDescs);
+                        // Auto-set first activity if empty
+                        if (!form.activity && uniqueDescs.length > 0) {
+                            setForm(prev => ({ ...prev, activity: uniqueDescs[0] }));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading program for EMO:", e);
+            }
+        };
+        loadProgram();
+    }, []);
 
     // Filters State
     const [filters, setFilters] = useState({
@@ -111,6 +132,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     // LOAD DATA - Cloud first, then localStorage fallback
     useEffect(() => {
         const loadRecords = async () => {
+            setIsSyncing(true);
             try {
                 const res = await fetch('/api/evidence-records');
                 const data = await res.json();
@@ -148,6 +170,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                     console.error("Error parsing evidence_center_records", e);
                 }
             }
+            setIsSyncing(false);
             setIsLoaded(true);
         };
         loadRecords();
@@ -407,7 +430,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     };
 
     // Obtener actividades dinámicas
-    const currentActivities = ACTIVITIES_BY_OBJECTIVE[form.objective] || [];
+    const currentActivities = emoActivities;
 
     return (
         <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
@@ -470,9 +493,23 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 </select>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase">Actividad / Tema</label>
+                                <select
+                                    value={form.activity}
+                                    onChange={e => setForm({ ...form, activity: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none"
+                                    required
+                                >
+                                    <option value="">Seleccionar Actividad...</option>
+                                    {emoActivities.map(act => (
+                                        <option key={act} value={act}>{act}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {/* Campos ocultos (fijos para EMO) */}
                             <input type="hidden" value={form.objective} />
-                            <input type="hidden" value={form.activity} />
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-2">

@@ -59,7 +59,9 @@ export default function DetourPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
-    const [filterCategory, setFilterCategory] = useState("");
+    // Categories from static list
+    const [detourCategories, setDetourCategories] = useState<DetourCategory[]>(DETOUR_CATEGORIES);
+
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
@@ -136,7 +138,7 @@ export default function DetourPage() {
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(files);
 
-            const catLabel = DETOUR_CATEGORIES.find(c => c.id === form.category)?.label || form.category || 'Desvio';
+            const catLabel = detourCategories.find(c => c.id === form.category)?.label || form.category || 'Desvio';
             const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
@@ -217,7 +219,7 @@ export default function DetourPage() {
     };
 
     const getFileName = (record: DetourEvidenceRecord) => {
-        const catLabel = DETOUR_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
+        const catLabel = detourCategories.find(c => c.id === record.category)?.label || record.category;
         const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
         const lugarShort = (record.location || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
         return `DESVIO_${catShort}_${lugarShort}_${record.date}`;
@@ -243,7 +245,7 @@ export default function DetourPage() {
         doc.text("Actividad/Categoría:", 20, y);
         y += 5;
         doc.setFont("helvetica", "normal");
-        const categoryLabel = DETOUR_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
+        const categoryLabel = detourCategories.find(c => c.id === record.category)?.label || record.category;
         const categoryLines = doc.splitTextToSize(categoryLabel, 170);
         doc.text(categoryLines, 20, y);
         y += (categoryLines.length * 5) + 5;
@@ -379,12 +381,10 @@ export default function DetourPage() {
                                                 ))}
                                             </select>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-2">
+                                                             <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
                                         <SearchableSelect 
-                                            options={DETOUR_CATEGORIES}
+                                            options={detourCategories}
                                             value={form.category}
                                             onChange={(val) => setForm({ ...form, category: val })}
                                             placeholder="Seleccionar Actividad..."
@@ -392,15 +392,15 @@ export default function DetourPage() {
                                             icon={<MapIcon size={16} />}
                                             variant="blue"
                                         />
-
+ 
                                         {form.category && (
                                             <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded-lg mt-1">
                                                 <p className="text-[10px] text-blue-400 font-medium">
-                                                    ℹ️ {DETOUR_CATEGORIES.find(c => c.id === form.category)?.hint}
+                                                    ℹ️ {detourCategories.find(c => c.id === form.category)?.hint}
                                                 </p>
                                             </div>
                                         )}
-                                    </div>
+                                    </div>                     </div>
 
 
                                     <div className="space-y-2">
@@ -482,7 +482,7 @@ export default function DetourPage() {
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
                                         >
                                             <option value="">Todas las categorías...</option>
-                                            {DETOUR_CATEGORIES.map(cat => (
+                                            {detourCategories.map(cat => (
                                                 <option key={cat.id} value={cat.id}>{cat.label}</option>
                                             ))}
                                         </select>
@@ -545,7 +545,7 @@ export default function DetourPage() {
                                                         </td>
                                                         <td className="py-4">
                                                             <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[9px] font-bold">
-                                                                {DETOUR_CATEGORIES.find(c => c.id === r.category)?.label || r.category}
+                                                                {detourCategories.find(c => c.id === r.category)?.label || r.category}
                                                             </span>
                                                         </td>
                                                         <td className="py-4 font-medium">{r.location || '-'}</td>

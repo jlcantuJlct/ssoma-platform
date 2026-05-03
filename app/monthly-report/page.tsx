@@ -102,6 +102,7 @@ export default function MonthlyReportPage() {
     const [petarRecords, setPetarRecords] = useState<any[]>([]);
     const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]);
     const [pmaRecords, setPmaRecords] = useState<any[]>([]);
+    const [reporteAcRecords, setReporteAcRecords] = useState<any[]>([]);
     const [programData, setProgramData] = useState<any>({});
 
     // --- IMAGES STATE ---
@@ -147,14 +148,15 @@ export default function MonthlyReportPage() {
                 if (storedStats) setStatsData(JSON.parse(storedStats));
 
                 // 2. Fetch API Data
-                const [atsRes, petarRes, inspRes, hhcRes, evRes, pmaRes, progRes] = await Promise.all([
+                const [atsRes, petarRes, inspRes, hhcRes, evRes, pmaRes, progRes, racRes] = await Promise.all([
                     fetch('/api/ats-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/petar-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/inspections').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/hhc-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/evidence-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/pma-records').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} }))
+                    fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} })),
+                    fetch('/api/reporte-ac-records').then(r => r.json()).catch(() => ({ records: [] }))
                 ]);
 
                 if (atsRes.records) setAtsRecords(atsRes.records);
@@ -171,6 +173,7 @@ export default function MonthlyReportPage() {
                 }
 
                 if (progRes.programData) setProgramData(progRes.programData);
+                if (racRes.records) setReporteAcRecords(racRes.records);
 
             } catch (error) {
                 console.error("Error loading report data:", error);
@@ -329,6 +332,7 @@ export default function MonthlyReportPage() {
     const currentHHC = filterByDate(hhcRecords);
     const currentEvidence = filterByDate(evidenceRecords);
     const currentPMA = filterByDate(pmaRecords);
+    const currentReporteAC = filterByDate(reporteAcRecords);
 
     // --- IMAGE HANDLING ---
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,6 +445,7 @@ export default function MonthlyReportPage() {
             ["Inspecciones Realizadas", currentInspections.length],
             ["Permisos de Trabajo (PETAR)", currentPETAR.length],
             ["Análisis de Trabajo Seguro (ATS)", currentATS.length],
+            ["Reportes de Actos y Condiciones (A/C)", currentReporteAC.length],
             ["Horas de Capacitación", currentHHC.reduce((acc: number, r: any) => acc + (Number(r.hhc) || 0), 0).toFixed(2)],
         ];
 
@@ -509,7 +514,7 @@ export default function MonthlyReportPage() {
         addHeader("4. GESTIÓN OPERATIVA Y AMBIENTAL");
 
         doc.setFontSize(11); doc.setTextColor(0);
-        doc.text(`4.1 Inspecciones (${currentInspections.length}), ATS (${currentATS.length}), PETAR (${currentPETAR.length})`, 15, yPos);
+        doc.text(`4.1 Inspecciones (${currentInspections.length}), ATS (${currentATS.length}), PETAR (${currentPETAR.length}), A/C (${currentReporteAC.length})`, 15, yPos);
         yPos += 7;
 
         // Detailed tables... (Simplified for brevity in graph view, can add full tables if needed)

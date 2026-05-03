@@ -15,6 +15,31 @@ export default function RISSTMAPage() {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [programActivities, setProgramActivities] = useState<string[]>(['RISST + RITMA', 'Solo RISST', 'Solo RITMA']);
+
+    // LOAD DYNAMIC ACTIVITIES FROM ANNUAL PROGRAM (OBJ 03)
+    useEffect(() => {
+        const loadProgram = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success && data.programData['obj3']) {
+                    const items = data.programData['obj3'] as any[];
+                    // Filter activities that seem relevant to RISSTMA or just all from obj3
+                    const uniqueDescs = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                    if (uniqueDescs.length > 0) {
+                        setProgramActivities(uniqueDescs);
+                        if (!formData.documentType) {
+                            setFormData(prev => ({ ...prev, documentType: uniqueDescs[0] }));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading program for RISSTMA:", e);
+            }
+        };
+        loadProgram();
+    }, []);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -187,9 +212,10 @@ export default function RISSTMAPage() {
                                         onChange={e => setFormData({...formData, documentType: e.target.value})}
                                         className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                     >
-                                        <option>RISST + RITMA</option>
-                                        <option>Solo RISST</option>
-                                        <option>Solo RITMA</option>
+                                        <option value="">Seleccionar Actividad...</option>
+                                        {programActivities.map(act => (
+                                            <option key={act} value={act}>{act}</option>
+                                        ))}
                                     </select>
                                 </div>
 

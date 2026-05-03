@@ -61,6 +61,10 @@ export default function PMAPage() {
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
     const [filterCategory, setFilterCategory] = useState("");
+    
+    // Categories from static list (Independent from Annual Program as requested)
+    const [pmaCategories, setPmaCategories] = useState<PMACategory[]>(PMA_CATEGORIES);
+
 
 
     // --- EFFECT: LOAD/SAVE ---
@@ -183,7 +187,7 @@ export default function PMAPage() {
             const filesArray = Array.from(files);
 
             // Generar nombre con categoría reducida
-            const catLabel = PMA_CATEGORIES.find(c => c.id === form.category)?.label || form.category || 'Evidencia';
+            const catLabel = pmaCategories.find(c => c.id === form.category)?.label || form.category || 'Evidencia';
             const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
@@ -260,7 +264,7 @@ export default function PMAPage() {
 
     // Helper para generar nombre de archivo con categoría reducida
     const getFileName = (record: PMAEvidenceRecord) => {
-        const catLabel = PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
+        const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
         // Reducir categoría: tomar primeras 3 palabras y max 20 chars
         const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
         const lugarShort = (record.location || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
@@ -290,7 +294,7 @@ export default function PMAPage() {
         doc.text("Categoría:", 20, y);
         y += 5;
         doc.setFont("helvetica", "normal");
-        const categoryLines = doc.splitTextToSize(PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category, 170);
+        const categoryLines = doc.splitTextToSize(pmaCategories.find(c => c.id === record.category)?.label || record.category, 170);
         doc.text(categoryLines, 20, y);
         y += (categoryLines.length * 5) + 5;
 
@@ -447,7 +451,7 @@ export default function PMAPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Control de Fotos PMA</label>
                                         <SearchableSelect 
-                                            options={PMA_CATEGORIES}
+                                            options={pmaCategories}
                                             value={form.category}
                                             onChange={(val) => setForm({ ...form, category: val })}
                                             placeholder="Seleccionar Actividad..."
@@ -459,7 +463,7 @@ export default function PMAPage() {
                                         {form.category && (
                                             <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg mt-1">
                                                 <p className="text-[10px] text-emerald-400 font-medium">
-                                                    ℹ️ {PMA_CATEGORIES.find(c => c.id === form.category)?.hint}
+                                                    ℹ️ {pmaCategories.find(c => c.id === form.category)?.hint}
                                                 </p>
                                             </div>
                                         )}
@@ -578,7 +582,7 @@ export default function PMAPage() {
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
                                         >
                                             <option value="">Todas las categorías...</option>
-                                            {PMA_CATEGORIES.map(cat => (
+                                            {pmaCategories.map(cat => (
                                                 <option key={cat.id} value={cat.id}>{cat.label}</option>
                                             ))}
                                         </select>
@@ -631,7 +635,7 @@ export default function PMAPage() {
                                                         return matchesDate && matchesResp && matchesLoc && matchesCat;
                                                     })
                                                     .map((record) => {
-                                                        const catLabel = PMA_CATEGORIES.find(c => c.id === record.category)?.label || record.category;
+                                                        const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">
                                                             <td className="py-4 pl-2 font-mono text-xs text-white align-top">

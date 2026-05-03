@@ -29,15 +29,8 @@ type SimulacroRecord = {
     fileUrl: string;
 };
 
-const DRILL_TYPES = [
-    "Sismo",
-    "Incendio",
-    "Primeros Auxilios",
-    "Derrame de Materiales Peligrosos",
-    "Evacuación",
-    "Tsunami",
-    "Multirriesgo"
-];
+// REMOVED STATIC TYPES - Now fetched from Annual Program SEG 05
+
 
 export default function SimulacroPage() {
     const { user } = useAuth();
@@ -62,6 +55,33 @@ export default function SimulacroPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
+
+    const [drillTypes, setDrillTypes] = useState<string[]>([]);
+
+    // LOAD DYNAMIC TYPES FROM ANNUAL PROGRAM (SEG 05 - Simulacros)
+    useEffect(() => {
+        const loadTypes = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success && data.programData['obj10']) {
+                    const items = data.programData['obj10'] as any[];
+                    const uniqueTypes = Array.from(new Set(items.map(i => i.description))).filter(Boolean);
+                    if (uniqueTypes.length > 0) {
+                        setDrillTypes(uniqueTypes);
+                        if (!form.drillType) setForm(prev => ({ ...prev, drillType: uniqueTypes[0] }));
+                    }
+                    else {
+                        // Fallback defaults if program is empty
+                        setDrillTypes(["Sismo", "Incendio", "Primeros Auxilios", "Derrame de Materiales Peligrosos", "Evacuación"]);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching annual program types for Simulacros:", e);
+            }
+        };
+        loadTypes();
+    }, []);
 
     // LOAD RECORDS
     useEffect(() => {
@@ -298,7 +318,7 @@ export default function SimulacroPage() {
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-orange-500 outline-none transition-colors"
                                             >
                                                 <option value="">Seleccionar tipo...</option>
-                                                {DRILL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                                {drillTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </div>
 

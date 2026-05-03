@@ -62,54 +62,11 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 const INITIAL_ZONES = SSOMA_LOCATIONS;
 
 // Lista de Tipos de Inspección
-// Lista de Tipos de Inspección por Área
-const INSPECTION_TYPES_BY_AREA = {
-    "Seguridad": [
-        "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
-        "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehiculos",
-        "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia",
-        "Inspección de Herramientas manuales y eléctricas (F-OP-019) Verificación de Herramientas Manuales, Eléctricas y Equipos Portátiles",
-        "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01",
-        "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03",
-        "Inspección de Señalización Vial (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de vías de acceso y bermas de seguridad plataformas de descarga de material (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de Señalización de Obra (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09",
-        "Inspección del almacén de productos químicos F-SIG-028 Inspeccion Almacén V09",
-        "Inspección de orden y limpieza de áreas de trabajo (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO",
-        "Inspeccion de planta de asfalto LISTA DE CHEQUEO DE PLANTA DE ASFALTO",
-        "Inspeccion de planta de concreto LISTA DE CHEQUEO DE PLANTA DE CONCRETO",
-        "Inspeccion de planta de Chancado LISTA DE CHEQUEO DE PLANTA DE AGREGADOS",
-        "Inspección de taller de soldadura/ mecanico F-SIG-079 Inspección de Talleres V02",
-        "Inspección de escalera o andamios F-OP-001 CHECK LIST DE ANDAMIOS F-OP-018 INSPECCIÓN DE ESCALERAS",
-        "Inspección de Equipo contra caídas (arnés, línea de vida, etc.) F-OP-017 INSPECCIÓN DE EQUIPOS CONTRA CAIDA"
-    ],
-    "Salud": [
-        "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
-        "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS",
-        "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR",
-        "Inspección de EPP Inspección de EPP Seguimiento de observacion medica F-SIG-044 Inspección de EPP V03",
-        "Inspección de Topico (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de señalización de salud (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de EPP Ligado a Enf. Ocupacionales F-SIG-044 Inspección de EPP V03"
-    ],
-    "Medioambiente": [
-        "Inspecciones de estaciones de residuos por colores (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspecciones de almacén de acopio temporal de residuos solidos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspecciones de la segregacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de controles de polucion. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de controles de ruido. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME",
-        "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de trampas de grasa de talleres (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de almacén de acopio temporal de residuos peligrosos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
-        "Inspección de limpieza de accesos y vías (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
-    ]
+// REMOVED STATIC TYPES - Now fetched from Annual Program SEG 03 / OBJ 03
+const INITIAL_TYPES_BY_AREA: Record<string, string[]> = {
+    "Seguridad": [],
+    "Salud": [],
+    "Medioambiente": []
 };
 
 export default function InspectionsPage() {
@@ -120,6 +77,8 @@ export default function InspectionsPage() {
     const [RESPONSIBLES, setRESPONSIBLES] = useState<string[]>(INITIAL_RESPONSIBLES);
     const [ZONES, setZONES] = useState<string[]>(INITIAL_ZONES);
 
+    const [inspectionTypesByArea, setInspectionTypesByArea] = useState<Record<string, string[]>>(INITIAL_TYPES_BY_AREA);
+
     useEffect(() => {
         // Load Master Data updates
         if (typeof window !== 'undefined') {
@@ -128,6 +87,49 @@ export default function InspectionsPage() {
             if (storedR) setRESPONSIBLES(JSON.parse(storedR));
             if (storedZ) setZONES(JSON.parse(storedZ));
         }
+    }, []);
+
+    // LOAD DYNAMIC TYPES FROM ANNUAL PROGRAM (OBJ 03, OBJ 06, OBJ 08)
+    useEffect(() => {
+        const loadTypes = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success) {
+                    const newMapping: Record<string, string[]> = {
+                        "Seguridad": [],
+                        "Salud": [],
+                        "Medioambiente": []
+                    };
+
+                    // OBJ 03 -> Seguridad
+                    if (data.programData['obj3']) {
+                        const items = data.programData['obj3'] as any[];
+                        newMapping["Seguridad"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                    }
+
+                    // OBJ 06 (SEG 01) -> Salud
+                    if (data.programData['obj6']) {
+                        const items = data.programData['obj6'] as any[];
+                        newMapping["Salud"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                    }
+
+                    // OBJ 08 (SEG 03) -> Medioambiente
+                    if (data.programData['obj8']) {
+                        const items = data.programData['obj8'] as any[];
+                        newMapping["Medioambiente"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                    }
+
+                    // Update state if we found anything
+                    if (newMapping["Seguridad"].length > 0 || newMapping["Salud"].length > 0 || newMapping["Medioambiente"].length > 0) {
+                        setInspectionTypesByArea(newMapping);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching annual program for inspections:", e);
+            }
+        };
+        loadTypes();
     }, []);
 
     // Estado de Cuotas por Usuario (Inicializado en 4)
@@ -1368,7 +1370,7 @@ export default function InspectionsPage() {
                                         </div>
 
                                         <SearchableSelect
-                                            options={INSPECTION_TYPES_BY_AREA[formData.area as keyof typeof INSPECTION_TYPES_BY_AREA] || INSPECTION_TYPES_BY_AREA['Seguridad']}
+                                            options={inspectionTypesByArea[formData.area] || inspectionTypesByArea['Seguridad']}
                                             value={formData.inspectionType}
                                             onChange={(val) => setFormData({ ...formData, inspectionType: val })}
                                             placeholder="Seleccionar Tipo de Inspección..."
@@ -1517,7 +1519,7 @@ export default function InspectionsPage() {
                                     {/* Filtro Tipo */}
                                     <div className="relative">
                                         <SearchableSelect
-                                            options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
+                                            options={["Todo Tipo", ...Object.values(inspectionTypesByArea).flat().sort()]}
                                             value={filterType || "Todo Tipo"}
                                             onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
                                             placeholder="Todo Tipo"

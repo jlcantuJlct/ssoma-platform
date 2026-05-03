@@ -72,6 +72,15 @@ class ErrorBoundary extends Component<Props, State> {
                         <p className="text-slate-400 text-sm mb-6">
                             Ha ocurrido un error inesperado. Esto puede deberse a datos corruptos en el navegador.
                         </p>
+                        {this.state.error && (
+                            <div className="mb-6 p-4 bg-red-950/30 border border-red-500/20 rounded-xl text-left overflow-auto max-h-40">
+                                <p className="text-red-400 font-mono text-[10px] whitespace-pre-wrap">
+                                    {this.state.error.name}: {this.state.error.message}
+                                    {"\n\n"}
+                                    {this.state.error.stack}
+                                </p>
+                            </div>
+                        )}
                         <button
                             onClick={this.handleReload}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 mx-auto transition-colors"

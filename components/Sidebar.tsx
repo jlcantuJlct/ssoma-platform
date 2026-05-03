@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+    AlertTriangle,
     LayoutDashboard,
     CheckSquare,
     BarChart2,
@@ -127,10 +128,12 @@ export default function Sidebar() {
                         <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="Control de Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500" />} label="Reporte de A/C" href="/reporte-ac" active={pathname === '/reporte-ac'} />
                         <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
                         <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
                         <SidebarItem icon={<BarChart2 size={16} />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
+                        <SidebarItem icon={<Clipboard size={16} className="text-emerald-500" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
                         {(user?.role === 'developer' || user?.role === 'manager') && (

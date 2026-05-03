@@ -94,7 +94,8 @@ if (process.env.POSTGRES_URL) {
         async query(text: string, params: any[] = []) {
             try {
                 const stmt = sqlite.prepare(text);
-                if (text.trim().toUpperCase().startsWith('SELECT')) {
+                const isQuery = text.trim().toUpperCase().startsWith('SELECT') || text.toUpperCase().includes(' RETURNING ');
+                if (isQuery) {
                     const rows = stmt.all(...params);
                     return { rows, rowCount: rows.length };
                 } else {
@@ -109,7 +110,9 @@ if (process.env.POSTGRES_URL) {
         async execute(text, params = []) {
             const stmt = sqlite.prepare(text);
             const info = stmt.run(...params);
-            return { rows: [], rowCount: info.changes };
+            // If it's an INSERT, we can return the lastInsertRowid in a format similar to Postgres RETURNING
+            const rows = (text.trim().toUpperCase().startsWith('INSERT')) ? [{ id: info.lastInsertRowid }] : [];
+            return { rows, rowCount: info.changes };
         },
         async fetchOne(text, params = []) {
             const stmt = sqlite.prepare(text);

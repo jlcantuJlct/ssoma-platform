@@ -30,15 +30,8 @@ type BrigadistaRecord = {
     fileUrl: string;
 };
 
-const BRIGADE_TYPES = [
-    "Contra Incendio",
-    "Primeros Auxilios",
-    "Evacuación y Rescate",
-    "Materiales Peligrosos",
-    "Comunicaciones",
-    "Capacitación de Brigada",
-    "Inspección de Equipos"
-];
+// REMOVED STATIC TYPES - Now fetched from Annual Program SEG 06
+
 
 export default function BrigadistasPage() {
     const { user } = useAuth();
@@ -63,6 +56,33 @@ export default function BrigadistasPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
+
+    const [brigadeTypes, setBrigadeTypes] = useState<string[]>([]);
+
+    // LOAD DYNAMIC TYPES FROM ANNUAL PROGRAM (SEG 06 - Brigadistas)
+    useEffect(() => {
+        const loadTypes = async () => {
+            try {
+                const res = await fetch('/api/annual-program');
+                const data = await res.json();
+                if (data.success && data.programData['obj11']) {
+                    const items = data.programData['obj11'] as any[];
+                    const uniqueTypes = Array.from(new Set(items.map(i => i.description))).filter(Boolean);
+                    if (uniqueTypes.length > 0) {
+                        setBrigadeTypes(uniqueTypes);
+                        if (!form.brigadistaType) setForm(prev => ({ ...prev, brigadistaType: uniqueTypes[0] }));
+                    }
+                    else {
+                        // Fallback defaults if program is empty
+                        setBrigadeTypes(["Contra Incendio", "Primeros Auxilios", "Evacuación y Rescate", "Materiales Peligrosos", "Comunicaciones"]);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching annual program types for Brigadistas:", e);
+            }
+        };
+        loadTypes();
+    }, []);
 
     // LOAD RECORDS
     useEffect(() => {
@@ -299,7 +319,7 @@ export default function BrigadistasPage() {
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none transition-colors"
                                             >
                                                 <option value="">Seleccionar tipo...</option>
-                                                {BRIGADE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                                {brigadeTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </div>
 

@@ -243,3 +243,40 @@ export const PETAR_TYPES = [
     'Espacio Confinado',
     'Izaje'
 ];
+
+// --- ACTOS Y CONDICIONES (A/C) ---
+export const ACTOS_LIST = [
+    'No uso de EPP',
+    'Operar equipo sin autorización',
+    'No asegurar/advertir',
+    'Operar a velocidad inadecuada',
+    'Poner fuera de servicio dispositivos de seguridad',
+    'Uso de equipo defectuoso',
+    'Uso inadecuado del equipo',
+    'No usar EPP correctamente',
+    'Carga inadecuada',
+    'Colocación inadecuada',
+    'Levantamiento inadecuado',
+    'Posición inadecuada para el trabajo',
+    'Reparar equipo en movimiento',
+    'Bromas pesadas',
+    'Bajo influencia de alcohol/drogas',
+    'Otros'
+];
+
+export const CONDICIONES_LIST = [
+    'Protecciones y resguardos inadecuados',
+    'EPP inadecuado o insuficiente',
+    'Herramientas/equipos defectuosos',
+    'Espacio limitado para desenvolverse',
+    'Sistemas de advertencia insuficientes',
+    'Peligro de explosión o incendio',
+    'Orden y limpieza deficientes',
+    'Condiciones ambientales peligrosas',
+    'Exposiciones a ruido',
+    'Exposiciones a radiación',
+    'Exposiciones a temperaturas extremas',
+    'Iluminación excesiva o deficiente',
+    'Ventilación insuficiente',
+    'Otros'
+];

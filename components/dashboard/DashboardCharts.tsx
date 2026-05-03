@@ -13,6 +13,8 @@ import { PDFDocument } from 'pdf-lib';
 import { FileText, Image as ImageIcon, Download, Eye, X, ClipboardCheck, Calendar, Search, Shield, ChevronDown } from 'lucide-react';
 import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
+import SearchableSelect from "@/components/SearchableSelect";
+import { AlertCircle } from 'lucide-react';
 
 
 interface DashboardChartsProps {
@@ -55,6 +57,7 @@ export function DashboardCharts({
     const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
     const [manifiestoRecords, setManifiestoRecords] = useState<any[]>([]);
     const [residuosRecords, setResiduosRecords] = useState<any[]>([]);
+    const [reporteAcRecords, setReporteAcRecords] = useState<any[]>([]);
 
     // --- AUTH CONTEXT ---
     const { user } = useAuth();
@@ -152,7 +155,7 @@ export function DashboardCharts({
             try {
                 const [
                     progRes, inspRes, hhcRes, evRes, pmaRes, 
-                    atsRes, petarRes, detourRes, simRes, briRes, risRes, trainingRes
+                    atsRes, petarRes, detourRes, simRes, briRes, risRes, trainingRes, racRes
                 ] = await Promise.all([
                     fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} })),
                     fetch('/api/inspections').then(r => r.json()).catch(() => ({ records: [] })),
@@ -165,7 +168,8 @@ export function DashboardCharts({
                     fetch('/api/simulacro-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/brigadista-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/risstma-records').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/training-program').then(r => r.json()).catch(() => ({ records: [] }))
+                    fetch('/api/training-program').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/reporte-ac-records').then(r => r.json()).catch(() => ({ records: [] }))
                 ]);
 
                 setProgramData(progRes.programData || {});
@@ -180,6 +184,7 @@ export function DashboardCharts({
                 setBrigadistaRecords(briRes.records || []);
                 setRisstmaRecords(risRes.records || []);
                 setTrainingProgram(trainingRes.records || []);
+                setReporteAcRecords(racRes.records || []);
 
                 // Load localStorage-only records (manifiesto + residuos)
                 try {
@@ -360,7 +365,8 @@ export function DashboardCharts({
                     addFuzzyE(match, executedInspections, r => r.inspectionType || '');
                     addFuzzyE(match, risstmaRecords, r => r.documentType || 'RISSTMA');
                     break;
-                case 'obj4': // A/C Inseguras → desvíos + ATS + PETAR
+                case 'obj4': // A/C Inseguras → reporte_ac + desvíos + ATS + PETAR
+                    addFuzzyE(match, reporteAcRecords, r => r.acto || r.condicion || 'A/C');
                     addFuzzyE(match, detourRecords, r => r.category || 'Desvío');
                     addFuzzyE(match, atsRecords, r => 'ATS');
                     addFuzzyE(match, petarRecords, r => r.type || 'PETAR');
@@ -679,6 +685,19 @@ export function DashboardCharts({
             { name: 'Ambiente', value: counts.ambiente, fill: '#3b82f6' }
         ];
     }, [hhcRecords]);
+
+    const trainingTopicsByArea = useMemo(() => {
+        const mapping: Record<string, string[]> = {
+            'seguridad': (programData['obj2'] || []).map((i: any) => i.description).filter(Boolean),
+            'salud': (programData['obj7'] || []).map((i: any) => i.description).filter(Boolean),
+            'ambiente': (programData['obj9'] || []).map((i: any) => i.description).filter(Boolean),
+        };
+        // Unique and sorted
+        mapping.seguridad = Array.from(new Set(mapping.seguridad)).sort();
+        mapping.salud = Array.from(new Set(mapping.salud)).sort();
+        mapping.ambiente = Array.from(new Set(mapping.ambiente)).sort();
+        return mapping;
+    }, [programData]);
 
 
     const bufferToBase64 = (buffer: ArrayBuffer) => {
@@ -2281,15 +2300,34 @@ export function DashboardCharts({
                                 
                                 const uName = user.toLowerCase();
                                 const uFirst = uName.split(' ')[0];
+
                                 const isUserMatch = (rName1: any, rName2: any) => {
-                                    const rNameStr = String(rName1 || rName2 || '').toLowerCase();
+                                    const rNameStr = String(rName1 || rName2 || '').toLowerCase().trim();
                                     if (!rNameStr) return false;
-                                    let isMatch = rNameStr === uName || uName.includes(rNameStr) || rNameStr.includes(uName);
-                                    if (!isMatch) {
-                                        const rFirst = rNameStr.split(' ')[0];
-                                        if ((uFirst === 'gladis' || uFirst === 'gladys') && (rFirst === 'gladis' || rFirst === 'gladys')) isMatch = true;
-                                    }
-                                    return isMatch;
+                                    
+                                    const nUser = normStr(uName);
+                                    let nRecord = normStr(rNameStr);
+
+                                    // Normalize common variations/typos (v/b, s/z, accents handled by normStr)
+                                    const normalizeTypos = (s: string) => s.replace(/v/g, 'b').replace(/z/g, 's').replace(/j/g, 'g').replace(/y/g, 'i');
+                                    const nUserT = normalizeTypos(nUser);
+                                    const nRecordT = normalizeTypos(nRecord);
+                                    
+                                    // 1. Exact or inclusive match
+                                    if (nUserT.includes(nRecordT) || nRecordT.includes(nUserT)) return true;
+                                    
+                                    // 2. Fuzzy word match
+                                    const uWords = getWords(nUserT);
+                                    const rWords = getWords(nRecordT);
+                                    
+                                    // If at least 2 words match (or all words if only 1-2 words total)
+                                    const matches = uWords.filter(uw => rWords.some(rw => rw.includes(uw) || uw.includes(rw)));
+                                    if (matches.length >= Math.min(2, uWords.length, rWords.length) && matches.length > 0) return true;
+                                    
+                                    // 3. Special case for Gladis
+                                    if ((uFirst === 'gladis' || uFirst === 'gladys') && nRecord.includes('glad')) return true;
+                                    
+                                    return false;
                                 };
                                 
 
@@ -2375,9 +2413,11 @@ export function DashboardCharts({
                                     });
                                 });
 
-                                // 2. Add real records execution for this user (Individual contribution)
-                                const filterByResponsible = (recs: any[]) => recs.filter(r => {
-                                    const d = new Date(r.date);
+                                // 2. Consolidated Real Records logic for this user
+                                const getMyRecords = (recs: any[]) => recs.filter(r => {
+                                    if (!r.date) return false;
+                                    // Use T12:00:00 to avoid timezone shifts for dates like "2026-02-01"
+                                    const d = new Date(r.date.includes('T') ? r.date : r.date + 'T12:00:00');
                                     const descLower = (r.description || r.tema || r.activity || r.inspectionType || '').toLowerCase();
                                     
                                     // Exclude Inductions
@@ -2389,67 +2429,40 @@ export function DashboardCharts({
                                     return isUserMatch(r.responsible, r.responsable) && 
                                            (d.getFullYear() === currentYear || d.getFullYear() === 2025) && 
                                            (currentMonth === -1 || d.getMonth() === currentMonth);
-                                }).length;
+                                });
 
+                                // Gather ALL relevant records for this user
+                                const allMyRecords = [
+                                    ...getMyRecords(hhcRecords).map(r => ({...r, recType: 'HHC', desc: r.tema, isHealth: String(r.area || '').toLowerCase().includes('salud')})),
+                                    ...getMyRecords(executedInspections).map(r => ({...r, recType: 'INSP', desc: r.inspectionType, isHealth: (t => t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health'))(String(r.inspectionType || '').toLowerCase())})),
+                                    ...getMyRecords(detourRecords).map(r => ({...r, recType: 'DESVIO', desc: r.category || 'Desvío'})),
+                                    ...getMyRecords(simulacroRecords).map(r => ({...r, recType: 'SIMULACRO', desc: r.drillType || 'Simulacro'})),
+                                    ...getMyRecords(brigadistaRecords).map(r => ({...r, recType: 'BRIGADISTA', desc: r.brigadistaType || 'Brigadista'})),
+                                    ...getMyRecords(pmaRecords).map(r => ({...r, recType: 'PMA', desc: r.category || r.description})),
+                                    ...getMyRecords(manifiestoRecords).map(r => ({...r, recType: 'MANIFIESTO', desc: 'Manifiesto de Residuos'})),
+                                    ...getMyRecords(residuosRecords).map(r => ({...r, recType: 'PESAJE', desc: 'Pesaje de Residuos'})),
+                                    ...getMyRecords(atsRecords).map(r => ({...r, recType: 'ATS', desc: 'Análisis de Trabajo Seguro (ATS)'})),
+                                    ...getMyRecords(petarRecords).map(r => ({...r, recType: 'PETAR', desc: r.type || 'Permiso de Trabajo (PETAR)'})),
+                                    ...getMyRecords(risstmaRecords).map(r => ({...r, recType: 'RISSTMA', desc: r.documentType || 'Entrega de RISSTMA'})),
+                                    ...getMyRecords(evidenceRecords).map(r => ({...r, recType: 'EVIDENCIA', desc: r.description || r.activity, isHealth: (d => d.includes('salud') || d.includes('médico') || d.includes('emo'))((r.description || r.activity || '').toLowerCase())}))
+                                ];
+
+                                // Filter records based on user's group responsibilities
+                                // Note: Individual performance always counts all work registered by the user
+                                let filteredMyRecords = allMyRecords;
                                 if (isGroup1) {
-                                    // Safety & Environment records
-                                    executed += filterByResponsible(hhcRecords.filter(r => !String(r.area || '').toLowerCase().includes('salud')));
-                                    executed += filterByResponsible(executedInspections.filter(r => {
-                                        const t = String(r.inspectionType || '').toLowerCase();
-                                        return !t.includes('salud') && !t.includes('medico') && !t.includes('médico') && !t.includes('health');
-                                    }));
-                                    executed += filterByResponsible(detourRecords);
-                                    executed += filterByResponsible(simulacroRecords);
-                                    executed += filterByResponsible(brigadistaRecords);
-                                    executed += filterByResponsible(pmaRecords);
-                                    executed += filterByResponsible(manifiestoRecords);
-                                    executed += filterByResponsible(residuosRecords);
+                                    filteredMyRecords = allMyRecords.filter(r => !r.isHealth);
                                 } else if (isGroup2) {
-                                    // Health records - Gladis Aroste
-                                    
-                                    // 1. EMOs / OBJ 05: Count as 1 unit per month if there's at least one record
-                                    const emoMonths = new Set();
-                                    evidenceRecords.forEach(r => {
-                                        const d = new Date(r.date);
-                                        const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
-                                        const desc = (r.description || r.activity || '').toLowerCase();
-                                        if (obj.includes('obj5') || desc.includes('emo')) {
-                                            if (isUserMatch(r.responsible, r.responsable) && (d.getFullYear() === currentYear || d.getFullYear() === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
-                                                emoMonths.add(d.getMonth());
-                                            }
-                                        }
-                                    });
-                                    executed += emoMonths.size;
-
-                                    // 2. Other Health records (Individual counts)
-                                    executed += filterByResponsible(evidenceRecords.filter(r => {
-                                        const obj = (r.objective || '').toLowerCase().replace(' ', '').replace('-', '');
-                                        const desc = (r.description || r.activity || '').toLowerCase();
-                                        const isEmo = obj.includes('obj5') || desc.includes('emo');
-                                        if (isEmo) return false;
-                                        return obj.includes('seg01') || obj.includes('seg02') || 
-                                               desc.includes('salud') || desc.includes('médico') || desc.includes('medico');
-                                    }));
-                                    executed += filterByResponsible(executedInspections.filter(r => {
-                                        const t = String(r.inspectionType || '').toLowerCase();
-                                        return t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health');
-                                    }));
-                                    executed += filterByResponsible(hhcRecords.filter(r => String(r.area || '').toLowerCase().includes('salud')));
-                                } else {
-                                    // Others: Add everything
-                                    executed += filterByResponsible(hhcRecords);
-                                    executed += filterByResponsible(executedInspections);
-                                    executed += filterByResponsible(detourRecords);
-                                    executed += filterByResponsible(simulacroRecords);
-                                    executed += filterByResponsible(brigadistaRecords);
+                                    filteredMyRecords = allMyRecords.filter(r => r.isHealth || r.recType === 'EVIDENCIA');
                                 }
 
-                                // Helper to get the lists for the modal
+                                // Helper to get the lists for the modal with linking logic
                                 const getProgramLists = () => {
-                                    const allPlanned: any[] = [];
                                     const allPending: any[] = [];
                                     const allExecuted: any[] = [];
+                                    const usedRecordIndices = new Set<number>();
 
+                                    // A. Process Programmed items and link with real records
                                     OBJECTIVES_CONFIG.forEach(obj => {
                                         const idNoHyphen = obj.id.replace('-', '');
                                         const idWithHyphen = obj.id.includes('-') ? obj.id : `obj-${obj.id.replace('obj', '')}`;
@@ -2458,26 +2471,37 @@ export function DashboardCharts({
                                         const items = [...(programData[idNoHyphen] || []), ...(programData[idWithHyphen] || [])];
                                         items.forEach(item => {
                                             const d = new Date(item.date);
-                                            const itemYear = d.getFullYear();
-                                            const descLower = (item.description || '').toLowerCase();
-                                            
-                                            // Exclude Inductions
-                                            if (descLower.includes('inducción') || descLower.includes('induccion')) return;
-                                            
-                                            // Exclude RAC Implementation from OBJ 04
-                                            if (descLower.includes('implementación') && (obj.id === 'obj4' || obj.id === 'obj-4')) return;
+                                            if ((d.getFullYear() === currentYear || d.getFullYear() === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
+                                                const descLower = (item.description || '').toLowerCase();
+                                                if (descLower.includes('inducción') || descLower.includes('induccion')) return;
+                                                if (descLower.includes('implementación') && (obj.id === 'obj4' || obj.id === 'obj-4')) return;
 
-                                            if ((itemYear === currentYear || itemYear === 2025) && (currentMonth === -1 || d.getMonth() === currentMonth)) {
-                                                const formattedItem = { ...item, objectiveName: obj.title };
-                                                allPlanned.push(formattedItem);
+                                                const formattedItem = { ...item, objectiveName: obj.title, description: item.description || item.tema };
+                                                const isDoneInProgram = item.status === 'Realizado' || (Number(item.compliance) || 0) > 0;
                                                 
-                                                const isDone = item.status === 'Realizado' || (Number(item.compliance) || 0) > 0;
-                                                
-                                                if (isDone) {
-                                                    // Only if the user is the responsible
-                                                    if (isUserMatch(item.responsible, item.responsable)) {
-                                                        allExecuted.push(formattedItem);
-                                                    }
+                                                // Fuzzy Match
+                                                const sn = normStr(item.description || item.tema || '');
+                                                const sw = getWords(sn);
+                                                let matchIdx = -1;
+                                                if (sw.length > 0) {
+                                                    matchIdx = filteredMyRecords.findIndex((r, idx) => {
+                                                        if (usedRecordIndices.has(idx)) return false;
+                                                        const rn = normStr(r.desc || '');
+                                                        const rw = getWords(rn);
+                                                        
+                                                        // Exact or inclusive
+                                                        if (rn === sn || rn.includes(sn) || sn.includes(rn)) return true;
+                                                        
+                                                        // Partial word match (at least 2 words or 1 if very short)
+                                                        const matchesCount = sw.filter(w => rw.some(rwk => rwk.includes(w) || w.includes(rwk))).length;
+                                                        const minMatches = Math.min(2, sw.length, rw.length);
+                                                        return matchesCount >= minMatches && matchesCount > 0;
+                                                    });
+                                                }
+
+                                                if ((isDoneInProgram && isUserMatch(item.responsible, item.responsable)) || matchIdx !== -1) {
+                                                    allExecuted.push(formattedItem);
+                                                    if (matchIdx !== -1) usedRecordIndices.add(matchIdx);
                                                 } else {
                                                     allPending.push(formattedItem);
                                                 }
@@ -2485,8 +2509,31 @@ export function DashboardCharts({
                                         });
                                     });
 
-                                    return { allPlanned, allPending, allExecuted };
+                                    // B. Add all remaining real records as extra activities
+                                    filteredMyRecords.forEach((r, idx) => {
+                                        if (!usedRecordIndices.has(idx)) {
+                                            allExecuted.push({
+                                                objectiveName: `ACTIVIDAD: ${r.recType}`,
+                                                description: r.desc || 'Actividad no programada',
+                                                date: r.date,
+                                                status: 'Realizado',
+                                                isExtra: true
+                                            });
+                                        }
+                                    });
+
+                                    return { allPending, allExecuted };
                                 };
+
+                                // Calculate the count for the gauge
+                                const modalData = getProgramLists();
+                                executed = modalData.allExecuted.length;
+                                // Special case for Group 2 (EMO OBJ 05): Correct the total executed if needed (EMOs as 1 per month)
+                                if (isGroup2) {
+                                    // The count above might be higher if multiple EMOs exist, but we stick to the modal total for consistency
+                                    // unless we want to keep the "1 per month" rule strictly for the gauge.
+                                    // Let's stick to the modal total so the gauge and modal match perfectly.
+                                }
 
                                 const performance = planned > 0 ? Math.round((executed / planned) * 100) : (executed > 0 ? 100 : 0);
 
@@ -2546,8 +2593,11 @@ export function DashboardCharts({
                                         {/* Footer Metrics - Executive Table Style */}
                                         <div 
                                             onClick={() => {
-                                                const { allExecuted, allPending } = getProgramLists();
-                                                setPerformanceDetail({ userName: user, executedItems: allExecuted, pendingItems: allPending });
+                                                setPerformanceDetail({ 
+                                                    userName: user, 
+                                                    executedItems: modalData.allExecuted, 
+                                                    pendingItems: modalData.allPending 
+                                                });
                                             }}
                                             className={`w-full grid grid-cols-2 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
                                         >
@@ -2910,9 +2960,20 @@ export function DashboardCharts({
 
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Tema / Actividad</label>
-                                        <input type="text" placeholder="Nombre del tema..." value={newHHC.tema} onChange={(e) => updateStat('tema', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    <div className="space-y-1">
+                                        <SearchableSelect
+                                            label="Tema / Actividad"
+                                            options={trainingTopicsByArea[newHHC.area] || []}
+                                            value={newHHC.tema}
+                                            onChange={(val) => updateStat('tema', val)}
+                                            placeholder="Seleccionar tema del programa..."
+                                            icon={<BookOpen size={16} className="text-emerald-500" />}
+                                        />
+                                        {!newHHC.tema && (
+                                            <p className="text-[8px] text-amber-400 font-medium italic">
+                                                * Seleccione un tema del Programa Anual para que se sume al Ejecutado (E).
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

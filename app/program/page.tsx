@@ -87,6 +87,7 @@ export default function ProgramPage() {
     const [simulacroRecords, setSimulacroRecords] = useState<any[]>([]);
     const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
     const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
+    const [reporteAcRecords, setReporteAcRecords] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -305,6 +306,11 @@ export default function ProgramPage() {
                 const risRes = await fetch('/api/risstma-records');
                 const risData = await risRes.json();
                 if (risData.success) setRisstmaRecords(risData.records);
+
+                // 12. Load Reporte A/C from cloud
+                const racRes = await fetch('/api/reporte-ac-records');
+                const racData = await racRes.json();
+                if (racData.success) setReporteAcRecords(racData.records);
 
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
@@ -890,8 +896,8 @@ export default function ProgramPage() {
 
         // 5. Map PMA Records (Objective 08 - Photos / SEG 03)
         pmaRecords.forEach(pma => {
-            // PMA is now SEG 03 (obj-8)
-            if (targetObjId !== 'obj-8') return; 
+            // PMA is now SEG 03 (obj8)
+            if (targetObjId !== 'obj8') return; 
 
             const m = getMonthFromStr(pma.date);
             if (m < 0 || m > 11 || !hasEvidence(pma)) return;
@@ -993,12 +999,26 @@ export default function ProgramPage() {
             if (m < 0 || m > 11 || !hasEvidence(ris)) return;
 
             for (const areaKey in grouped) {
-                // In Folder 03, we often have items like "Entrega de RISST" or "Declaración Jurada"
-                const match = findMatch(areaKey, ris.documentType || 'RISSTMA');
-                if (match && grouped[areaKey] && grouped[areaKey][match]) {
+                const match = findMatch(areaKey, ris.type || 'RISSTMA');
+                if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...ris, _type: 'RISSTMA' });
+                }
+            }
+        });
+
+        // 12. Map Reporte A/C Records (OBJ 04)
+        reporteAcRecords.forEach(rac => {
+            const m = getMonthFromStr(rac.date);
+            if (m < 0 || m > 11 || !hasEvidence(rac)) return;
+
+            for (const areaKey in grouped) {
+                const match = findMatch(areaKey, rac.acto || rac.condicion || 'A/C');
+                if (match) {
+                    grouped[areaKey][match].executed[m]++;
+                    if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                    grouped[areaKey][match].executionRecords[m].push({ ...rac, _type: 'REPORTE_AC' });
                 }
             }
         });
@@ -1368,30 +1388,62 @@ export default function ProgramPage() {
                                     </div>
                                     
                                     <div className="flex items-center gap-3">
-                                        {(rec.evidencePdf || rec.pdfUrl || (rec.file_url && rec.file_type?.includes('pdf'))) && (
-                                            <a 
-                                                href={rec.evidencePdf || rec.pdfUrl || rec.file_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-400 rounded-lg text-[10px] font-bold border border-emerald-500/20 transition-all"
-                                            >
-                                                <ExternalLink size={12} />
-                                                VER PDF
-                                            </a>
-                                        )}
-                                        {((rec.evidenceImgs && rec.evidenceImgs.length > 0) || (rec.images && rec.images.length > 0) || (rec.file_url && (rec.file_type?.includes('image') || rec.file_type?.includes('jpg') || rec.file_type?.includes('png')))) && (
-                                            <button 
-                                                onClick={() => {
-                                                    const imgUrl = (rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : 
-                                                                  (rec.images && rec.images.length > 0) ? rec.images[0] : rec.file_url;
-                                                    window.open(imgUrl, '_blank');
-                                                }}
-                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-lg text-[10px] font-bold border border-blue-500/20 transition-all"
-                                            >
-                                                <ImageIcon size={12} />
-                                                FOTOS {(rec.evidenceImgs || rec.images) ? `(${(rec.evidenceImgs || rec.images).length})` : ''}
-                                            </button>
-                                        )}
+                                        {/* BOTÓN PDF */}
+                                        {(() => {
+                                            const pdfUrl = rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || 
+                                                         (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf') ? rec.fileUrl : '') || 
+                                                         (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf') ? rec.file_url : '') ||
+                                                         (rec.file_type && String(rec.file_type).toLowerCase().includes('pdf') ? (rec.fileUrl || rec.file_url) : '');
+                                            
+                                            if (pdfUrl) {
+                                                return (
+                                                    <a 
+                                                        href={pdfUrl} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-400 rounded-lg text-[10px] font-bold border border-emerald-500/20 transition-all"
+                                                    >
+                                                        <ExternalLink size={12} />
+                                                        VER PDF
+                                                    </a>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        {/* BOTÓN IMÁGENES / EVIDENCIA GENERAL */}
+                                        {(() => {
+                                            const hasImgs = (rec.evidenceImgs && rec.evidenceImgs.length > 0) || 
+                                                          (rec.evidence_imgs && typeof rec.evidence_imgs === 'string' && rec.evidence_imgs.length > 5) ||
+                                                          (rec.images && rec.images.length > 0) || 
+                                                          (rec.imageUrl) || (rec.files) ||
+                                                          (rec.fileUrl && !String(rec.fileUrl).toLowerCase().includes('.pdf')) ||
+                                                          (rec.file_url && !String(rec.file_url).toLowerCase().includes('.pdf'));
+
+                                            if (hasImgs) {
+                                                const imgUrl = (rec.evidenceImgs && rec.evidenceImgs.length > 0) ? rec.evidenceImgs[0] : 
+                                                              (rec.images && rec.images.length > 0) ? rec.images[0] : 
+                                                              (rec.imageUrl || rec.fileUrl || rec.file_url || rec.evidence_imgs);
+                                                
+                                                // Handle evidence_imgs as string if needed
+                                                let finalUrl = imgUrl;
+                                                if (typeof imgUrl === 'string' && imgUrl.startsWith('[') && imgUrl.endsWith(']')) {
+                                                    try { const arr = JSON.parse(imgUrl); if(arr.length > 0) finalUrl = arr[0]; } catch(e){}
+                                                }
+
+                                                return (
+                                                    <button 
+                                                        onClick={() => window.open(finalUrl, '_blank')}
+                                                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-lg text-[10px] font-bold border border-blue-500/20 transition-all"
+                                                    >
+                                                        <ImageIcon size={12} />
+                                                        {(rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf')) || (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf'))) ? 'FOTOS' : 'VER EVIDENCIA'}
+                                                        {(rec.evidenceImgs || rec.images) ? `(${(rec.evidenceImgs || rec.images).length})` : ''}
+                                                    </button>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                         <button 
                                             disabled={sendingObs === ri}
                                             onClick={() => handleObserveRecord(rec, ri)}
@@ -1790,11 +1842,32 @@ export default function ProgramPage() {
                                     </div>
                                 )}
                                     
-                                    {!rec.evidencePdf && !rec.pdfUrl && !rec.file_url && (!rec.evidenceImgs || rec.evidenceImgs.length === 0) && (!rec.images || rec.images.length === 0) && (
-                                        <div className="px-4 pb-2 text-center">
-                                            <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos</span>
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        // Robust evidence detection including all snake_case and camelCase variations
+                                        const hasPdf = rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || rec.pdf_url || 
+                                                     (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf')) || 
+                                                     (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf')) ||
+                                                     (rec.file_type && String(rec.file_type).toLowerCase().includes('pdf'));
+                                        
+                                        const hasImgs = (rec.evidenceImgs && rec.evidenceImgs.length > 0) || 
+                                                      (rec.evidence_imgs && typeof rec.evidence_imgs === 'string' && rec.evidence_imgs.length > 5) ||
+                                                      (rec.images && rec.images.length > 0) || 
+                                                      (rec.imageUrl) || (rec.image_url) || (rec.files) || (rec.evidenceUrl) || (rec.evidence_url);
+
+                                        const hasGeneralFile = (rec.fileUrl && rec.fileUrl.length > 10) || (rec.file_url && rec.file_url.length > 10);
+                                        
+                                        const hasAny = hasPdf || hasImgs || hasGeneralFile;
+                                        
+                                        if (!hasAny) {
+                                            return (
+                                                <div className="px-4 pb-2 text-center border-t border-slate-800/30 pt-2">
+                                                    <span className="text-[10px] text-slate-600 font-medium italic">Sin archivos adjuntos en BD</span>
+                                                    <div className="text-[8px] text-slate-700 mt-1">ID: {rec.id || 'N/A'} | Type: {rec._type || 'N/A'}</div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
                             ))}
                         </div>
