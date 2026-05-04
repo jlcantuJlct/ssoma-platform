@@ -194,24 +194,28 @@ export default function SCTRPage() {
         }
     };
 
-    const filteredRecords = records.filter(r => {
-        const search = searchTerm.toLowerCase();
+    const filteredRecords = (records || []).filter(r => {
+        if (!r) return false;
+        const search = (searchTerm || "").toLowerCase();
         return (
-            r.month.toLowerCase().includes(search) ||
-            r.year.toString().includes(search) ||
-            r.company.toLowerCase().includes(search) ||
-            r.policy_number.toLowerCase().includes(search) ||
-            r.personnel_list.toLowerCase().includes(search)
+            (r.month || "").toLowerCase().includes(search) ||
+            (r.year || "").toString().includes(search) ||
+            (r.company || "").toLowerCase().includes(search) ||
+            (r.policy_number || "").toLowerCase().includes(search) ||
+            (r.personnel_list || "").toLowerCase().includes(search)
         );
     });
 
-    const isExpired = (date: string) => new Date(date) < new Date();
+    const isExpired = (date: string) => {
+        if (!date) return false;
+        return new Date(date) < new Date();
+    };
 
     const isNameInRelation = (record: SCTRMonthlyRecord, name: string) => {
-        if (!name || name.length < 3) return false;
+        if (!name || name.length < 3 || !record?.personnel_list) return false;
         
         const normalize = (text: string) => 
-            text.normalize("NFD")
+            (text || "").normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
                 .toLowerCase()
                 .replace(/[^a-z0-9 ]/g, " ")
