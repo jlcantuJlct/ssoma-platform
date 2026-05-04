@@ -311,9 +311,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             return;
         }
 
-        if (editingId) {
-            // ACTUALIZAR REGISTRO EXISTENTE
-            setRecords(prev => prev.map(r => {
+        const updatedRecords = editingId 
+            ? records.map(r => {
                 if (r.id === editingId) {
                     return {
                         ...r,
@@ -322,45 +321,79 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         objective: form.objective,
                         description: form.activity,
                         location: form.location,
-                        // Si se subió nuevo archivo, usarlo. Si no, mantener el anterior.
                         fileType: files ? files.type : r.fileType,
                         fileUrl: files ? files.url : r.fileUrl
                     };
                 }
                 return r;
-            }));
-            alert("Registro actualizado correctamente.");
-            setEditingId(null);
-        } else {
-            // CREAR NUEVO REGISTRO
-            if (!files) return; // Ya validado arriba
-            const newRecord: EvidenceRecord = {
+            })
+            : [{
                 id: Date.now(),
                 date: form.date,
                 responsible: form.responsible,
                 objective: form.objective,
                 description: form.activity,
                 location: form.location,
-                fileType: files.type,
-                fileUrl: files.url
-            };
-            setRecords(prev => [newRecord, ...prev]);
-            alert("Evidencia guardada exitosamente.");
-        }
+                fileType: files?.type || 'pdf',
+                fileUrl: files?.url || ''
+            } as EvidenceRecord, ...records];
 
-        // Reset Form
-        // @ts-ignore
-        setForm(prev => ({ ...prev, activity: '', location: '' }));
-        setFiles(null);
-    };
+        setRecords(updatedRecords);
 
-    const handleDelete = (id: number) => {
-        setRecords(prev => prev.filter(r => r.id !== id));
-        if (editingId === id) {
+        // PERSIST TO DB
+        try {
+            setIsSyncing(true);
+            const res = await fetch('/api/evidence-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    records: updatedRecords, 
+                    userName: user?.name || 'Usuario' 
+                })
+            });
+            if (res.ok) {
+                alert(editingId ? "Registro actualizado correctamente." : "Evidencia guardada exitosamente.");
+            } else {
+                console.error("Failed to sync with DB");
+                alert("Error al sincronizar con la nube, pero se guardó localmente.");
+            }
+        } catch (e) {
+            console.error("Error syncing:", e);
+        } finally {
+            setIsSyncing(false);
             setEditingId(null);
             setFiles(null);
             // @ts-ignore
-            setForm(f => ({ ...f, activity: '', responsible: '' }));
+            setForm(prev => ({ ...prev, activity: '', location: '' }));
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("¿Estás seguro de eliminar este registro?")) return;
+        
+        const updated = records.filter(r => r.id !== id);
+        setRecords(updated);
+        
+        try {
+            setIsSyncing(true);
+            await fetch('/api/evidence-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    records: updated, 
+                    userName: user?.name || 'Usuario' 
+                })
+            });
+        } catch (e) {
+            console.error("Error deleting:", e);
+        } finally {
+            setIsSyncing(false);
+            if (editingId === id) {
+                setEditingId(null);
+                setFiles(null);
+                // @ts-ignore
+                setForm(f => ({ ...f, activity: '', responsible: '' }));
+            }
         }
     };
 
