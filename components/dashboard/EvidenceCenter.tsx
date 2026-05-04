@@ -226,6 +226,22 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             return;
         }
 
+        // CONTROL DE TAMAÑO PARA EVITAR BLOQUEOS
+        const fileSizeMB = file.size / 1024 / 1024;
+        if (fileSizeMB > 50) {
+            alert(`❌ ARCHIVO DEMASIADO PESADO (${fileSizeMB.toFixed(2)}MB).\nEl límite máximo permitido es de 50MB para evitar errores en la red.`);
+            e.target.value = '';
+            return;
+        }
+
+        if (fileSizeMB > 15) {
+            const proceed = confirm(`⚠️ El archivo es pesado (${fileSizeMB.toFixed(2)}MB).\nLa carga puede tardar varios minutos y parecer "atorada". ¿Deseas continuar?`);
+            if (!proceed) {
+                e.target.value = '';
+                return;
+            }
+        }
+
         const isImage = file.type.startsWith('image/');
         const isPdf = file.type === 'application/pdf';
         const isWord = file.type === 'application/msword' || 
@@ -463,10 +479,23 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 </span>
                             )}
                             {isUploading && (
-                                <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
-                                    <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
-                                    SUBIENDO...
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
+                                        <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
+                                        SUBIENDO...
+                                    </span>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            if (confirm("¿Forzar la cancelación del estado de carga? (El archivo podría seguir subiéndose en segundo plano pero la interfaz se desbloqueará)")) {
+                                                setIsUploading(false);
+                                            }
+                                        }}
+                                        className="text-[8px] font-black text-red-400 hover:text-red-300 underline uppercase tracking-widest"
+                                    >
+                                        Forzar Cancelar
+                                    </button>
+                                </div>
                             )}
                         </h3>
 
