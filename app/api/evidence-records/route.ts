@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
                     r.activity || '',
                     r.description || '',
                     r.responsable || r.responsible || '',
-                    r.zona || r.zone || '',
+                    r.zona || r.location || r.zone || '',
                     r.fileUrl || r.file_url || '',
                     r.fileType || r.file_type || ''
                 ]

@@ -75,6 +75,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     const [files, setFiles] = useState<{ url: string, type: 'pdf' | 'image' | 'word' | 'excel' } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [viewingFile, setViewingFile] = useState<EvidenceRecord | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
     const [emoActivities, setEmoActivities] = useState<string[]>(INITIAL_EMO_ACTIVITIES);
 
     // LOAD DYNAMIC ACTIVITIES FROM ANNUAL PROGRAM (OBJ 05)
@@ -612,14 +613,19 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 <label className="text-[10px] font-black text-slate-400 uppercase">
                                     {editingId ? 'Reemplazar Archivo (Opcional)' : 'Archivo (PDF o Imagen)'}
                                 </label>
-                                <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative">
+                                <div 
+                                    className={`border-2 border-dashed rounded-xl p-4 transition-all text-center cursor-pointer group relative ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-[1.02]' : 'border-slate-700 hover:bg-slate-800/50'}`}
+                                    onDragOver={() => setIsDragging(true)}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={() => setIsDragging(false)}
+                                >
                                     <input
                                         type="file"
                                         onChange={handleFileUpload}
                                         accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
-                                    <div className={`flex flex-col items-center gap-2 transition-colors ${files ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400'}`}>
+                                    <div className={`flex flex-col items-center gap-2 transition-colors ${files ? 'text-emerald-400' : (isDragging ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400')}`}>
                                         {files ? (
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mb-1 shadow-lg shadow-emerald-500/20">
