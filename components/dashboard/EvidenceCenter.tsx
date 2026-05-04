@@ -579,8 +579,16 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 </select>
                             </div>
 
-                            {/* Campos ocultos (fijos para EMO) */}
-                            <input type="hidden" value={form.objective} />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase">Área de Gestión</label>
+                                <select
+                                    value={form.objective}
+                                    onChange={e => setForm({ ...form, objective: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none"
+                                >
+                                    <option value="OBJ 05">SALUD (EMO)</option>
+                                </select>
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-2">
