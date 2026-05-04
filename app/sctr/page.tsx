@@ -86,6 +86,7 @@ export default function SCTRPage() {
 
         setIsUploading(true);
         try {
+            // 1. Upload to Drive/Blob for storage
             const url = await uploadEvidence(
                 selectedFile,
                 'SCTR',
@@ -97,9 +98,27 @@ export default function SCTRPage() {
                 'GENERAL'
             );
             setForm(prev => ({ ...prev, file_url: url }));
-            alert("✅ PDF subido correctamente.");
+
+            // 2. Extract text from PDF
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            const parseRes = await fetch('/api/parse-pdf', {
+                method: 'POST',
+                body: formData
+            });
+            const parseData = await parseRes.json();
+
+            if (parseData.success) {
+                setForm(prev => ({ ...prev, personnel_list: parseData.text }));
+                alert(`✅ PDF cargado y procesado. Se detectaron ${parseData.numpages} páginas de relación.`);
+            } else {
+                console.warn("No se pudo extraer el texto automáticamente:", parseData.error);
+                alert("✅ Archivo subido, pero no se pudo leer el texto automáticamente. Deberá ingresar la lista manualmente o reintentar.");
+            }
+
         } catch (error: any) {
-            alert(`Error al subir: ${error.message}`);
+            alert(`Error al procesar: ${error.message}`);
         } finally {
             setIsUploading(false);
         }
@@ -165,8 +184,17 @@ export default function SCTRPage() {
     const isExpired = (date: string) => new Date(date) < new Date();
 
     const isNameInRelation = (record: SCTRMonthlyRecord, name: string) => {
-        if (!name) return false;
-        return record.personnel_list.toLowerCase().includes(name.toLowerCase());
+        if (!name || name.length < 3) return false;
+        
+        const normalize = (text: string) => 
+            text.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .replace(/[^a-z0-9 ]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        
+        return normalize(record.personnel_list).includes(normalize(name));
     };
 
     return (
