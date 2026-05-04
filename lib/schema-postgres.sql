@@ -60,3 +60,12 @@ CREATE TABLE IF NOT EXISTS inspection_records (
     evidence_imgs TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS export_requests (
+    id SERIAL PRIMARY KEY,
+    month INTEGER,
+    year INTEGER,
+    status TEXT DEFAULT 'pending',
+    type TEXT DEFAULT 'SHAREPOINT',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

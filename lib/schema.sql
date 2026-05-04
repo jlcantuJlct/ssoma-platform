@@ -61,3 +61,12 @@ CREATE TABLE IF NOT EXISTS inspection_records (
     evidence_imgs TEXT, -- JSON string array
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS export_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER,
+    year INTEGER,
+    status TEXT DEFAULT 'pending',
+    type TEXT DEFAULT 'SHAREPOINT',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

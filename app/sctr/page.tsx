@@ -14,34 +14,49 @@ import {
     AlertCircle,
     User,
     Building2,
-    Clock
+    Clock,
+    Upload,
+    Users,
+    CheckCircle2,
+    X
 } from 'lucide-react';
+import { uploadEvidence } from "@/lib/uploadClient";
 
-interface SCTRRecord {
+interface SCTRMonthlyRecord {
     id: number;
-    employee_name: string;
+    month: string;
+    year: number;
     company: string;
     policy_number: string;
-    start_date: string;
-    end_date: string;
+    expiration_date: string;
     file_url: string;
+    personnel_list: string;
 }
 
+const MONTHS = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+const COMPANIES = ["CASA", "CONTRATISTA", "SUB-CONTRATISTA", "OTROS"];
+
 export default function SCTRPage() {
-    const [records, setRecords] = useState<SCTRRecord[]>([]);
+    const [records, setRecords] = useState<SCTRMonthlyRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
     // Form state
     const [form, setForm] = useState({
-        employee_name: '',
+        month: MONTHS[new Date().getMonth()],
+        year: new Date().getFullYear(),
         company: 'CASA',
         policy_number: '',
-        start_date: '',
-        end_date: '',
-        file_url: ''
+        expiration_date: '',
+        file_url: '',
+        personnel_list: ''
     });
 
     useEffect(() => {
@@ -60,8 +75,39 @@ export default function SCTRPage() {
         }
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile) return;
+
+        if (selectedFile.type !== 'application/pdf') {
+            alert("⚠️ Solo se permiten archivos PDF.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const url = await uploadEvidence(
+                selectedFile,
+                'SCTR',
+                `SCTR_${form.company}_${form.month}_${form.year}`,
+                form.expiration_date || new Date().toISOString().split('T')[0],
+                'SISTEMA',
+                'sctr',
+                'seguridad',
+                'GENERAL'
+            );
+            setForm(prev => ({ ...prev, file_url: url }));
+            alert("✅ PDF subido correctamente.");
+        } catch (error: any) {
+            alert(`Error al subir: ${error.message}`);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.file_url) return alert("Debe subir el PDF de la póliza SCTR.");
         setIsSubmitting(true);
 
         try {
@@ -72,7 +118,15 @@ export default function SCTRPage() {
             });
 
             if (res.ok) {
-                setForm({ employee_name: '', company: 'CASA', policy_number: '', start_date: '', end_date: '', file_url: '' });
+                setForm({ 
+                    month: MONTHS[new Date().getMonth()], 
+                    year: new Date().getFullYear(), 
+                    company: 'CASA', 
+                    policy_number: '', 
+                    expiration_date: '', 
+                    file_url: '', 
+                    personnel_list: '' 
+                });
                 setShowForm(false);
                 loadRecords();
             }
@@ -84,7 +138,7 @@ export default function SCTRPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("¿Eliminar este registro de SCTR?")) return;
+        if (!confirm("¿Eliminar este registro de SCTR mensual?")) return;
         try {
             await fetch('/api/sctr-records', {
                 method: 'POST',
@@ -97,205 +151,243 @@ export default function SCTRPage() {
         }
     };
 
-    const filteredRecords = records.filter(r => 
-        r.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.policy_number.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredRecords = records.filter(r => {
+        const search = searchTerm.toLowerCase();
+        return (
+            r.month.toLowerCase().includes(search) ||
+            r.year.toString().includes(search) ||
+            r.company.toLowerCase().includes(search) ||
+            r.policy_number.toLowerCase().includes(search) ||
+            r.personnel_list.toLowerCase().includes(search)
+        );
+    });
 
     const isExpired = (date: string) => new Date(date) < new Date();
 
+    const isNameInRelation = (record: SCTRMonthlyRecord, name: string) => {
+        if (!name) return false;
+        return record.personnel_list.toLowerCase().includes(name.toLowerCase());
+    };
+
     return (
-        <div className="p-8 bg-slate-950 min-h-screen flex-1 text-slate-100">
-            <div className="max-w-7xl mx-auto">
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-emerald-500 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                                <ShieldCheck className="w-6 h-6 text-slate-950" />
+        <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden w-full">
+            <main className="flex-1 overflow-auto p-4 md:p-8">
+                <div className="max-w-[1600px] mx-auto space-y-8">
+                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-emerald-500 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                                    <ShieldCheck className="w-6 h-6 text-slate-950" />
+                                </div>
+                                <h1 className="text-3xl font-black tracking-tighter uppercase italic">Control de SCTR Mensual</h1>
                             </div>
-                            <h1 className="text-3xl font-black tracking-tighter">Control de SCTR</h1>
+                            <p className="text-slate-400 font-medium italic text-sm">Vigilancia de cobertura de salud y pensión del personal (Anexo 14)</p>
                         </div>
-                        <p className="text-slate-400 font-medium italic">Vigilancia de cobertura de salud y pensión del personal (Anexo 14)</p>
-                    </div>
 
-                    <button 
-                        onClick={() => setShowForm(!showForm)}
-                        className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all transform active:scale-95 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
-                    >
-                        {showForm ? <Trash2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                        {showForm ? 'Cancelar' : 'Nuevo Registro SCTR'}
-                    </button>
-                </header>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setShowForm(!showForm)}
+                                className={`flex items-center gap-2 px-6 py-3 font-bold rounded-xl transition-all transform active:scale-95 shadow-xl ${showForm ? 'bg-slate-800 text-slate-300' : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'}`}
+                            >
+                                {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                {showForm ? 'Cerrar Panel' : 'Cargar Póliza Mensual'}
+                            </button>
+                        </div>
+                    </header>
 
-                {showForm && (
-                    <Card className="bg-slate-900 border-slate-800 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
-                        <CardHeader>
-                            <CardTitle className="text-xl text-emerald-400 flex items-center gap-2">
-                                <User className="w-5 h-5" /> Datos del Personal y Póliza
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Nombre Completo</label>
-                                    <input 
-                                        required
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        placeholder="Ej: Juan Perez..."
-                                        value={form.employee_name}
-                                        onChange={e => setForm({...form, employee_name: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Empresa / Contratista</label>
-                                    <input 
-                                        required
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        value={form.company}
-                                        onChange={e => setForm({...form, company: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Nº de Póliza</label>
-                                    <input 
-                                        required
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        placeholder="000-XXXXX"
-                                        value={form.policy_number}
-                                        onChange={e => setForm({...form, policy_number: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Inicio de Vigencia</label>
-                                    <input 
-                                        required
-                                        type="date"
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        value={form.start_date}
-                                        onChange={e => setForm({...form, start_date: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Fin de Vigencia</label>
-                                    <input 
-                                        required
-                                        type="date"
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        value={form.end_date}
-                                        onChange={e => setForm({...form, end_date: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">URL de Evidencia (Drive)</label>
-                                    <input 
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                        placeholder="https://drive.google.com/..."
-                                        value={form.file_url}
-                                        onChange={e => setForm({...form, file_url: e.target.value})}
-                                    />
-                                </div>
-                                <div className="md:col-span-3">
+                    {showForm && (
+                        <Card className="bg-slate-900 border-slate-800 animate-in fade-in slide-in-from-top-4 duration-300 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl pointer-events-none"></div>
+                            <CardHeader>
+                                <CardTitle className="text-lg text-emerald-400 flex items-center gap-2 font-black uppercase italic">
+                                    <FileText className="w-5 h-5" /> Registro de Póliza Colectiva
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mes</label>
+                                            <select 
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                value={form.month}
+                                                onChange={e => setForm({...form, month: e.target.value})}
+                                            >
+                                                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Año</label>
+                                            <select 
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                value={form.year}
+                                                onChange={e => setForm({...form, year: parseInt(e.target.value)})}
+                                            >
+                                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Empresa</label>
+                                            <select 
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                value={form.company}
+                                                onChange={e => setForm({...form, company: e.target.value})}
+                                            >
+                                                {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nº Póliza / Endoso</label>
+                                            <input 
+                                                required
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                placeholder="Ej: POL-2024-99"
+                                                value={form.policy_number}
+                                                onChange={e => setForm({...form, policy_number: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vencimiento de Póliza</label>
+                                            <input 
+                                                required
+                                                type="date"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                value={form.expiration_date}
+                                                onChange={e => setForm({...form, expiration_date: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-3 space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cargar Póliza (Relación de Personal PDF)</label>
+                                            <div className="relative group">
+                                                <input 
+                                                    type="file" 
+                                                    accept=".pdf" 
+                                                    onChange={handleFileUpload} 
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                                />
+                                                <div className={`flex items-center justify-center gap-3 p-3 border-2 border-dashed rounded-xl transition-all ${form.file_url ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-950 hover:border-emerald-500/30'}`}>
+                                                    {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-500" /> : form.file_url ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5 text-slate-500" />}
+                                                    <span className="text-xs font-bold text-slate-400">{isUploading ? 'Subiendo...' : form.file_url ? 'Póliza Lista' : 'Seleccionar PDF de Póliza'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="md:col-span-4 space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                <Users size={12} /> Relación de Personal Cubierto (Nombres completos, uno por línea)
+                                            </label>
+                                            <textarea 
+                                                required
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono min-h-[150px] focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                placeholder="JUAN PEREZ ALVARADO&#10;MARIA GARCIA ROJAS..."
+                                                value={form.personnel_list}
+                                                onChange={e => setForm({...form, personnel_list: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
                                     <button 
                                         type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full py-4 bg-emerald-500 text-slate-950 font-black rounded-xl hover:bg-emerald-400 transition-all disabled:bg-slate-700"
+                                        disabled={isSubmitting || isUploading}
+                                        className="w-full py-4 bg-emerald-500 text-slate-950 font-black rounded-xl hover:bg-emerald-400 transition-all disabled:opacity-50 uppercase tracking-widest text-xs"
                                     >
-                                        {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'GUARDAR REGISTRO SCTR'}
+                                        {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'GUARDAR PÓLIZA MENSUAL SCTR'}
                                     </button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                )}
+                                </form>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <Card className="bg-slate-900 border-slate-800 p-6 flex items-center gap-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl"><User className="text-blue-500" /></div>
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase">Total Personal</p>
-                            <p className="text-2xl font-black">{records.length}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <Card className="bg-slate-900/50 border-slate-800 p-6 flex items-center gap-4 backdrop-blur-sm">
+                            <div className="p-3 bg-blue-500/10 rounded-xl"><FileText className="text-blue-500" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pólizas Registradas</p>
+                                <p className="text-2xl font-black">{records.length}</p>
+                            </div>
+                        </Card>
+                        <Card className="bg-slate-900/50 border-slate-800 p-6 flex items-center gap-4 backdrop-blur-sm">
+                            <div className="p-3 bg-emerald-500/10 rounded-xl"><ShieldCheck className="text-emerald-500" /></div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pólizas Vigentes</p>
+                                <p className="text-2xl font-black">{records.filter(r => !isExpired(r.expiration_date)).length}</p>
+                            </div>
+                        </Card>
+                        <div className="md:col-span-2 relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/50 w-5 h-5" />
+                            <input 
+                                className="w-full h-full bg-slate-900/50 border border-slate-800 rounded-2xl pl-12 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
+                                placeholder="Verificar trabajador (nombre) o buscar mes/póliza..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                    </Card>
-                    <Card className="bg-slate-900 border-slate-800 p-6 flex items-center gap-4">
-                        <div className="p-3 bg-emerald-500/10 rounded-xl"><ShieldCheck className="text-emerald-500" /></div>
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase">Vigentes</p>
-                            <p className="text-2xl font-black">{records.filter(r => !isExpired(r.end_date)).length}</p>
-                        </div>
-                    </Card>
-                    <Card className="bg-slate-900 border-slate-800 p-6 flex items-center gap-4">
-                        <div className="p-3 bg-red-500/10 rounded-xl"><AlertCircle className="text-red-500" /></div>
-                        <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase">Vencidos</p>
-                            <p className="text-2xl font-black text-red-400">{records.filter(r => isExpired(r.end_date)).length}</p>
-                        </div>
-                    </Card>
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-                        <input 
-                            className="w-full h-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                            placeholder="Buscar personal o póliza..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {!isLoaded ? (
+                            [1,2,3].map(i => <div key={i} className="h-64 bg-slate-900 animate-pulse rounded-3xl border border-slate-800" />)
+                        ) : filteredRecords.length === 0 ? (
+                            <div className="col-span-full py-20 text-center text-slate-500 font-medium italic">No se encontraron pólizas registradas.</div>
+                        ) : (
+                            filteredRecords.map(record => {
+                                const foundInRelation = searchTerm && isNameInRelation(record, searchTerm);
+                                return (
+                                    <Card key={record.id} className={`bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden ${foundInRelation ? 'ring-2 ring-emerald-500 border-emerald-500' : ''}`}>
+                                        <div className="p-6">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-3 h-3 rounded-full ${isExpired(record.expiration_date) ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{record.company}</span>
+                                                </div>
+                                                <button onClick={() => handleDelete(record.id)} className="p-2 text-slate-700 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                            </div>
+
+                                            <div className="mb-4">
+                                                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">{record.month} {record.year}</h3>
+                                                <p className="text-xs text-emerald-500 font-bold font-mono">Póliza: {record.policy_number}</p>
+                                            </div>
+
+                                            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vencimiento</p>
+                                                    <Clock size={14} className={isExpired(record.expiration_date) ? 'text-red-500' : 'text-emerald-500'} />
+                                                </div>
+                                                <p className={`text-sm font-black ${isExpired(record.expiration_date) ? 'text-red-400' : 'text-slate-100'}`}>
+                                                    {record.expiration_date}
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                {foundInRelation && (
+                                                    <div className="bg-emerald-500/20 border border-emerald-500/30 p-3 rounded-xl flex items-center gap-2 mb-2 animate-pulse">
+                                                        <CheckCircle2 className="text-emerald-400" size={16} />
+                                                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-tight">Trabajador verificado en esta póliza</span>
+                                                    </div>
+                                                )}
+                                                
+                                                <a 
+                                                    href={record.file_url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+                                                >
+                                                    <Download size={14} /> Descargar Relación PDF
+                                                </a>
+                                                
+                                                <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                                    <p className="text-[9px] font-black text-slate-600 uppercase mb-2 flex items-center gap-1"><Users size={10} /> Personal Cubierto ({record.personnel_list.split('\n').filter(n => n.trim()).length})</p>
+                                                    <p className="text-[10px] text-slate-500 font-medium line-clamp-2 italic">
+                                                        {record.personnel_list.replace(/\n/g, ', ')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {!isLoaded ? (
-                        [1,2,3].map(i => <div key={i} className="h-48 bg-slate-900 animate-pulse rounded-2xl border border-slate-800" />)
-                    ) : filteredRecords.length === 0 ? (
-                        <div className="col-span-full py-20 text-center text-slate-500 font-medium italic">No se encontraron registros.</div>
-                    ) : (
-                        filteredRecords.map(record => (
-                            <Card key={record.id} className="bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden">
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-3 h-3 rounded-full ${isExpired(record.end_date) ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{record.company}</span>
-                                        </div>
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleDelete(record.id)} className="p-2 text-slate-500 hover:text-red-400"><Trash2 size={16} /></button>
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-lg font-bold mb-1 truncate">{record.employee_name}</h3>
-                                    <p className="text-xs text-slate-400 mb-4 font-mono">Póliza: {record.policy_number}</p>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Inicio</p>
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-                                                <Calendar size={12} className="text-slate-500" /> {record.start_date}
-                                            </div>
-                                        </div>
-                                        <div className={`bg-slate-950 p-3 rounded-xl border ${isExpired(record.end_date) ? 'border-red-500/30' : 'border-slate-800'}`}>
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">Vencimiento</p>
-                                            <div className={`flex items-center gap-2 text-xs font-bold ${isExpired(record.end_date) ? 'text-red-400' : 'text-slate-300'}`}>
-                                                <Clock size={12} className={isExpired(record.end_date) ? 'text-red-500' : 'text-slate-500'} /> {record.end_date}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {record.file_url ? (
-                                        <a 
-                                            href={record.file_url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors"
-                                        >
-                                            <FileText size={14} /> Ver Constancia SCTR
-                                        </a>
-                                    ) : (
-                                        <div className="w-full py-3 bg-slate-800/30 text-slate-600 text-xs font-bold rounded-xl text-center border border-dashed border-slate-700">Sin archivo adjunto</div>
-                                    )}
-                                </div>
-                            </Card>
-                        ))
-                    )}
-                </div>
-            </div>
+            </main>
         </div>
     );
 }

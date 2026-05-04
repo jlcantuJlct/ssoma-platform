@@ -28,27 +28,29 @@ export async function GET(request: Request) {
         const templateData: any = {
             MES_REPORTE: data.monthName.toUpperCase(),
             ANIO_REPORTE: parseInt(year),
-            photos: [] // Sigue disponible por si quieren todas juntas
+            stats: data.stats,
+            photos: [] 
         };
 
         const groupedPhotos: Record<string, any[]> = {};
 
+        // Pre-cargar todos los datos para evitar problemas de asincronía en el template
         data.evidence.forEach(e => {
             const photoItem = {
                 url: e.file_url,
                 description: e.description || '',
-                date: e.date || ''
+                date: e.date || '',
+                zona: e.zona || ''
             };
             
-            // Agregar al arreglo general de todas las fotos
+            // Agregar al arreglo general
             templateData.photos.push(photoItem);
 
-            // Agregar a la categoría específica por ACTIVIDAD (Ej. {#banos_quimicos})
+            // Agrupar por tags
             const activityTag = normalizeTag(e.activity || 'general');
             if(!groupedPhotos[activityTag]) groupedPhotos[activityTag] = [];
             groupedPhotos[activityTag].push(photoItem);
 
-            // Agregar a la categoría híper-específica por ACTIVIDAD + ZONA (Ej. {#banos_quimicos_pad_san_clemente})
             if (e.zona) {
                 const specificTag = normalizeTag(`${e.activity}_${e.zona}`);
                 if(!groupedPhotos[specificTag]) groupedPhotos[specificTag] = [];
@@ -61,6 +63,7 @@ export async function GET(request: Request) {
             templateData[tag] = groupedPhotos[tag];
         });
 
+        console.log("Datos de plantilla preparados, llamando a generateWordFromTemplate...");
         const buffer = await generateWordFromTemplate(templateData);
         
         return new NextResponse(buffer, {
@@ -73,7 +76,7 @@ export async function GET(request: Request) {
     } catch (error: any) {
         console.error("Export error:", error);
         return NextResponse.json({ 
-            error: 'Failed to generate word report', 
+            error: error.message || 'Failed to generate word report', 
             details: error.message,
             stack: error.stack 
         }, { status: 500 });

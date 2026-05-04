@@ -212,12 +212,9 @@ export default function ActasSupervisionPage() {
     };
 
     return (
-        <>
-
-            <div className="relative w-full">
-                <div className="fixed inset-0 pointer-events-none bg-gradient-to-bl from-emerald-900/10 via-slate-950 to-slate-950 z-0"></div>
-
-                <div className="relative z-10 max-w-[1600px] mx-auto p-6 space-y-8">
+        <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden w-full">
+            <main className="flex-1 overflow-auto p-4 md:p-8">
+                <div className="max-w-[1600px] mx-auto space-y-8">
                     
                     {/* Header */}
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 rounded-3xl border border-slate-800 backdrop-blur-md shadow-2xl">
@@ -497,9 +494,8 @@ export default function ActasSupervisionPage() {
                             </Card>
                         </div>
 
-                    </div>
                 </div>
-            </div>
-        </>
+            </main>
+        </div>
     );
 }

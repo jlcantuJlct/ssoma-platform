@@ -139,12 +139,6 @@ export default function Sidebar() {
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
                                 <SidebarItem
-                                    icon={<FileText size={16} className="text-amber-500" />}
-                                    label="Informe del Mes"
-                                    href="/monthly-report"
-                                    active={pathname === '/monthly-report'}
-                                />
-                                <SidebarItem
                                     icon={<ExternalLink size={16} className="text-cyan-500" />}
                                     label="Comunicación con Cliente"
                                     href="/cliente"
@@ -176,20 +170,31 @@ export default function Sidebar() {
                                 />
                                 <SidebarItem
                                     icon={<FileText size={16} className="text-amber-500" />}
-                                    label="Informe OSITRAN"
+                                    label="Anexos OSITRAN"
                                     href="/ositran-report"
                                     active={pathname === '/ositran-report'}
+                                />
+                                <SidebarItem
+                                    icon={<FileText size={16} className="text-emerald-500" />}
+                                    label="Generar Informe Word"
+                                    href="/monthly-report"
+                                    active={pathname === '/monthly-report'}
                                 />
                             </>
                         )}
                         {/* SOLO DEVELOPER - Configuración de Maestros */}
-                        {user?.role === 'developer' && (
-                            <SidebarItem
-                                icon={<Settings size={16} className="text-pink-500" />}
-                                label="Configuración Maestros"
-                                href="/settings"
-                                active={pathname === '/settings'}
-                            />
+                        {/* SOLO DEVELOPER/MANAGER - Configuración e Informes */}
+                        {(user?.role === 'developer' || user?.role === 'manager') && (
+                            <>
+                                {user?.role === 'developer' && (
+                                    <SidebarItem
+                                        icon={<Settings size={16} className="text-pink-500" />}
+                                        label="Configuración Maestros"
+                                        href="/settings"
+                                        active={pathname === '/settings'}
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
                 </nav>

@@ -36,8 +36,14 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
         ? ["%SAN CLEMENTE%", "%PISCO%", "%CHANCADORA%", "%CAMPAMENTO%"]
         : [`%${location.toUpperCase()}%`];
 
+    // Exclusiones explícitas para San Clemente para evitar contaminación de datos
+    const exclusions = isSanClemente ? ["%JAHUAY%", "%CHINCHAYSULLO%", "%ST6%"] : [];
+    
     const generateWhere = (field: string) => {
-        return `(${locationFilters.map(() => `UPPER(${field}) LIKE ?`).join(' OR ')})`;
+        const inclusionPart = `(${locationFilters.map(() => `UPPER(${field}) LIKE ?`).join(' OR ')})`;
+        if (exclusions.length === 0) return inclusionPart;
+        const exclusionPart = exclusions.map(() => `UPPER(${field}) NOT LIKE ?`).join(' AND ');
+        return `(${inclusionPart} AND ${exclusionPart})`;
     };
 
     // 1. Fetch System Stats
