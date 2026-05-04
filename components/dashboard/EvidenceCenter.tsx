@@ -40,7 +40,7 @@ const INITIAL_EMO_ACTIVITIES = ["Exámenes Médico Ocupacional (EMO)"];
 
 // Objetivos específicos solicitados (Solo EMO)
 const TARGET_OBJECTIVES = [
-    { id: 'EMO', label: 'Control de EMO' },
+    { id: 'OBJ 05', label: 'Control de EMO' },
 ];
 
 const RESPONSIBLES = USER_LIST.map(user => user.name);
@@ -67,7 +67,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     const [form, setForm] = useState({
         date: new Date().toISOString().split('T')[0],
         responsible: '',
-        objective: 'OBJ 01',
+        objective: 'OBJ 05',
         activity: '',
         location: ''
     });
@@ -153,7 +153,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         fileType: r.file_type || r.fileType,
                         fileUrl: r.file_url || r.fileUrl
                     }));
-                    const filtered = mapped.filter((r: any) => r.objective === 'EMO' || r.objective === 'OBJ 05');
+                    const filtered = mapped.filter((r: any) => r.objective === 'OBJ 05');
                     setRecords(filtered);
                     localStorage.setItem('evidence_center_records', JSON.stringify(filtered));
                     setIsLoaded(true);
