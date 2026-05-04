@@ -379,15 +379,17 @@ export default function SCTRPage() {
                         <Card className="bg-slate-900/50 border-slate-800 p-6 flex items-center gap-4 backdrop-blur-sm">
                             <div className="p-3 bg-blue-500/10 rounded-xl"><FileText className="text-blue-500" /></div>
                             <div>
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pólizas Registradas</p>
-                                <p className="text-2xl font-black">{records.length}</p>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pólizas en {form.month} {form.year}</p>
+                                <p className="text-2xl font-black text-blue-400">
+                                    {records.filter(r => r.month === form.month && r.year === form.year).length}
+                                </p>
                             </div>
                         </Card>
                         <Card className="bg-slate-900/50 border-slate-800 p-6 flex items-center gap-4 backdrop-blur-sm">
                             <div className="p-3 bg-emerald-500/10 rounded-xl"><ShieldCheck className="text-emerald-500" /></div>
                             <div>
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pólizas Vigentes</p>
-                                <p className="text-2xl font-black">{records.filter(r => !isExpired(r.expiration_date)).length}</p>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Histórico</p>
+                                <p className="text-2xl font-black text-emerald-400">{records.length}</p>
                             </div>
                         </Card>
                         <div className="md:col-span-2 relative">
@@ -435,13 +437,18 @@ export default function SCTRPage() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {!isLoaded ? (
-                            [1,2,3].map(i => <div key={i} className="h-64 bg-slate-900 animate-pulse rounded-3xl border border-slate-800" />)
-                        ) : filteredRecords.length === 0 ? (
-                            <div className="col-span-full py-20 text-center text-slate-500 font-medium italic">No se encontraron pólizas registradas.</div>
-                        ) : (
-                            filteredRecords.map(record => {
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                            <FileText size={18} className="text-slate-500" />
+                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest italic">Historial de Pólizas Registradas</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {!isLoaded ? (
+                                [1,2,3].map(i => <div key={i} className="h-64 bg-slate-900 animate-pulse rounded-3xl border border-slate-800" />)
+                            ) : filteredRecords.length === 0 ? (
+                                <div className="col-span-full py-20 text-center text-slate-500 font-medium italic">No se encontraron registros para esta búsqueda.</div>
+                            ) : (
+                                filteredRecords.map(record => {
                                 const foundInRelation = searchTerm && isNameInRelation(record, searchTerm);
                                 return (
                                     <Card key={record.id} className={`bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden ${foundInRelation ? 'ring-2 ring-emerald-500 border-emerald-500' : ''}`}>
