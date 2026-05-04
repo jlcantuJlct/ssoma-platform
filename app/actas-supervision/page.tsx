@@ -493,7 +493,7 @@ export default function ActasSupervisionPage() {
                                 </CardContent>
                             </Card>
                         </div>
-
+                    </div>
                 </div>
             </main>
         </div>
