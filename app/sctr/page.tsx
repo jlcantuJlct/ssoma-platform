@@ -110,11 +110,35 @@ export default function SCTRPage() {
             const parseData = await parseRes.json();
 
             if (parseData.success) {
-                setForm(prev => ({ ...prev, personnel_list: parseData.text }));
-                alert(`✅ PDF cargado y procesado. Se detectaron ${parseData.numpages} páginas de relación.`);
+                const text = parseData.text || '';
+                let extractedDate = '';
+                let extractedPolicy = '';
+
+                // Intentar extraer fecha de vencimiento (Patrones comunes: DD/MM/YYYY o DD-MM-YYYY)
+                const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (dateMatch) {
+                    const [full, day, month, year] = dateMatch;
+                    // Asegurar formato YYYY-MM-DD para el input
+                    extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                // Intentar extraer número de póliza (Ej: Póliza N° 123456)
+                const policyMatch = text.match(/(?:Pó|po)liza\s*(?:N|n|°|#)*\s*([A-Z0-9\-]+)/i);
+                if (policyMatch) {
+                    extractedPolicy = policyMatch[1];
+                }
+
+                setForm(prev => ({ 
+                    ...prev, 
+                    personnel_list: text,
+                    expiration_date: extractedDate || prev.expiration_date,
+                    policy_number: extractedPolicy || prev.policy_number
+                }));
+
+                alert(`✅ PDF procesado con éxito.\n${extractedDate ? `📅 Vencimiento detectado: ${extractedDate}` : '⚠️ No se pudo detectar la fecha de vencimiento automáticamente.'}`);
             } else {
                 console.warn("No se pudo extraer el texto automáticamente:", parseData.error);
-                alert("✅ Archivo subido, pero no se pudo leer el texto automáticamente. Deberá ingresar la lista manualmente o reintentar.");
+                alert("✅ Archivo subido, pero el robot no pudo leer el contenido. Intente con otro archivo o ingrese los datos manualmente si fuera necesario.");
             }
 
         } catch (error: any) {
@@ -264,52 +288,30 @@ export default function SCTRPage() {
                                                 {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nº Póliza / Endoso</label>
-                                            <input 
-                                                required
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                placeholder="Ej: POL-2024-99"
-                                                value={form.policy_number}
-                                                onChange={e => setForm({...form, policy_number: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vencimiento de Póliza</label>
-                                            <input 
-                                                required
-                                                type="date"
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                value={form.expiration_date}
-                                                onChange={e => setForm({...form, expiration_date: e.target.value})}
-                                            />
+                                        <div className="md:col-span-1 space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-emerald-500/80 italic">Extraído Automáticamente</label>
+                                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-400">
+                                                {form.expiration_date ? `Vence: ${form.expiration_date}` : 'Pendiente de carga...'}
+                                            </div>
                                         </div>
                                         <div className="md:col-span-3 space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cargar Póliza (Relación de Personal PDF)</label>
-                                            <div className="relative group">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Cargar Póliza Mensual (PDF)</label>
+                                            <div className="relative group h-12">
                                                 <input 
                                                     type="file" 
                                                     accept=".pdf" 
                                                     onChange={handleFileUpload} 
                                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                                                 />
-                                                <div className={`flex items-center justify-center gap-3 p-3 border-2 border-dashed rounded-xl transition-all ${form.file_url ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-950 hover:border-emerald-500/30'}`}>
-                                                    {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-500" /> : form.file_url ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Upload className="w-5 h-5 text-slate-500" />}
-                                                    <span className="text-xs font-bold text-slate-400">{isUploading ? 'Subiendo...' : form.file_url ? 'Póliza Lista' : 'Seleccionar PDF de Póliza'}</span>
+                                                <div className={`h-full flex items-center justify-center gap-3 border-2 border-dashed rounded-xl transition-all ${form.file_url ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950 hover:border-emerald-500/30'}`}>
+                                                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-500" /> : form.file_url ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Upload className="w-4 h-4 text-slate-500" />}
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{isUploading ? 'Procesando PDF...' : form.file_url ? 'Póliza Lista para Guardar' : 'Subir archivo de póliza'}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="md:col-span-4 space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                                <Users size={12} /> Relación de Personal Cubierto (Nombres completos, uno por línea)
-                                            </label>
-                                            <textarea 
-                                                required
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono min-h-[150px] focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                placeholder="JUAN PEREZ ALVARADO&#10;MARIA GARCIA ROJAS..."
-                                                value={form.personnel_list}
-                                                onChange={e => setForm({...form, personnel_list: e.target.value})}
-                                            />
+                                        <div className="md:col-span-4 hidden">
+                                            {/* La lista se procesa en segundo plano */}
+                                            <textarea value={form.personnel_list} readOnly />
                                         </div>
                                     </div>
                                     <button 
@@ -340,15 +342,49 @@ export default function SCTRPage() {
                             </div>
                         </Card>
                         <div className="md:col-span-2 relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500/50 w-5 h-5" />
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 w-6 h-6" />
                             <input 
-                                className="w-full h-full bg-slate-900/50 border border-slate-800 rounded-2xl pl-12 pr-4 text-sm focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
-                                placeholder="Verificar trabajador (nombre) o buscar mes/póliza..."
+                                className="w-full h-16 bg-slate-900 border-2 border-slate-800 rounded-3xl pl-16 pr-6 text-lg font-bold focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none backdrop-blur-xl shadow-2xl transition-all placeholder:text-slate-600"
+                                placeholder="ESCRIBE DNI O NOMBRE PARA VERIFICAR REGISTRO..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
                     </div>
+
+                    {/* STATUS CARD FOR SEARCH */}
+                    {searchTerm.length > 3 && (
+                        <div className="animate-in zoom-in-95 fade-in duration-300">
+                            {records.some(r => isNameInRelation(r, searchTerm)) ? (
+                                <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+                                    <div className="flex items-center gap-6 text-center md:text-left">
+                                        <div className="p-5 bg-emerald-500 rounded-full shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                                            <CheckCircle2 className="w-10 h-10 text-slate-950" />
+                                        </div>
+                                        <div>
+                                            <p className="text-emerald-400 font-black text-3xl tracking-tighter uppercase italic">¡REGISTRADO Y VIGENTE!</p>
+                                            <p className="text-slate-300 font-bold text-lg">El trabajador se encuentra en la relación de personal cubierto.</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 text-center min-w-[250px]">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Fin de Cobertura</p>
+                                        <p className="text-2xl font-black text-white">{records.find(r => isNameInRelation(r, searchTerm))?.expiration_date}</p>
+                                        <p className="text-[10px] text-emerald-500 font-bold uppercase mt-2">Mes: {records.find(r => isNameInRelation(r, searchTerm))?.month} {records.find(r => isNameInRelation(r, searchTerm))?.year}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-red-500/10 border-2 border-red-500/30 rounded-3xl p-8 flex items-center gap-6">
+                                    <div className="p-4 bg-red-500 rounded-full">
+                                        <AlertCircle className="w-8 h-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-red-400 font-black text-2xl tracking-tighter uppercase italic">NO ENCONTRADO</p>
+                                        <p className="text-slate-400 font-medium">El DNI o Nombre ingresado no figura en los registros de pólizas de este mes.</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {!isLoaded ? (
