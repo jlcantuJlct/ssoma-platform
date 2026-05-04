@@ -28,7 +28,7 @@ import { uploadEvidence } from "@/lib/uploadClient";
 import jsPDF from 'jspdf';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { Save as SaveIcon } from "lucide-react"; // I noticed SaveIcon was missing or inconsistent
-import { USER_LIST } from "@/lib/auth";
+import { USER_LIST, useAuth } from "@/lib/auth";
 
 
 interface EvidencePageProps {
@@ -57,6 +57,7 @@ type EvidenceRecord = {
 };
 
 export default function EvidenceCenter({ data }: EvidencePageProps) {
+    const { user } = useAuth();
     // STATE
     const [records, setRecords] = useState<EvidenceRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
