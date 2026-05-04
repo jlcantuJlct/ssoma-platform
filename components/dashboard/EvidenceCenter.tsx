@@ -132,49 +132,43 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     };
 
     // LOAD DATA - Cloud first, then localStorage fallback
-    useEffect(() => {
-        const loadRecords = async () => {
-            setIsSyncing(true);
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const loadRecords = async (silent = false) => {
+        if (!silent) setIsSyncing(true);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-            try {
-                const res = await fetch('/api/evidence-records', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await res.json();
-                if (data.success && data.records.length > 0) {
-                    // Map from DB format to component format
-                    const mapped = data.records.map((r: any) => ({
-                        id: r.id || r.record_id,
-                        date: r.date,
-                        responsible: r.responsable || r.responsible,
-                        objective: r.objective,
-                        description: r.activity || r.description,
-                        location: r.zona || r.location || '',
-                        fileType: r.file_type || r.fileType,
-                        fileUrl: r.file_url || r.fileUrl
-                    }));
-                    const filtered = mapped.filter((r: any) => r.objective === 'OBJ 05');
-                    setRecords(filtered);
-                    localStorage.setItem('evidence_center_records', JSON.stringify(filtered));
-                    setIsLoaded(true);
-                }
-            } catch (e: any) {
-                if (e.name === 'AbortError') {
-                    console.warn('Sync timed out');
-                } else {
-                    console.warn('Could not fetch evidence records from cloud:', e);
-                }
-            } finally {
-                setIsSyncing(false);
+        try {
+            const res = await fetch('/api/evidence-records', { signal: controller.signal });
+            const data = await res.json();
+            if (data.success && data.records.length > 0) {
+                // Map from DB format to component format
+                const filtered = (data.records || []).map((r: any) => ({
+                    id: r.id || r.record_id,
+                    date: r.date,
+                    responsible: r.responsable || r.responsible,
+                    objective: r.objective,
+                    description: r.activity || r.description,
+                    location: r.zona || r.location || '',
+                    fileType: r.file_type || r.fileType,
+                    fileUrl: r.file_url || r.fileUrl
+                })).filter((r: any) => r.objective === 'OBJ 05');
+                
+                setRecords(filtered);
+                localStorage.setItem('evidence_center_records', JSON.stringify(filtered));
                 setIsLoaded(true);
             }
-        };
-        loadRecords();
+        } catch (error) {
+            console.warn('Silent sync failed or timed out:', error);
+        } finally {
+            clearTimeout(timeoutId);
+            if (!silent) setIsSyncing(false);
+        }
+    };
 
-        // AUTO-SYNC: Actualizar cada 30 segundos para sincronizar entre dispositivos
-        const syncInterval = setInterval(loadRecords, 30000);
-        return () => clearInterval(syncInterval);
+    useEffect(() => {
+        loadRecords(); // Primera carga NO es silenciosa para que veas que funciona
+        const interval = setInterval(() => loadRecords(true), 30000); // Sincronización de fondo SILENCIOSA
+        return () => clearInterval(interval);
     }, []);
 
     // SAVE DATA - Local + Cloud sync
@@ -281,7 +275,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
 
             setFiles({
                 url: url,
-                fileType: isImage ? 'image' : (isPdf ? 'pdf' : (isWord ? 'word' : 'excel'))
+                type: isImage ? 'image' : (isPdf ? 'pdf' : (isWord ? 'word' : 'excel'))
             } as any);
             alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
 
@@ -654,10 +648,12 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setEditingId(null);
+                                            setIsSyncing(false);
+                                            setIsUploading(false);
                                             setFiles(null);
-                                            // @ts-ignore
-                                            setForm(prev => ({ ...prev, activity: '', responsible: '' }));
+                                            setEditingId(null);
+                                            localStorage.removeItem('evidence_center_records');
+                                            window.location.reload(); // Recarga total para limpiar memoria
                                         }}
                                         className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all"
                                     >
