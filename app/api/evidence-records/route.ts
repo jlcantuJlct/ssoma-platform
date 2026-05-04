@@ -26,6 +26,10 @@ async function ensureTable() {
 export async function GET() {
     try {
         await ensureTable();
+        
+        // MIGRATION: Convert old 'EMO' objective to 'OBJ 05'
+        await db.execute("UPDATE evidence_center_records SET objective = 'OBJ 05' WHERE objective = 'EMO'");
+
         const rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
         
         // Deduplicate in JS to handle existing DB duplicates gracefully
