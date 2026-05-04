@@ -135,10 +135,14 @@ export default function SCTRPage() {
                     policy_number: extractedPolicy || prev.policy_number
                 }));
 
-                alert(`✅ PDF procesado con éxito.\n${extractedDate ? `📅 Vencimiento detectado: ${extractedDate}` : '⚠️ No se pudo detectar la fecha de vencimiento automáticamente.'}`);
+                if (!extractedDate) {
+                    alert("⚠️ El robot no detectó la fecha de vencimiento. Por favor, ingrésela manualmente en el campo que aparecerá ahora.");
+                } else {
+                    alert(`✅ PDF procesado con éxito.\n📅 Vencimiento detectado: ${extractedDate}`);
+                }
             } else {
                 console.warn("No se pudo extraer el texto automáticamente:", parseData.error);
-                alert("✅ Archivo subido, pero el robot no pudo leer el contenido. Intente con otro archivo o ingrese los datos manualmente si fuera necesario.");
+                alert("✅ Archivo subido, pero el robot no pudo leer el contenido. Por favor, ingrese la fecha y póliza manualmente.");
             }
 
         } catch (error: any) {
@@ -150,17 +154,28 @@ export default function SCTRPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.file_url) return alert("Debe subir el PDF de la póliza SCTR.");
+        if (!form.file_url) return alert("❌ Debe subir el PDF de la póliza SCTR.");
+        if (!form.expiration_date) return alert("❌ Por favor ingrese la fecha de vencimiento de la póliza.");
+        
         setIsSubmitting(true);
 
         try {
             const res = await fetch('/api/sctr-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'create', data: form })
+                body: JSON.stringify({ 
+                    action: 'create', 
+                    data: {
+                        ...form,
+                        // Asegurar que si la fecha está vacía se envíe null para evitar error de Postgres
+                        expiration_date: form.expiration_date || null,
+                        policy_number: form.policy_number || 'S/N'
+                    } 
+                })
             });
 
             if (res.ok) {
+                alert("✨ ¡Póliza guardada con éxito!");
                 setForm({ 
                     month: MONTHS[new Date().getMonth()], 
                     year: new Date().getFullYear(), 
@@ -172,9 +187,13 @@ export default function SCTRPage() {
                 });
                 setShowForm(false);
                 loadRecords();
+            } else {
+                const errorData = await res.json();
+                alert(`❌ Error al guardar: ${errorData.error || 'Error desconocido'}`);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating record:", error);
+            alert(`❌ Error de conexión: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -292,12 +311,30 @@ export default function SCTRPage() {
                                                 {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
-                                        <div className="md:col-span-1 space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-emerald-500/80 italic">Extraído Automáticamente</label>
-                                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-400">
-                                                {form.expiration_date ? `Vence: ${form.expiration_date}` : 'Pendiente de carga...'}
+                                        {(!form.expiration_date || !form.policy_number) && form.file_url && (
+                                            <div className="md:col-span-1 grid grid-cols-2 gap-2 animate-in slide-in-from-right-4 duration-300">
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black text-emerald-500 uppercase">Vencimiento Manual</label>
+                                                    <input 
+                                                        type="date"
+                                                        className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg p-2 text-xs text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        value={form.expiration_date}
+                                                        onChange={e => setForm({...form, expiration_date: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black text-emerald-500 uppercase">Nº Póliza Manual</label>
+                                                    <input 
+                                                        type="text"
+                                                        placeholder="Nº Póliza"
+                                                        className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg p-2 text-xs text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        value={form.policy_number}
+                                                        onChange={e => setForm({...form, policy_number: e.target.value})}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
+
                                         <div className="md:col-span-3 space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Cargar Póliza Mensual (PDF)</label>
                                             <div className="relative group h-12">
