@@ -107,7 +107,15 @@ export default function SCTRPage() {
                 method: 'POST',
                 body: formData
             });
-            const parseData = await parseRes.json();
+
+            const responseText = await parseRes.text();
+            let parseData;
+            try {
+                parseData = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Error parseando respuesta del servidor (no es JSON):", responseText.substring(0, 500));
+                throw new Error("El servidor de lectura de PDF no respondió correctamente. Por favor, ingrese los datos manualmente.");
+            }
 
             if (parseData.success) {
                 const text = parseData.text || '';
