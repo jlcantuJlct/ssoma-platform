@@ -728,6 +728,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 <thead className="text-[10px] uppercase font-black text-slate-500 border-b border-slate-800">
                                     <tr>
                                         <th className="pb-3 pl-2 w-[80px]">Fecha</th>
+                                        <th className="pb-3 w-[70px]">Área</th>
                                         <th className="pb-3 w-[60px]">Resp</th>
                                         <th className="pb-3 w-[120px]">Lugar</th>
                                         <th className="pb-3 w-[200px]">Actividad</th>
@@ -739,13 +740,18 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 <tbody className="divide-y divide-slate-800">
                                     {(!filteredRecords || filteredRecords.length === 0) ? (
                                         <tr>
-                                            <td colSpan={7} className="py-8 text-center text-slate-600 italic">No se encontraron registros de EMO.</td>
+                                            <td colSpan={8} className="py-8 text-center text-slate-600 italic">No se encontraron registros de EMO.</td>
                                         </tr>
                                     ) : (
                                         (filteredRecords || []).map((r) => (
                                             r && (
                                                 <tr key={r.id || Math.random()} className="hover:bg-slate-800/30 transition-colors group">
                                                     <td className="py-3 pl-2 font-mono text-xs text-white truncate" title={r.date}>{r.date || 'S/F'}</td>
+                                                    <td className="py-3">
+                                                        <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black rounded">
+                                                            {r.objective === 'OBJ 05' ? 'SALUD' : (r.objective || 'S/A')}
+                                                        </span>
+                                                    </td>
                                                     <td className="py-3 text-slate-300 font-medium" title={r.responsible}>{getInitials(r.responsible)}</td>
                                                     <td className="py-3">
                                                         <span className="text-[10px] text-slate-300 font-semibold">{r.location || '-'}</span>
