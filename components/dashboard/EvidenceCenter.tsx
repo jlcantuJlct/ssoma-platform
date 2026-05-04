@@ -291,7 +291,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (isUploading) {
