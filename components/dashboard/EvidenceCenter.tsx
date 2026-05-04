@@ -133,8 +133,12 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     useEffect(() => {
         const loadRecords = async () => {
             setIsSyncing(true);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
             try {
-                const res = await fetch('/api/evidence-records');
+                const res = await fetch('/api/evidence-records', { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 if (data.success && data.records.length > 0) {
                     // Map from DB format to component format
@@ -152,26 +156,17 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                     setRecords(filtered);
                     localStorage.setItem('evidence_center_records', JSON.stringify(filtered));
                     setIsLoaded(true);
-                    return;
                 }
-            } catch (e) {
-                console.warn('Could not fetch evidence records from cloud:', e);
-            }
-            // Fallback to localStorage
-            const stored = localStorage.getItem('evidence_center_records');
-            if (stored) {
-                try {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) {
-                        const filtered = parsed.filter((r: any) => r && typeof r === 'object' && (r.objective === 'EMO' || r.objective === 'OBJ 05'));
-                        setRecords(filtered);
-                    }
-                } catch (e) {
-                    console.error("Error parsing evidence_center_records", e);
+            } catch (e: any) {
+                if (e.name === 'AbortError') {
+                    console.warn('Sync timed out');
+                } else {
+                    console.warn('Could not fetch evidence records from cloud:', e);
                 }
+            } finally {
+                setIsSyncing(false);
+                setIsLoaded(true);
             }
-            setIsSyncing(false);
-            setIsLoaded(true);
         };
         loadRecords();
 
@@ -473,10 +468,23 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                             {editingId ? <Edit size={20} /> : <Upload size={20} />}
                             {editingId ? 'Editando Evidencia' : 'Registro de Evidencia'}
                             {isSyncing && (
-                                <span className="flex items-center gap-1 text-[8px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full animate-pulse border border-blue-700/30">
-                                    <span className="w-1 h-1 bg-blue-400 rounded-full animate-ping"></span>
-                                    SINCRONIZANDO...
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="flex items-center gap-1 text-[8px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full animate-pulse border border-blue-700/30">
+                                        <span className="w-1 h-1 bg-blue-400 rounded-full animate-ping"></span>
+                                        SINCRONIZANDO...
+                                    </span>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            if (confirm("¿Forzar el reinicio del estado de sincronización? Esto desbloqueará el botón de guardar.")) {
+                                                setIsSyncing(false);
+                                            }
+                                        }}
+                                        className="text-[8px] font-black text-blue-400 hover:text-blue-300 underline uppercase tracking-widest"
+                                    >
+                                        Forzar Reset
+                                    </button>
+                                </div>
                             )}
                             {isUploading && (
                                 <div className="flex items-center gap-2">
