@@ -619,18 +619,26 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                         accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
-                                    <div className="flex flex-col items-center gap-2 text-slate-400 group-hover:text-emerald-400">
+                                    <div className={`flex flex-col items-center gap-2 transition-colors ${files ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400'}`}>
                                         {files ? (
-                                            (files as any).fileType === 'pdf' ? <FileText size={24} className="text-red-400" /> : 
-                                            (files as any).fileType === 'word' ? <FileEdit size={24} className="text-blue-400" /> :
-                                            (files as any).fileType === 'excel' ? <FileSpreadsheet size={24} className="text-emerald-400" /> :
-                                            <ImageIcon size={24} className="text-blue-400" />
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mb-1 shadow-lg shadow-emerald-500/20">
+                                                    {files.type === 'pdf' ? <FileText size={20} /> : 
+                                                     files.type === 'word' ? <FileEdit size={20} /> :
+                                                     files.type === 'excel' ? <FileSpreadsheet size={20} /> :
+                                                     <ImageIcon size={20} />}
+                                                </div>
+                                                <span className="text-[11px] font-black uppercase tracking-tighter">¡1 Archivo Cargado!</span>
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Listo para guardar</span>
+                                            </div>
                                         ) : (
-                                            <Upload size={24} />
+                                            <>
+                                                <Upload size={24} />
+                                                <span className="text-xs font-medium">
+                                                    {editingId ? "Click para cambiar archivo" : "Arrastra o selecciona archivo"}
+                                                </span>
+                                            </>
                                         )}
-                                        <span className="text-xs font-medium">
-                                            {files ? "Archivo listo" : (editingId ? "Click para cambiar archivo" : "Click para seleccionar")}
-                                        </span>
                                     </div>
                                 </div>
                             </div>
