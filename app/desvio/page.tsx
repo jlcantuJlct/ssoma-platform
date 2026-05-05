@@ -59,6 +59,7 @@ export default function DetourPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
+    const [filterCategory, setFilterCategory] = useState("");
     // Categories from static list
     const [detourCategories, setDetourCategories] = useState<DetourCategory[]>(DETOUR_CATEGORIES);
 
@@ -381,7 +382,7 @@ export default function DetourPage() {
                                                 ))}
                                             </select>
                                         </div>
-                                                             <div className="space-y-2">
+                                    <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
                                         <SearchableSelect 
                                             options={detourCategories}
