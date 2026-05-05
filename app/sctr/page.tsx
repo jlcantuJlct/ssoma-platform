@@ -142,11 +142,11 @@ export default function SCTRPage() {
                     }));
                     alert("✅ ¡Robot Activo! Datos extraídos correctamente.");
                 } else {
-                    alert(`⚠️ El robot no pudo leer los nombres (${parseData.error}). Por favor ingresa los datos manualmente.`);
+                    alert(`⚠️ El robot respondió: ${parseData.error}`);
                 }
             } catch (fetchErr: any) {
                 console.error("[Robot Servidor] Error:", fetchErr);
-                alert("⚠️ Error de conexión con el robot. Si el archivo es mayor a 4.5MB, por favor pega los nombres manualmente.");
+                alert(`⚠️ Error técnico: ${fetchErr.message}. Por favor intenta de nuevo o pega los nombres manualmente.`);
             }
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);

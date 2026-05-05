@@ -2,59 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '10mb',
-        },
-    },
-};
-
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
-            return NextResponse.json({ success: false, error: 'No se proporcionó ningún archivo' }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'No se proporcionó archivo' }, { status: 400 });
         }
 
         const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        const uint8Array = new Uint8Array(bytes);
 
-        console.log(`[PDF Robot] Procesando SCTR: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
-
-        // IMPORTACIÓN DINÁMICA: Esto evita errores de compilación en Vercel
-        const pdf = require('pdf-parse/lib/pdf-parse.js');
+        // Usamos la versión legacy de pdfjs-dist que es más estable en Node.js/Vercel
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
         try {
-            const data = await pdf(buffer);
-            const text = data.text || '';
-            const cleanText = text.replace(/\s+/g, ' ').trim();
+            const loadingTask = pdfjs.getDocument({
+                data: uint8Array,
+                useSystemFonts: true,
+                disableFontFace: true,
+                verbosity: 0
+            });
+            
+            const pdfDocument = await loadingTask.promise;
+            let fullText = '';
+            
+            // Leemos las primeras 50 páginas (suficiente para SCTR)
+            const numPages = Math.min(pdfDocument.numPages, 50);
+            
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdfDocument.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item: any) => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
 
-            if (cleanText.length > 10) {
-                console.log(`[PDF Robot] Éxito. Caracteres extraídos: ${cleanText.length}`);
+            const cleanText = fullText.replace(/\s+/g, ' ').trim();
+
+            if (cleanText.length > 5) {
                 return NextResponse.json({ 
                     success: true, 
-                    text: cleanText,
-                    method: 'pdf-parse-server'
+                    text: cleanText
                 });
             } else {
-                throw new Error("Contenido insuficiente");
+                throw new Error("El PDF no contiene texto extraíble (podría ser una imagen).");
             }
+            
         } catch (parseError: any) {
-            console.error("[PDF Robot] Error en parsing:", parseError.message);
-            return NextResponse.json({ 
-                success: false, 
-                error: 'No se pudo extraer texto del PDF (posiblemente escaneado).' 
-            });
+            console.error("[Robot] Error parsing:", parseError.message);
+            return NextResponse.json({ success: false, error: parseError.message });
         }
 
     } catch (error: any) {
-        console.error('[PDF Robot] Error crítico:', error);
-        return NextResponse.json({ 
-            success: false, 
-            error: error.message || 'Error interno del servidor'
-        }, { status: 500 });
+        console.error('[Robot] Error crítico:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
