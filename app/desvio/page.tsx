@@ -589,7 +589,7 @@ export default function DetourPage() {
                             <button onClick={() => setPreviewFile(null)} className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full transition-colors"><X size={20} /></button>
                         </div>
                         <div className="w-full h-[70vh] p-2 bg-black/20">
-                            <iframe src={getDriveViewerUrl(previewFile.url, false)} className="w-full h-full rounded-lg border-0 shadow-2xl" />
+                            <iframe src={Utils.getDriveViewerUrl(previewFile.url, false)} className="w-full h-full rounded-lg border-0 shadow-2xl" />
                         </div>
                     </div>
                 </div>
