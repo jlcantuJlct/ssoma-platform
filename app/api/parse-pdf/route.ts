@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdf = require('pdf-parse');
+// Mover require adentro para evitar errores de compilación estática
 
 // Configuración para aumentar el límite de carga si es posible
 export const config = {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
         try {
             // Intento 1: pdf-parse (rápido para texto digital estándar)
-            // Agregamos un pequeño delay o check para evitar bloqueos en archivos pesados
+            const pdf = require('pdf-parse');
             const data = await pdf(buffer, {
                 // @ts-ignore - Some versions support pagerender customization
                 pagerender: function(pageData: any) {
