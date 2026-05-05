@@ -12,33 +12,18 @@ export async function POST(req: NextRequest) {
         }
 
         const bytes = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(bytes);
+        const buffer = Buffer.from(bytes);
 
-        // Usamos la versión legacy de pdfjs-dist que es más estable en Node.js/Vercel
-        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        console.log(`[PDF Robot] Procesando SCTR (60s max): ${file.name}`);
+
+        // Usamos pdf-parse con una configuración que evita errores en Vercel
+        const pdf = require('pdf-parse');
 
         try {
-            const loadingTask = pdfjs.getDocument({
-                data: uint8Array,
-                useSystemFonts: true,
-                disableFontFace: true,
-                verbosity: 0
-            });
-            
-            const pdfDocument = await loadingTask.promise;
-            let fullText = '';
-            
-            // Leemos las primeras 50 páginas (suficiente para SCTR)
-            const numPages = Math.min(pdfDocument.numPages, 50);
-            
-            for (let i = 1; i <= numPages; i++) {
-                const page = await pdfDocument.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map((item: any) => item.str).join(' ');
-                fullText += pageText + '\n';
-            }
-
-            const cleanText = fullText.replace(/\s+/g, ' ').trim();
+            // Pasamos opciones vacías para evitar que intente cargar renderizadores de página
+            const data = await pdf(buffer);
+            const text = data.text || '';
+            const cleanText = text.replace(/\s+/g, ' ').trim();
 
             if (cleanText.length > 5) {
                 return NextResponse.json({ 
@@ -46,16 +31,24 @@ export async function POST(req: NextRequest) {
                     text: cleanText
                 });
             } else {
-                throw new Error("El PDF no contiene texto extraíble (podría ser una imagen).");
+                return NextResponse.json({ 
+                    success: false, 
+                    error: "El PDF no tiene texto legible (podría ser una imagen)." 
+                });
             }
-            
-        } catch (parseError: any) {
-            console.error("[Robot] Error parsing:", parseError.message);
-            return NextResponse.json({ success: false, error: parseError.message });
+        } catch (innerError: any) {
+            console.error("[Robot] Error interno pdf-parse:", innerError.message);
+            return NextResponse.json({ 
+                success: false, 
+                error: "Error al procesar el contenido: " + innerError.message 
+            });
         }
 
     } catch (error: any) {
-        console.error('[Robot] Error crítico:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        console.error('[Robot] Error crítico de servidor:', error);
+        return NextResponse.json({ 
+            success: false, 
+            error: "Fallo crítico: " + error.message 
+        }, { status: 500 });
     }
 }
