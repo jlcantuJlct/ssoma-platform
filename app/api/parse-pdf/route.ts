@@ -22,31 +22,42 @@ export async function POST(req: NextRequest) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        console.log(`[PDF Robot] Procesando archivo: ${file.name} (${file.size} bytes)`);
+        console.log(`[PDF Robot] Procesando archivo: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
 
         try {
             // Intento 1: pdf-parse (rápido para texto digital estándar)
-            const data = await pdf(buffer);
+            // Agregamos un pequeño delay o check para evitar bloqueos en archivos pesados
+            const data = await pdf(buffer, {
+                // @ts-ignore - Some versions support pagerender customization
+                pagerender: function(pageData: any) {
+                    return pageData.getTextContent().then(function(textContent: any) {
+                        return textContent.items.map((i: any) => i.str).join(' ');
+                    });
+                }
+            });
             
-            if (data.text && data.text.trim().length > 10) {
+            const extractedText = (data.text || '').replace(/\s+/g, ' ').trim();
+
+            if (extractedText.length > 20) {
+                console.log(`[PDF Robot] Éxito con pdf-parse. Caracteres: ${extractedText.length}`);
                 return NextResponse.json({ 
                     success: true, 
-                    text: data.text,
+                    text: extractedText,
                     info: data.info,
                     numpages: data.numpages,
                     method: 'pdf-parse'
                 });
             }
-            throw new Error("Texto extraído insuficiente");
             
-        } catch (parseError) {
-            console.warn("[PDF Robot] Falló pdf-parse, intentando método alternativo...");
+            console.warn(`[PDF Robot] Texto extraído insuficiente (${extractedText.length} chars). Probable PDF escaneado.`);
+            throw new Error("Texto extraído insuficiente (PDF probablemente escaneado)");
             
-            // Intento 2: Si pdf-parse falló, podríamos usar pdfjs-dist aquí en el futuro 
-            // Por ahora, devolvemos error controlado para que el usuario use el modo manual
+        } catch (parseError: any) {
+            console.error("[PDF Robot] Error en parsing:", parseError.message);
+            
             return NextResponse.json({ 
                 success: false, 
-                error: 'El formato del PDF es complejo. Por favor, copie y pegue el texto de la relación manualmente en el campo habilitado.' 
+                error: 'El formato del PDF es complejo o está escaneado como imagen. El robot no puede "leer" imágenes todavía. Por favor, copie y pegue la lista de personal manualmente.' 
             });
         }
 

@@ -98,39 +98,59 @@ export default function SCTRPage() {
             );
             setForm(prev => ({ ...prev, file_url: url }));
 
-            // Intento de lectura por Robot
+            // Intento de lectura por Robot (API Local/Vercel)
             const formData = new FormData();
             formData.append('file', selectedFile);
             
-            const parseRes = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
-            const parseData = await parseRes.json();
-
-            if (parseData.success) {
-                const text = parseData.text || '';
-                let extractedDate = '';
-                let extractedPolicy = '';
-
-                const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-                if (dateMatch) {
-                    const [full, day, month, year] = dateMatch;
-                    extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                }
-
-                const policyMatch = text.match(/(?:Pó|po)liza\s*(?:N|n|°|#)*\s*([A-Z0-9\-]+)/i);
-                if (policyMatch) extractedPolicy = policyMatch[1];
-
-                setForm(prev => ({ 
-                    ...prev, 
-                    personnel_list: text,
-                    expiration_date: extractedDate || prev.expiration_date,
-                    policy_number: extractedPolicy || prev.policy_number
-                }));
-                alert("✅ Robot leyó el PDF. Verifica los datos y la lista abajo.");
-            } else {
-                alert("⚠️ El robot no pudo extraer los nombres. Por favor pégalos manualmente en el cuadro de texto para habilitar el buscador.");
+            // Verificación de tamaño para evitar límites de Vercel (4.5MB)
+            if (selectedFile.size > 4 * 1024 * 1024) {
+                console.warn("Archivo grande detectado (>4MB). La extracción automática podría fallar en la nube.");
             }
-        } catch (error: any) {
-            alert("⚠️ Error de conexión con el robot. Puedes ingresar los datos manualmente.");
+
+            try {
+                const parseRes = await fetch('/api/parse-pdf', { 
+                    method: 'POST', 
+                    body: formData,
+                    // Añadimos un timeout razonable
+                    signal: AbortSignal.timeout(15000) 
+                });
+                
+                if (!parseRes.ok) throw new Error(`HTTP Error: ${parseRes.status}`);
+                
+                const parseData = await parseRes.json();
+
+                if (parseData.success) {
+                    const text = parseData.text || '';
+                    console.log(`[Robot] Texto extraído (${text.length} caracteres)`);
+                    
+                    let extractedDate = '';
+                    let extractedPolicy = '';
+
+                    // Regex mejoradas para fechas y pólizas
+                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                    if (dateMatch) {
+                        const [_, day, month, year] = dateMatch;
+                        extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+
+                    const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro)\s*:?\s*([A-Z0-9\-]{5,})/i);
+                    if (policyMatch) extractedPolicy = policyMatch[1];
+
+                    setForm(prev => ({ 
+                        ...prev, 
+                        personnel_list: text,
+                        expiration_date: extractedDate || prev.expiration_date,
+                        policy_number: extractedPolicy || prev.policy_number
+                    }));
+                    alert("✅ Robot leyó el PDF. Se han extraído los nombres y datos principales.");
+                } else {
+                    console.warn("[Robot] No pudo extraer texto:", parseData.error);
+                    alert("⚠️ El robot no pudo extraer los nombres automáticamente (posible PDF escaneado). Por favor pégalos manualmente en el cuadro de texto.");
+                }
+            } catch (fetchErr: any) {
+                console.error("[Robot] Error de comunicación:", fetchErr);
+                alert("⚠️ Error de conexión con el robot (Timeout o archivo muy pesado). Por favor ingresa los datos de la póliza y los nombres manualmente.");
+            }
         } finally {
             setIsUploading(false);
         }
@@ -187,17 +207,30 @@ export default function SCTRPage() {
     };
 
     const isNameInRelation = (record: SCTRMonthlyRecord, name: string) => {
-        if (!name || name.length < 3 || !record?.personnel_list) return false;
+        if (!name || name.length < 2 || !record?.personnel_list) return false;
         
-        // Normalización base: quitar tildes, minúsculas, solo alfanuméricos
-        const baseNormalize = (text: string) => 
-            (text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        // Normalización avanzada: quitar tildes, minúsculas, mantener espacios
+        const normalize = (text: string) => 
+            (text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             
-        const normalizedTarget = baseNormalize(name);
-        const normalizedList = baseNormalize(record.personnel_list);
+        const target = normalize(name).trim();
+        const list = normalize(record.personnel_list);
         
-        // Buscamos el nombre sin espacios dentro de la lista sin espacios
-        return normalizedList.includes(normalizedTarget);
+        // CASO 1: Búsqueda por DNI (Si el target es numérico)
+        if (/^\d+$/.test(target)) {
+            // Buscamos el DNI rodeado de caracteres no numéricos o límites de palabra
+            // Esto evita que "123" coincida con "91234"
+            const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
+            return dniRegex.test(record.personnel_list);
+        }
+
+        // CASO 2: Búsqueda por Nombre
+        const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
+        if (targetWords.length === 0) return false;
+
+        // Para que sea positivo, todas las palabras buscadas deben estar en el texto (sin importar el orden)
+        // Ej: "CANCINO JOSE" coincidirá con "JOSE LUIS CANCINO"
+        return targetWords.every(word => list.includes(word));
     };
 
     // Meses con cobertura para el año seleccionado
