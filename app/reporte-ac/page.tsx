@@ -225,7 +225,7 @@ export default function ReporteACPage() {
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar / Área</label>
                                     <SearchableSelect 
-                                        options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                        options={SSOMA_LOCATIONS}
                                         value={form.location}
                                         onChange={val => setForm({...form, location: val})}
                                         placeholder="Seleccionar lugar..."
