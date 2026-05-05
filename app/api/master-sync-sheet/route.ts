@@ -5,130 +5,119 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzejhIn8c-dF7bg
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        let total = 0;
+        const { searchParams } = new URL(req.url);
+        const offset = parseInt(searchParams.get('offset') || '0');
+        const limit = 50; // Procesar de 50 en 50 para no morir por timeout
 
-        // Función auxiliar para enviar al Excel
-        const logToSheet = async (data: any) => {
+        let allRecords: any[] = [];
+
+        // Recolectar de TODAS las tablas posibles
+        // SCTR
+        const sctr = await db.fetchAll('SELECT * FROM sctr_monthly_records');
+        sctr.forEach(r => allRecords.push({
+            control: "SCTR", fecha: `${r.month} ${r.year}`, lugar: "GENERAL", responsable: "SISTEMA",
+            detalle: `Empresa: ${r.company}, Póliza: ${r.policy_number}`, link: r.file_url, created: r.created_at
+        }));
+
+        // Brigadistas
+        const brig = await db.fetchAll('SELECT * FROM brigadista_records');
+        brig.forEach(r => allRecords.push({
+            control: "BRIGADISTAS", fecha: r.date, lugar: r.location, responsable: r.responsible,
+            detalle: `Tipo: ${r.brigadista_type}`, link: r.file_url, created: r.created_at
+        }));
+
+        // Inspecciones
+        try {
+            const insp = await db.fetchAll('SELECT * FROM inspection_records');
+            insp.forEach(r => allRecords.push({
+                control: "INSPECCIÓN", fecha: r.date, lugar: r.zone || r.area || "GENERAL", responsable: r.responsible,
+                detalle: `Tipo: ${r.inspection_type}`, link: r.evidence_pdf || r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // HHC
+        try {
+            const hhc = await db.fetchAll('SELECT * FROM hhc_records');
+            hhc.forEach(r => allRecords.push({
+                control: "HHC / CHARLA", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                detalle: `Tema: ${r.topic}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // ATS / PETAR
+        try {
+            const ats = await db.fetchAll('SELECT * FROM ats_records');
+            ats.forEach(r => allRecords.push({
+                control: "ATS / PERMISO", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                detalle: `Tarea: ${r.task_description}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // PMA
+        try {
+            const pma = await db.fetchAll('SELECT * FROM pma_records');
+            pma.forEach(r => allRecords.push({
+                control: "PMA / AMBIENTAL", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                detalle: `Categoría: ${r.category}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // Simulacros
+        try {
+            const sim = await db.fetchAll('SELECT * FROM simulacro_records');
+            sim.forEach(r => allRecords.push({
+                control: "SIMULACRO", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                detalle: `Tipo: ${r.simulacro_type}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // RISSTMA
+        try {
+            const risstma = await db.fetchAll('SELECT * FROM risstma_records');
+            risstma.forEach(r => allRecords.push({
+                control: "RISSTMA", fecha: r.date, lugar: "GENERAL", responsable: r.responsible,
+                detalle: `Documento: ${r.document_type}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // EPP
+        try {
+            const epp = await db.fetchAll('SELECT * FROM epp_records');
+            epp.forEach(r => allRecords.push({
+                control: "EPP / EQUIPOS", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                detalle: `Personal: ${r.worker_name}`, link: r.file_url, created: r.created_at
+            }));
+        } catch(e){}
+
+        // Ordenar por fecha de creación para que el Excel tenga sentido cronológico
+        allRecords.sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime());
+
+        // Cortar según el offset para procesar por partes
+        const slice = allRecords.slice(offset, offset + limit);
+        const remaining = allRecords.length - (offset + slice.length);
+
+        console.log(`Syncing block: ${offset} to ${offset + slice.length}. Remaining: ${remaining}`);
+
+        for (const data of slice) {
             try {
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'log', data }),
                     headers: { 'Content-Type': 'text/plain' }
                 });
-                total++;
-            } catch (e) {
-                console.warn("Error enviando a Sheet:", e);
-            }
-        };
-
-        // 1. SCTR
-        const sctr = await db.fetchAll('SELECT * FROM sctr_monthly_records ORDER BY created_at ASC');
-        for (const r of sctr) {
-            await logToSheet({
-                control: "SCTR",
-                fecha: `${r.month} ${r.year}`,
-                lugar: "GENERAL",
-                responsable: "SISTEMA",
-                detalle: `Empresa: ${r.company}, Póliza: ${r.policy_number}`,
-                link: r.file_url // SCTR usa file_url
-            });
+            } catch (e) {}
         }
-
-        // 2. Brigadistas
-        const brig = await db.fetchAll('SELECT * FROM brigadista_records ORDER BY created_at ASC');
-        for (const r of brig) {
-            await logToSheet({
-                control: "BRIGADISTAS",
-                fecha: r.date,
-                lugar: r.location,
-                responsable: r.responsible,
-                detalle: `Tipo: ${r.brigadista_type}`,
-                link: r.file_url // Brigadistas usa file_url
-            });
-        }
-
-        // 3. Inspecciones
-        try {
-            const insp = await db.fetchAll('SELECT * FROM inspection_records ORDER BY created_at ASC');
-            for (const r of insp) {
-                await logToSheet({
-                    control: "INSPECCIÓN",
-                    fecha: r.date,
-                    lugar: r.zone || r.area || "GENERAL",
-                    responsable: r.responsible,
-                    detalle: `Tipo: ${r.inspection_type}`,
-                    link: r.evidence_pdf || (r.evidence_imgs ? "Tiene Imágenes" : "") // Inspecciones usa evidence_pdf
-                });
-            }
-        } catch (e) {}
-
-        // 4. HHC (Charlas)
-        try {
-            const hhc = await db.fetchAll('SELECT * FROM hhc_records ORDER BY created_at ASC');
-            for (const r of hhc) {
-                await logToSheet({
-                    control: "HHC / CHARLA",
-                    fecha: r.date,
-                    lugar: r.location,
-                    responsable: r.responsible,
-                    detalle: `Tema: ${r.topic}`,
-                    link: r.file_url // HHC usa file_url
-                });
-            }
-        } catch (e) {}
-
-        // 5. PMA (Fotos / Ambiental)
-        try {
-            const pma = await db.fetchAll('SELECT * FROM pma_records ORDER BY created_at ASC');
-            for (const r of pma) {
-                await logToSheet({
-                    control: "PMA / AMBIENTAL",
-                    fecha: r.date,
-                    lugar: r.location,
-                    responsable: r.responsible,
-                    detalle: `Categoría: ${r.category}`,
-                    link: r.file_url
-                });
-            }
-        } catch (e) {}
-
-        // 6. EPP
-        try {
-            const epp = await db.fetchAll('SELECT * FROM epp_records ORDER BY created_at ASC');
-            for (const r of epp) {
-                await logToSheet({
-                    control: "EPP / EQUIPOS",
-                    fecha: r.date,
-                    lugar: r.location,
-                    responsable: r.responsible,
-                    detalle: `Personal: ${r.worker_name}`,
-                    link: r.file_url
-                });
-            }
-        } catch (e) {}
-
-        // 7. Reporte A/C
-        try {
-            const ac = await db.fetchAll('SELECT * FROM reporte_ac_records ORDER BY created_at ASC');
-            for (const r of ac) {
-                await logToSheet({
-                    control: "REPORTE A/C",
-                    fecha: r.date,
-                    lugar: r.location,
-                    responsable: r.responsible,
-                    detalle: `Hallazgo: ${r.finding_type}`,
-                    link: r.file_url
-                });
-            }
-        } catch (e) {}
 
         return NextResponse.json({ 
             success: true, 
-            message: `Sincronización Universal completada. Se han enviado ${total} registros de todos los módulos.`,
-            count: total 
+            synced: slice.length,
+            nextOffset: offset + slice.length,
+            remaining: remaining,
+            message: remaining > 0 ? `Quedan ${remaining} registros pendientes. Refresca para continuar.` : "¡Sincronización Total Completada!"
         });
+
     } catch (e: any) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
