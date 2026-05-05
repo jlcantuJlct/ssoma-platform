@@ -89,7 +89,15 @@ export default function SCTRPage() {
 
         setIsUploading(true);
         try {
-            // 1. Subir el archivo al almacenamiento (Blob)
+            // 1. Preparar datos para el Log del Excel
+            const logData = {
+                control: "SCTR",
+                periodo: `${form.month} ${form.year}`,
+                empresa: form.company,
+                detalle: `Póliza: ${form.policy_number || 'N/A'}, Vencimiento: ${form.expiration_date || 'N/A'}`
+            };
+
+            // 2. Subir el archivo al almacenamiento (Blob/Drive) y anotar en Excel
             const url = await uploadEvidence(
                 selectedFile,
                 'SCTR',
@@ -98,7 +106,9 @@ export default function SCTRPage() {
                 'SISTEMA',
                 'sctr',
                 'seguridad',
-                'GENERAL'
+                'GENERAL',
+                undefined, // objective
+                logData // Enviamos los datos al Excel
             );
             setForm(prev => ({ ...prev, file_url: url }));
 

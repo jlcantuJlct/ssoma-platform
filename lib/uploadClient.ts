@@ -88,7 +88,8 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2t
  * Sube archivo directamente a Google Drive via Apps Script Bridge
  * Útil para archivos > 4MB que Vercel rechaza
  */
-async function uploadDirectToDrive(file: File, folderName: string, fileName: string): Promise<string> {
+async function uploadDirectToDrive(file: File, folderName: string, fileName: string, logData?: any): Promise<string> {
+    console.log(`📤 Subida directa a Drive: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
     console.log(`📤 Subida directa a Drive: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
     try {
@@ -111,7 +112,8 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             fileBase64: base64,
             folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA (Actualizado a 1j6w activo)
             folderPath: folderName, // NEW: Match 'folderPath' expected by Bridge
-            folderName: folderName
+            folderName: folderName,
+            logData: logData // Enviar datos para el Excel
         };
 
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -162,7 +164,8 @@ export async function uploadEvidence(
     tipo?: string,
     area?: string,
     lugar?: string,
-    objective?: string // New Parameter for Objective Folders
+    objective?: string,
+    logData?: any // Nuevo: Datos para la bitácora
 ): Promise<string> {
     // 1. Validation: Max Size (50MB as requested by user)
     // NOTE: Vercel Free still has a 4.5MB limit. If file is > 4.5MB and not an image, it may fail.
@@ -303,6 +306,7 @@ export async function uploadEvidence(
             formData.append('file', fileToUpload);
             formData.append('folderName', folderName);
             formData.append('fileName', fileName);
+            if (logData) formData.append('logData', JSON.stringify(logData));
 
             const response = await fetch('/api/upload-evidence', {
                 method: 'POST',
@@ -328,7 +332,7 @@ export async function uploadEvidence(
     // B. INTENTO VIA BRIDGE APPS SCRIPT (Fallback o Archivos Grandes)
     try {
         console.log("🌐 Intentando subida directa (Bridge Apps Script)...");
-        const directUrl = await uploadDirectToDrive(fileToUpload, folderName, fileName);
+        const directUrl = await uploadDirectToDrive(fileToUpload, folderName, fileName, logData);
         console.log(`✅ Exito Bridge! URL: ${directUrl}`);
         return directUrl;
     } catch (directError: any) {
