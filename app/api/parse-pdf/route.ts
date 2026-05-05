@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
+const pdf = require('pdf-parse');
 
 // Configuración para aumentar el límite de carga si es posible
 export const config = {
