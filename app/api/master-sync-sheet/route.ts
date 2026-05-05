@@ -32,7 +32,7 @@ export async function GET() {
                 lugar: "GENERAL",
                 responsable: "SISTEMA",
                 detalle: `Empresa: ${r.company}, Póliza: ${r.policy_number}`,
-                link: r.file_url
+                link: r.file_url // SCTR usa file_url
             });
         }
 
@@ -45,7 +45,7 @@ export async function GET() {
                 lugar: r.location,
                 responsable: r.responsible,
                 detalle: `Tipo: ${r.brigadista_type}`,
-                link: r.file_url
+                link: r.file_url // Brigadistas usa file_url
             });
         }
 
@@ -56,10 +56,10 @@ export async function GET() {
                 await logToSheet({
                     control: "INSPECCIÓN",
                     fecha: r.date,
-                    lugar: r.location,
+                    lugar: r.zone || r.area || "GENERAL",
                     responsable: r.responsible,
                     detalle: `Tipo: ${r.inspection_type}`,
-                    link: r.file_url
+                    link: r.evidence_pdf || (r.evidence_imgs ? "Tiene Imágenes" : "") // Inspecciones usa evidence_pdf
                 });
             }
         } catch (e) {}
@@ -74,7 +74,7 @@ export async function GET() {
                     lugar: r.location,
                     responsable: r.responsible,
                     detalle: `Tema: ${r.topic}`,
-                    link: r.file_url
+                    link: r.file_url // HHC usa file_url
                 });
             }
         } catch (e) {}
