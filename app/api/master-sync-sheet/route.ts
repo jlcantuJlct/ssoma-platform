@@ -46,22 +46,30 @@ export async function GET(req: NextRequest) {
             }));
         } catch(e){}
 
-        // ATS / PETAR
+        // 5. ATS / PETAR
         try {
             const ats = await db.fetchAll('SELECT * FROM ats_records');
             ats.forEach(r => allRecords.push({
                 control: "ATS / PERMISO", fecha: r.date, lugar: r.location, responsable: r.responsible,
-                detalle: `Tarea: ${r.task_description}`, link: r.file_url, created: r.created_at
+                detalle: `Registro ATS`, link: r.file_url, created: r.created_at
             }));
         } catch(e){}
 
-        // PMA
+        // 6. PMA (Fotos / Ambiental)
         try {
-            const pma = await db.fetchAll('SELECT * FROM pma_records');
-            pma.forEach(r => allRecords.push({
-                control: "PMA / AMBIENTAL", fecha: r.date, lugar: r.location, responsable: r.responsible,
-                detalle: `Categoría: ${r.category}`, link: r.file_url, created: r.created_at
-            }));
+            const pma = await db.fetchAll('SELECT * FROM pma_evidence_records'); // Tabla corregida
+            pma.forEach(r => {
+                let firstImg = "";
+                try {
+                    const imgs = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
+                    if (Array.isArray(imgs) && imgs.length > 0) firstImg = imgs[0];
+                } catch(e){}
+                
+                allRecords.push({
+                    control: "PMA / AMBIENTAL", fecha: r.date, lugar: r.location, responsable: r.responsible,
+                    detalle: `Categoría: ${r.category}`, link: firstImg || "", created: r.created_at
+                });
+            });
         } catch(e){}
 
         // Simulacros
