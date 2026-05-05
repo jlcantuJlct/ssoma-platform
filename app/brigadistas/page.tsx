@@ -172,6 +172,13 @@ export default function BrigadistasPage() {
         setDragActive(false);
         if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
     };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!form.responsible || !form.location || !form.date || !form.brigadistaType) {
+            alert("Por favor completa todos los campos del formulario.");
+            return;
+        }
 
         if (uploadedFiles.length === 0 && !editingId) {
             alert("Es obligatorio subir al menos una evidencia (Imagen o PDF).");
