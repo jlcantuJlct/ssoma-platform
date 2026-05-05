@@ -106,36 +106,54 @@ export default function SCTRPage() {
             try {
                 // Cargamos PDF.js dinámicamente
                 const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
-                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+                const version = pdfjsLib.version || '4.0.379';
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.mjs`;
 
                 const arrayBuffer = await selectedFile.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                const loadingTask = pdfjsLib.getDocument({ 
+                    data: arrayBuffer,
+                    verbosity: 0,
+                    stopAtErrors: false
+                });
+                
                 const pdf = await loadingTask.promise;
+                console.log(`[Robot Local] PDF Cargado: ${pdf.numPages} páginas.`);
                 
                 let fullText = "";
-                const maxPages = Math.min(pdf.numPages, 100); // Límite de seguridad
+                const maxPages = Math.min(pdf.numPages, 100); 
                 
                 for (let i = 1; i <= maxPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map((item: any) => item.str).join(" ");
-                    fullText += pageText + "\n";
+                    try {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items
+                            .map((item: any) => item.str)
+                            .filter(str => str !== undefined)
+                            .join(" ");
+                        fullText += pageText + "\n";
+                    } catch (pageErr) {
+                        console.warn(`Error en página ${i}:`, pageErr);
+                    }
                 }
 
                 const text = fullText.replace(/\s+/g, ' ').trim();
-                console.log(`[Robot Local] Texto extraído (${text.length} caracteres)`);
+                console.log(`[Robot Local] Total extraído: ${text.length} caracteres.`);
                 
+                if (text.length < 10) {
+                    throw new Error("El PDF parece estar vacío o ser una imagen (escaneado).");
+                }
+
                 let extractedDate = '';
                 let extractedPolicy = '';
 
-                // Regex mejoradas
+                // Regex mejoradas para SCTR
                 const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
                 if (dateMatch) {
                     const [_, day, month, year] = dateMatch;
                     extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 }
 
-                const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro)\s*:?\s*([A-Z0-9\-]{5,})/i);
+                const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro|Contrato)\s*:?\s*([A-Z0-9\-\/]{5,})/i);
                 if (policyMatch) extractedPolicy = policyMatch[1];
 
                 setForm(prev => ({ 
@@ -145,11 +163,11 @@ export default function SCTRPage() {
                     policy_number: extractedPolicy || prev.policy_number
                 }));
                 
-                alert("✅ ¡Robot Local activado! Se han extraído los nombres y datos sin límites de tamaño.");
+                alert(`✅ Robot Local: Se han procesado ${pdf.numPages} páginas y extraído ${text.length} caracteres.`);
 
             } catch (parseErr: any) {
                 console.error("[Robot Local] Error al leer PDF:", parseErr);
-                alert("⚠️ El navegador no pudo leer el PDF automáticamente. Por favor ingresa los datos manualmente.");
+                alert(`⚠️ El robot no pudo leer los nombres automáticamente (${parseErr.message}). Por favor ingresa los datos manualmente.`);
             }
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);
