@@ -210,7 +210,7 @@ export default function Sidebar() {
                             <div className="flex flex-col">
                                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider leading-tight">Desarrollado por</span>
                                 <span className="text-[10px] text-emerald-400 font-bold tracking-tight leading-tight">Jose Luis Cancino Tueros</span>
-                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.5.04 - SCTR REVAMP READY</span>
+                                <span className="text-[10px] text-green-500 font-bold font-mono mt-0.5">v2026.5.05 - MULTI-FILE & PDF-JS READY</span>
                             </div>
                         </div>
                     </div>
