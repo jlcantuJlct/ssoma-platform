@@ -21,13 +21,7 @@ import {
 import { generateFilename, getInitials } from "@/lib/utils";
 
 // --- TYPES ---
-type BrigadistaRecord = {
-    id: number;
-    date: string;
-    responsible: string;
-    brigadistaType: string;
-    location: string;
-    fileUrl: string;
+    fileUrl: string; // Will store multiple URLs joined by '|'
 };
 
 // REMOVED STATIC TYPES - Now fetched from Annual Program SEG 06
@@ -49,7 +43,7 @@ export default function BrigadistasPage() {
         location: ''
     });
 
-    const [file, setFile] = useState<{ url: string, name: string, type: string } | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<{ url: string, name: string, type: string }[]>([]);
     const [editingId, setEditingId] = useState<number | null>(null);
 
     // Filter State
@@ -134,8 +128,7 @@ export default function BrigadistasPage() {
                 form.location
             );
 
-            setFile({ url, name: selectedFile.name, type: selectedFile.type });
-            alert("✅ Archivo subido correctamente.");
+            setUploadedFiles(prev => [...prev, { url, name: selectedFile.name, type: selectedFile.type }]);
         } catch (error: any) {
             console.error(error);
             alert(`Error al subir: ${error.message}`);
@@ -145,8 +138,8 @@ export default function BrigadistasPage() {
     };
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFile(e.target.files[0]);
+        if (e.target.files) {
+            Array.from(e.target.files).forEach(file => handleFile(file));
         }
     };
 
@@ -164,30 +157,24 @@ export default function BrigadistasPage() {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files) {
+            Array.from(e.dataTransfer.files).forEach(file => handleFile(file));
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!form.responsible || !form.location || !form.date || !form.brigadistaType) {
-            alert("Por favor completa todos los campos del formulario.");
+        if (uploadedFiles.length === 0 && !editingId) {
+            alert("Es obligatorio subir al menos una evidencia (Imagen o PDF).");
             return;
         }
 
-        if (!file && !editingId) {
-            alert("Es obligatorio subir una evidencia (Imagen o PDF).");
-            return;
-        }
+        const joinedUrls = uploadedFiles.map(f => f.url).join('|');
 
         const payload = {
             date: form.date,
             responsible: form.responsible,
             brigadistaType: form.brigadistaType,
             location: form.location,
-            fileUrl: file?.url || ''
+            fileUrl: joinedUrls
         };
 
         try {
@@ -228,7 +215,7 @@ export default function BrigadistasPage() {
             brigadistaType: '',
             location: ''
         });
-        setFile(null);
+        setUploadedFiles([]);
     };
 
     const handleEdit = (record: BrigadistaRecord) => {
@@ -239,6 +226,21 @@ export default function BrigadistasPage() {
             brigadistaType: record.brigadistaType,
             location: record.location
         });
+        
+        // Parse current URLs
+        if (record.fileUrl) {
+            const urls = record.fileUrl.split('|').filter(Boolean);
+            setUploadedFiles(urls.map(url => ({ 
+                url, 
+                name: url.split('/').pop() || 'archivo', 
+                type: url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg' 
+            })));
+        } else {
+            setUploadedFiles([]);
+        }
+        
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = async (id: number) => {
@@ -335,11 +337,18 @@ export default function BrigadistasPage() {
 
                                         {/* DRAG & DROP AREA */}
                                         <div className="space-y-1 pt-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-2">Evidencia (PDF o Imagen)</label>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Evidencias ({uploadedFiles.length})</label>
+                                                <div className="flex gap-2 text-[9px] font-bold">
+                                                    <span className="text-red-400">PDF: {uploadedFiles.filter(f => f.type === 'application/pdf').length}</span>
+                                                    <span className="text-teal-400">IMG: {uploadedFiles.filter(f => f.type.startsWith('image/')).length}</span>
+                                                </div>
+                                            </div>
+                                            
                                             <div 
-                                                className={`relative group border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
+                                                className={`relative group border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 ${
                                                     dragActive ? 'border-red-500 bg-red-500/10 scale-[1.02]' : 
-                                                    file ? 'border-teal-500/50 bg-teal-500/5' : 'border-slate-700 hover:bg-slate-800/50'
+                                                    uploadedFiles.length > 0 ? 'border-teal-500/50 bg-teal-500/5' : 'border-slate-700 hover:bg-slate-800/50'
                                                 }`}
                                                 onDragEnter={handleDrag}
                                                 onDragLeave={handleDrag}
@@ -350,30 +359,46 @@ export default function BrigadistasPage() {
                                                     type="file"
                                                     accept=".pdf,image/*"
                                                     onChange={handleFileInput}
+                                                    multiple
                                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                 />
-                                                <div className="flex flex-col items-center gap-3">
+                                                <div className="flex flex-col items-center gap-2">
                                                     {isUploading ? (
-                                                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500"></div>
-                                                    ) : file ? (
-                                                        <div className="bg-teal-500/20 p-3 rounded-full relative">
-                                                            {file.type.startsWith('image/') ? <ImageIcon className="text-teal-400" size={24} /> : <FileText className="text-teal-400" size={24} />}
-                                                            <CheckCircle2 size={12} className="absolute -top-1 -right-1 text-emerald-400 bg-slate-900 rounded-full" />
-                                                        </div>
+                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
                                                     ) : (
-                                                        <div className="bg-slate-800 p-3 rounded-full group-hover:bg-slate-700 transition-colors">
-                                                            <Upload className="text-slate-400 group-hover:text-white" size={24} />
+                                                        <div className="bg-slate-800 p-2 rounded-full group-hover:bg-slate-700 transition-colors">
+                                                            <Upload className="text-slate-400 group-hover:text-white" size={20} />
                                                         </div>
                                                     )}
                                                     <div className="space-y-1">
-                                                        <p className={`text-xs font-bold ${file ? 'text-teal-400' : 'text-slate-300'}`}>
-                                                            {isUploading ? "Subiendo..." : (file ? "Evidencia lista" : "Arrastra o click para subir")}
+                                                        <p className="text-[11px] font-bold text-slate-300">
+                                                            {isUploading ? "Subiendo..." : "Agregar más archivos"}
                                                         </p>
-                                                        <p className="text-[9px] text-slate-500">Imágenes o PDF</p>
-                                                        {file && <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{file.name}</p>}
+                                                        <p className="text-[9px] text-slate-500 italic">PDF o Imágenes</p>
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* List of uploaded files */}
+                                            {uploadedFiles.length > 0 && (
+                                                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                                                    {uploadedFiles.map((f, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-slate-950/50 p-2 rounded-lg border border-slate-800 group">
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                {f.type.startsWith('image/') ? <ImageIcon size={14} className="text-teal-400" /> : <FileText size={14} className="text-red-400" />}
+                                                                <span className="text-[10px] text-slate-400 truncate max-w-[150px]">{f.name}</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                                                                className="text-slate-600 hover:text-red-400 p-1"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <button
@@ -456,9 +481,16 @@ export default function BrigadistasPage() {
                                                     <td className="py-4 text-slate-400 text-xs">{record.location}</td>
                                                     <td className="py-4 text-center">
                                                         {record.fileUrl && (
-                                                            <a href={record.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex p-2 bg-slate-800 rounded-lg text-teal-400 hover:bg-teal-500/20 transition-colors">
-                                                                <FileText size={16} />
-                                                            </a>
+                                                            <div className="flex justify-center gap-1">
+                                                                {record.fileUrl.split('|').map((url, i) => (
+                                                                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" 
+                                                                       className={`inline-flex p-1.5 rounded-lg transition-colors ${url.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'}`}
+                                                                       title={url.toLowerCase().endsWith('.pdf') ? 'Ver PDF' : 'Ver Imagen'}
+                                                                    >
+                                                                        {url.toLowerCase().endsWith('.pdf') ? <FileText size={14} /> : <ImageIcon size={14} />}
+                                                                    </a>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </td>
                                                     <td className="py-4 text-right pr-4">
