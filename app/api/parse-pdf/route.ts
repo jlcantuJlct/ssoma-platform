@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Mover require adentro para evitar errores de compilación estática
 
-// Configuración para aumentar el límite de carga si es posible
+// Usamos pdfjs-dist que es más moderno y compatible con Vercel
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.js';
+
 export const config = {
     api: {
         bodyParser: {
@@ -20,44 +21,47 @@ export async function POST(req: NextRequest) {
         }
 
         const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        const uint8Array = new Uint8Array(bytes);
 
-        console.log(`[PDF Robot] Procesando archivo: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+        console.log(`[PDF Robot] Procesando con PDF.js: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
 
         try {
-            // Intento 1: pdf-parse (rápido para texto digital estándar)
-            const pdf = require('pdf-parse');
-            const data = await pdf(buffer, {
-                // @ts-ignore - Some versions support pagerender customization
-                pagerender: function(pageData: any) {
-                    return pageData.getTextContent().then(function(textContent: any) {
-                        return textContent.items.map((i: any) => i.str).join(' ');
-                    });
-                }
+            const loadingTask = pdfjs.getDocument({
+                data: uint8Array,
+                useSystemFonts: true,
+                disableFontFace: true // Evita errores de fuentes en serverless
             });
             
-            const extractedText = (data.text || '').replace(/\s+/g, ' ').trim();
+            const pdfDocument = await loadingTask.promise;
+            let fullText = '';
+            
+            // Leemos todas las páginas
+            for (let i = 1; i <= pdfDocument.numPages; i++) {
+                const page = await pdfDocument.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item: any) => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
 
-            if (extractedText.length > 20) {
-                console.log(`[PDF Robot] Éxito con pdf-parse. Caracteres: ${extractedText.length}`);
+            const cleanText = fullText.replace(/\s+/g, ' ').trim();
+
+            if (cleanText.length > 20) {
+                console.log(`[PDF Robot] Éxito con PDF.js. Caracteres: ${cleanText.length}`);
                 return NextResponse.json({ 
                     success: true, 
-                    text: extractedText,
-                    info: data.info,
-                    numpages: data.numpages,
-                    method: 'pdf-parse'
+                    text: cleanText,
+                    numpages: pdfDocument.numPages,
+                    method: 'pdfjs-dist'
                 });
             }
             
-            console.warn(`[PDF Robot] Texto extraído insuficiente (${extractedText.length} chars). Probable PDF escaneado.`);
-            throw new Error("Texto extraído insuficiente (PDF probablemente escaneado)");
+            throw new Error("Texto extraído insuficiente");
             
         } catch (parseError: any) {
-            console.error("[PDF Robot] Error en parsing:", parseError.message);
-            
+            console.error("[PDF Robot] Error en parsing PDF.js:", parseError.message);
             return NextResponse.json({ 
                 success: false, 
-                error: 'El formato del PDF es complejo o está escaneado como imagen. El robot no puede "leer" imágenes todavía. Por favor, copie y pegue la lista de personal manualmente.' 
+                error: 'El formato del PDF es complejo o está escaneado. Por favor, use la carga manual.' 
             });
         }
 
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
         console.error('[PDF Robot] Error crítico:', error);
         return NextResponse.json({ 
             success: false, 
-            error: error.message || 'Error interno del servidor al procesar el PDF'
+            error: error.message || 'Error interno del servidor'
         }, { status: 500 });
     }
 }
