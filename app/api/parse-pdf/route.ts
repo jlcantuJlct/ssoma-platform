@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 // Usamos pdfjs-dist que es más moderno y compatible con Vercel
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
+export const maxDuration = 60; // Permite hasta 60 segundos de ejecución
+
 export const config = {
     api: {
         bodyParser: {

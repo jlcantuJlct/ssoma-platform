@@ -112,7 +112,8 @@ export default function SCTRPage() {
                     method: 'POST', 
                     body: formData,
                     // Añadimos un timeout razonable
-                    signal: AbortSignal.timeout(15000) 
+                    // Aumentamos el timeout a 60 segundos para archivos pesados
+                    signal: AbortSignal.timeout(60000) 
                 });
                 
                 if (!parseRes.ok) throw new Error(`HTTP Error: ${parseRes.status}`);
