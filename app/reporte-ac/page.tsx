@@ -15,8 +15,22 @@ import {
     Search,
     Download,
     Plus,
-    Activity
+    Activity,
+    BarChart3,
+    TrendingUp
 } from "lucide-react";
+import { 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer,
+    Cell,
+    PieChart,
+    Pie
+} from 'recharts';
 import { generateFilename, getDriveViewerUrl } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
@@ -181,6 +195,29 @@ export default function ReporteACPage() {
         return matchesDate && matchesLocation && matchesActo;
     });
 
+    // --- CHART DATA LOGIC ---
+    const getChartData = () => {
+        const actosCount: Record<string, number> = {};
+        const condicionesCount: Record<string, number> = {};
+
+        records.forEach(r => {
+            if (r.acto) actosCount[r.acto] = (actosCount[r.acto] || 0) + r.cantidad;
+            if (r.condicion) condicionesCount[r.condicion] = (condicionesCount[r.condicion] || 0) + r.cantidad;
+        });
+
+        const actosData = Object.entries(actosCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
+        const condicionesData = Object.entries(condicionesCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
+        return { actosData, condicionesData };
+    };
+
+    const { actosData, condicionesData } = getChartData();
+
     if (!isLoaded) return <div className="h-screen bg-slate-950 flex items-center justify-center text-white">Cargando...</div>;
 
     return (
@@ -190,14 +227,99 @@ export default function ReporteACPage() {
                 {/* Header */}
                 <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
-                    <div className="relative z-10">
-                        <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
-                            <AlertTriangle size={40} className="text-orange-500" />
-                            Reporte de Actos y Condiciones (A/C)
-                        </h1>
-                        <p className="text-slate-400 font-bold max-w-2xl">
-                            Herramienta para el registro de actos y condiciones inseguras identificadas en campo, sincronizado con el OBJ 04 del Programa Anual.
-                        </p>
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
+                                <AlertTriangle size={40} className="text-orange-500" />
+                                Reporte de Actos y Condiciones (A/C)
+                            </h1>
+                            <p className="text-slate-400 font-bold max-w-2xl">
+                                Herramienta para el registro de actos y condiciones inseguras identificadas en campo, sincronizado con el OBJ 04 del Programa Anual.
+                            </p>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px]">
+                                <p className="text-[10px] font-black text-orange-500 uppercase">Actos</p>
+                                <p className="text-2xl font-black text-white">{records.filter(r => r.acto).length}</p>
+                            </div>
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px]">
+                                <p className="text-[10px] font-black text-blue-500 uppercase">Condiciones</p>
+                                <p className="text-2xl font-black text-white">{records.filter(r => r.condicion).length}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Analysis Dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <TrendingUp size={20} className="text-orange-500" />
+                                Top Actos Inseguros
+                            </h3>
+                        </div>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={actosData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        dataKey="name" 
+                                        type="category" 
+                                        width={150} 
+                                        axisLine={false} 
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                                        tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
+                                        itemStyle={{ color: '#fb923c', fontWeight: 'bold' }}
+                                    />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                        {actosData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#ea580c' : '#fb923c'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <TrendingUp size={20} className="text-blue-500" />
+                                Top Condiciones Inseguras
+                            </h3>
+                        </div>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={condicionesData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        dataKey="name" 
+                                        type="category" 
+                                        width={150} 
+                                        axisLine={false} 
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                                        tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
+                                        itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
+                                    />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                        {condicionesData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#3b82f6'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
 
@@ -235,26 +357,24 @@ export default function ReporteACPage() {
 
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Acto Inseguro</label>
-                                    <select 
+                                    <SearchableSelect 
+                                        options={ACTOS_LIST}
                                         value={form.acto}
-                                        onChange={e => setForm({...form, acto: e.target.value})}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-orange-500 outline-none"
-                                    >
-                                        <option value="">-- Ninguno --</option>
-                                        {ACTOS_LIST.map(a => <option key={a} value={a}>{a}</option>)}
-                                    </select>
+                                        onChange={val => setForm({...form, acto: val})}
+                                        placeholder="Seleccionar acto..."
+                                        icon={<AlertTriangle size={16} className="text-orange-500" />}
+                                    />
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Condición Insegura</label>
-                                    <select 
+                                    <SearchableSelect 
+                                        options={CONDICIONES_LIST}
                                         value={form.condicion}
-                                        onChange={e => setForm({...form, condicion: e.target.value})}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-orange-500 outline-none"
-                                    >
-                                        <option value="">-- Ninguna --</option>
-                                        {CONDICIONES_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                        onChange={val => setForm({...form, condicion: val})}
+                                        placeholder="Seleccionar condición..."
+                                        icon={<AlertTriangle size={16} className="text-blue-500" />}
+                                    />
                                 </div>
 
                                 <div className="space-y-1">
