@@ -308,9 +308,11 @@ export default function SCTRPage() {
                                 <input 
                                     className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
                                     placeholder="Ingrese DNI o Nombre..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                             {searchTerm.length >= 3 && (() => {
+                                     onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {searchTerm.length >= 3 && (() => {
                                 const matchedRecords = records.filter(r => isNameInRelation(r, searchTerm));
                                 return (
                                     <div className="animate-in fade-in zoom-in-95 duration-200 space-y-2">
@@ -340,8 +342,6 @@ export default function SCTRPage() {
                                     </div>
                                 );
                             })()}
-                   </div>
-                            )}
                         </div>
                     </section>
 
