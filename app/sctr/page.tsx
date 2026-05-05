@@ -309,29 +309,37 @@ export default function SCTRPage() {
                                     placeholder="Ingrese DNI o Nombre..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-
-                            {searchTerm.length >= 3 && (
-                                <div className="animate-in fade-in zoom-in-95 duration-200">
-                                    {records.some(r => isNameInRelation(r, searchTerm)) ? (
-                                        <div className="bg-emerald-500/20 border border-emerald-500/50 p-4 rounded-2xl flex items-center gap-3">
-                                            <div className="bg-emerald-500 p-2 rounded-full"><CheckCircle2 size={16} className="text-black" /></div>
-                                            <div>
-                                                <p className="text-xs font-black text-emerald-400 uppercase">Personal Cubierto</p>
-                                                <p className="text-[10px] text-slate-300">Figura en póliza de {records.find(r => isNameInRelation(r, searchTerm))?.month}</p>
+                                             {searchTerm.length >= 3 && (() => {
+                                const matchedRecords = records.filter(r => isNameInRelation(r, searchTerm));
+                                return (
+                                    <div className="animate-in fade-in zoom-in-95 duration-200 space-y-2">
+                                        {matchedRecords.length > 0 ? (
+                                            <div className="bg-emerald-500/20 border border-emerald-500/50 p-4 rounded-2xl space-y-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="bg-emerald-500 p-2 rounded-full"><CheckCircle2 size={16} className="text-black" /></div>
+                                                    <p className="text-xs font-black text-emerald-400 uppercase">Personal Cubierto</p>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-emerald-500/20">
+                                                    {matchedRecords.map(r => (
+                                                        <div key={r.id} className="bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded text-[9px] font-bold text-slate-200">
+                                                            {r.month} {r.year}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">
-                                            <div className="bg-red-500 p-2 rounded-full"><AlertCircle size={16} className="text-white" /></div>
-                                            <div>
-                                                <p className="text-xs font-black text-red-400 uppercase">No Encontrado</p>
-                                                <p className="text-[10px] text-slate-400">No aparece en las pólizas de este año.</p>
+                                        ) : (
+                                            <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">
+                                                <div className="bg-red-500 p-2 rounded-full"><AlertCircle size={16} className="text-white" /></div>
+                                                <div>
+                                                    <p className="text-xs font-black text-red-400 uppercase">No Encontrado</p>
+                                                    <p className="text-[10px] text-slate-400">No aparece en ninguna póliza registrada.</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                   </div>
                             )}
                         </div>
                     </section>
