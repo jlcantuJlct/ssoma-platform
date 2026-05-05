@@ -89,7 +89,7 @@ export default function SCTRPage() {
 
         setIsUploading(true);
         try {
-            // 1. Subir a Vercel Blob (para almacenamiento)
+            // 1. Subir el archivo al almacenamiento (Blob)
             const url = await uploadEvidence(
                 selectedFile,
                 'SCTR',
@@ -102,29 +102,35 @@ export default function SCTRPage() {
             );
             setForm(prev => ({ ...prev, file_url: url }));
 
-            // 2. Procesar con Robot del Servidor (STABLE)
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
+            // 2. Robot Local (Browser-side) - Versión Inmune a Vercel
             try {
-                const parseRes = await fetch('/api/parse-pdf', { 
-                    method: 'POST', 
-                    body: formData,
-                    signal: AbortSignal.timeout(60000) // 60 segundos de margen
-                });
-                
-                if (!parseRes.ok) throw new Error(`HTTP Error: ${parseRes.status}`);
-                
-                const parseData = await parseRes.json();
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                document.head.appendChild(script);
 
-                if (parseData.success) {
-                    const text = parseData.text || '';
-                    console.log(`[Robot Servidor] Texto extraído (${text.length} caracteres)`);
+                script.onload = async () => {
+                    // @ts-ignore
+                    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+                    const arrayBuffer = await selectedFile.arrayBuffer();
+                    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                    const pdf = await loadingTask.promise;
                     
+                    let fullText = "";
+                    for (let i = 1; i <= Math.min(pdf.numPages, 100); i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                        fullText += pageText + "\n";
+                    }
+
+                    const text = fullText.replace(/\s+/g, ' ').trim();
+                    console.log(`[Robot Browser] Extraído: ${text.length} caracteres.`);
+
                     let extractedDate = '';
                     let extractedPolicy = '';
 
-                    // Regex para fechas y pólizas
                     const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
                     if (dateMatch) {
                         const [_, day, month, year] = dateMatch;
@@ -140,17 +146,17 @@ export default function SCTRPage() {
                         expiration_date: extractedDate || prev.expiration_date,
                         policy_number: extractedPolicy || prev.policy_number
                     }));
-                    alert("✅ ¡Robot Activo! Datos extraídos correctamente.");
-                } else {
-                    alert(`⚠️ El robot respondió: ${parseData.error}`);
-                }
-            } catch (fetchErr: any) {
-                console.error("[Robot Servidor] Error:", fetchErr);
-                alert(`⚠️ Error técnico: ${fetchErr.message}. Por favor intenta de nuevo o pega los nombres manualmente.`);
+                    
+                    alert(`✅ Robot Browser Activo: ${text.length} caracteres extraídos de ${pdf.numPages} páginas.`);
+                };
+
+            } catch (browserErr: any) {
+                console.error("[Robot Browser] Error:", browserErr);
+                alert("⚠️ El robot local no pudo iniciarse. Por favor ingresa los datos manualmente.");
             }
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);
-            alert("❌ Error al subir el archivo al servidor.");
+            alert("❌ Error al subir el archivo al almacenamiento.");
         } finally {
             setIsUploading(false);
         }
