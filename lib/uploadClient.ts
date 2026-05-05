@@ -82,7 +82,7 @@ async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promis
 }
 
 // URL del puente Apps Script para subida directa (evita límite Vercel 4.5MB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzejhIn8c-dF7bgoIEokyCsm1k-U2D_1Q50BCnjZI9OzTiVcGv5LcsgSql6zsoN69ne/exec";
 
 /**
  * Sube archivo directamente a Google Drive via Apps Script Bridge

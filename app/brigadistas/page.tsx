@@ -121,15 +121,26 @@ export default function BrigadistasPage() {
         setIsUploading(true);
         try {
             const newUploads = await Promise.all(validFiles.map(async (file) => {
+                // 1. Preparar log para Excel
+                const logData = {
+                    control: "BRIGADISTAS",
+                    periodo: form.date,
+                    empresa: form.responsible,
+                    detalle: `Tipo: ${form.brigadistaType}, Lugar: ${form.location}`
+                };
+
+                // 2. Subir archivo y anotar en Excel
                 const url = await uploadEvidence(
                     file,
-                    'Actividad',
-                    `Brigada-${form.brigadistaType}-${form.location}`,
+                    'Formacion',
+                    `BRIG_${form.brigadistaType}_${form.location}`,
                     form.date,
                     form.responsible,
-                    'brigadista',
-                    'seguridad',
-                    form.location
+                    'Brigadistas',
+                    'Seguridad',
+                    form.location,
+                    undefined,
+                    logData // Enviar datos al Excel
                 );
                 return { url, name: file.name, type: file.type };
             }));
