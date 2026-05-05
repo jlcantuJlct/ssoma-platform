@@ -57,17 +57,24 @@ export async function GET(req: NextRequest) {
 
         // 6. PMA (Fotos / Ambiental)
         try {
-            const pma = await db.fetchAll('SELECT * FROM pma_evidence_records'); // Tabla corregida
+            const pma = await db.fetchAll('SELECT * FROM pma_evidence_records'); 
             pma.forEach(r => {
-                let firstImg = "";
+                let allImgs = "";
                 try {
                     const imgs = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || []);
-                    if (Array.isArray(imgs) && imgs.length > 0) firstImg = imgs[0];
+                    if (Array.isArray(imgs)) {
+                        allImgs = imgs.join(", "); // Poner todos los links separados por coma
+                    }
                 } catch(e){}
                 
                 allRecords.push({
-                    control: "PMA / AMBIENTAL", fecha: r.date, lugar: r.location, responsable: r.responsible,
-                    detalle: `Categoría: ${r.category}`, link: firstImg || "", created: r.created_at
+                    control: "PMA / AMBIENTAL", 
+                    fecha: r.date, 
+                    lugar: r.location, 
+                    responsable: r.responsible,
+                    detalle: `Categoría: ${r.category}${r.description ? ' - ' + r.description : ''}`, 
+                    link: allImgs, 
+                    created: r.created_at
                 });
             });
         } catch(e){}
