@@ -102,72 +102,51 @@ export default function SCTRPage() {
             );
             setForm(prev => ({ ...prev, file_url: url }));
 
-            // 2. Lectura LOCAL en el navegador (Sin límites de Vercel!)
-            try {
-                // Cargamos PDF.js dinámicamente
-                const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
-                const version = pdfjsLib.version || '4.0.379';
-                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.mjs`;
+            // 2. Procesar con Robot del Servidor (STABLE)
+            const formData = new FormData();
+            formData.append('file', selectedFile);
 
-                const arrayBuffer = await selectedFile.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ 
-                    data: arrayBuffer,
-                    verbosity: 0,
-                    stopAtErrors: false
+            try {
+                const parseRes = await fetch('/api/parse-pdf', { 
+                    method: 'POST', 
+                    body: formData,
+                    signal: AbortSignal.timeout(60000) // 60 segundos de margen
                 });
                 
-                const pdf = await loadingTask.promise;
-                console.log(`[Robot Local] PDF Cargado: ${pdf.numPages} páginas.`);
+                if (!parseRes.ok) throw new Error(`HTTP Error: ${parseRes.status}`);
                 
-                let fullText = "";
-                const maxPages = Math.min(pdf.numPages, 100); 
-                
-                for (let i = 1; i <= maxPages; i++) {
-                    try {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items
-                            .map((item: any) => item.str)
-                            .filter(str => str !== undefined)
-                            .join(" ");
-                        fullText += pageText + "\n";
-                    } catch (pageErr) {
-                        console.warn(`Error en página ${i}:`, pageErr);
+                const parseData = await parseRes.json();
+
+                if (parseData.success) {
+                    const text = parseData.text || '';
+                    console.log(`[Robot Servidor] Texto extraído (${text.length} caracteres)`);
+                    
+                    let extractedDate = '';
+                    let extractedPolicy = '';
+
+                    // Regex para fechas y pólizas
+                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                    if (dateMatch) {
+                        const [_, day, month, year] = dateMatch;
+                        extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                     }
+
+                    const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro|Contrato)\s*:?\s*([A-Z0-9\-\/]{5,})/i);
+                    if (policyMatch) extractedPolicy = policyMatch[1];
+
+                    setForm(prev => ({ 
+                        ...prev, 
+                        personnel_list: text,
+                        expiration_date: extractedDate || prev.expiration_date,
+                        policy_number: extractedPolicy || prev.policy_number
+                    }));
+                    alert("✅ ¡Robot Activo! Datos extraídos correctamente.");
+                } else {
+                    alert(`⚠️ El robot no pudo leer los nombres (${parseData.error}). Por favor ingresa los datos manualmente.`);
                 }
-
-                const text = fullText.replace(/\s+/g, ' ').trim();
-                console.log(`[Robot Local] Total extraído: ${text.length} caracteres.`);
-                
-                if (text.length < 10) {
-                    throw new Error("El PDF parece estar vacío o ser una imagen (escaneado).");
-                }
-
-                let extractedDate = '';
-                let extractedPolicy = '';
-
-                // Regex mejoradas para SCTR
-                const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-                if (dateMatch) {
-                    const [_, day, month, year] = dateMatch;
-                    extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                }
-
-                const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro|Contrato)\s*:?\s*([A-Z0-9\-\/]{5,})/i);
-                if (policyMatch) extractedPolicy = policyMatch[1];
-
-                setForm(prev => ({ 
-                    ...prev, 
-                    personnel_list: text,
-                    expiration_date: extractedDate || prev.expiration_date,
-                    policy_number: extractedPolicy || prev.policy_number
-                }));
-                
-                alert(`✅ Robot Local: Se han procesado ${pdf.numPages} páginas y extraído ${text.length} caracteres.`);
-
-            } catch (parseErr: any) {
-                console.error("[Robot Local] Error al leer PDF:", parseErr);
-                alert(`⚠️ El robot no pudo leer los nombres automáticamente (${parseErr.message}). Por favor ingresa los datos manualmente.`);
+            } catch (fetchErr: any) {
+                console.error("[Robot Servidor] Error:", fetchErr);
+                alert("⚠️ Error de conexión con el robot. Si el archivo es mayor a 4.5MB, por favor pega los nombres manualmente.");
             }
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);

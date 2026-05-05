@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Usamos pdfjs-dist que es más moderno y compatible con Vercel
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-export const maxDuration = 60; // Permite hasta 60 segundos de ejecución
+export const maxDuration = 60;
 
 export const config = {
     api: {
@@ -23,47 +20,33 @@ export async function POST(req: NextRequest) {
         }
 
         const bytes = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(bytes);
+        const buffer = Buffer.from(bytes);
 
-        console.log(`[PDF Robot] Procesando con PDF.js: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+        console.log(`[PDF Robot] Procesando SCTR: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+
+        // IMPORTACIÓN DINÁMICA: Esto evita errores de compilación en Vercel
+        const pdf = require('pdf-parse/lib/pdf-parse.js');
 
         try {
-            const loadingTask = pdfjs.getDocument({
-                data: uint8Array,
-                useSystemFonts: true,
-                disableFontFace: true // Evita errores de fuentes en serverless
-            });
-            
-            const pdfDocument = await loadingTask.promise;
-            let fullText = '';
-            
-            // Leemos todas las páginas
-            for (let i = 1; i <= pdfDocument.numPages; i++) {
-                const page = await pdfDocument.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map((item: any) => item.str).join(' ');
-                fullText += pageText + '\n';
-            }
+            const data = await pdf(buffer);
+            const text = data.text || '';
+            const cleanText = text.replace(/\s+/g, ' ').trim();
 
-            const cleanText = fullText.replace(/\s+/g, ' ').trim();
-
-            if (cleanText.length > 20) {
-                console.log(`[PDF Robot] Éxito con PDF.js. Caracteres: ${cleanText.length}`);
+            if (cleanText.length > 10) {
+                console.log(`[PDF Robot] Éxito. Caracteres extraídos: ${cleanText.length}`);
                 return NextResponse.json({ 
                     success: true, 
                     text: cleanText,
-                    numpages: pdfDocument.numPages,
-                    method: 'pdfjs-dist'
+                    method: 'pdf-parse-server'
                 });
+            } else {
+                throw new Error("Contenido insuficiente");
             }
-            
-            throw new Error("Texto extraído insuficiente");
-            
         } catch (parseError: any) {
-            console.error("[PDF Robot] Error en parsing PDF.js:", parseError.message);
+            console.error("[PDF Robot] Error en parsing:", parseError.message);
             return NextResponse.json({ 
                 success: false, 
-                error: 'El formato del PDF es complejo o está escaneado. Por favor, use la carga manual.' 
+                error: 'No se pudo extraer texto del PDF (posiblemente escaneado).' 
             });
         }
 
