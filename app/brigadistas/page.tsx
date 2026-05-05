@@ -99,48 +99,55 @@ export default function BrigadistasPage() {
         }
     }, [user]);
 
-    const handleFile = async (selectedFile: File) => {
-        if (!selectedFile) return;
+    const handleFiles = async (selectedFiles: FileList | File[]) => {
+        const filesArray = Array.from(selectedFiles);
+        if (filesArray.length === 0) return;
 
-        const isPdf = selectedFile.type === 'application/pdf';
-        const isImage = selectedFile.type.startsWith('image/');
+        // Validaciones previas
+        const validFiles = filesArray.filter(f => {
+            const isPdf = f.type === 'application/pdf';
+            const isImage = f.type.startsWith('image/');
+            return isPdf || isImage;
+        });
 
-        if (!isPdf && !isImage) {
-            alert("⚠️ Solo se permiten archivos PDF o Imágenes.");
-            return;
+        if (validFiles.length !== filesArray.length) {
+            alert("⚠️ Algunos archivos fueron omitidos. Solo se permiten PDF e Imágenes.");
         }
 
+        if (validFiles.length === 0) return;
+
         if (!form.responsible || !form.location || !form.brigadistaType) {
-            alert("⚠️ Por favor completa los campos antes de subir el archivo.");
+            alert("⚠️ Por favor completa los campos del formulario antes de subir archivos.");
             return;
         }
 
         setIsUploading(true);
         try {
-            const url = await uploadEvidence(
-                selectedFile,
-                'Actividad',
-                `Brigada-${form.brigadistaType}-${form.location}`,
-                form.date,
-                form.responsible,
-                'brigadista',
-                'seguridad',
-                form.location
-            );
+            const newUploads = await Promise.all(validFiles.map(async (file) => {
+                const url = await uploadEvidence(
+                    file,
+                    'Actividad',
+                    `Brigada-${form.brigadistaType}-${form.location}`,
+                    form.date,
+                    form.responsible,
+                    'brigadista',
+                    'seguridad',
+                    form.location
+                );
+                return { url, name: file.name, type: file.type };
+            }));
 
-            setUploadedFiles(prev => [...prev, { url, name: selectedFile.name, type: selectedFile.type }]);
+            setUploadedFiles(prev => [...prev, ...newUploads]);
         } catch (error: any) {
             console.error(error);
-            alert(`Error al subir: ${error.message}`);
+            alert(`Error al subir algunos archivos: ${error.message}`);
         } finally {
             setIsUploading(false);
         }
     };
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            Array.from(e.target.files).forEach(file => handleFile(file));
-        }
+        if (e.target.files) handleFiles(e.target.files);
     };
 
     const handleDrag = (e: React.DragEvent) => {
@@ -157,9 +164,7 @@ export default function BrigadistasPage() {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        if (e.dataTransfer.files) {
-            Array.from(e.dataTransfer.files).forEach(file => handleFile(file));
-        }
+        if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
     };
 
         if (uploadedFiles.length === 0 && !editingId) {
@@ -481,15 +486,20 @@ export default function BrigadistasPage() {
                                                     <td className="py-4 text-slate-400 text-xs">{record.location}</td>
                                                     <td className="py-4 text-center">
                                                         {record.fileUrl && (
-                                                            <div className="flex justify-center gap-1">
-                                                                {record.fileUrl.split('|').map((url, i) => (
-                                                                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" 
-                                                                       className={`inline-flex p-1.5 rounded-lg transition-colors ${url.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'}`}
-                                                                       title={url.toLowerCase().endsWith('.pdf') ? 'Ver PDF' : 'Ver Imagen'}
-                                                                    >
-                                                                        {url.toLowerCase().endsWith('.pdf') ? <FileText size={14} /> : <ImageIcon size={14} />}
-                                                                    </a>
-                                                                ))}
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <div className="flex justify-center gap-1">
+                                                                    {record.fileUrl.split('|').slice(0, 3).map((url, i) => (
+                                                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" 
+                                                                           className={`inline-flex p-1.5 rounded-lg transition-colors ${url.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'}`}
+                                                                           title={url.toLowerCase().endsWith('.pdf') ? 'Ver PDF' : 'Ver Imagen'}
+                                                                        >
+                                                                            {url.toLowerCase().endsWith('.pdf') ? <FileText size={12} /> : <ImageIcon size={12} />}
+                                                                        </a>
+                                                                    ))}
+                                                                </div>
+                                                                {record.fileUrl.split('|').length > 3 && (
+                                                                    <span className="text-[8px] font-black text-slate-500">+{record.fileUrl.split('|').length - 3} más</span>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </td>
