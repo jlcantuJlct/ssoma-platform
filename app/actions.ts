@@ -431,11 +431,11 @@ export async function syncProgramToDashboard(items: any[]) {
                 const total = aggregates[key];
 
                 // Find matching activity
-                const match = activities.find((a: any) =>
-                    a.name.toLowerCase().trim() === type.toLowerCase().trim() ||
-                    a.name.toLowerCase().includes(type.toLowerCase()) ||
-                    type.toLowerCase().includes(a.name.toLowerCase())
-                );
+                const match = activities.find((a: any) => {
+                    const aName = (a.name || "").toString().toLowerCase().trim();
+                    const targetType = (type || "").toString().toLowerCase().trim();
+                    return aName === targetType || aName.includes(targetType) || targetType.includes(aName);
+                });
 
                 if (match) {
                     const existing = await db.fetchOne('SELECT id FROM progress WHERE activity_id = ? AND month = ?', [match.id, month]);

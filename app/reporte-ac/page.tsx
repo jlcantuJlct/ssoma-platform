@@ -173,10 +173,12 @@ export default function ReporteACPage() {
         handleSync(updated);
     };
 
-    const filteredRecords = records.filter(r => {
-        return (!filterDate || r.date.includes(filterDate)) &&
-               (!filterLocation || r.location.toLowerCase().includes(filterLocation.toLowerCase())) &&
-               (!filterActo || r.acto.includes(filterActo));
+    const filteredRecords = (records || []).filter(r => {
+        const matchesDate = !filterDate || (r.date && r.date.includes(filterDate));
+        const matchesLocation = !filterLocation || (r.location && r.location.toLowerCase().includes(filterLocation.toLowerCase()));
+        const matchesActo = !filterActo || (r.acto && r.acto.includes(filterActo));
+        
+        return matchesDate && matchesLocation && matchesActo;
     });
 
     if (!isLoaded) return <div className="h-screen bg-slate-950 flex items-center justify-center text-white">Cargando...</div>;

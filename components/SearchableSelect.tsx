@@ -28,8 +28,8 @@ export default function SearchableSelect({
     const [searchTerm, setSearchTerm] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const filteredOptions = options.filter(option =>
-        option.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredOptions = (options || []).filter(option =>
+        (option || "").toString().toLowerCase().includes((searchTerm || "").toLowerCase())
     );
 
     useEffect(() => {

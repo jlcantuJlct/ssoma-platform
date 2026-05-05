@@ -105,7 +105,7 @@ export default function InspectionsPage() {
                     // OBJ 03 -> Seguridad
                     if (data.programData['obj3']) {
                         const items = data.programData['obj3'] as any[];
-                        newMapping["Seguridad"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                        newMapping["Seguridad"] = Array.from(new Set(items.map(i => i.description).filter(d => d && typeof d === 'string'))) as string[];
                     }
 
                     // OBJ 06 (SEG 01) -> Salud
@@ -117,7 +117,7 @@ export default function InspectionsPage() {
                     // OBJ 08 (SEG 03) -> Medioambiente
                     if (data.programData['obj8']) {
                         const items = data.programData['obj8'] as any[];
-                        newMapping["Medioambiente"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                        newMapping["Medioambiente"] = Array.from(new Set(items.map(i => i.description).filter(d => d && typeof d === 'string'))) as string[];
                     }
 
                     // Update state if we found anything
@@ -521,12 +521,13 @@ export default function InspectionsPage() {
         }).length;
 
         // 2. PROGRAMADO: Filtrar del programa importado
-        const programItems = monthlyProgram.filter(p => {
+        const programItems = (monthlyProgram || []).filter(p => {
             // Match de Nombre (Flexible: Primer nombre o contiene)
-            const nameMatch = p.responsible && (
-                p.responsible.toLowerCase().includes(responsibleName.toLowerCase()) ||
-                responsibleName.toLowerCase().includes(p.responsible.toLowerCase().split(' ')[0])
-            );
+            const pResp = (p.responsible || "").toString().toLowerCase();
+            const rName = (responsibleName || "").toString().toLowerCase();
+            const firstName = rName.split(' ')[0];
+
+            const nameMatch = pResp.includes(rName) || rName.includes(pResp.split(' ')[0]) || pResp.includes(firstName);
             return nameMatch;
         });
 
@@ -906,10 +907,14 @@ export default function InspectionsPage() {
 
                 const recordMonth = new Date(newInspection.date).getMonth();
                 let foundIndex = obj3Activities.findIndex((act: any) => {
+                    if (!act || !act.description || !newInspection.inspectionType) return false;
                     const actDate = new Date(act.date);
+                    const actDesc = act.description.toString().toLowerCase();
+                    const insType = newInspection.inspectionType.toString().toLowerCase();
+
                     return actDate.getMonth() === recordMonth && (
-                        act.description.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
-                        newInspection.inspectionType.toLowerCase().includes(act.description.toLowerCase())
+                        actDesc.includes(insType) ||
+                        insType.includes(actDesc)
                     );
                 });
 
@@ -933,8 +938,11 @@ export default function InspectionsPage() {
                     dashboardData.sections.forEach((section: any) => {
                         if (section.id === 'inspections' || section.activities) {
                             section.activities.forEach((act: any) => {
-                                const isMatch = act.name.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
-                                    newInspection.inspectionType.toLowerCase().includes(act.name.toLowerCase());
+                                const actName = (act.name || "").toString().toLowerCase();
+                                const insType = (newInspection.inspectionType || "").toString().toLowerCase();
+
+                                const isMatch = actName.includes(insType) ||
+                                    insType.includes(actName);
 
                                 if (isMatch) {
                                     const monthIdx = new Date(newInspection.date).getMonth();
@@ -1247,7 +1255,7 @@ export default function InspectionsPage() {
                                 Configuración Manual de Metas (Fallback)
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
+                                {RESPONSIBLES.filter(r => r && typeof r === 'string' && r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
                                     <div key={resp} className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
                                         <span className="text-sm text-slate-300 font-medium">{resp}</span>
                                         <div className="flex items-center gap-2">
