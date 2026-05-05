@@ -268,9 +268,8 @@ export default function BrigadistasPage() {
     };
 
     return (
-        <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden selection:bg-red-500/30 w-full">
-            <Sidebar />
-            <main className="flex-1 overflow-auto p-4 md:p-8">
+        <div className="flex bg-transparent text-slate-200 font-sans overflow-hidden selection:bg-red-500/30 w-full">
+            <main className="flex-1 p-4 md:p-8">
                 <div className="max-w-[1600px] mx-auto space-y-8">
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
                         <div>
