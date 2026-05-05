@@ -21,6 +21,12 @@ import {
 import { generateFilename, getInitials } from "@/lib/utils";
 
 // --- TYPES ---
+type BrigadistaRecord = {
+    id: number;
+    date: string;
+    responsible: string;
+    brigadistaType: string;
+    location: string;
     fileUrl: string; // Will store multiple URLs joined by '|'
 };
 
