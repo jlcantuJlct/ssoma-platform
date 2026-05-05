@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import { uploadEvidence } from "@/lib/uploadClient";
 
+// Importación dinámica de PDF.js para el cliente
+const PDF_JS_VERSION = '4.0.379'; // Versión estable
+
 interface SCTRMonthlyRecord {
     id: number;
     month: string;
@@ -86,6 +89,7 @@ export default function SCTRPage() {
 
         setIsUploading(true);
         try {
+            // 1. Subir a Vercel Blob (para almacenamiento)
             const url = await uploadEvidence(
                 selectedFile,
                 'SCTR',
@@ -98,60 +102,58 @@ export default function SCTRPage() {
             );
             setForm(prev => ({ ...prev, file_url: url }));
 
-            // Intento de lectura por Robot (API Local/Vercel)
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            
-            // Verificación de tamaño para evitar límites de Vercel (4.5MB)
-            if (selectedFile.size > 4 * 1024 * 1024) {
-                console.warn("Archivo grande detectado (>4MB). La extracción automática podría fallar en la nube.");
-            }
-
+            // 2. Lectura LOCAL en el navegador (Sin límites de Vercel!)
             try {
-                const parseRes = await fetch('/api/parse-pdf', { 
-                    method: 'POST', 
-                    body: formData,
-                    // Añadimos un timeout razonable
-                    // Aumentamos el timeout a 60 segundos para archivos pesados
-                    signal: AbortSignal.timeout(60000) 
-                });
+                // Cargamos PDF.js dinámicamente
+                const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+
+                const arrayBuffer = await selectedFile.arrayBuffer();
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                const pdf = await loadingTask.promise;
                 
-                if (!parseRes.ok) throw new Error(`HTTP Error: ${parseRes.status}`);
+                let fullText = "";
+                const maxPages = Math.min(pdf.numPages, 100); // Límite de seguridad
                 
-                const parseData = await parseRes.json();
-
-                if (parseData.success) {
-                    const text = parseData.text || '';
-                    console.log(`[Robot] Texto extraído (${text.length} caracteres)`);
-                    
-                    let extractedDate = '';
-                    let extractedPolicy = '';
-
-                    // Regex mejoradas para fechas y pólizas
-                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-                    if (dateMatch) {
-                        const [_, day, month, year] = dateMatch;
-                        extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    }
-
-                    const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro)\s*:?\s*([A-Z0-9\-]{5,})/i);
-                    if (policyMatch) extractedPolicy = policyMatch[1];
-
-                    setForm(prev => ({ 
-                        ...prev, 
-                        personnel_list: text,
-                        expiration_date: extractedDate || prev.expiration_date,
-                        policy_number: extractedPolicy || prev.policy_number
-                    }));
-                    alert("✅ Robot leyó el PDF. Se han extraído los nombres y datos principales.");
-                } else {
-                    console.warn("[Robot] No pudo extraer texto:", parseData.error);
-                    alert("⚠️ El robot no pudo extraer los nombres automáticamente (posible PDF escaneado). Por favor pégalos manualmente en el cuadro de texto.");
+                for (let i = 1; i <= maxPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                    fullText += pageText + "\n";
                 }
-            } catch (fetchErr: any) {
-                console.error("[Robot] Error de comunicación:", fetchErr);
-                alert("⚠️ Error de conexión con el robot (Timeout o archivo muy pesado). Por favor ingresa los datos de la póliza y los nombres manualmente.");
+
+                const text = fullText.replace(/\s+/g, ' ').trim();
+                console.log(`[Robot Local] Texto extraído (${text.length} caracteres)`);
+                
+                let extractedDate = '';
+                let extractedPolicy = '';
+
+                // Regex mejoradas
+                const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (dateMatch) {
+                    const [_, day, month, year] = dateMatch;
+                    extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro)\s*:?\s*([A-Z0-9\-]{5,})/i);
+                if (policyMatch) extractedPolicy = policyMatch[1];
+
+                setForm(prev => ({ 
+                    ...prev, 
+                    personnel_list: text,
+                    expiration_date: extractedDate || prev.expiration_date,
+                    policy_number: extractedPolicy || prev.policy_number
+                }));
+                
+                alert("✅ ¡Robot Local activado! Se han extraído los nombres y datos sin límites de tamaño.");
+
+            } catch (parseErr: any) {
+                console.error("[Robot Local] Error al leer PDF:", parseErr);
+                alert("⚠️ El navegador no pudo leer el PDF automáticamente. Por favor ingresa los datos manualmente.");
             }
+        } catch (uploadErr: any) {
+            console.error("Error al subir archivo:", uploadErr);
+            alert("❌ Error al subir el archivo al servidor.");
         } finally {
             setIsUploading(false);
         }
