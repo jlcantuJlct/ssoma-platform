@@ -53,14 +53,9 @@ export default function SCSSTPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Annual Program activities for OBJ 01
-            const progRes = await fetch('/api/annual-program');
-            const progData = await progRes.json();
-            if (progData.success && progData.programData?.obj1) {
-                const obj1Items = progData.programData.obj1;
-                const uniqueActivities = Array.from(new Set(obj1Items.map((i: any) => i.description))).filter(Boolean).sort() as string[];
-                setActivities(uniqueActivities);
-            }
+            // 1. We NO LONGER overwrite activities with fetched ones. 
+            // We use the 7 standard ones from the image (SCSST_ACTIVITIES).
+            setActivities(SCSST_ACTIVITIES);
 
             // 2. Fetch existing SCSST records (from evidence_center_records with objective OBJ 01)
             const recRes = await fetch('/api/evidence-records');
@@ -225,15 +220,19 @@ export default function SCSSTPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3 text-slate-500" size={16} />
+                                    <div className="relative group">
+                                        <User className="absolute left-3 top-3 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
                                         <select 
                                             value={formData.responsable}
                                             onChange={(e) => setFormData({...formData, responsable: e.target.value})}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer"
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer hover:border-slate-700 transition-all"
                                         >
+                                            <option value="">Seleccionar Responsable...</option>
                                             {USER_LIST.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
                                         </select>
+                                        <div className="absolute right-3 top-3.5 pointer-events-none text-slate-600">
+                                            <Filter size={12} />
+                                        </div>
                                     </div>
                                 </div>
 
