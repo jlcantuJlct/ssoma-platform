@@ -35,7 +35,7 @@ export default function SCSSTPage() {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         activity: '',
-        responsable: user?.name || '',
+        responsable: user?.name || 'Usuario SSOMA',
         zona: SSOMA_LOCATIONS[0],
         description: '',
     });
@@ -278,11 +278,22 @@ export default function SCSSTPage() {
                                             setIsUploading(true);
                                             try {
                                                 for (const file of files) {
-                                                    const url = await uploadEvidence(file);
+                                                    const url = await uploadEvidence(
+                                                        file, 
+                                                        'Actividad', 
+                                                        formData.activity || 'ACTIVIDAD_SCSST', 
+                                                        formData.date || new Date().toISOString().split('T')[0], 
+                                                        formData.responsable || user?.name || 'SCSST_RESPONSABLE',
+                                                        'SCSST',
+                                                        'SEGURIDAD',
+                                                        formData.zona || 'GENERAL',
+                                                        'OBJ_01'
+                                                    );
                                                     setUploadedFiles(prev => [...prev, url]);
                                                 }
-                                            } catch (err) {
-                                                alert('Error al subir archivos');
+                                            } catch (err: any) {
+                                                console.error(err);
+                                                alert(`Error al subir: ${err.message || 'Problema de conexión'}`);
                                             } finally {
                                                 setIsUploading(false);
                                             }
@@ -304,11 +315,22 @@ export default function SCSSTPage() {
                                                 setIsUploading(true);
                                                 try {
                                                     for (const file of files) {
-                                                        const url = await uploadEvidence(file);
+                                                        const url = await uploadEvidence(
+                                                            file, 
+                                                            'Actividad', 
+                                                            formData.activity || 'ACTIVIDAD_SCSST', 
+                                                            formData.date || new Date().toISOString().split('T')[0], 
+                                                            formData.responsable || user?.name || 'SCSST_RESPONSABLE',
+                                                            'SCSST',
+                                                            'SEGURIDAD',
+                                                            formData.zona || 'GENERAL',
+                                                            'OBJ_01'
+                                                        );
                                                         setUploadedFiles(prev => [...prev, url]);
                                                     }
-                                                } catch (err) {
-                                                    alert('Error al subir archivos');
+                                                } catch (err: any) {
+                                                    console.error(err);
+                                                    alert(`Error al subir: ${err.message || 'Problema de conexión'}`);
                                                 } finally {
                                                     setIsUploading(false);
                                                 }
