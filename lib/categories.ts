@@ -18,244 +18,55 @@ export type DetourCategory = {
     hint: string;
 };
 
-// --- PMA CATEGORIES ---
+// --- PMA CATEGORIES (Based on Monthly Report Guide Text) ---
 export const PMA_CATEGORIES: PMACategory[] = [
-    {
-        id: "SIGNAGE_SST",
-        group: "Foto señalización",
-        label: "1. Foto de señalización SST",
-        hint: "Evidenciar señalización de Seguridad y Salud en el Trabajo."
-    },
-    {
-        id: "SIGNAGE_MA",
-        group: "Foto señalización",
-        label: "2. Foto de señalización MA",
-        hint: "Evidenciar señalización de Medio Ambiente."
-    },
-    {
-        id: "SIGNAGE_PERIMETERS",
-        group: "Foto señalización",
-        label: "3. Foto de Delimitación de áreas y Perímetros",
-        hint: "Evidenciar mallas, cintas o barreras de delimitación."
-    },
-    { id: 'SST_EMERGENCY_STATION', label: '8. Foto de Estación de Emergencia', group: 'EQUIPOS', hint: 'Evidencia de la ubicación y estado de la estación de emergencia (extintores, botiquín, etc.)' },
-    { id: 'PMA_FOOTPATH', label: '9. Foto de Cruze Peatonal', group: 'ORGANIZACIÓN', hint: 'Evidencia de señalización y estado de cruces peatonales.' },
-    { 
-        id: "SIGNAGE_PEDESTRIAN_CROSSING", 
-        group: "Foto señalización", 
-        label: "4. Foto de cruce peatonal", 
-        hint: "Evidenciar señalización y pintado de cruces peatonales." 
-    },
-    { 
-        id: "WELLBEING_BATHROOMS", 
-        group: "Bienestar e Higiene", 
-        label: "1. Foto de baños", 
-        hint: "Evidenciar estado de los baños." 
-    },
-    { 
-        id: "WELLBEING_CLEANING", 
-        group: "Bienestar e Higiene", 
-        label: "2. Foto de limpieza de baños", 
-        hint: "Evidenciar la limpieza programada." 
-    },
-    { 
-        id: "WELLBEING_HANDWASH", 
-        group: "Bienestar e Higiene", 
-        label: "3. Foto de Lavado de Manos", 
-        hint: "Evidenciar estación de lavado de manos." 
-    },
-    { 
-        id: "WELLBEING_HYDRATION", 
-        group: "Bienestar e Higiene", 
-        label: "4. Foto Punto de Hidratación", 
-        hint: "Evidenciar puntos de agua/hidratación." 
-    },
-    { 
-        id: "WELLBEING_DINING", 
-        group: "Bienestar e Higiene", 
-        label: "5. Foto de comedor", 
-        hint: "Evidenciar área de comedor." 
-    },
-    { 
-        id: "WELLBEING_DINING_CLEAN", 
-        group: "Bienestar e Higiene", 
-        label: "6. Foto de Limpieza de Comedor", 
-        hint: "Evidenciar limpieza del comedor." 
-    },
-    { 
-        id: "WELLBEING_LOCKER", 
-        group: "Bienestar e Higiene", 
-        label: "7. Foto de vestuario", 
-        hint: "Evidenciar área de vestuarios." 
-    },
-    { 
-        id: "WASTE_SEGREGATION", 
-        group: "Manejo de residuos", 
-        label: "1. Foto de segregación de residuos", 
-        hint: "Evidenciar correcta segregación." 
-    },
-    { 
-        id: "WASTE_VEHICLE", 
-        group: "Manejo de residuos", 
-        label: "2. Foto del vehículo de residuos", 
-        hint: "Vehículo recolector." 
-    },
-    { 
-        id: "WASTE_STORAGE", 
-        group: "Manejo de residuos", 
-        label: "3. Foto de almacenamiento de residuos", 
-        hint: "Área de acopio temporal." 
-    },
-    { 
-        id: "WASTE_WEIGHING", 
-        group: "Manejo de residuos", 
-        label: "4. Foto de pesado de residuos", 
-        hint: "Control de peso." 
-    },
-    { 
-        id: "WASTE_RRSS_STATION", 
-        group: "Manejo de residuos", 
-        label: "5. Foto de estación de RRSS", 
-        hint: "Estación de residuos." 
-    },
-    { 
-        id: "WASTE_SPILL_KIT", 
-        group: "Manejo de residuos", 
-        label: "6. Foto de kit contra derrames", 
-        hint: "Evidenciar disponibilidad y estado del kit contra derrames." 
-    },
-    { 
-        id: "DUST_CISTERN_HEAD", 
-        group: "Foto de control de Polvo", 
-        label: "1. Foto de: Las mangueras de las cisternas cuentan con cabezal.", 
-        hint: "Cabezal en mangueras." 
-    },
-    { 
-        id: "DUST_SPILL_KIT", 
-        group: "Foto de control de Polvo", 
-        label: "2. Foto de: Las cisternas cuentan con kit antiderrame", 
-        hint: "Kit antiderrame." 
-    },
-    { 
-        id: "DUST_WATER_COURSE", 
-        group: "Foto de control de Polvo", 
-        label: "3. Foto de: Los vehículos no ingresan al curso de agua", 
-        hint: "Respeto al curso de agua." 
-    },
-    { 
-        id: "DUST_WATERING", 
-        group: "Foto de control de Polvo", 
-        label: "4. Foto de riego", 
-        hint: "Evidenciar el riego de vías para control de polvo." 
-    },
-    { 
-        id: "OPS_LOCKOUT", 
-        group: "Seguridad y Control Operativo", 
-        label: "1. Foto de bloqueado", 
-        hint: "Bloqueo y etiquetado (LOTO)." 
-    },
-    { 
-        id: "OPS_PPE_TAPONES", 
-        group: "Seguridad y Control Operativo", 
-        label: "2. Foto de Uso de EPP: Tapones", 
-        hint: "Uso correcto de tapones auditivos." 
-    },
-    { 
-        id: "OPS_PPE_GUANTES", 
-        group: "Seguridad y Control Operativo", 
-        label: "3. Foto de Uso de EPP: Guantes", 
-        hint: "Uso correcto de guantes de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_LENTES", 
-        group: "Seguridad y Control Operativo", 
-        label: "4. Foto de Uso de EPP: Lentes", 
-        hint: "Uso correcto de lentes de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_ARNES", 
-        group: "Seguridad y Control Operativo", 
-        label: "5. Foto de Uso de EPP: Arnés", 
-        hint: "Uso correcto de arnés de seguridad." 
-    },
-    { 
-        id: "OPS_PPE_RESPIRADOR", 
-        group: "Seguridad y Control Operativo", 
-        label: "6. Foto de Uso de EPP: Respirador", 
-        hint: "Uso correcto de respirador/mascarilla." 
-    },
-    { 
-        id: "OPS_PPE_DELIVERY", 
-        group: "Seguridad y Control Operativo", 
-        label: "7. Foto de Entrega de EPP", 
-        hint: "Registro/entrega de EPP." 
-    },
-    { 
-        id: "OPS_DOC_REVIEW", 
-        group: "Seguridad y Control Operativo", 
-        label: "8. Foto de revisión Documentos", 
-        hint: "Revisión de ATS/PETAR/etc." 
-    },
-    { 
-        id: "OPS_MACHINE_SILENCER", 
-        group: "Seguridad y Control Operativo", 
-        label: "9. Foto de Maquinarias con silenciador", 
-        hint: "Evidenciar uso de silenciadores en maquinaria." 
-    },
-    { 
-        id: "SST_EMERGENCY_VEHICLE", 
-        group: "Programa de SST y Emergencias", 
-        label: "1. Foto de Vehículo de Emergencia", 
-        hint: "Ambulancia/Rescate." 
-    },
-    { 
-        id: "SST_HEALTH_SPECIALIST", 
-        group: "Programa de SST y Emergencias", 
-        label: "2. Foto de Tópico y su especialista de Salud", 
-        hint: "Área médica." 
-    },
-    { 
-        id: "SST_TELEPHONE_DIRECTORY", 
-        group: "Programa de SST y Emergencias", 
-        label: "3. Foto de Directorio telefónico de emergencia.", 
-        hint: "Directorio visible." 
-    },
-    { 
-        id: "SST_COMMS_FLOW", 
-        group: "Programa de SST y Emergencias", 
-        label: "4. Foto de Flujograma de Comunicación de emergencia", 
-        hint: "Flujograma comunicaciones." 
-    },
-    { 
-        id: "SST_CARE_FLOW", 
-        group: "Programa de SST y Emergencias", 
-        label: "5. Foto de Flujograma de atención de emergencia", 
-        hint: "Atención de emergencias."
-    },
-    { 
-        id: "FUEL_CISTERN_SPILL_KIT", 
-        group: "Control de Hidrocarburos y Maquinaria", 
-        label: "1. Foto de cisterna de Comb. KIT contra derrame", 
-        hint: "Evidenciar kit antiderrame en cisterna de combustible." 
-    },
-    { 
-        id: "FUEL_CISTERN_TRAY", 
-        group: "Control de Hidrocarburos y Maquinaria", 
-        label: "2. Foto de cisterna de Comb. usando bandeja", 
-        hint: "Evidenciar uso de bandeja de contención durante abastecimiento." 
-    },
-    { 
-        id: "WORKER_SUGGESTION_BOX", 
-        group: "Atención al Trabajador y Quejas", 
-        label: "1. Foto de buzón de sugerencia", 
-        hint: "Evidenciar la disponibilidad del buzón de sugerencias." 
-    },
-    { 
-        id: "WORKER_COMPLAINTS_BOOK", 
-        group: "Atención al Trabajador y Quejas", 
-        label: "2. Foto de libro de reclamos", 
-        hint: "Evidenciar la disponibilidad y acceso al libro de reclamos." 
-    }
+    // BIENESTAR E HIGIENE
+    { id: "W_HANDWASH", group: "Higiene", label: "Lavamanos", hint: "Evidenciar estaciones de lavado de manos." },
+    { id: "W_SHOWERS", group: "Higiene", label: "Duchas", hint: "Evidenciar estado de duchas." },
+    { id: "W_BATHROOMS", group: "Higiene", label: "Baños y Limpieza", hint: "Evidenciar estado y limpieza de baños." },
+    { id: "W_HYDRATION", group: "Higiene", label: "Punto de Hidratación", hint: "Evidenciar puntos de agua/hidratación." },
+    { id: "W_DINING_CLEAN", group: "Higiene", label: "Limpieza de Comedor", hint: "Evidenciar higiene en áreas de alimentación." },
+    
+    // MANEJO DE RESIDUOS
+    { id: "WASTE_CONTAINERS", group: "Residuos", label: "Contenedores para residuos sólidos", hint: "Evidenciar tachos y cilindros de segregación." },
+    { id: "WASTE_TRANSPORT", group: "Residuos", label: "Recolección y transporte de los residuos", hint: "Evidenciar camión o traslado de residuos." },
+    { id: "WASTE_STORAGE_NP", group: "Residuos", label: "Centro de acopio de Residuos No peligrosos", hint: "Área de acopio temporal No Peligrosos." },
+    { id: "WASTE_STORAGE_P", group: "Residuos", label: "Centro de acopio de Residuos peligrosos", hint: "Área de acopio temporal Peligrosos." },
+    { id: "WASTE_INTERNAL_COLLECT", group: "Residuos", label: "Recojo Interno", hint: "Actividades de recojo en frentes de obra." },
+    
+    // CONTROL DE DERRAMES Y MAQUINARIA
+    { id: "SPILL_KIT", group: "PMA", label: "Kit antiderrame", hint: "Evidenciar disponibilidad y estado del kit." },
+    { id: "SPILL_TRAY", group: "PMA", label: "Uso de Bandeja antiderrames", hint: "Uso de bandejas en abastecimiento o estacionamiento." },
+    { id: "CISTERN_MESH", group: "PMA", label: "Mangueras cuentan con cabezal con malla", hint: "Control de succión en cisternas." },
+    { id: "CISTERN_SPILL_KIT", group: "PMA", label: "Cisterna cuenta con kit Antiderrame", hint: "Kit en unidades de riego." },
+    { id: "WATER_COURSE_PROTECT", group: "PMA", label: "Vehículos no ingresan al curso de agua", hint: "Protección de cauces." },
+    
+    // EMISIONES Y POLVO
+    { id: "DUST_WATERING", group: "PMA", label: "Realización de riego", hint: "Riego de vías para control de polvo." },
+    { id: "NOISE_SILENCER", group: "PMA", label: "Maquinarias con silenciador", hint: "Control de emisiones sonoras." },
+    { id: "DUST_CONTROL_SIGN", group: "PMA", label: "Señal de control de polvo", hint: "Señalización informativa de polvo." },
+    
+    // SEÑALIZACIÓN Y DELIMITACIÓN
+    { id: "SIGNAGE_MA", group: "Señalización", label: "Señalización MA ambiental instalada", hint: "Paneles informativos ambientales." },
+    { id: "SIGNAGE_PROHIBITION", group: "Señalización", label: "Señalización MA de prohibición", hint: "Prohibición de lavado, caza, etc." },
+    { id: "DELIMITATION_AREAS", group: "Señalización", label: "Delimitación de las áreas y perimetro", hint: "Mallas, cintas y barreras." },
+    
+    // SEGURIDAD Y SALUD (SST)
+    { id: "SST_PPE_USE", group: "Seguridad", label: "Uso de EPP", hint: "Personal usando equipo de protección." },
+    { id: "SST_PPE_DELIVERY", group: "Seguridad", label: "Entrega de EPP", hint: "Registro o entrega física de implementos." },
+    { id: "SST_SIGNAGE", group: "Seguridad", label: "Señale de SST uso de EPP", hint: "Señalización obligatoria de EPP." },
+    { id: "SST_AST_REVIEW", group: "Seguridad", label: "Revisión y llenado de AST", hint: "Personal llenando análisis de trabajo." },
+    { id: "SST_IPERC_DISPLAY", group: "Seguridad", label: "Matriz IPERC en exhibición", hint: "IPERC visible en campo." },
+    { id: "SST_EMERGENCY_STATION", group: "Seguridad", label: "Estación de Emergencia", hint: "Extintores y botiquines." },
+    { id: "SST_EMERGENCY_VEHICLE", group: "Seguridad", label: "Vehículo de Emergencia", hint: "Ambulancia o camioneta de rescate." },
+    { id: "SST_HEALTH_TOPIC", group: "Salud", label: "Tópico y su especialista de Salud", hint: "Área médica y personal." },
+    { id: "SST_PHONE_DIRECTORY", group: "Salud", label: "Directorio telefónico de emergencia", hint: "Directorio visible." },
+    
+    // SOCIAL Y OTROS
+    { id: "SOCIAL_SUGGESTION_BOX", group: "Social", label: "Buzón de Sugerencia", hint: "Disponibilidad del buzón." },
+    { id: "SOCIAL_COMPLAINTS_BOOK", group: "Social", label: "Libro de Reclamos", hint: "Disponibilidad del libro." },
+    { id: "FLORA_FAUNA_TALK", group: "Ambiental", label: "Charla sobre cuidado de la Flora y Fauna", hint: "Capacitación específica." },
+    { id: "MONITORING", group: "PMA", label: "Monitoreos", hint: "Actividades de monitoreo ambiental." }
 ];
 
 // --- DETOUR CATEGORIES ---
