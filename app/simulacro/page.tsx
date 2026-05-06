@@ -15,6 +15,7 @@ import {
     Shield,
     Pencil,
     Siren,
+    X,
     Image as ImageIcon
 } from "lucide-react";
 import { generateFilename, getInitials } from "@/lib/utils";
@@ -366,10 +367,38 @@ export default function SimulacroPage() {
                                                         {isUploading ? 'SUBIENDO...' : dragActive ? '¡SUELTA!' : file ? '✅ EVIDENCIA LISTA' : 'ARRASTRA O HAZ CLIC'}
                                                     </p>
                                                     <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
-                                                        {file ? file.name : 'Soporta PDF e Imágenes'}
+                                                        {file ? 'Documento cargado correctamente' : 'Soporta PDF e Imágenes'}
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* Safe File Preview */}
+                                            {file && (
+                                                <div className="pt-3">
+                                                    <div className="bg-slate-950/50 px-3 py-2 rounded-2xl border border-slate-800 flex items-center justify-between animate-in zoom-in-95 group hover:border-orange-500/30 transition-all">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-1.5 rounded-lg ${file.name.toLowerCase().endsWith('.pdf') ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                                <FileText size={14} />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                                                    {file.name.toLowerCase().endsWith('.pdf') ? 'Documento PDF' : 'Imagen Evidencia'}
+                                                                </span>
+                                                                <span className="text-[8px] text-slate-500 font-bold truncate max-w-[120px]">
+                                                                    Vista previa disponible
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setFile(null)} 
+                                                            className="p-1 text-slate-600 hover:text-red-400 transition-colors"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <button

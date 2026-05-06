@@ -692,11 +692,11 @@ export default function InspectionsPage() {
         if (!files || files.length === 0) return;
 
         if (type === 'pdf') {
-            const pdfFile = Array.from(files).find(f => f.type === 'application/pdf');
+            const pdfFile = Array.from(files).find(f => (f as File)?.type === 'application/pdf');
             if (pdfFile) await processPdf(pdfFile);
             else alert("⚠️ Por favor suelta un archivo PDF válido.");
         } else {
-            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            const imageFiles = Array.from(files).filter(f => (f as File)?.type?.startsWith('image/'));
             if (imageFiles.length > 0) await processImages(imageFiles);
             else alert("⚠️ Por favor suelta archivos de imagen válidos.");
         }

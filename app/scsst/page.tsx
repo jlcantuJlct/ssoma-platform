@@ -354,18 +354,44 @@ export default function SCSSTPage() {
                                         </div>
                                     </div>
 
-                                    {/* File Previews */}
+                                    {/* File Previews - ESTILO PREMIUM SEGURO */}
                                     {uploadedFiles.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {uploadedFiles.map((url, idx) => (
-                                                <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95">
-                                                    <FileText size={12} className="text-emerald-400" />
-                                                    <span className="text-[9px] font-bold text-slate-300">Archivo {idx + 1}</span>
-                                                    <button onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300">
-                                                        <X size={12} />
-                                                    </button>
+                                        <div className="space-y-3 pt-4 border-t border-slate-800/50 mt-4">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                                    Evidencias Listas ({uploadedFiles.length})
+                                                </label>
+                                                <div className="flex gap-3 text-[9px] font-black uppercase tracking-tighter">
+                                                    <span className="text-red-400">PDF: {uploadedFiles.filter(url => url.toLowerCase().endsWith('.pdf')).length}</span>
+                                                    <span className="text-emerald-400">IMG: {uploadedFiles.filter(url => !url.toLowerCase().endsWith('.pdf')).length}</span>
                                                 </div>
-                                            ))}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {uploadedFiles.map((url, idx) => {
+                                                    const isPdf = url.toLowerCase().endsWith('.pdf');
+                                                    return (
+                                                        <div key={idx} className="bg-slate-950/50 px-3 py-2 rounded-2xl border border-slate-800 flex items-center gap-3 animate-in zoom-in-95 group hover:border-emerald-500/30 transition-all">
+                                                            <div className={`p-1.5 rounded-lg ${isPdf ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                                <FileText size={14} />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                                                    {isPdf ? 'Documento PDF' : 'Imagen Evidencia'}
+                                                                </span>
+                                                                <span className="text-[8px] text-slate-500 font-bold truncate max-w-[80px]">
+                                                                    #{idx + 1}
+                                                                </span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                                className="ml-1 p-1 text-slate-600 hover:text-red-400 transition-colors"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

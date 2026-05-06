@@ -220,7 +220,9 @@ export default function ManifestPage() {
                                                 </select>
                                             </div>
                                         </div>
-                                                                      {/* DRAG & DROP AREA - ESTILO ESTANDARIZADO PREMIUM */}
+                                    </div>
+
+                                    {/* DRAG & DROP AREA */}
                                     <div className="space-y-1.5 pt-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
                                             Manifiesto Escaneado (PDF)
@@ -260,7 +262,6 @@ export default function ManifestPage() {
                                             </div>
                                         </div>
 
-                                        {/* File Previews */}
                                         {files.length > 0 && (
                                             <div className="flex flex-wrap gap-2 pt-3">
                                                 {files.map((url, idx) => (
@@ -279,10 +280,9 @@ export default function ManifestPage() {
                                             </div>
                                         )}
                                     </div>
-       )}
 
                                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Manifiesto</>}
+                                        {isUploading ? "Subiendo..." : <span className="flex items-center gap-2"><Save size={18} /> Guardar Manifiesto</span>}
                                     </button>
                                 </form>
                             </div>

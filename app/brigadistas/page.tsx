@@ -15,6 +15,7 @@ import {
     Shield,
     Pencil,
     Users,
+    X,
     Image as ImageIcon,
     CheckCircle2
 } from "lucide-react";
