@@ -135,6 +135,12 @@ export const PMA_CATEGORIES: PMACategory[] = [
         hint: "Respeto al curso de agua." 
     },
     { 
+        id: "DUST_WATERING", 
+        group: "Foto de control de Polvo", 
+        label: "4. Foto de riego", 
+        hint: "Evidenciar el riego de vías para control de polvo." 
+    },
+    { 
         id: "OPS_LOCKOUT", 
         group: "Seguridad y Control Operativo", 
         label: "1. Foto de bloqueado", 
