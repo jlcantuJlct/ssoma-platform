@@ -115,6 +115,7 @@ export default function SCTRPage() {
 
             // 2. Robot Local (Browser-side) - Versión Inmune a Vercel
             try {
+                const script = document.createElement('script');
                 script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.min.js`;
                 document.head.appendChild(script);
 
@@ -173,6 +174,9 @@ export default function SCTRPage() {
                 script.onerror = () => {
                     alert("❌ No se pudo cargar el motor del robot. Verifique su conexión a internet.");
                 };
+            } catch (browserErr: any) {
+                console.error("[Robot Browser] Error de inicio:", browserErr);
+            }
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);
             alert("❌ Error al subir el archivo al almacenamiento.");
