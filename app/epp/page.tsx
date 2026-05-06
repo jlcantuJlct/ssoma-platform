@@ -54,6 +54,7 @@ export default function EPPPage() {
     const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // --- EFFECT: LOAD/SAVE ---
@@ -226,10 +227,26 @@ export default function EPPPage() {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Cargo de Entrega (ÚNICAMENTE PDF)</label>
-                                        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
-                                            <input type="file" accept=".pdf" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                            <Upload className="mx-auto text-slate-600 group-hover:text-blue-500 mb-2" size={24} />
-                                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">CARGAR PDF MENSUAL</p>
+                                        <div 
+                                            className={`border-2 border-dashed rounded-2xl p-6 transition-all text-center group cursor-pointer relative ${
+                                                isDragging ? 'border-blue-500 bg-blue-500/20 scale-[1.02] shadow-lg shadow-blue-500/20' : 
+                                                files.length > 0 ? 'border-blue-500/50 bg-blue-500/5' : 'border-slate-800 hover:border-slate-600 hover:bg-slate-800/50'
+                                            }`}
+                                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                            onDragLeave={() => setIsDragging(false)}
+                                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                        >
+                                            <input type="file" accept=".pdf" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" />
+                                            <div className={`flex flex-col items-center gap-2 ${isDragging || files.length > 0 ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-500'}`}>
+                                                {isDragging ? <Upload size={32} className="animate-bounce" /> : files.length > 0 ? <CheckCircle2 size={24} className="animate-in zoom-in duration-300" /> : <Upload size={24} />}
+                                                
+                                                <span className="text-[10px] font-black uppercase tracking-widest">
+                                                    {isDragging ? '¡SUELTA EL PDF AQUÍ!' : 
+                                                     isUploading ? `CARGANDO ${files.length + 1} ARCHIVOS...` :
+                                                     files.length > 0 ? `${files.length} PDF CARGADOS` : 
+                                                     'CARGAR PDF MENSUAL'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 

@@ -59,6 +59,7 @@ export default function PMAPage() {
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -577,10 +578,17 @@ export default function PMAPage() {
                                     </div>
 
 
-                                    {/* Upload Files */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Archivos de Evidencia (PDF o Imagen, Max 9)</label>
-                                        <div className={`border-2 border-dashed ${images.length > 0 ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-700'} rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative`}>
+                                        <div 
+                                            className={`border-2 border-dashed rounded-xl p-6 transition-all text-center cursor-pointer group relative ${
+                                                isDragging ? 'border-emerald-500 bg-emerald-500/20 scale-[1.02] shadow-lg shadow-emerald-500/20' : 
+                                                images.length > 0 ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+                                            }`}
+                                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                            onDragLeave={() => setIsDragging(false)}
+                                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                        >
                                             <input
                                                 type="file"
                                                 onChange={handleFileUpload}
@@ -588,11 +596,24 @@ export default function PMAPage() {
                                                 multiple
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                                             />
-                                            <div className={`flex flex-col items-center gap-2 ${images.length > 0 ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400'}`}>
-                                                {images.length > 0 ? <CheckCircle2 size={24} className="animate-in zoom-in duration-300" /> : <Upload size={24} />}
-                                                <span className="text-xs font-medium">
-                                                    {images.length > 0 ? `${images.length} Archivos Cargados` : 'Click para agregar PDF o Fotos (Máx 9 en total)'}
+                                            <div className={`flex flex-col items-center gap-2 ${isDragging || images.length > 0 ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400'}`}>
+                                                {isDragging ? (
+                                                    <div className="animate-bounce">
+                                                        <Upload size={32} />
+                                                    </div>
+                                                ) : images.length > 0 ? (
+                                                    <CheckCircle2 size={24} className="animate-in zoom-in duration-300" />
+                                                ) : (
+                                                    <Upload size={24} />
+                                                )}
+                                                
+                                                <span className="text-xs font-black uppercase tracking-widest">
+                                                    {isDragging ? '¡SUELTA LOS ARCHIVOS AQUÍ!' : 
+                                                     isUploading ? `CARGANDO ${images.length + 1} ARCHIVOS...` :
+                                                     images.length > 0 ? `${images.length} ARCHIVOS LISTOS` : 
+                                                     'ARRASTRAR O CLIC PARA SUBIR'}
                                                 </span>
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase">PDF e Imágenes aceptados</p>
                                             </div>
                                         </div>
                                     </div>
