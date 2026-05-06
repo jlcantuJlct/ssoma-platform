@@ -13,7 +13,8 @@ import {
     PieChart as PieIcon,
     ArrowDownRight,
     Scale,
-    CheckCircle2
+    CheckCircle2,
+    Upload
 } from "lucide-react";
 import { 
     BarChart as RechartsBarChart, 

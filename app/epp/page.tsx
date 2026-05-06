@@ -12,7 +12,8 @@ import {
     Calendar,
     User,
     MapPin,
-    Package
+    Package,
+    CheckCircle2
 } from "lucide-react";
 import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
 import jsPDF from 'jspdf';
