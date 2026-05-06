@@ -23,6 +23,7 @@ import { uploadEvidence } from "@/lib/uploadClient";
 
 // Versión estable de PDF.js
 const PDF_JS_VERSION = '3.11.174'; 
+const APP_VERSION = '2026.05.06.v2'; // Forzando nueva compilación
 
 interface SCTRMonthlyRecord {
     id: number;
