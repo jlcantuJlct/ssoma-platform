@@ -38,6 +38,8 @@ export const PMA_CATEGORIES: PMACategory[] = [
         label: "3. Foto de Delimitación de áreas y Perímetros",
         hint: "Evidenciar mallas, cintas o barreras de delimitación."
     },
+    { id: 'SST_EMERGENCY_STATION', label: '8. Foto de Estación de Emergencia', group: 'EQUIPOS', hint: 'Evidencia de la ubicación y estado de la estación de emergencia (extintores, botiquín, etc.)' },
+    { id: 'PMA_FOOTPATH', label: '9. Foto de Cruze Peatonal', group: 'ORGANIZACIÓN', hint: 'Evidencia de señalización y estado de cruces peatonales.' },
     { 
         id: "SIGNAGE_PEDESTRIAN_CROSSING", 
         group: "Foto señalización", 
