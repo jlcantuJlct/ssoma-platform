@@ -28,7 +28,10 @@ import {
     ResponsiveContainer, 
     PieChart as RechartsPieChart, 
     Pie, 
-    Cell 
+    Cell,
+    LineChart,
+    Line,
+    Legend
 } from 'recharts';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
@@ -119,18 +122,25 @@ export default function WasteManagementPage() {
 
     const stats = useMemo(() => {
         const totalWeight = records.reduce((acc, r) => acc + r.weight, 0);
-        const byMonth = records.reduce((acc, r) => {
+        
+        // Group weights by Month and then by Type for the Line Chart
+        const monthsMap: Record<string, any> = {};
+        
+        records.forEach(r => {
             const month = r.date.substring(0, 7);
-            acc[month] = (acc[month] || 0) + r.weight;
-            return acc;
-        }, {} as Record<string, number>);
+            if (!monthsMap[month]) {
+                monthsMap[month] = { name: month };
+                // Initialize all categories with 0 to avoid breaks in the line
+                WASTE_CATEGORIES.forEach(cat => monthsMap[month][cat.label] = 0);
+            }
+            monthsMap[month][r.wasteType] = (monthsMap[month][r.wasteType] || 0) + r.weight;
+        });
 
-        const barData = Object.entries(byMonth)
-            .map(([name, weight]) => ({ name, weight }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .slice(-6);
+        const lineData = Object.values(monthsMap)
+            .sort((a: any, b: any) => a.name.localeCompare(b.name))
+            .slice(-12); // Show last year
 
-        return { totalWeight, barData };
+        return { totalWeight, lineData };
     }, [records]);
 
     // --- HANDLERS ---
@@ -405,16 +415,27 @@ export default function WasteManagementPage() {
                                     <BarChart size={16} className="text-emerald-500" /> Evolución Mensual de Pesajes (Total kg)
                                 </h3>
                                 <ResponsiveContainer width="100%" height="80%">
-                                    <RechartsBarChart data={stats.barData}>
+                                    <LineChart data={stats.lineData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                         <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
                                         <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
                                         <Tooltip 
-                                            cursor={{fill: '#1e293b', radius: 4}}
-                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
+                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '10px' }}
                                         />
-                                        <Bar dataKey="weight" fill="#10b981" radius={[6, 6, 0, 0]} />
-                                    </RechartsBarChart>
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingTop: '20px' }} />
+                                        {WASTE_CATEGORIES.map(cat => (
+                                            <Line 
+                                                key={cat.id}
+                                                type="monotone"
+                                                dataKey={cat.label}
+                                                stroke={cat.color}
+                                                strokeWidth={3}
+                                                dot={{ r: 4, strokeWidth: 2 }}
+                                                activeDot={{ r: 6 }}
+                                                name={cat.label}
+                                            />
+                                        ))}
+                                    </LineChart>
                                 </ResponsiveContainer>
                             </div>
 
