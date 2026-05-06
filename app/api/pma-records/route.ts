@@ -22,7 +22,7 @@ async function ensureTable() {
 export async function GET() {
     try {
         await ensureTable();
-        const rawRecords = await db.fetchAll('SELECT * FROM pma_evidence_records ORDER BY created_at DESC');
+        const rawRecords = await db.fetchAll('SELECT * FROM pma_evidence_records ORDER BY date DESC, created_at DESC');
         
         // Deduplicate in JS to handle existing DB duplicates gracefully
         const uniqueRecords = [];

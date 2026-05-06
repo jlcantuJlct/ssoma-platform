@@ -15,7 +15,10 @@ import {
     Target,
     Filter,
     CheckCircle2,
-    Edit2
+    Edit2,
+    ChevronLeft,
+    ChevronRight,
+    ExternalLink
 } from "lucide-react";
 import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -56,8 +59,9 @@ export default function PMAPage() {
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Table Filter State
     const [filterDate, setFilterDate] = useState("");
@@ -137,8 +141,9 @@ export default function PMAPage() {
                             .map(r => [getRecordKey(r), r])
                     ).values());
 
-                    setRecords(finalRecords);
-                    localStorage.setItem('pma_evidence_records', JSON.stringify(finalRecords));
+                    const sorted = finalRecords.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+                    setRecords(sorted);
+                    localStorage.setItem('pma_evidence_records', JSON.stringify(sorted));
                 }
             } catch (e) {
                 console.warn('Could not fetch PMA records from cloud:', e);
@@ -308,6 +313,26 @@ export default function PMAPage() {
         }));
         setImages([]);
     };
+
+    const nextImage = () => {
+        setCurrentImageIndex(prev => (prev + 1) % selectedImages.length);
+    };
+
+    const prevImage = () => {
+        setCurrentImageIndex(prev => (prev - 1 + selectedImages.length) % selectedImages.length);
+    };
+
+    // Keyboard support for gallery
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (selectedImages.length === 0) return;
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
+            if (e.key === 'Escape') setSelectedImages([]);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedImages]);
 
     const handleDelete = (id: number) => {
         if (confirm("¿Está seguro de eliminar este registro?")) {
@@ -747,11 +772,14 @@ export default function PMAPage() {
                                                                     {Array.isArray(record.images) && record.images.slice(0, 4).map((img, i) => {
                                                                         const isPdf = img?.toLowerCase().includes('.pdf');
                                                                         return (
-                                                                            <div
-                                                                                key={i}
-                                                                                className="w-8 h-8 rounded-full border-2 border-slate-900 overflow-hidden cursor-pointer hover:scale-110 hover:z-10 transition-transform bg-slate-800 flex items-center justify-center"
-                                                                                onClick={() => setPreviewFile({ url: img, type: isPdf ? 'pdf' : 'image' })}
-                                                                            >
+                                                                                <div
+                                                                                    key={i}
+                                                                                    className="w-8 h-8 rounded-full border-2 border-slate-900 overflow-hidden cursor-pointer hover:scale-110 hover:z-10 transition-transform bg-slate-800 flex items-center justify-center"
+                                                                                    onClick={() => {
+                                                                                        setSelectedImages(record.images || []);
+                                                                                        setCurrentImageIndex(i);
+                                                                                    }}
+                                                                                >
                                                                                 {isPdf ? (
                                                                                     <FileText size={14} className="text-red-400" />
                                                                                 ) : (
@@ -835,6 +863,71 @@ export default function PMAPage() {
                             />
                         </div>
                         <p className="py-3 text-slate-500 text-[10px] font-bold tracking-widest uppercase">Click fuera de la vista para cerrar</p>
+                    </div>
+                </div>
+            )}
+            {/* Image Preview Modal con Carrusel */}
+            {selectedImages.length > 0 && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-200">
+                    {/* Header con contador */}
+                    <div className="absolute top-4 inset-x-4 flex items-center justify-between z-50">
+                        <div className="bg-emerald-500/20 text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-black border border-emerald-500/30 flex items-center gap-2">
+                            <ImageIcon size={14} />
+                            FOTO {currentImageIndex + 1} DE {selectedImages.length}
+                        </div>
+                        <button 
+                            onClick={() => setSelectedImages([])}
+                            className="p-2 bg-white/10 hover:bg-red-500/20 text-white rounded-full transition-colors border border-white/20"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    {/* Navegación - Izquierda */}
+                    {selectedImages.length > 1 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                            className="absolute left-4 md:left-8 z-50 p-4 bg-black/40 hover:bg-emerald-500/40 text-white rounded-full transition-all border border-white/10 group"
+                        >
+                            <ChevronLeft size={32} className="group-hover:scale-125 transition-transform" />
+                        </button>
+                    )}
+
+                    {/* Imagen Principal */}
+                    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                        <img 
+                            key={currentImageIndex} // Key para reiniciar animación al cambiar foto
+                            src={selectedImages[currentImageIndex]} 
+                            alt="Evidencia"
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 fade-in duration-300"
+                        />
+                        
+                        {/* Zoom/Link Controls Overlay */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-2xl">
+                             <a 
+                                href={selectedImages[currentImageIndex]} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-white/70 hover:text-emerald-400 transition-colors text-[10px] font-bold"
+                                title="Abrir original"
+                            >
+                                <ExternalLink size={16} /> ABRIR ORIGINAL
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Navegación - Derecha */}
+                    {selectedImages.length > 1 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                            className="absolute right-4 md:right-8 z-50 p-4 bg-black/40 hover:bg-emerald-500/40 text-white rounded-full transition-all border border-white/10 group"
+                        >
+                            <ChevronRight size={32} className="group-hover:scale-125 transition-transform" />
+                        </button>
+                    )}
+
+                    <div className="absolute bottom-4 text-white/30 text-[9px] font-black tracking-[0.3em] uppercase pointer-events-none">
+                        Usa las flechas ← → para navegar · ESC para cerrar
                     </div>
                 </div>
             )}
