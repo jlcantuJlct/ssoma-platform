@@ -192,9 +192,14 @@ export default function WasteManagementPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent, wasteTypeFilter: 'No Peligroso' | 'Peligroso') => {
         e.preventDefault();
         
+        if (!entryLocation) {
+            alert("⚠️ Selecciona una SEDE primero.");
+            return;
+        }
+
         if (editingId) {
             const label = Object.keys(multiWeights)[0];
             const weight = multiWeights[label];
@@ -214,8 +219,13 @@ export default function WasteManagementPage() {
             alert("Registro actualizado correctamente.");
         } else {
             const newEntries: WasteWeightRecord[] = [];
+            // Filter categories relevant to this panel
+            const relevantCategories = WASTE_CATEGORIES.filter(c => 
+                wasteTypeFilter === 'No Peligroso' ? c.type === 'No Peligroso' : c.type !== 'No Peligroso'
+            ).map(c => c.label);
+
             Object.entries(multiWeights).forEach(([label, weight]) => {
-                if (Number(weight) > 0) {
+                if (relevantCategories.includes(label) && Number(weight) > 0) {
                     const cat = WASTE_CATEGORIES.find(c => c.label === label);
                     newEntries.push({
                         id: Date.now() + Math.random(),
@@ -230,7 +240,7 @@ export default function WasteManagementPage() {
             });
 
             if (newEntries.length === 0) {
-                alert("Ingresa al menos un peso.");
+                alert("Ingresa al menos un peso en este panel.");
                 return;
             }
 
@@ -348,66 +358,48 @@ export default function WasteManagementPage() {
                         </div>
                     </div>
 
+                    {/* General Configuration Bar */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-wrap items-center justify-center gap-8">
+                        <div className="flex items-center gap-3">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha de Carga:</label>
+                            <input type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sede / Ubicación:</label>
+                            <select value={entryLocation} onChange={e => setEntryLocation(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold outline-none focus:border-emerald-500">
+                                <option value="">Seleccionar Sede...</option>
+                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         
-                        {/* Multi-Entry Form Column */}
+                        {/* LEFT: Aprovechables Form */}
                         <div className="xl:col-span-1 space-y-6">
-                            <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-slate-800'}`}>
-                                <h3 className={`${editingId ? 'text-amber-500' : 'text-emerald-400'} font-black uppercase text-xs tracking-widest mb-6 flex items-center justify-between`}>
-                                    <span className="flex items-center gap-2">
-                                        {editingId ? <Edit2 size={16} /> : <Plus size={16} />} 
-                                        {editingId ? 'Editando Registro' : 'Registro de Pesaje Masivo'}
-                                    </span>
-                                    {editingId && (
-                                        <button onClick={() => { setEditingId(null); setMultiWeights({}); }} className="text-[9px] bg-amber-500/10 px-2 py-1 rounded-lg hover:bg-amber-500/20 transition-colors">
-                                            CANCELAR EDICIÓN
-                                        </button>
-                                    )}
+                            <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'opacity-50 pointer-events-none' : 'border-emerald-500/30'}`}>
+                                <h3 className="text-emerald-400 font-black uppercase text-xs tracking-widest mb-6 flex items-center gap-2">
+                                    <Plus size={16} /> Pesaje Aprovechables
                                 </h3>
 
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
-                                            <input type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Sede</label>
-                                            <select value={entryLocation} onChange={e => setEntryLocation(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none" required>
-                                                <option value="">Sede...</option>
-                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-
+                                <form onSubmit={e => handleSubmit(e, 'No Peligroso')} className="space-y-6">
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 pb-2">
-                                            {editingId ? 'Corregir Peso (KG)' : 'Pesos por Categoría (KG)'}
-                                        </p>
-                                        {WASTE_CATEGORIES.map(cat => {
-                                            if (editingId) {
-                                                const recordToEdit = records.find(r => r.id === editingId);
-                                                if (cat.label !== recordToEdit?.wasteType) return null;
-                                            }
-
-                                            return (
-                                                <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors">
-                                                    <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
-                                                    <input 
-                                                        type="number" 
-                                                        step="0.01" 
-                                                        placeholder="0.00"
-                                                        value={multiWeights[cat.label] || ''}
-                                                        onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
-                                                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono text-right outline-none focus:border-emerald-500"
-                                                    />
-                                                </div>
-                                            );
-                                        })}
+                                        {WASTE_CATEGORIES.filter(c => c.type === 'No Peligroso').map(cat => (
+                                            <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-emerald-500/50 transition-colors">
+                                                <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    placeholder="0.00"
+                                                    value={multiWeights[cat.label] || ''}
+                                                    onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
+                                                    className="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono text-right outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Opcional)</label>
                                         <div 
                                             className={`border-2 border-dashed rounded-2xl p-4 transition-all text-center group cursor-pointer relative ${
                                                 isDragging ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-800 hover:border-slate-600'
@@ -419,20 +411,20 @@ export default function WasteManagementPage() {
                                             <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
                                             <Upload className={`mx-auto mb-2 ${isDragging ? 'text-emerald-500 animate-bounce' : 'text-slate-600'}`} size={20} />
                                             <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">
-                                                {files.length > 0 ? `${files.length} ARCHIVOS` : 'SUBIR TICKET'}
+                                                {files.length > 0 ? `${files.length} ARCHIVOS` : 'SUBIR EVIDENCIA'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isUploading} className={`w-full font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white`}>
-                                        {isUploading ? "Subiendo..." : <><Save size={18} /> {editingId ? 'Actualizar Pesaje' : 'Guardar Pesajes'}</>}
+                                    <button type="submit" disabled={isUploading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
+                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Aprovechables</>}
                                     </button>
                                 </form>
                             </div>
                         </div>
 
-                        {/* Charts and History Columns */}
-                        <div className="xl:col-span-3 space-y-6">
+                        {/* CENTER: Charts and History (2 columns wide) */}
+                        <div className="xl:col-span-2 space-y-6">
                             
                             {/* Bar Chart Card */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-80">
@@ -518,6 +510,63 @@ export default function WasteManagementPage() {
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Peligrosos Form */}
+                        <div className="xl:col-span-1 space-y-6">
+                            <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'border-amber-500 ring-2' : 'border-red-500/30'}`}>
+                                <h3 className={`${editingId ? 'text-amber-500' : 'text-red-400'} font-black uppercase text-xs tracking-widest mb-6 flex items-center justify-between`}>
+                                    <span className="flex items-center gap-2">
+                                        {editingId ? <Edit2 size={16} /> : <AlertTriangle size={16} />} 
+                                        {editingId ? 'Modificando' : 'Pesaje Peligrosos'}
+                                    </span>
+                                    {editingId && (
+                                        <button onClick={() => { setEditingId(null); setMultiWeights({}); }} className="text-[9px] bg-amber-500/10 px-2 py-1 rounded-lg">
+                                            CANCELAR
+                                        </button>
+                                    )}
+                                </h3>
+
+                                <form onSubmit={e => handleSubmit(e, 'Peligroso')} className="space-y-6">
+                                    <div className="space-y-3">
+                                        {WASTE_CATEGORIES.filter(c => c.type !== 'No Peligroso').map(cat => {
+                                            if (editingId) {
+                                                const recordToEdit = records.find(r => r.id === editingId);
+                                                if (cat.label !== recordToEdit?.wasteType) return null;
+                                            }
+
+                                            return (
+                                                <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-red-500/50 transition-colors">
+                                                    <div className="flex-1">
+                                                        <label className="text-[10px] font-bold text-slate-300 block leading-tight">{cat.label}</label>
+                                                        <span className="text-[8px] text-slate-500 font-mono uppercase">{cat.unit}</span>
+                                                    </div>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        placeholder="0.0"
+                                                        value={multiWeights[cat.label] || ''}
+                                                        onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
+                                                        className="w-20 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-red-400 font-mono text-right outline-none focus:border-red-500"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:border-red-500/50 relative">
+                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
+                                            <Upload className="mx-auto mb-2 text-slate-600" size={20} />
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase">Subir Manifiesto / Guía</p>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" disabled={isUploading} className={`w-full ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-red-700 hover:bg-red-600'} text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2`}>
+                                        {isUploading ? "Subiendo..." : <><Save size={18} /> {editingId ? 'Guardar Cambios' : 'Guardar Peligrosos'}</>}
+                                    </button>
+                                </form>
                             </div>
                         </div>
 
