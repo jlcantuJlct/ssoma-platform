@@ -2,6 +2,12 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { fetchMonthlyReportData } from '@/lib/reportDataFetch';
 import { generateWordFromTemplate } from '@/lib/wordTemplateGenerator';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+
+const execPromise = promisify(exec);
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -63,7 +69,42 @@ export async function GET(request: Request) {
             templateData[tag] = groupedPhotos[tag];
         });
 
-        console.log("Datos de plantilla preparados, llamando a generateWordFromTemplate...");
+        console.log("Datos de plantilla preparados.");
+
+        // ESPECIAL: Si es San Clemente, usamos el Procesador Inteligente de Python
+        if (location.toUpperCase() === 'SAN CLEMENTE') {
+            console.log("Utilizando Procesador Inteligente de Python para San Clemente...");
+            
+            const templatePath = path.resolve(process.cwd(), 'public/templates/Plantilla_PMA_SanClemente.docx');
+            const outputPath = path.resolve(process.cwd(), `public/templates/TEMP_REPORT_${Date.now()}.docx`);
+            const dataString = JSON.stringify(data);
+            const scriptPath = path.resolve(process.cwd(), 'lib/report_processor.py');
+
+            // Ejecutar el script de Python
+            // Comandos: python script_path template_path output_path data_json
+            const command = `python "${scriptPath}" "${templatePath}" "${outputPath}" '${dataString.replace(/'/g, "'\\''")}'`;
+            
+            try {
+                await execPromise(command);
+                const buffer = fs.readFileSync(outputPath);
+                
+                // Limpiar archivo temporal
+                fs.unlinkSync(outputPath);
+
+                return new NextResponse(buffer, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'Content-Disposition': `attachment; filename="Informe_PMA_San_Clemente_${data.monthName}_${year}.docx"`,
+                    },
+                });
+            } catch (pyError: any) {
+                console.error("Error en el procesador de Python:", pyError);
+                throw new Error(`Error en el motor de Python: ${pyError.message}`);
+            }
+        }
+
+        // Caso General: Usar docxtemplater estándar
         const buffer = await generateWordFromTemplate(templateData);
         
         return new NextResponse(buffer, {
