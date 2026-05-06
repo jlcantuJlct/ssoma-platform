@@ -42,12 +42,13 @@ type WasteWeightRecord = {
 };
 
 const WASTE_CATEGORIES = [
-    { id: 'general', label: 'Residuos Generales', type: 'No Peligroso', color: '#64748b' },
-    { id: 'oil', label: 'Aceites Usados', type: 'Peligroso', color: '#ef4444' },
-    { id: 'plastic', label: 'Plásticos', type: 'No Peligroso', color: '#3b82f6' },
-    { id: 'metal', label: 'Chatarra Metálica', type: 'No Peligroso', color: '#f59e0b' },
-    { id: 'medical', label: 'Residuos Biocontaminados', type: 'Peligroso', color: '#ec4899' },
-    { id: 'electronic', label: 'RAEE (Electrónicos)', type: 'RAEE', color: '#8b5cf6' },
+    { id: 'metalicos', label: 'RESIDUOS METALICOS', type: 'No Peligroso', color: '#64748b' },
+    { id: 'papel_carton', label: 'PAPELES Y CARTONES', type: 'No Peligroso', color: '#3b82f6' },
+    { id: 'plasticos', label: 'PLASTICOS', type: 'No Peligroso', color: '#10b981' },
+    { id: 'vidrio', label: 'VIDRIO', type: 'No Peligroso', color: '#06b6d4' },
+    { id: 'comida', label: 'RESIDUOS DE COMIDA', type: 'No Peligroso', color: '#f59e0b' },
+    { id: 'madera', label: 'RESIDUOS DE MADERA', type: 'No Peligroso', color: '#8b5cf6' },
+    { id: 'no_aprovechable', label: 'RESIDUOS NO APROVECHABLE', type: 'No Peligroso', color: '#ef4444' },
 ];
 
 export default function WasteManagementPage() {
