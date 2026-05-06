@@ -21,8 +21,8 @@ import {
 } from 'lucide-react';
 import { uploadEvidence } from "@/lib/uploadClient";
 
-// Importación dinámica de PDF.js para el cliente
-const PDF_JS_VERSION = '4.0.379'; // Versión estable
+// Versión estable de PDF.js
+const PDF_JS_VERSION = '3.11.174'; 
 
 interface SCTRMonthlyRecord {
     id: number;
@@ -114,56 +114,59 @@ export default function SCTRPage() {
 
             // 2. Robot Local (Browser-side) - Versión Inmune a Vercel
             try {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.min.js`;
                 document.head.appendChild(script);
 
                 script.onload = async () => {
-                    // @ts-ignore
-                    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    try {
+                        // @ts-ignore
+                        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.worker.min.js`;
 
-                    const arrayBuffer = await selectedFile.arrayBuffer();
-                    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                    const pdf = await loadingTask.promise;
-                    
-                    let fullText = "";
-                    for (let i = 1; i <= Math.min(pdf.numPages, 100); i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items.map((item: any) => item.str).join(" ");
-                        fullText += pageText + "\n";
+                        const arrayBuffer = await selectedFile.arrayBuffer();
+                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        const pdf = await loadingTask.promise;
+                        
+                        let fullText = "";
+                        for (let i = 1; i <= Math.min(pdf.numPages, 100); i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                            fullText += pageText + "\n";
+                        }
+
+                        const text = fullText.replace(/\s+/g, ' ').trim();
+                        console.log(`[Robot Browser] Extraído: ${text.length} caracteres.`);
+
+                        let extractedDate = '';
+                        let extractedPolicy = '';
+
+                        const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                        if (dateMatch) {
+                            const [_, day, month, year] = dateMatch;
+                            extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        }
+
+                        const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro|Contrato)\s*:?\s*([A-Z0-9\-\/]{5,})/i);
+                        if (policyMatch) extractedPolicy = policyMatch[1];
+
+                        setForm(prev => ({ 
+                            ...prev, 
+                            personnel_list: text,
+                            expiration_date: extractedDate || prev.expiration_date,
+                            policy_number: extractedPolicy || prev.policy_number
+                        }));
+                        
+                        alert(`✅ Robot Browser Activo: ${text.length} caracteres extraídos de ${pdf.numPages} páginas.`);
+                    } catch (innerErr) {
+                        console.error("[Robot Browser] Error interno:", innerErr);
+                        alert("⚠️ Error al procesar el contenido del PDF. Ingrese los datos manualmente.");
                     }
-
-                    const text = fullText.replace(/\s+/g, ' ').trim();
-                    console.log(`[Robot Browser] Extraído: ${text.length} caracteres.`);
-
-                    let extractedDate = '';
-                    let extractedPolicy = '';
-
-                    const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-                    if (dateMatch) {
-                        const [_, day, month, year] = dateMatch;
-                        extractedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    }
-
-                    const policyMatch = text.match(/(?:Póliza|Poliza|N°|Nro|Contrato)\s*:?\s*([A-Z0-9\-\/]{5,})/i);
-                    if (policyMatch) extractedPolicy = policyMatch[1];
-
-                    setForm(prev => ({ 
-                        ...prev, 
-                        personnel_list: text,
-                        expiration_date: extractedDate || prev.expiration_date,
-                        policy_number: extractedPolicy || prev.policy_number
-                    }));
-                    
-                    alert(`✅ Robot Browser Activo: ${text.length} caracteres extraídos de ${pdf.numPages} páginas.`);
                 };
 
-            } catch (browserErr: any) {
-                console.error("[Robot Browser] Error:", browserErr);
-                alert("⚠️ El robot local no pudo iniciarse. Por favor ingresa los datos manualmente.");
-            }
+                script.onerror = () => {
+                    alert("❌ No se pudo cargar el motor del robot. Verifique su conexión a internet.");
+                };
         } catch (uploadErr: any) {
             console.error("Error al subir archivo:", uploadErr);
             alert("❌ Error al subir el archivo al almacenamiento.");
@@ -175,6 +178,9 @@ export default function SCTRPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.file_url) return alert("❌ Debe subir el PDF de la póliza.");
+        if (isUploading) return alert("⏳ Por favor espere a que el robot termine de leer el PDF.");
+        if (!form.personnel_list && !confirm("⚠️ El robot no ha detectado nombres en el PDF. ¿Desea registrar la bitácora sin lista de personal?")) return;
+        
         setIsSubmitting(true);
 
         try {
@@ -235,9 +241,9 @@ export default function SCTRPage() {
         // CASO 1: Búsqueda por DNI (Si el target es numérico)
         if (/^\d+$/.test(target)) {
             // Buscamos el DNI rodeado de caracteres no numéricos o límites de palabra
-            // Esto evita que "123" coincida con "91234"
             const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
-            return dniRegex.test(record.personnel_list);
+            // Normalizamos también la lista para evitar caracteres invisibles
+            return dniRegex.test(list); 
         }
 
         // CASO 2: Búsqueda por Nombre
