@@ -426,31 +426,39 @@ export default function WasteManagementPage() {
                         {/* CENTER: Charts and History (2 columns wide) */}
                         <div className="xl:col-span-2 space-y-6">
                             
-                            {/* Bar Chart Card */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-80">
-                                <h3 className="text-white font-bold text-sm mb-6 flex items-center gap-2">
-                                    <BarChart size={16} className="text-emerald-500" /> Evolución Mensual de Pesajes (Total kg)
+                            {/* Chart 1: Aprovechables */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-72">
+                                <h3 className="text-emerald-400 font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <BarChart size={16} /> Tendencia: Residuos Aprovechables
                                 </h3>
-                                <ResponsiveContainer width="100%" height="80%">
+                                <ResponsiveContainer width="100%" height="75%">
                                     <LineChart data={stats.lineData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                        <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '10px' }}
-                                        />
-                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingTop: '20px' }} />
-                                        {WASTE_CATEGORIES.map(cat => (
-                                            <Line 
-                                                key={cat.id}
-                                                type="monotone"
-                                                dataKey={cat.label}
-                                                stroke={cat.color}
-                                                strokeWidth={3}
-                                                dot={{ r: 4, strokeWidth: 2 }}
-                                                activeDot={{ r: 6 }}
-                                                name={cat.label}
-                                            />
+                                        <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '9px' }} />
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase', paddingTop: '15px' }} />
+                                        {WASTE_CATEGORIES.filter(c => c.type === 'No Peligroso').map(cat => (
+                                            <Line key={cat.id} type="monotone" dataKey={cat.label} stroke={cat.color} strokeWidth={2} dot={{ r: 3 }} name={cat.label} />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Chart 2: Peligrosos */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-72">
+                                <h3 className="text-red-400 font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <AlertTriangle size={16} /> Tendencia: Residuos Peligrosos
+                                </h3>
+                                <ResponsiveContainer width="100%" height="75%">
+                                    <LineChart data={stats.lineData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                        <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '9px' }} />
+                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase', paddingTop: '15px' }} />
+                                        {WASTE_CATEGORIES.filter(c => c.type !== 'No Peligroso').map(cat => (
+                                            <Line key={cat.id} type="monotone" dataKey={cat.label} stroke={cat.color} strokeWidth={2} dot={{ r: 3 }} name={cat.label} />
                                         ))}
                                     </LineChart>
                                 </ResponsiveContainer>
