@@ -223,6 +223,18 @@ export const PMA_CATEGORIES: PMACategory[] = [
         group: "Programa de SST y Emergencias", 
         label: "5. Foto de Flujograma de atención de emergencia", 
         hint: "Atención de emergencias."
+    },
+    { 
+        id: "FUEL_CISTERN_SPILL_KIT", 
+        group: "Control de Hidrocarburos y Maquinaria", 
+        label: "1. Foto de cisterna de Comb. KIT contra derrame", 
+        hint: "Evidenciar kit antiderrame en cisterna de combustible." 
+    },
+    { 
+        id: "FUEL_CISTERN_TRAY", 
+        group: "Control de Hidrocarburos y Maquinaria", 
+        label: "2. Foto de cisterna de Comb. usando bandeja", 
+        hint: "Evidenciar uso de bandeja de contención durante abastecimiento." 
     }
 ];
 
