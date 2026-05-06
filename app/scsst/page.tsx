@@ -27,6 +27,8 @@ export default function SCSSTPage() {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -35,7 +37,6 @@ export default function SCSSTPage() {
         responsable: user?.name || '',
         zona: SSOMA_LOCATIONS[0],
         description: '',
-        fileUrl: ''
     });
 
     // Filter state
@@ -95,8 +96,8 @@ export default function SCSSTPage() {
     };
 
     const handleSave = async () => {
-        if (!formData.activity || !formData.fileUrl) {
-            alert('Por favor complete la actividad y cargue la evidencia.');
+        if (!formData.activity || uploadedFiles.length === 0) {
+            alert('Por favor complete la actividad y cargue al menos una evidencia.');
             return;
         }
 
@@ -110,14 +111,13 @@ export default function SCSSTPage() {
                 description: formData.description,
                 responsable: formData.responsable,
                 zona: formData.zona,
-                fileUrl: formData.fileUrl,
+                fileUrl: uploadedFiles[0], // Keep for backward compatibility
+                fileUrls: uploadedFiles, // Store the array
                 fileType: 'pdf'
             };
 
             const allRecords = [...records, newRecord];
             
-            // Note: We only send OBJ 01 records to the API. 
-            // The API is now updated to only clear OBJ 01 records before inserting these.
             const res = await fetch('/api/evidence-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -130,8 +130,8 @@ export default function SCSSTPage() {
                     ...formData,
                     activity: '',
                     description: '',
-                    fileUrl: ''
                 });
+                setUploadedFiles([]);
                 fetchData();
             }
         } catch (error) {
@@ -259,37 +259,66 @@ export default function SCSSTPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Evidencia (PDF)</label>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => {
-                                                const input = document.createElement('input');
-                                                input.type = 'file';
-                                                input.accept = 'application/pdf';
-                                                input.onchange = async (e: any) => {
-                                                    const file = e.target.files[0];
-                                                    if (!file) return;
-                                                    try {
-                                                        const url = await uploadEvidence(file);
-                                                        setFormData({...formData, fileUrl: url});
-                                                    } catch (err) {
-                                                        alert('Error al subir archivo');
-                                                    }
-                                                };
-                                                input.click();
+                                <div className="md:col-span-3 space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                        Zona de Carga (Arrastra PDFs o Imágenes)
+                                    </label>
+                                    <div 
+                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={async (e) => {
+                                            e.preventDefault();
+                                            setIsDragging(false);
+                                            const files = Array.from(e.dataTransfer.files);
+                                            for (const file of files) {
+                                                const url = await uploadEvidence(file);
+                                                setUploadedFiles(prev => [...prev, url]);
+                                            }
+                                        }}
+                                        className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                            isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]' : 
+                                            uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                        }`}
+                                    >
+                                        <input 
+                                            type="file"
+                                            multiple
+                                            onChange={async (e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                for (const file of files) {
+                                                    const url = await uploadEvidence(file);
+                                                    setUploadedFiles(prev => [...prev, url]);
+                                                }
                                             }}
-                                            className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-xl py-2 px-4 transition-all ${formData.fileUrl ? 'border-emerald-500/50 bg-emerald-500/5 text-emerald-400' : 'border-slate-800 hover:border-slate-700 text-slate-500'}`}
-                                        >
-                                            {formData.fileUrl ? <Check size={16} /> : <Upload size={16} />}
-                                            <span className="text-[10px] font-bold uppercase">{formData.fileUrl ? 'Archivo Listo' : 'Subir PDF'}</span>
-                                        </button>
-                                        {formData.fileUrl && (
-                                            <button onClick={() => setFormData({...formData, fileUrl: ''})} className="p-2 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+                                        <div className={`p-4 rounded-2xl transition-colors ${isDragging ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 group-hover:text-emerald-400'}`}>
+                                            <Upload size={32} />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-xs font-black text-white uppercase tracking-widest">
+                                                {isDragging ? '¡SUELTA LOS ARCHIVOS!' : 'ARRASTRA O HAZ CLIC AQUÍ'}
+                                            </p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">
+                                                {uploadedFiles.length > 0 ? `${uploadedFiles.length} ARCHIVOS CARGADOS` : 'SOPORTA PDF E IMÁGENES'}
+                                            </p>
+                                        </div>
                                     </div>
+
+                                    {/* File Previews */}
+                                    {uploadedFiles.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {uploadedFiles.map((url, idx) => (
+                                                <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95">
+                                                    <FileText size={12} className="text-emerald-400" />
+                                                    <span className="text-[9px] font-bold text-slate-300">Archivo {idx + 1}</span>
+                                                    <button onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300">
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="md:col-span-3">
