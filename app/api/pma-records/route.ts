@@ -74,24 +74,44 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        await db.execute('DELETE FROM pma_evidence_records');
-
+        // SAFE SYNC LOGIC: Upsert based on ID instead of DELETE ALL
         for (const r of uniqueRecords) {
-            const rid = r.id || (Date.now() + Math.random());
-            await db.execute(
-                `INSERT INTO pma_evidence_records (id, record_id, date, responsible, category, description, location, images)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    rid,
-                    String(r.id),
-                    r.date || '',
-                    r.responsible || '',
-                    r.category || '',
-                    r.description || '',
-                    r.location || '',
-                    JSON.stringify(r.images || [])
-                ]
-            );
+            const rid = r.id || Date.now();
+            
+            // Reemplazo de DELETE por verificación de existencia
+            const existing = await db.fetch('SELECT id FROM pma_evidence_records WHERE id = ?', [rid]);
+            
+            if (existing) {
+                await db.execute(
+                    `UPDATE pma_evidence_records 
+                     SET date = ?, responsible = ?, category = ?, description = ?, location = ?, images = ? 
+                     WHERE id = ?`,
+                    [
+                        r.date || '',
+                        r.responsible || '',
+                        r.category || '',
+                        r.description || '',
+                        r.location || '',
+                        JSON.stringify(r.images || []),
+                        rid
+                    ]
+                );
+            } else {
+                await db.execute(
+                    `INSERT INTO pma_evidence_records (id, record_id, date, responsible, category, description, location, images)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        rid,
+                        String(r.id),
+                        r.date || '',
+                        r.responsible || '',
+                        r.category || '',
+                        r.description || '',
+                        r.location || '',
+                        JSON.stringify(r.images || [])
+                    ]
+                );
+            }
         }
 
         if (uniqueRecords.length > 0) {
