@@ -14,7 +14,8 @@ import {
     Save,
     Target,
     Filter,
-    CheckCircle2
+    CheckCircle2,
+    Edit2
 } from "lucide-react";
 import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -55,6 +56,7 @@ export default function PMAPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     // Table Filter State
     const [filterDate, setFilterDate] = useState("");
@@ -219,6 +221,32 @@ export default function PMAPage() {
     const removeFile = (index: number) => {
         setImages(prev => prev.filter((_, i) => i !== index));
     };
+    
+    const handleEdit = (record: PMAEvidenceRecord) => {
+        setEditingId(record.id);
+        setForm({
+            date: record.date,
+            responsible: record.responsible,
+            category: record.category,
+            description: record.description || '',
+            location: record.location || ''
+        });
+        setImages(record.images || []);
+        // Scroll suave al formulario
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setForm({
+            date: new Date().toISOString().split('T')[0],
+            responsible: '',
+            category: '',
+            description: '',
+            location: ''
+        });
+        setImages([]);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -238,22 +266,37 @@ export default function PMAPage() {
             return;
         }
 
-        const newRecord: PMAEvidenceRecord = {
-            id: Date.now(),
-            date: form.date,
-            responsible: form.responsible,
-            category: form.category,
-            description: form.description,
-            location: form.location,
-            images: images
-        };
-
-        setRecords(prev => [newRecord, ...prev]);
+        if (editingId) {
+            // MODO EDICIÓN
+            setRecords(prev => prev.map(r => r.id === editingId ? {
+                ...r,
+                date: form.date,
+                responsible: form.responsible,
+                category: form.category,
+                description: form.description,
+                location: form.location,
+                images: images
+            } : r));
+            setEditingId(null);
+            alert("✅ Registro actualizado correctamente.");
+        } else {
+            // MODO NUEVO
+            const newRecord: PMAEvidenceRecord = {
+                id: Date.now(),
+                date: form.date,
+                responsible: form.responsible,
+                category: form.category,
+                description: form.description,
+                location: form.location,
+                images: images
+            };
+            setRecords(prev => [newRecord, ...prev]);
+            alert("Evidencia PMA registrada exitosamente.");
+        }
 
         // Reset
         setForm(prev => ({ ...prev, category: '', description: '', location: '' }));
         setImages([]);
-        alert("Evidencia PMA registrada exitosamente.");
     };
 
     const handleDelete = (id: number) => {
@@ -373,8 +416,14 @@ export default function PMAPage() {
                         <div className="xl:col-span-1">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl sticky top-6">
                                 <h3 className="text-emerald-400 font-bold text-lg mb-6 flex flex-wrap items-center gap-2">
-                                    <Upload size={20} />
-                                    Nueva Evidencia PMA
+                                    {editingId ? (
+                                        <span className="flex items-center gap-1 text-[10px] bg-amber-900/50 text-amber-300 px-3 py-1 rounded-full border border-amber-700/30">
+                                            <Edit2 size={10} /> MODO EDICIÓN ACTIVO
+                                        </span>
+                                    ) : (
+                                        <Upload size={20} />
+                                    )}
+                                    {editingId ? 'Modificar Registro' : 'Nueva Evidencia PMA'}
                                     {isSyncing && (
                                         <span className="flex items-center gap-1 text-[8px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full animate-pulse border border-blue-700/30">
                                             <span className="w-1 h-1 bg-blue-400 rounded-full animate-ping"></span>
@@ -535,12 +584,23 @@ export default function PMAPage() {
                                         </div>
                                     )}
 
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                    >
-                                        <Save size={18} /> Guardar Evidencia
-                                    </button>
+                                    <div className="flex gap-3">
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelEdit}
+                                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl border border-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                <X size={18} /> Cancelar
+                                            </button>
+                                        )}
+                                        <button
+                                            type="submit"
+                                            className={`${editingId ? 'flex-[2]' : 'w-full'} bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95 flex items-center justify-center gap-2`}
+                                        >
+                                            <Save size={18} /> {editingId ? 'Guardar Cambios' : 'Guardar Evidencia'}
+                                        </button>
+                                    </div>
 
                                 </form>
                             </div>
@@ -694,6 +754,13 @@ export default function PMAPage() {
                                                                             title="Descargar Reporte PDF"
                                                                         >
                                                                             <FileText size={14} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleEdit(record)}
+                                                                            className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-slate-700"
+                                                                            title="Modificar Registro"
+                                                                        >
+                                                                            <Edit2 size={14} />
                                                                         </button>
                                                                         {(user?.role === 'developer' || user?.role === 'manager' || user?.name === record.responsible) && (
                                                                             <button
