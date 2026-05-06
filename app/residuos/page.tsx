@@ -315,6 +315,7 @@ export default function WasteManagementPage() {
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         
                         {/* Multi-Entry Form */}
+                        <div className="xl:col-span-1 space-y-6">
                             <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-slate-800'}`}>
                                 <h3 className={`${editingId ? 'text-amber-500' : 'text-emerald-400'} font-black uppercase text-xs tracking-widest mb-6 flex items-center justify-between`}>
                                     <span className="flex items-center gap-2">
