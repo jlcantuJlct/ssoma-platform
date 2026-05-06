@@ -71,9 +71,14 @@ export default function SCSSTPage() {
         }
     };
 
-    // Filtered Records logic
+    // Filtered Records logic - STRICT WHITELIST for SCSST activities
     const filteredRecords = (records || []).filter(rec => {
         if (!rec) return false;
+        
+        // Only show records that belong to the 7 official activities
+        const isOfficialActivity = SCSST_ACTIVITIES.includes(rec.activity);
+        if (!isOfficialActivity) return false;
+
         const matchDate = !filters.date || rec.date === filters.date;
         const matchActivity = !filters.activity || rec.activity === filters.activity;
         const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
@@ -164,10 +169,10 @@ export default function SCSSTPage() {
                                 <Shield className="text-emerald-500" size={24} />
                             </div>
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tighter">
-                                    CONTROL SCSST
+                                <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter italic">
+                                    SCSST - GESTIÓN DEL SUBCOMITÉ
                                 </h1>
-                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">OBJ 01: Control de Seguridad y Salud</p>
+                                <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Panel Oficial de Actividades del Objetivo 01</p>
                             </div>
                         </div>
                     </div>
