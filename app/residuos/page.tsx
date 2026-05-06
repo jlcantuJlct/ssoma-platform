@@ -59,13 +59,11 @@ export default function WasteManagementPage() {
     const [records, setRecords] = useState<WasteWeightRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Form State
-    const [form, setForm] = useState({
-        date: new Date().toISOString().split('T')[0],
-        wasteType: '',
-        weight: '',
-        location: ''
-    });
+    // Form State (Multi-entry)
+    const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
+    const [entryLocation, setEntryLocation] = useState('');
+    const [multiWeights, setMultiWeights] = useState<Record<string, string>>({});
+    
     const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -74,7 +72,7 @@ export default function WasteManagementPage() {
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
-        const stored = localStorage.getItem('waste_weight_records_v1');
+        const stored = localStorage.getItem('waste_weight_records_v2');
         if (stored) {
             try {
                 setRecords(JSON.parse(stored));
@@ -85,26 +83,40 @@ export default function WasteManagementPage() {
 
     useEffect(() => {
         if (isLoaded) {
-            localStorage.setItem('waste_weight_records_v1', JSON.stringify(records));
+            localStorage.setItem('waste_weight_records_v2', JSON.stringify(records));
         }
     }, [records, isLoaded]);
 
-    // --- ANALYTICS ---
+    // --- ANALYTICS & ACCUMULATION ---
+    const accumulationData = useMemo(() => {
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        const lastMonthDate = new Date();
+        lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+        const lastMonth = lastMonthDate.toISOString().substring(0, 7);
+
+        return WASTE_CATEGORIES.map(cat => {
+            const catRecords = records.filter(r => r.wasteType === cat.label);
+            const total = catRecords.reduce((acc, r) => acc + r.weight, 0);
+            const currentMonthSum = catRecords
+                .filter(r => r.date.startsWith(currentMonth))
+                .reduce((acc, r) => acc + r.weight, 0);
+            const lastMonthSum = catRecords
+                .filter(r => r.date.startsWith(lastMonth))
+                .reduce((acc, r) => acc + r.weight, 0);
+
+            return {
+                ...cat,
+                currentMonthSum,
+                lastMonthSum,
+                total
+            };
+        });
+    }, [records]);
+
     const stats = useMemo(() => {
         const totalWeight = records.reduce((acc, r) => acc + r.weight, 0);
-        const byType = records.reduce((acc, r) => {
-            acc[r.wasteType] = (acc[r.wasteType] || 0) + r.weight;
-            return acc;
-        }, {} as Record<string, number>);
-
-        const pieData = Object.entries(byType).map(([name, value]) => ({
-            name,
-            value,
-            color: WASTE_CATEGORIES.find(c => c.label === name)?.color || '#94a3b8'
-        }));
-
         const byMonth = records.reduce((acc, r) => {
-            const month = r.date.substring(0, 7); // YYYY-MM
+            const month = r.date.substring(0, 7);
             acc[month] = (acc[month] || 0) + r.weight;
             return acc;
         }, {} as Record<string, number>);
@@ -114,7 +126,7 @@ export default function WasteManagementPage() {
             .sort((a, b) => a.name.localeCompare(b.name))
             .slice(-6);
 
-        return { totalWeight, pieData, barData };
+        return { totalWeight, barData };
     }, [records]);
 
     // --- HANDLERS ---
@@ -122,15 +134,14 @@ export default function WasteManagementPage() {
         const inputFiles = e.target.files;
         if (!inputFiles) return;
 
-        if (!form.wasteType || !form.location) {
-            alert("⚠️ Por favor completa el Tipo de Residuo y el lugar antes de subir la evidencia.");
+        if (!entryLocation) {
+            alert("⚠️ Por favor selecciona el lugar antes de subir la evidencia.");
             e.target.value = '';
             return;
         }
 
         try {
             setIsUploading(true);
-            const { uploadEvidence } = await import("@/lib/uploadClient");
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(inputFiles);
 
@@ -138,12 +149,12 @@ export default function WasteManagementPage() {
                 const url = await uploadEvidence(
                     file,
                     'PMA',
-                    `PESAJE_${form.wasteType.replace(/\s+/g, '_')}`,
-                    form.date,
+                    `PESAJE_MASIVO_${entryLocation.replace(/\s+/g, '_')}`,
+                    entryDate,
                     user?.name || 'S/N',
                     'pma',
                     'medio_ambiente',
-                    form.location,
+                    entryLocation,
                     'Pesaje de Residuos'
                 );
                 uploadedUrls.push(url);
@@ -157,24 +168,35 @@ export default function WasteManagementPage() {
             e.target.value = '';
         }
     };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const categoryInfo = WASTE_CATEGORIES.find(c => c.label === form.wasteType);
         
-        const newRecord: WasteWeightRecord = {
-            id: Date.now(),
-            date: form.date,
-            wasteType: form.wasteType,
-            weight: Number(form.weight),
-            location: form.location,
-            category: (categoryInfo?.type as any) || 'No Peligroso',
-            files: files
-        };
+        const newEntries: WasteWeightRecord[] = [];
+        Object.entries(multiWeights).forEach(([label, weight]) => {
+            if (Number(weight) > 0) {
+                const cat = WASTE_CATEGORIES.find(c => c.label === label);
+                newEntries.push({
+                    id: Date.now() + Math.random(),
+                    date: entryDate,
+                    wasteType: label,
+                    weight: Number(weight),
+                    location: entryLocation,
+                    category: (cat?.type as any) || 'No Peligroso',
+                    files: files
+                });
+            }
+        });
 
-        setRecords(prev => [newRecord, ...prev]);
-        setForm(prev => ({ ...prev, weight: '' }));
+        if (newEntries.length === 0) {
+            alert("Ingresa al menos un peso.");
+            return;
+        }
+
+        setRecords(prev => [...newEntries, ...prev]);
+        setMultiWeights({});
         setFiles([]);
-        alert("Pesaje registrado correctamente.");
+        alert("Pesajes registrados correctamente.");
     };
 
     const handleDelete = (id: number) => {
@@ -195,203 +217,182 @@ export default function WasteManagementPage() {
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                     <Scale size={40} className="text-emerald-500" />
-                                    15 Pesaje de Residuos
+                                    Panel de Control de Residuos
                                 </h1>
                                 <p className="text-slate-400 font-bold max-w-2xl">
-                                    Control volumétrico y de peso de residuos generados por sede. Monitoree las metas de reducción y segregación en tiempo real.
+                                    Monitoreo acumulado de segregación. Registre los pesos por tipo de residuo y visualice el progreso mensual automáticamente.
                                 </p>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800 text-center">
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Peso Total (Año)</p>
-                                    <p className="text-3xl font-black text-emerald-400">{stats.totalWeight.toLocaleString()} <span className="text-sm">kg</span></p>
-                                </div>
-                                <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800 text-center">
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Registros</p>
-                                    <p className="text-3xl font-black text-white">{records.length}</p>
-                                </div>
+                            <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-center min-w-[200px]">
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Peso Total Acumulado (KG)</p>
+                                <p className="text-4xl font-black text-emerald-400">{stats.totalWeight.toLocaleString()} <span className="text-sm">kg</span></p>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Accumulation Summary Matrix */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl overflow-hidden">
+                        <h3 className="text-white font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <TrendingUp size={18} className="text-emerald-500" /> Resumen Acumulado por Tipo
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
+                                        <th className="pb-4 pl-4">Tipo de Residuo</th>
+                                        <th className="pb-4 text-center">Este Mes</th>
+                                        <th className="pb-4 text-center">Mes Anterior</th>
+                                        <th className="pb-4 text-center">Tendencia</th>
+                                        <th className="pb-4 text-right pr-4">Total Acumulado</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {accumulationData.map((data, idx) => {
+                                        const diff = data.currentMonthSum - data.lastMonthSum;
+                                        return (
+                                            <tr key={idx} className="group hover:bg-slate-800/30 transition-colors">
+                                                <td className="py-4 pl-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-2 h-8 rounded-full" style={{ backgroundColor: data.color }} />
+                                                        <span className="font-bold text-white">{data.label}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 text-center font-mono font-bold text-emerald-400">
+                                                    {data.currentMonthSum.toFixed(2)} kg
+                                                </td>
+                                                <td className="py-4 text-center font-mono text-slate-500">
+                                                    {data.lastMonthSum.toFixed(2)} kg
+                                                </td>
+                                                <td className="py-4 text-center">
+                                                    {diff !== 0 && (
+                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${diff > 0 ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                            {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 text-right pr-4 font-mono font-black text-white text-lg">
+                                                    {data.total.toLocaleString()} kg
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         
-                        {/* Form Column */}
+                        {/* Multi-Entry Form */}
                         <div className="xl:col-span-1 space-y-6">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
                                 <h3 className="text-emerald-400 font-black uppercase text-xs tracking-widest mb-6 flex items-center gap-2">
-                                    <Plus size={16} /> Registro de Pesaje
+                                    <Plus size={16} /> Registro de Pesaje Masivo
                                 </h3>
 
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Fecha de Pesaje</label>
-                                        <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Residuo</label>
-                                        <select value={form.wasteType} onChange={e => setForm({...form, wasteType: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required>
-                                            <option value="">Seleccionar Tipo...</option>
-                                            {WASTE_CATEGORIES.map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Peso (kg)</label>
-                                        <div className="relative">
-                                            <input type="number" step="0.01" placeholder="0.00" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
-                                            <span className="absolute right-4 top-2 text-[10px] font-black text-slate-600">KG</span>
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
+                                            <input type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Sede</label>
+                                            <select value={entryLocation} onChange={e => setEntryLocation(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none" required>
+                                                <option value="">Sede...</option>
+                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                            </select>
                                         </div>
                                     </div>
 
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 pb-2">Pesos por Categoría (KG)</p>
+                                        {WASTE_CATEGORIES.map(cat => (
+                                            <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors">
+                                                <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    placeholder="0.00"
+                                                    value={multiWeights[cat.label] || ''}
+                                                    onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
+                                                    className="w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono text-right outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Foto de Ticket o Registro)</label>
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Opcional)</label>
                                         <div 
-                                            className={`border-2 border-dashed rounded-2xl p-6 transition-all text-center group cursor-pointer relative ${
-                                                isDragging ? 'border-emerald-500 bg-emerald-500/20 scale-[1.02] shadow-lg shadow-emerald-500/20' : 
-                                                files.length > 0 ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                                            className={`border-2 border-dashed rounded-2xl p-4 transition-all text-center group cursor-pointer relative ${
+                                                isDragging ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-800 hover:border-slate-600'
                                             }`}
                                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                             onDragLeave={() => setIsDragging(false)}
                                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
                                         >
                                             <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
-                                            <div className={`flex flex-col items-center gap-2 ${isDragging || files.length > 0 ? 'text-emerald-400' : 'text-slate-600 group-hover:text-emerald-500'}`}>
-                                                {isDragging ? <Upload size={32} className="animate-bounce" /> : files.length > 0 ? <CheckCircle2 size={24} className="animate-in zoom-in duration-300" /> : <Upload size={24} />}
-                                                
-                                                <span className="text-[10px] font-black uppercase tracking-widest">
-                                                    {isDragging ? '¡SUELTA EL TICKET AQUÍ!' : 
-                                                     isUploading ? `SUBIENDO ${files.length + 1} ARCHIVOS...` :
-                                                     files.length > 0 ? `${files.length} ARCHIVOS LISTOS` : 
-                                                     'ARRASTRAR O CLIC PARA SUBIR'}
-                                                </span>
-                                            </div>
+                                            <Upload className={`mx-auto mb-2 ${isDragging ? 'text-emerald-500 animate-bounce' : 'text-slate-600'}`} size={20} />
+                                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">
+                                                {files.length > 0 ? `${files.length} ARCHIVOS` : 'SUBIR TICKET'}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {files.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800">
-                                            {files.map((f, i) => (
-                                                <div key={i} className="group/file relative w-12 h-12 rounded-lg overflow-hidden border border-slate-800">
-                                                    <img src={f} className="w-full h-full object-cover" />
-                                                    <button type="button" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-red-500/80 opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <Trash2 size={14} className="text-white" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <button type="submit" disabled={isUploading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Pesaje</>}
+                                    <button type="submit" disabled={isUploading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
+                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Pesajes</>}
                                     </button>
                                 </form>
-                            </div>
-
-                            {/* Mini Stats Card */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                                <h3 className="text-slate-500 font-black uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
-                                    <PieIcon size={14} /> Distribución por Tipo
-                                </h3>
-                                <div className="h-48 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RechartsPieChart>
-                                            <Pie
-                                                data={stats.pieData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={40}
-                                                outerRadius={60}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                            >
-                                                {stats.pieData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip 
-                                                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
-                                                itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
-                                            />
-                                        </RechartsPieChart>
-                                    </ResponsiveContainer>
-                                </div>
                             </div>
                         </div>
 
                         {/* Charts and History Columns */}
                         <div className="xl:col-span-3 space-y-6">
                             
-                            {/* Charts Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-64">
-                                    <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
-                                        <TrendingUp size={16} className="text-emerald-500" /> Evolución Mensual (kg)
-                                    </h3>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RechartsBarChart data={stats.barData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                            <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                                            <Tooltip 
-                                                cursor={{fill: '#1e293b', radius: 4}}
-                                                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
-                                            />
-                                            <Bar dataKey="weight" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                        </RechartsBarChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-64 flex flex-col">
-                                    <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
-                                        <AlertTriangle size={16} className="text-amber-500" /> Alertas de Segregación
-                                    </h3>
-                                    <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-                                        {records.filter(r => r.category === 'Peligroso').slice(0, 5).map(r => (
-                                            <div key={r.id} className="bg-slate-950 border-l-4 border-red-500 p-3 rounded-lg flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-xs font-bold text-white">{r.wasteType}</p>
-                                                    <p className="text-[10px] text-slate-500">{r.location} - {r.date}</p>
-                                                </div>
-                                                <span className="text-xs font-black text-red-400">{r.weight} kg</span>
-                                            </div>
-                                        ))}
-                                        {records.filter(r => r.category === 'Peligroso').length === 0 && (
-                                            <div className="h-full flex flex-col items-center justify-center text-slate-600 italic text-xs">
-                                                No hay alertas críticas registradas
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                            {/* Bar Chart */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-80">
+                                <h3 className="text-white font-bold text-sm mb-6 flex items-center gap-2">
+                                    <BarChart size={16} className="text-emerald-500" /> Evolución Mensual de Pesajes (Total kg)
+                                </h3>
+                                <ResponsiveContainer width="100%" height="80%">
+                                    <RechartsBarChart data={stats.barData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                        <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip 
+                                            cursor={{fill: '#1e293b', radius: 4}}
+                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
+                                        />
+                                        <Bar dataKey="weight" fill="#10b981" radius={[6, 6, 0, 0]} />
+                                    </RechartsBarChart>
+                                </ResponsiveContainer>
                             </div>
 
                             {/* History Table */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                                     <h3 className="text-white font-black text-lg flex items-center gap-2">
-                                        <BarChart size={20} className="text-slate-500" /> Rastro de Pesajes
+                                        <BarChart size={20} className="text-slate-500" /> Historial Detallado
                                     </h3>
                                     <select 
                                         value={filterLocation}
                                         onChange={e => setFilterLocation(e.target.value)}
                                         className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none"
                                     >
-                                        <option value="">Filtrar por Lugar...</option>
+                                        <option value="">Todos los lugares...</option>
                                         {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                                     </select>
                                 </div>
-                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
+                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto no-scrollbar">
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
                                                 <th className="pb-4 pl-4">Fecha</th>
                                                 <th className="pb-4">Residuo</th>
-                                                <th className="pb-4">Categoría</th>
-                                                <th className="pb-4">Sede / Lugar</th>
+                                                <th className="pb-4">Lugar</th>
                                                 <th className="pb-4 text-center">Evidencia</th>
-                                                <th className="pb-4 text-right">Peso (kg)</th>
-                                                <th className="pb-4 text-right pr-4">Acciones</th>
+                                                <th className="pb-4 text-right pr-4">Peso (kg)</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
@@ -399,36 +400,16 @@ export default function WasteManagementPage() {
                                                 <tr key={r.id} className="group hover:bg-slate-800/30 transition-colors">
                                                     <td className="py-4 pl-4 text-xs font-mono text-slate-400">{r.date}</td>
                                                     <td className="py-4 text-sm font-bold text-white">{r.wasteType}</td>
-                                                    <td className="py-4">
-                                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
-                                                            r.category === 'Peligroso' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                                                            r.category === 'RAEE' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                                                            'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                                                        }`}>
-                                                            {r.category.toUpperCase()}
-                                                        </span>
-                                                    </td>
                                                     <td className="py-4 text-xs text-slate-400">{r.location}</td>
-                                                    <td className="py-4">
-                                                        <div className="flex justify-center gap-1">
-                                                            {r.files && r.files.length > 0 ? (
-                                                                r.files.map((f, i) => (
-                                                                    <button key={i} onClick={() => setPreviewFile({url: f, type: 'image'})} className="w-8 h-8 rounded bg-slate-800 border border-slate-700 overflow-hidden hover:border-emerald-500 transition-colors">
-                                                                        <img src={f} className="w-full h-full object-cover" />
-                                                                    </button>
-                                                                ))
-                                                            ) : (
-                                                                <span className="text-[9px] text-slate-600 font-bold uppercase italic">Sin archivo</span>
-                                                            )}
-                                                        </div>
+                                                    <td className="py-4 text-center">
+                                                        {r.files && r.files.length > 0 ? (
+                                                            <button onClick={() => setPreviewFile({url: r.files[0], type: 'image'})} className="p-1.5 rounded bg-slate-800 border border-slate-700 hover:border-emerald-500">
+                                                                <Eye size={14} className="text-emerald-500" />
+                                                            </button>
+                                                        ) : <span className="text-[10px] text-slate-700 italic">N/A</span>}
                                                     </td>
-                                                    <td className="py-4 text-right text-sm font-mono font-black text-white">
+                                                    <td className="py-4 text-right pr-4 font-mono font-black text-white">
                                                         {r.weight.toFixed(2)}
-                                                    </td>
-                                                    <td className="py-4 text-right pr-4">
-                                                        <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
-                                                            <Trash2 size={16} />
-                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -447,14 +428,9 @@ export default function WasteManagementPage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm" onClick={() => setPreviewFile(null)}>
                     <div className="relative max-w-4xl w-full flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
                         <img src={previewFile.url} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl border border-white/10" />
-                        <div className="flex gap-4">
-                            <a href={previewFile.url} download target="_blank" className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-all">
-                                Descargar Original
-                            </a>
-                            <button onClick={() => setPreviewFile(null)} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-xl font-bold transition-all">
-                                Cerrar
-                            </button>
-                        </div>
+                        <button onClick={() => setPreviewFile(null)} className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest transition-all">
+                            Cerrar
+                        </button>
                     </div>
                 </div>
             )}
