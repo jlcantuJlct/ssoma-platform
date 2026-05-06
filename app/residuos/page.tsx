@@ -63,6 +63,7 @@ export default function WasteManagementPage() {
     const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
     const [entryLocation, setEntryLocation] = useState('');
     const [multiWeights, setMultiWeights] = useState<Record<string, string>>({});
+    const [editingId, setEditingId] = useState<number | null>(null);
     
     const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
@@ -172,31 +173,61 @@ export default function WasteManagementPage() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        const newEntries: WasteWeightRecord[] = [];
-        Object.entries(multiWeights).forEach(([label, weight]) => {
-            if (Number(weight) > 0) {
-                const cat = WASTE_CATEGORIES.find(c => c.label === label);
-                newEntries.push({
-                    id: Date.now() + Math.random(),
-                    date: entryDate,
-                    wasteType: label,
-                    weight: Number(weight),
-                    location: entryLocation,
-                    category: (cat?.type as any) || 'No Peligroso',
-                    files: files
-                });
-            }
-        });
+        if (editingId) {
+            // Edit existing record
+            const label = Object.keys(multiWeights)[0];
+            const weight = multiWeights[label];
+            const cat = WASTE_CATEGORIES.find(c => c.label === label);
 
-        if (newEntries.length === 0) {
-            alert("Ingresa al menos un peso.");
-            return;
+            setRecords(prev => prev.map(r => r.id === editingId ? {
+                ...r,
+                date: entryDate,
+                wasteType: label,
+                weight: Number(weight),
+                location: entryLocation,
+                category: (cat?.type as any) || 'No Peligroso',
+                files: files.length > 0 ? files : r.files
+            } : r));
+
+            setEditingId(null);
+            alert("Registro actualizado correctamente.");
+        } else {
+            // New entries
+            const newEntries: WasteWeightRecord[] = [];
+            Object.entries(multiWeights).forEach(([label, weight]) => {
+                if (Number(weight) > 0) {
+                    const cat = WASTE_CATEGORIES.find(c => c.label === label);
+                    newEntries.push({
+                        id: Date.now() + Math.random(),
+                        date: entryDate,
+                        wasteType: label,
+                        weight: Number(weight),
+                        location: entryLocation,
+                        category: (cat?.type as any) || 'No Peligroso',
+                        files: files
+                    });
+                }
+            });
+
+            if (newEntries.length === 0) {
+                alert("Ingresa al menos un peso.");
+                return;
+            }
+
+            setRecords(prev => [...newEntries, ...prev]);
+            alert("Pesajes registrados correctamente.");
         }
 
-        setRecords(prev => [...newEntries, ...prev]);
         setMultiWeights({});
         setFiles([]);
-        alert("Pesajes registrados correctamente.");
+    };
+
+    const handleEdit = (record: WasteWeightRecord) => {
+        setEditingId(record.id);
+        setEntryDate(record.date);
+        setEntryLocation(record.location);
+        setMultiWeights({ [record.wasteType]: record.weight.toString() });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = (id: number) => {
@@ -284,10 +315,17 @@ export default function WasteManagementPage() {
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         
                         {/* Multi-Entry Form */}
-                        <div className="xl:col-span-1 space-y-6">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                                <h3 className="text-emerald-400 font-black uppercase text-xs tracking-widest mb-6 flex items-center gap-2">
-                                    <Plus size={16} /> Registro de Pesaje Masivo
+                            <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-slate-800'}`}>
+                                <h3 className={`${editingId ? 'text-amber-500' : 'text-emerald-400'} font-black uppercase text-xs tracking-widest mb-6 flex items-center justify-between`}>
+                                    <span className="flex items-center gap-2">
+                                        {editingId ? <Edit2 size={16} /> : <Plus size={16} />} 
+                                        {editingId ? 'Editando Registro' : 'Registro de Pesaje Masivo'}
+                                    </span>
+                                    {editingId && (
+                                        <button onClick={() => { setEditingId(null); setMultiWeights({}); }} className="text-[9px] bg-amber-500/10 px-2 py-1 rounded-lg hover:bg-amber-500/20 transition-colors">
+                                            CANCELAR EDICIÓN
+                                        </button>
+                                    )}
                                 </h3>
 
                                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -306,20 +344,31 @@ export default function WasteManagementPage() {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 pb-2">Pesos por Categoría (KG)</p>
-                                        {WASTE_CATEGORIES.map(cat => (
-                                            <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors">
-                                                <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
-                                                <input 
-                                                    type="number" 
-                                                    step="0.01" 
-                                                    placeholder="0.00"
-                                                    value={multiWeights[cat.label] || ''}
-                                                    onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
-                                                    className="w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono text-right outline-none focus:border-emerald-500"
-                                                />
-                                            </div>
-                                        ))}
+                                        <p className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 pb-2">
+                                            {editingId ? 'Corregir Peso (KG)' : 'Pesos por Categoría (KG)'}
+                                        </p>
+                                        {WASTE_CATEGORIES.map(cat => {
+                                            // Si estamos editando, solo mostrar el tipo que estamos editando o todos?
+                                            // Mejor mostrar el que estamos editando si hay un editingId
+                                            if (editingId) {
+                                                const recordToEdit = records.find(r => r.id === editingId);
+                                                if (cat.label !== recordToEdit?.wasteType) return null;
+                                            }
+
+                                            return (
+                                                <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors">
+                                                    <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01" 
+                                                        placeholder="0.00"
+                                                        value={multiWeights[cat.label] || ''}
+                                                        onChange={e => setMultiWeights({...multiWeights, [cat.label]: e.target.value})}
+                                                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-emerald-400 font-mono text-right outline-none focus:border-emerald-500"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
                                     <div className="space-y-2">
@@ -340,8 +389,8 @@ export default function WasteManagementPage() {
                                         </div>
                                     </div>
 
-                                    <button type="submit" disabled={isUploading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
-                                        {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Pesajes</>}
+                                    <button type="submit" disabled={isUploading} className={`w-full font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white`}>
+                                        {isUploading ? "Subiendo..." : <><Save size={18} /> {editingId ? 'Actualizar Pesaje' : 'Guardar Pesajes'}</>}
                                     </button>
                                 </form>
                             </div>
@@ -408,8 +457,15 @@ export default function WasteManagementPage() {
                                                             </button>
                                                         ) : <span className="text-[10px] text-slate-700 italic">N/A</span>}
                                                     </td>
-                                                    <td className="py-4 text-right pr-4 font-mono font-black text-white">
-                                                        {r.weight.toFixed(2)}
+                                                    <td className="py-4 text-right pr-4">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => handleEdit(r)} className="p-2 text-slate-600 hover:text-amber-400 transition-colors">
+                                                                <Edit2 size={16} />
+                                                            </button>
+                                                            <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
