@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             const rid = r.id || Date.now();
             
             // Reemplazo de DELETE por verificación de existencia
-            const existing = await db.fetch('SELECT id FROM pma_evidence_records WHERE id = ?', [rid]);
+            const existing = await db.fetchOne('SELECT id FROM pma_evidence_records WHERE id = ?', [rid]);
             
             if (existing) {
                 await db.execute(
