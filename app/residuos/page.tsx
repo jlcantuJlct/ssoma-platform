@@ -49,13 +49,22 @@ type WasteWeightRecord = {
 };
 
 const WASTE_CATEGORIES = [
-    { id: 'metalicos', label: 'RESIDUOS METALICOS', type: 'No Peligroso', color: '#64748b' },
-    { id: 'papel_carton', label: 'PAPELES Y CARTONES', type: 'No Peligroso', color: '#3b82f6' },
-    { id: 'plasticos', label: 'PLASTICOS', type: 'No Peligroso', color: '#10b981' },
-    { id: 'vidrio', label: 'VIDRIO', type: 'No Peligroso', color: '#06b6d4' },
-    { id: 'comida', label: 'RESIDUOS DE COMIDA', type: 'No Peligroso', color: '#f59e0b' },
-    { id: 'madera', label: 'RESIDUOS DE MADERA', type: 'No Peligroso', color: '#8b5cf6' },
-    { id: 'no_aprovechable', label: 'RESIDUOS NO APROVECHABLE', type: 'No Peligroso', color: '#ef4444' },
+    // No Peligrosos (Aprovechables)
+    { id: 'metalicos', label: 'RESIDUOS METALICOS', type: 'No Peligroso', color: '#64748b', unit: 'kg' },
+    { id: 'papel_carton', label: 'PAPELES Y CARTONES', type: 'No Peligroso', color: '#3b82f6', unit: 'kg' },
+    { id: 'plasticos', label: 'PLASTICOS', type: 'No Peligroso', color: '#10b981', unit: 'kg' },
+    { id: 'vidrio', label: 'VIDRIO', type: 'No Peligroso', color: '#06b6d4', unit: 'kg' },
+    { id: 'comida', label: 'RESIDUOS DE COMIDA', type: 'No Peligroso', color: '#f59e0b', unit: 'kg' },
+    { id: 'madera', label: 'RESIDUOS DE MADERA', type: 'No Peligroso', color: '#8b5cf6', unit: 'kg' },
+    { id: 'no_aprovechable', label: 'RESIDUOS NO APROVECHABLE', type: 'No Peligroso', color: '#ef4444', unit: 'kg' },
+    
+    // Peligrosos y Especiales
+    { id: 'trapos', label: 'TRAPOS INDUSTRIALES', type: 'Peligroso', color: '#991b1b', unit: 'kg' },
+    { id: 'tierra', label: 'TIERRA CONTAMINADA', type: 'Peligroso', color: '#78350f', unit: 'kg' },
+    { id: 'solidos_p', label: 'RESIDUOS SOLIDOS (PEL)', type: 'Peligroso', color: '#b91c1c', unit: 'kg' },
+    { id: 'liquidos_p', label: 'RESIDUOS LIQUIDOS', type: 'Peligroso', color: '#1e3a8a', unit: 'cilindro' },
+    { id: 'topico', label: 'RESIDUOS DE TOPICO', type: 'Peligroso', color: '#be123c', unit: 'kg' },
+    { id: 'raees', label: 'RAEEs', type: 'RAEE', color: '#4d7c0f', unit: 'kg' },
 ];
 
 export default function WasteManagementPage() {
@@ -272,54 +281,70 @@ export default function WasteManagementPage() {
                         </div>
                     </div>
 
-                    {/* Accumulation Summary Matrix */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl overflow-hidden">
-                        <h3 className="text-white font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <TrendingUp size={18} className="text-emerald-500" /> Resumen Acumulado por Tipo
-                        </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
-                                        <th className="pb-4 pl-4">Tipo de Residuo</th>
-                                        <th className="pb-4 text-center">Este Mes</th>
-                                        <th className="pb-4 text-center">Mes Anterior</th>
-                                        <th className="pb-4 text-center">Tendencia</th>
-                                        <th className="pb-4 text-right pr-4">Total Acumulado</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {accumulationData.map((data, idx) => {
-                                        const diff = data.currentMonthSum - data.lastMonthSum;
-                                        return (
-                                            <tr key={idx} className="group hover:bg-slate-800/30 transition-colors">
-                                                <td className="py-4 pl-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2 h-8 rounded-full" style={{ backgroundColor: data.color }} />
-                                                        <span className="font-bold text-white">{data.label}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-center font-mono font-bold text-emerald-400">
-                                                    {data.currentMonthSum.toFixed(2)} kg
-                                                </td>
-                                                <td className="py-4 text-center font-mono text-slate-500">
-                                                    {data.lastMonthSum.toFixed(2)} kg
-                                                </td>
-                                                <td className="py-4 text-center">
-                                                    {diff !== 0 && (
-                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${diff > 0 ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                                            {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-4 text-right pr-4 font-mono font-black text-white text-lg">
-                                                    {data.total.toLocaleString()} kg
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                    {/* Accumulation Summary Matrix Split */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        {/* Non-Hazardous Summary */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                            <h3 className="text-emerald-400 font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <TrendingUp size={18} /> Residuos Aprovechables (No Peligrosos)
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <tbody className="divide-y divide-slate-800">
+                                        {accumulationData.filter(d => d.type === 'No Peligroso').map((data, idx) => {
+                                            const diff = data.currentMonthSum - data.lastMonthSum;
+                                            return (
+                                                <tr key={idx} className="group hover:bg-slate-800/30 transition-colors">
+                                                    <td className="py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: data.color }} />
+                                                            <span className="font-bold text-white text-xs">{data.label}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        <span className="text-[10px] font-mono font-bold text-emerald-400">{data.currentMonthSum.toFixed(1)} {data.unit}</span>
+                                                    </td>
+                                                    <td className="py-3 text-right">
+                                                        <span className="text-sm font-black text-white">{data.total.toLocaleString()} <span className="text-[10px] text-slate-500 font-normal">{data.unit}</span></span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Hazardous Summary */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                            <h3 className="text-red-400 font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <AlertTriangle size={18} /> Residuos Peligrosos y Especiales
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <tbody className="divide-y divide-slate-800">
+                                        {accumulationData.filter(d => d.type !== 'No Peligroso').map((data, idx) => {
+                                            return (
+                                                <tr key={idx} className="group hover:bg-slate-800/30 transition-colors">
+                                                    <td className="py-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: data.color }} />
+                                                            <span className="font-bold text-white text-xs">{data.label}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        <span className="text-[10px] font-mono font-bold text-red-400">{data.currentMonthSum.toFixed(1)} {data.unit}</span>
+                                                    </td>
+                                                    <td className="py-3 text-right">
+                                                        <span className="text-sm font-black text-white">{data.total.toLocaleString()} <span className="text-[10px] text-slate-500 font-normal">{data.unit}</span></span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
