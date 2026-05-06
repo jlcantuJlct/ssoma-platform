@@ -135,7 +135,12 @@ export default function SCTRPage() {
                             fullText += pageText + "\n";
                         }
 
-                        const text = fullText.replace(/\s+/g, ' ').trim();
+                        // Preservamos saltos de línea pero limpiamos espacios múltiples horizontales
+                        const text = fullText.split('\n')
+                            .map(line => line.replace(/[^\S\r\n]+/g, ' ').trim())
+                            .filter(line => line.length > 0)
+                            .join('\n');
+                        
                         console.log(`[Robot Browser] Extraído: ${text.length} caracteres.`);
 
                         let extractedDate = '';
@@ -235,6 +240,11 @@ export default function SCTRPage() {
             (text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             
         const target = normalize(search).trim();
+        const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
+        
+        // Si no hay palabras válidas de búsqueda, retornamos vacío
+        if (targetWords.length === 0) return [];
+
         const lines = record.personnel_list.split('\n');
         const matches: string[] = [];
 
@@ -249,9 +259,8 @@ export default function SCTRPage() {
                     matches.push(line.trim());
                 }
             } else {
-                // Búsqueda por Nombre (todas las palabras deben estar)
-                const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
-                if (targetWords.length > 0 && targetWords.every(word => normalizedLine.includes(word))) {
+                // COINCIDENCIA ESTRICTA: Todas las palabras deben estar EN LA MISMA LÍNEA
+                if (targetWords.every(word => normalizedLine.includes(word))) {
                     matches.push(line.trim());
                 }
             }
