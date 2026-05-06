@@ -14,7 +14,9 @@ import {
     ArrowDownRight,
     Scale,
     CheckCircle2,
-    Upload
+    Upload,
+    Eye,
+    Edit2
 } from "lucide-react";
 import { 
     BarChart as RechartsBarChart, 
@@ -30,6 +32,7 @@ import {
 } from 'recharts';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
+import { uploadEvidence } from "@/lib/uploadClient";
 
 // --- TYPES ---
 type WasteWeightRecord = {
@@ -174,7 +177,6 @@ export default function WasteManagementPage() {
         e.preventDefault();
         
         if (editingId) {
-            // Edit existing record
             const label = Object.keys(multiWeights)[0];
             const weight = multiWeights[label];
             const cat = WASTE_CATEGORIES.find(c => c.label === label);
@@ -192,7 +194,6 @@ export default function WasteManagementPage() {
             setEditingId(null);
             alert("Registro actualizado correctamente.");
         } else {
-            // New entries
             const newEntries: WasteWeightRecord[] = [];
             Object.entries(multiWeights).forEach(([label, weight]) => {
                 if (Number(weight) > 0) {
@@ -314,7 +315,7 @@ export default function WasteManagementPage() {
 
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         
-                        {/* Multi-Entry Form */}
+                        {/* Multi-Entry Form Column */}
                         <div className="xl:col-span-1 space-y-6">
                             <div className={`bg-slate-900 border rounded-3xl p-6 shadow-xl transition-all ${editingId ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-slate-800'}`}>
                                 <h3 className={`${editingId ? 'text-amber-500' : 'text-emerald-400'} font-black uppercase text-xs tracking-widest mb-6 flex items-center justify-between`}>
@@ -349,8 +350,6 @@ export default function WasteManagementPage() {
                                             {editingId ? 'Corregir Peso (KG)' : 'Pesos por Categoría (KG)'}
                                         </p>
                                         {WASTE_CATEGORIES.map(cat => {
-                                            // Si estamos editando, solo mostrar el tipo que estamos editando o todos?
-                                            // Mejor mostrar el que estamos editando si hay un editingId
                                             if (editingId) {
                                                 const recordToEdit = records.find(r => r.id === editingId);
                                                 if (cat.label !== recordToEdit?.wasteType) return null;
@@ -400,7 +399,7 @@ export default function WasteManagementPage() {
                         {/* Charts and History Columns */}
                         <div className="xl:col-span-3 space-y-6">
                             
-                            {/* Bar Chart */}
+                            {/* Bar Chart Card */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl h-80">
                                 <h3 className="text-white font-bold text-sm mb-6 flex items-center gap-2">
                                     <BarChart size={16} className="text-emerald-500" /> Evolución Mensual de Pesajes (Total kg)
@@ -419,7 +418,7 @@ export default function WasteManagementPage() {
                                 </ResponsiveContainer>
                             </div>
 
-                            {/* History Table */}
+                            {/* Detailed History Table Card */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                                     <h3 className="text-white font-black text-lg flex items-center gap-2">
@@ -442,7 +441,7 @@ export default function WasteManagementPage() {
                                                 <th className="pb-4">Residuo</th>
                                                 <th className="pb-4">Lugar</th>
                                                 <th className="pb-4 text-center">Evidencia</th>
-                                                <th className="pb-4 text-right pr-4">Peso (kg)</th>
+                                                <th className="pb-4 text-right pr-4">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
