@@ -869,8 +869,8 @@ export default function PMAPage() {
                     {/* Imagen Principal */}
                     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                         <img 
-                            key={currentImageIndex} // Key para reiniciar animación al cambiar foto
-                            src={selectedImages[currentImageIndex]} 
+                            key={currentImageIndex} 
+                            src={getDriveViewerUrl(selectedImages[currentImageIndex], true)} 
                             alt="Evidencia"
                             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 fade-in duration-300"
                         />
