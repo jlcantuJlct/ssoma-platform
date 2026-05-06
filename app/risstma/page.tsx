@@ -51,6 +51,8 @@ export default function RISSTMAPage() {
         fileUrl: '',
         lugar: ''
     });
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Filter state
     const [filters, setFilters] = useState({
@@ -237,35 +239,62 @@ export default function RISSTMAPage() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         <Upload size={12} /> Cargo / Declaración Jurada (PDF o Imagen)
                                     </label>
-                                    <div className="flex items-center gap-4">
+                                    <div 
+                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={async (e) => { 
+                                            e.preventDefault(); 
+                                            setIsDragging(false); 
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file) {
+                                                setIsUploading(true);
+                                                try {
+                                                    const url = await uploadEvidence(file, 'Actividad', `RISSTMA_${formData.workerName.replace(/\s+/g, '_')}`, formData.date, formData.workerName, 'risstma', 'seguridad', formData.lugar);
+                                                    if (url) setFormData({...formData, fileUrl: url});
+                                                } finally {
+                                                    setIsUploading(false);
+                                                }
+                                            }
+                                        }}
+                                        className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                            isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                            isDragging ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' : 
+                                            formData.fileUrl ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                        }`}
+                                    >
                                         <input 
                                             type="file" 
                                             accept="image/*,application/pdf"
+                                            disabled={isUploading}
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
-                                                    const url = await uploadEvidence(file);
-                                                    if (url) setFormData({...formData, fileUrl: url});
+                                                    setIsUploading(true);
+                                                    try {
+                                                        const url = await uploadEvidence(file, 'Actividad', `RISSTMA_${formData.workerName.replace(/\s+/g, '_')}`, formData.date, formData.workerName, 'risstma', 'seguridad', formData.lugar);
+                                                        if (url) setFormData({...formData, fileUrl: url});
+                                                    } finally {
+                                                        setIsUploading(false);
+                                                    }
                                                 }
                                             }}
-                                            className="hidden" 
-                                            id="file-upload"
+                                            className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait" 
                                         />
-                                        <label 
-                                            htmlFor="file-upload"
-                                            className="flex-1 cursor-pointer p-4 border-2 border-dashed border-slate-700 rounded-2xl hover:border-indigo-500 hover:bg-indigo-500/5 transition-all flex flex-col items-center gap-2 text-slate-400"
-                                        >
-                                            {formData.fileUrl ? (
-                                                <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                                                    <CheckCircle2 className="w-6 h-6" /> Evidencia Lista
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Upload className="w-8 h-8 text-slate-600" />
-                                                    <span className="text-sm">Clic para subir el cargo firmado</span>
-                                                </>
-                                            )}
-                                        </label>
+                                        <div className={`p-4 rounded-2xl transition-all ${
+                                            isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                            isDragging ? 'bg-indigo-500 text-white' : 
+                                            'bg-slate-800 text-slate-400 group-hover:text-indigo-400'
+                                        }`}>
+                                            {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                        </div>
+                                        <div className="text-center">
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA EL CARGO!' : formData.fileUrl ? '✅ CARGO LISTO' : 'ARRASTRA O HAZ CLIC'}
+                                            </p>
+                                            <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                {formData.fileUrl ? 'Documento cargado correctamente' : 'Soporta PDF e Imágenes'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 

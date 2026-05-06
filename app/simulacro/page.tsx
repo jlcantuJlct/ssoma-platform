@@ -332,44 +332,42 @@ export default function SimulacroPage() {
                                             </select>
                                         </div>
 
-                                        {/* DRAG & DROP AREA */}
-                                        <div className="space-y-1 pt-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-2">Evidencia (PDF o Imagen)</label>
+                                        {/* DRAG & DROP AREA - ESTILO ESTANDARIZADO PREMIUM */}
+                                        <div className="space-y-1.5 pt-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                                Evidencia (PDF o Imagen)
+                                            </label>
                                             <div 
-                                                className={`relative group border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
-                                                    dragActive ? 'border-orange-500 bg-orange-500/10 scale-[1.02]' : 
-                                                    file ? 'border-teal-500/50 bg-teal-500/5' : 'border-slate-700 hover:bg-slate-800/50'
-                                                }`}
-                                                onDragEnter={handleDrag}
-                                                onDragLeave={handleDrag}
                                                 onDragOver={handleDrag}
+                                                onDragLeave={handleDrag}
                                                 onDrop={handleDrop}
+                                                className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                                    isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                                    dragActive ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]' : 
+                                                    file ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                                }`}
                                             >
-                                                <input
+                                                <input 
                                                     type="file"
                                                     accept=".pdf,image/*"
+                                                    disabled={isUploading}
                                                     onChange={handleFileInput}
-                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
                                                 />
-                                                <div className="flex flex-col items-center gap-3">
-                                                    {isUploading ? (
-                                                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
-                                                    ) : file ? (
-                                                        <div className="bg-teal-500/20 p-3 rounded-full">
-                                                            {file.type.startsWith('image/') ? <ImageIcon className="text-teal-400" size={24} /> : <FileText className="text-teal-400" size={24} />}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="bg-slate-800 p-3 rounded-full group-hover:bg-slate-700 transition-colors">
-                                                            <Upload className="text-slate-400 group-hover:text-white" size={24} />
-                                                        </div>
-                                                    )}
-                                                    <div className="space-y-1">
-                                                        <p className={`text-xs font-bold ${file ? 'text-teal-400' : 'text-slate-300'}`}>
-                                                            {isUploading ? "Subiendo..." : (file ? "Evidencia lista" : "Arrastra o click para subir")}
-                                                        </p>
-                                                        <p className="text-[9px] text-slate-500">Imágenes o PDF</p>
-                                                        {file && <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{file.name}</p>}
-                                                    </div>
+                                                <div className={`p-4 rounded-2xl transition-all ${
+                                                    isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                                    dragActive ? 'bg-emerald-500 text-white' : 
+                                                    'bg-slate-800 text-slate-400 group-hover:text-emerald-400'
+                                                }`}>
+                                                    {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                        {isUploading ? 'SUBIENDO...' : dragActive ? '¡SUELTA!' : file ? '✅ EVIDENCIA LISTA' : 'ARRASTRA O HAZ CLIC'}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                        {file ? file.name : 'Soporta PDF e Imágenes'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>

@@ -52,6 +52,7 @@ export default function ManifestPage() {
     const [filterLocation, setFilterLocation] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // --- EFFECT: LOAD/SAVE ---
@@ -219,30 +220,66 @@ export default function ManifestPage() {
                                                 </select>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Cargar Manifiesto (PDF Escaneado)</label>
-                                        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
-                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                            <Upload className="mx-auto text-slate-600 group-hover:text-emerald-500 mb-2" size={24} />
-                                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">ARRASTRE O CLICK PARA SUBIR PDF</p>
+                                                                      {/* DRAG & DROP AREA - ESTILO ESTANDARIZADO PREMIUM */}
+                                    <div className="space-y-1.5 pt-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                            Manifiesto Escaneado (PDF)
+                                        </label>
+                                        <div 
+                                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                            onDragLeave={() => setIsDragging(false)}
+                                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                            className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                                isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                                isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]' : 
+                                                files.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                            }`}
+                                        >
+                                            <input 
+                                                type="file"
+                                                multiple
+                                                accept=".pdf"
+                                                disabled={isUploading}
+                                                onChange={handleFileUpload}
+                                                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                            />
+                                            <div className={`p-4 rounded-2xl transition-all ${
+                                                isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                                isDragging ? 'bg-emerald-500 text-white' : 
+                                                'bg-slate-800 text-slate-400 group-hover:text-emerald-400'
+                                            }`}>
+                                                {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                    {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} MANIFIESTOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                </p>
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                    Soporta múltiples archivos PDF
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {files.length > 0 && (
-                                        <div className="flex flex-col gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800">
-                                            {files.map((f, i) => (
-                                                <div key={i} className="flex items-center justify-between gap-3 text-xs">
-                                                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                                                        <FileText size={14} />
-                                                        <span className="truncate max-w-[150px]">Manifiesto_Evidencia_{i+1}.pdf</span>
+                                        {/* File Previews */}
+                                        {files.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 pt-3">
+                                                {files.map((url, idx) => (
+                                                    <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95 group">
+                                                        <FileText size={12} className="text-emerald-400" />
+                                                        <span className="text-[9px] font-bold text-slate-300">PDF {idx + 1}</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
                                                     </div>
-                                                    <button type="button" onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="text-red-500 p-1 hover:bg-red-500/10 rounded"><Trash2 size={14} /></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+       )}
 
                                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                         {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Manifiesto</>}

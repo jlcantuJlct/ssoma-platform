@@ -746,9 +746,15 @@ export default function ProgramPage() {
         // Helper: Verificar si un registro tiene evidencia válida (archivo cargado)
         const hasEvidence = (r: any): boolean => {
             if (!r) return false;
-            // Check for PDF fields
-            const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url;
-            if (pdf && typeof pdf === 'string' && pdf.trim().length > 10 && !pdf.includes('undefined') && !pdf.includes('null')) return true;
+            // Check for PDF fields (singular and plural)
+            const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url || r.fileUrls || r.file_urls;
+            
+            if (pdf) {
+                if (typeof pdf === 'string' && pdf.trim().length > 10 && !pdf.includes('undefined') && !pdf.includes('null')) return true;
+                if (Array.isArray(pdf) && pdf.length > 0) {
+                    return pdf.some(url => typeof url === 'string' && url.trim().length > 10 && !url.includes('undefined') && !url.includes('null'));
+                }
+            }
             
             // Check for Image fields (arrays or strings)
             let imgs = r.evidenceImgs || r.evidence_imgs || r.images || r.imageUrl || r.files;
@@ -870,12 +876,18 @@ export default function ProgramPage() {
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
             const objIdNum = targetObjId.replace('obj', '');
-            // EMO Special Case: If it's an EMO and we are in OBJ 05, it matches even if objective field is missing
             const isEmoMatch = (targetObjId === 'obj5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
             
+            // Robust Objective Matching: OBJ 01, OBJ 1, 01, 1
+            const evObj = String(ev.objective || '').toUpperCase().replace(/\s+/g, '');
+            const targetObjNorm = targetObjId.toUpperCase(); // OBJ1
+            const targetObjAlt = `OBJ${objIdNum.padStart(2, '0')}`; // OBJ01
+            
             const isMatch = isEmoMatch || (ev.objective && (
-                currentObjLabel.startsWith(ev.objective) || 
-                ev.objective.includes(objIdNum.padStart(2, '0'))
+                currentObjLabel.toUpperCase().includes(evObj) || 
+                evObj.includes(objIdNum) ||
+                evObj === targetObjNorm ||
+                evObj === targetObjAlt
             ));
 
             if (!isMatch) return;
@@ -884,8 +896,8 @@ export default function ProgramPage() {
             if (m < 0 || m > 11 || !hasEvidence(ev)) return;
 
             for (const areaKey in grouped) {
-                // If it's EMO, we try to match "EMO" keyword if no direct match
-                const match = findMatch(areaKey, ev.description || ev.activity || (isEmoMatch ? 'EMO' : ''));
+                // Prioritize 'activity' over 'description' because 'activity' holds the official name in SCSST and others
+                const match = findMatch(areaKey, ev.activity || ev.description || (isEmoMatch ? 'EMO' : ''));
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];

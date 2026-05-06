@@ -164,6 +164,7 @@ export default function InspectionsPage() {
     // Estado para evidencias
     const [newEvidence, setNewEvidence] = useState<{ pdf: string, imgs: string[] }>({ pdf: '', imgs: [] });
     const [isUploading, setIsUploading] = useState(false);
+    const [isUploadingImgs, setIsUploadingImgs] = useState(false);
 
     // Estado para Edición
     const [editingId, setEditingId] = useState<number | null>(null);

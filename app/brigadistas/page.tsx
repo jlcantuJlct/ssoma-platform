@@ -331,30 +331,59 @@ export default function BrigadistasPage() {
                                                 {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                                             </select>
                                         </div>
-                                        <div className="space-y-1 pt-2">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Evidencias ({uploadedFiles.length})</label>
-                                                <div className="flex gap-2 text-[9px] font-bold">
-                                                    <span className="text-red-400">PDF: {uploadedFiles.filter(f => f.type === 'application/pdf').length}</span>
-                                                    <span className="text-teal-400">IMG: {uploadedFiles.filter(f => f.type.startsWith('image/')).length}</span>
+                                        <div className="space-y-1.5 pt-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                                Zona de Carga (PDF o Imágenes)
+                                            </label>
+                                            <div 
+                                                onDragOver={handleDrag}
+                                                onDragLeave={handleDrag}
+                                                onDrop={handleDrop}
+                                                className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                                    isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                                    dragActive ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]' : 
+                                                    uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                                }`}
+                                            >
+                                                <input 
+                                                    type="file"
+                                                    multiple
+                                                    accept=".pdf,image/*"
+                                                    disabled={isUploading}
+                                                    onChange={handleFileInput}
+                                                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                                />
+                                                <div className={`p-4 rounded-2xl transition-all ${
+                                                    isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                                    dragActive ? 'bg-emerald-500 text-white' : 
+                                                    'bg-slate-800 text-slate-400 group-hover:text-emerald-400'
+                                                }`}>
+                                                    {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                        {isUploading ? 'SUBIENDO...' : dragActive ? '¡SUELTA!' : uploadedFiles.length > 0 ? `✅ ${uploadedFiles.length} ARCHIVOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                        Soporta PDF e Imágenes
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div className={`relative group border-2 border-dashed rounded-xl p-6 text-center transition-all ${dragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:bg-slate-800/50'}`} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}>
-                                                <input type="file" accept=".pdf,image/*" onChange={handleFileInput} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Upload className="text-slate-400" size={20} />
-                                                    <p className="text-[11px] font-bold text-slate-300">{isUploading ? "Subiendo..." : "Agregar archivos"}</p>
-                                                </div>
-                                            </div>
+
+                                            {/* File List Previews */}
                                             {uploadedFiles.length > 0 && (
-                                                <div className="mt-4 space-y-2 max-h-40 overflow-y-auto pr-2">
+                                                <div className="flex flex-wrap gap-2 pt-3">
                                                     {uploadedFiles.map((f, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                                                            <div className="flex items-center gap-2 overflow-hidden text-xs">
-                                                                {f.type.startsWith('image/') ? <ImageIcon size={14} className="text-teal-400" /> : <FileText size={14} className="text-red-400" />}
-                                                                <span className="truncate max-w-[150px]">{f.name}</span>
-                                                            </div>
-                                                            <button type="button" onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} className="text-slate-600 hover:text-red-400"><Trash2 size={12} /></button>
+                                                        <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95 group">
+                                                            {f.type.startsWith('image/') ? <ImageIcon size={12} className="text-teal-400" /> : <FileText size={12} className="text-red-400" />}
+                                                            <span className="text-[9px] font-bold text-slate-300 truncate max-w-[100px]">{f.name}</span>
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                                className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
                                                         </div>
                                                     ))}
                                                 </div>

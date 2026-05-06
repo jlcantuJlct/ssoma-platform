@@ -226,41 +226,65 @@ export default function EPPPage() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase">Cargo de Entrega (ÚNICAMENTE PDF)</label>
+                                    {/* DRAG & DROP AREA - ESTILO ESTANDARIZADO PREMIUM */}
+                                    <div className="space-y-1.5 pt-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                            Cargo de Entrega (PDF)
+                                        </label>
                                         <div 
-                                            className={`border-2 border-dashed rounded-2xl p-6 transition-all text-center group cursor-pointer relative ${
-                                                isDragging ? 'border-blue-500 bg-blue-500/20 scale-[1.02] shadow-lg shadow-blue-500/20' : 
-                                                files.length > 0 ? 'border-blue-500/50 bg-blue-500/5' : 'border-slate-800 hover:border-slate-600 hover:bg-slate-800/50'
-                                            }`}
                                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                             onDragLeave={() => setIsDragging(false)}
                                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                            className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                                isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                                isDragging ? 'border-blue-500 bg-blue-500/10 scale-[1.01]' : 
+                                                files.length > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                            }`}
                                         >
-                                            <input type="file" accept=".pdf" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" />
-                                            <div className={`flex flex-col items-center gap-2 ${isDragging || files.length > 0 ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-500'}`}>
-                                                {isDragging ? <Upload size={32} className="animate-bounce" /> : files.length > 0 ? <CheckCircle2 size={24} className="animate-in zoom-in duration-300" /> : <Upload size={24} />}
-                                                
-                                                <span className="text-[10px] font-black uppercase tracking-widest">
-                                                    {isDragging ? '¡SUELTA EL PDF AQUÍ!' : 
-                                                     isUploading ? `CARGANDO ${files.length + 1} ARCHIVOS...` :
-                                                     files.length > 0 ? `${files.length} PDF CARGADOS` : 
-                                                     'CARGAR PDF MENSUAL'}
-                                                </span>
+                                            <input 
+                                                type="file"
+                                                multiple
+                                                accept=".pdf"
+                                                disabled={isUploading}
+                                                onChange={handleFileUpload}
+                                                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                            />
+                                            <div className={`p-4 rounded-2xl transition-all ${
+                                                isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                                isDragging ? 'bg-blue-500 text-white' : 
+                                                'bg-slate-800 text-slate-400 group-hover:text-blue-400'
+                                            }`}>
+                                                {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                    {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} CARGOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                </p>
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                    Solo archivos PDF firmados
+                                                </p>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {files.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800">
-                                            {files.map((f, i) => (
-                                                <div key={i} className="relative w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700">
-                                                    <FileText size={20} className="text-red-400" />
-                                                    <button type="button" onClick={() => setFiles(files.filter((_, idx) => idx !== i))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X size={8} /></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                        {/* File Previews */}
+                                        {files.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 pt-3">
+                                                {files.map((url, idx) => (
+                                                    <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95 group">
+                                                        <FileText size={12} className="text-red-400" />
+                                                        <span className="text-[9px] font-bold text-slate-300">PDF {idx + 1}</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                         {isUploading ? "Subiendo..." : <><Save size={18} /> Guardar Registro Mensual</>}
