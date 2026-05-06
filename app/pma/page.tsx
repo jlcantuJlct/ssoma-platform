@@ -47,6 +47,7 @@ export default function PMAPage() {
     // Form State
     const [form, setForm] = useState({
         date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('es-PE', { hour12: false }),
         responsible: '',
         category: '',
         description: '',
@@ -223,9 +224,11 @@ export default function PMAPage() {
     };
     
     const handleEdit = (record: PMAEvidenceRecord) => {
+        const [datePart, timePart] = (record.date || "").split(" ");
         setEditingId(record.id);
         setForm({
-            date: record.date,
+            date: datePart || record.date,
+            time: timePart || "00:00:00",
             responsible: record.responsible,
             category: record.category,
             description: record.description || '',
@@ -240,6 +243,7 @@ export default function PMAPage() {
         setEditingId(null);
         setForm({
             date: new Date().toISOString().split('T')[0],
+            time: new Date().toLocaleTimeString('es-PE', { hour12: false }),
             responsible: '',
             category: '',
             description: '',
@@ -270,7 +274,7 @@ export default function PMAPage() {
             // MODO EDICIÓN
             setRecords(prev => prev.map(r => r.id === editingId ? {
                 ...r,
-                date: form.date,
+                date: `${form.date} ${form.time}`,
                 responsible: form.responsible,
                 category: form.category,
                 description: form.description,
@@ -283,7 +287,7 @@ export default function PMAPage() {
             // MODO NUEVO
             const newRecord: PMAEvidenceRecord = {
                 id: Date.now(),
-                date: form.date,
+                date: `${form.date} ${form.time}`,
                 responsible: form.responsible,
                 category: form.category,
                 description: form.description,
@@ -295,7 +299,13 @@ export default function PMAPage() {
         }
 
         // Reset
-        setForm(prev => ({ ...prev, category: '', description: '', location: '' }));
+        setForm(prev => ({ 
+            ...prev, 
+            category: '', 
+            description: '', 
+            location: '',
+            time: new Date().toLocaleTimeString('es-PE', { hour12: false }) 
+        }));
         setImages([]);
     };
 
@@ -440,16 +450,28 @@ export default function PMAPage() {
 
                                 <form onSubmit={handleSubmit} className="space-y-5">
 
-                                    {/* Fecha */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
-                                        <div className="relative group">
-                                            <Calendar className="absolute left-3 top-2.5 text-slate-500" size={16} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
+                                            <div className="relative group">
+                                                <Calendar className="absolute left-3 top-2.5 text-slate-500" size={16} />
+                                                <input
+                                                    type="date"
+                                                    value={form.date}
+                                                    onChange={e => setForm({ ...form, date: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-emerald-500 outline-none transition-colors"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase">Hora (HH:MM:SS)</label>
                                             <input
-                                                type="date"
-                                                value={form.date}
-                                                onChange={e => setForm({ ...form, date: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-emerald-500 outline-none transition-colors"
+                                                type="text"
+                                                value={form.time}
+                                                onChange={e => setForm({ ...form, time: e.target.value })}
+                                                placeholder="00:00:00"
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none transition-colors font-mono"
                                                 required
                                             />
                                         </div>
@@ -674,7 +696,7 @@ export default function PMAPage() {
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
                                             {records.filter(r => {
-                                                const matchesDate = filterDate === "" || r.date === filterDate;
+                                                const matchesDate = filterDate === "" || r.date.includes(filterDate);
                                                 const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                 const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                 const matchesCat = filterCategory === "" || r.category === filterCategory;
@@ -688,7 +710,7 @@ export default function PMAPage() {
                                             ) : (
                                                 records
                                                     .filter(r => {
-                                                        const matchesDate = filterDate === "" || r.date === filterDate;
+                                                        const matchesDate = filterDate === "" || r.date.includes(filterDate);
                                                         const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
                                                         const matchesLoc = filterLocation === "" || r.location === filterLocation;
                                                         const matchesCat = filterCategory === "" || r.category === filterCategory;
@@ -698,8 +720,10 @@ export default function PMAPage() {
                                                         const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">
-                                                            <td className="py-4 pl-2 font-mono text-xs text-white align-top">
-                                                                {record.date}
+                                                            <td className="py-4 pl-2 font-mono text-[10px] text-white align-top leading-tight">
+                                                                {record.date.split(" ").map((part, i) => (
+                                                                    <div key={i} className={i === 1 ? "text-emerald-400" : ""}>{part}</div>
+                                                                ))}
                                                             </td>
                                                             <td className="py-4 align-top">
                                                                 <div className="flex items-center gap-2">
