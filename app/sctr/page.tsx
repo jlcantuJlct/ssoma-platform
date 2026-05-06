@@ -366,25 +366,37 @@ export default function SCTRPage() {
                                 return (
                                     <div className="animate-in fade-in zoom-in-95 duration-200 space-y-3">
                                         {uniqueLines.length > 0 ? (
-                                            uniqueLines.map((line, idx) => (
-                                                <div key={idx} className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
-                                                        <div className="flex-1">
-                                                            <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">
-                                                                {line}
-                                                            </p>
-                                                            <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-emerald-500/20">
-                                                                {allMatches[line].map((period, pIdx) => (
-                                                                    <div key={pIdx} className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400">
-                                                                        {period}
-                                                                    </div>
-                                                                ))}
+                                            <>
+                                                {uniqueLines.length > 1 && (
+                                                    <div className="bg-amber-500/10 border border-amber-500/50 p-4 rounded-2xl flex items-center gap-3 mb-4">
+                                                        <AlertCircle size={20} className="text-amber-500" />
+                                                        <div>
+                                                            <p className="text-xs font-black text-amber-500 uppercase">Múltiples Coincidencias ({uniqueLines.length})</p>
+                                                            <p className="text-[10px] text-slate-400 font-bold">Por favor, ingrese el nombre completo o DNI para una conformidad exacta.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {uniqueLines.map((line, idx) => (
+                                                    <div key={idx} className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
+                                                            <div className="flex-1">
+                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">
+                                                                    {line}
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-emerald-500/20">
+                                                                    {allMatches[line].map((period, pIdx) => (
+                                                                        <div key={pIdx} className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400">
+                                                                            {period}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))
+                                                ))}
+                                            </>
                                         ) : (
                                             <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">
                                                 <div className="bg-red-500 p-2 rounded-full"><AlertCircle size={16} className="text-white" /></div>
