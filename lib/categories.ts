@@ -39,6 +39,12 @@ export const PMA_CATEGORIES: PMACategory[] = [
         hint: "Evidenciar mallas, cintas o barreras de delimitación."
     },
     { 
+        id: "SIGNAGE_PEDESTRIAN_CROSSING", 
+        group: "Foto señalización", 
+        label: "4. Foto de cruce peatonal", 
+        hint: "Evidenciar señalización y pintado de cruces peatonales." 
+    },
+    { 
         id: "WELLBEING_BATHROOMS", 
         group: "Bienestar e Higiene", 
         label: "1. Foto de baños", 
