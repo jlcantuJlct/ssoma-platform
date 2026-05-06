@@ -86,12 +86,12 @@ export default function SCSSTPage() {
         return matchDate && matchActivity && matchResp && matchZone;
     });
 
-    // Derive filter options
+    // Derive filter options - ALWAYS show full lists so user can filter easily
     const filterOptions = {
         dates: Array.from(new Set((records || []).map(r => r?.date).filter(Boolean))).sort().reverse(),
-        activities: Array.from(new Set((records || []).map(r => r?.activity).filter(Boolean))).sort(),
-        responsibles: Array.from(new Set((records || []).map(r => r?.responsable || r?.responsible).filter(Boolean))).sort(),
-        zones: Array.from(new Set((records || []).map(r => r?.zona || r?.location).filter(Boolean))).sort()
+        activities: SCSST_ACTIVITIES,
+        responsibles: USER_LIST.map(u => u.name).sort(),
+        zones: SSOMA_LOCATIONS.sort()
     };
 
     const handleSave = async () => {
@@ -342,12 +342,15 @@ export default function SCSSTPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
                         <div className="space-y-1.5">
                             <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
-                            <SearchableSelect 
-                                options={filterOptions.dates}
-                                value={filters.date}
-                                onChange={(val) => setFilters({...filters, date: val})}
-                                placeholder="Todas las fechas"
-                            />
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-2.5 text-emerald-500/50" size={14} />
+                                <input 
+                                    type="date"
+                                    value={filters.date}
+                                    onChange={(e) => setFilters({...filters, date: e.target.value})}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad</label>
