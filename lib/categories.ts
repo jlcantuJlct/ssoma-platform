@@ -241,6 +241,18 @@ export const PMA_CATEGORIES: PMACategory[] = [
         group: "Control de Hidrocarburos y Maquinaria", 
         label: "2. Foto de cisterna de Comb. usando bandeja", 
         hint: "Evidenciar uso de bandeja de contención durante abastecimiento." 
+    },
+    { 
+        id: "WORKER_SUGGESTION_BOX", 
+        group: "Atención al Trabajador y Quejas", 
+        label: "1. Foto de buzón de sugerencia", 
+        hint: "Evidenciar la disponibilidad del buzón de sugerencias." 
+    },
+    { 
+        id: "WORKER_COMPLAINTS_BOOK", 
+        group: "Atención al Trabajador y Quejas", 
+        label: "2. Foto de libro de reclamos", 
+        hint: "Evidenciar la disponibilidad y acceso al libro de reclamos." 
     }
 ];
 
