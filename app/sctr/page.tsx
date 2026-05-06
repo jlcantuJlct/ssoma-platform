@@ -228,31 +228,35 @@ export default function SCTRPage() {
         }
     };
 
-    const isNameInRelation = (record: SCTRMonthlyRecord, name: string) => {
-        if (!name || name.length < 2 || !record?.personnel_list) return false;
+    const getMatchesFromRecord = (record: SCTRMonthlyRecord, search: string) => {
+        if (!search || search.length < 3 || !record?.personnel_list) return [];
         
-        // Normalización avanzada: quitar tildes, minúsculas, mantener espacios
         const normalize = (text: string) => 
             (text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
             
-        const target = normalize(name).trim();
-        const list = normalize(record.personnel_list);
-        
-        // CASO 1: Búsqueda por DNI (Si el target es numérico)
-        if (/^\d+$/.test(target)) {
-            // Buscamos el DNI rodeado de caracteres no numéricos o límites de palabra
-            const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
-            // Normalizamos también la lista para evitar caracteres invisibles
-            return dniRegex.test(list); 
+        const target = normalize(search).trim();
+        const lines = record.personnel_list.split('\n');
+        const matches: string[] = [];
+
+        for (const line of lines) {
+            const normalizedLine = normalize(line);
+            if (!normalizedLine.trim()) continue;
+
+            // Búsqueda por DNI (numérico)
+            if (/^\d+$/.test(target)) {
+                const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
+                if (dniRegex.test(normalizedLine)) {
+                    matches.push(line.trim());
+                }
+            } else {
+                // Búsqueda por Nombre (todas las palabras deben estar)
+                const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
+                if (targetWords.length > 0 && targetWords.every(word => normalizedLine.includes(word))) {
+                    matches.push(line.trim());
+                }
+            }
         }
-
-        // CASO 2: Búsqueda por Nombre
-        const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
-        if (targetWords.length === 0) return false;
-
-        // Para que sea positivo, todas las palabras buscadas deben estar en el texto (sin importar el orden)
-        // Ej: "CANCINO JOSE" coincidirá con "JOSE LUIS CANCINO"
-        return targetWords.every(word => list.includes(word));
+        return matches;
     };
 
     // Meses con cobertura para el año seleccionado
@@ -334,23 +338,44 @@ export default function SCTRPage() {
                             </div>
 
                             {searchTerm.length >= 3 && (() => {
-                                const matchedRecords = records.filter(r => isNameInRelation(r, searchTerm));
+                                // Agrupar hallazgos por la línea exacta (Persona)
+                                const allMatches: { [line: string]: string[] } = {};
+                                
+                                records.forEach(record => {
+                                    const matches = getMatchesFromRecord(record, searchTerm);
+                                    matches.forEach(line => {
+                                        if (!allMatches[line]) allMatches[line] = [];
+                                        const label = `${record.month} ${record.year}`;
+                                        if (!allMatches[line].includes(label)) {
+                                            allMatches[line].push(label);
+                                        }
+                                    });
+                                });
+
+                                const uniqueLines = Object.keys(allMatches);
+
                                 return (
-                                    <div className="animate-in fade-in zoom-in-95 duration-200 space-y-2">
-                                        {matchedRecords.length > 0 ? (
-                                            <div className="bg-emerald-500/20 border border-emerald-500/50 p-4 rounded-2xl space-y-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="bg-emerald-500 p-2 rounded-full"><CheckCircle2 size={16} className="text-black" /></div>
-                                                    <p className="text-xs font-black text-emerald-400 uppercase">Personal Cubierto</p>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-emerald-500/20">
-                                                    {matchedRecords.map(r => (
-                                                        <div key={r.id} className="bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded text-[9px] font-bold text-slate-200">
-                                                            {r.month} {r.year}
+                                    <div className="animate-in fade-in zoom-in-95 duration-200 space-y-3">
+                                        {uniqueLines.length > 0 ? (
+                                            uniqueLines.map((line, idx) => (
+                                                <div key={idx} className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
+                                                        <div className="flex-1">
+                                                            <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">
+                                                                {line}
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-emerald-500/20">
+                                                                {allMatches[line].map((period, pIdx) => (
+                                                                    <div key={pIdx} className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400">
+                                                                        {period}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    ))}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            ))
                                         ) : (
                                             <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">
                                                 <div className="bg-red-500 p-2 rounded-full"><AlertCircle size={16} className="text-white" /></div>
