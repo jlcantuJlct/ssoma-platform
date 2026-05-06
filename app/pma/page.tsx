@@ -839,33 +839,6 @@ export default function PMAPage() {
                 </div>
             </main>
 
-            {/* File Preview Modal */}
-            {previewFile && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-                    onClick={() => setPreviewFile(null)}
-                >
-                    <div className="relative max-w-5xl w-full flex flex-col items-center bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="w-full p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
-                            <h3 className="text-white font-bold flex items-center gap-2 italic">
-                                {previewFile.type === 'pdf' ? <FileText size={20} className="text-red-400" /> : <ImageIcon size={20} className="text-emerald-400" />}
-                                Vista Previa de Evidencia
-                            </h3>
-                            <button onClick={() => setPreviewFile(null)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-full">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="w-full h-[70vh] flex items-center justify-center bg-black/20 p-4">
-                            <iframe 
-                                src={getDriveViewerUrl(previewFile.url, false)} 
-                                className="w-full h-full min-h-[60vh] rounded-lg border border-slate-700 shadow-2xl" 
-                                title="File Preview" 
-                            />
-                        </div>
-                        <p className="py-3 text-slate-500 text-[10px] font-bold tracking-widest uppercase">Click fuera de la vista para cerrar</p>
-                    </div>
-                </div>
-            )}
             {/* Image Preview Modal con Carrusel */}
             {selectedImages.length > 0 && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-200">
