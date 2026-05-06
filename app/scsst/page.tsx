@@ -28,6 +28,7 @@ export default function SCSSTPage() {
     const [isAdding, setIsAdding] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
     // Form state
@@ -264,18 +265,30 @@ export default function SCSSTPage() {
                                         Zona de Carga (Arrastra PDFs o Imágenes)
                                     </label>
                                     <div 
-                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
                                         onDragLeave={() => setIsDragging(false)}
                                         onDrop={async (e) => {
                                             e.preventDefault();
                                             setIsDragging(false);
+                                            if (isUploading) return;
+                                            
                                             const files = Array.from(e.dataTransfer.files);
-                                            for (const file of files) {
-                                                const url = await uploadEvidence(file);
-                                                setUploadedFiles(prev => [...prev, url]);
+                                            if (files.length === 0) return;
+
+                                            setIsUploading(true);
+                                            try {
+                                                for (const file of files) {
+                                                    const url = await uploadEvidence(file);
+                                                    setUploadedFiles(prev => [...prev, url]);
+                                                }
+                                            } catch (err) {
+                                                alert('Error al subir archivos');
+                                            } finally {
+                                                setIsUploading(false);
                                             }
                                         }}
-                                        className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                        className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                            isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
                                             isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]' : 
                                             uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                         }`}
@@ -283,24 +296,38 @@ export default function SCSSTPage() {
                                         <input 
                                             type="file"
                                             multiple
+                                            disabled={isUploading}
                                             onChange={async (e) => {
                                                 const files = Array.from(e.target.files || []);
-                                                for (const file of files) {
-                                                    const url = await uploadEvidence(file);
-                                                    setUploadedFiles(prev => [...prev, url]);
+                                                if (files.length === 0) return;
+                                                
+                                                setIsUploading(true);
+                                                try {
+                                                    for (const file of files) {
+                                                        const url = await uploadEvidence(file);
+                                                        setUploadedFiles(prev => [...prev, url]);
+                                                    }
+                                                } catch (err) {
+                                                    alert('Error al subir archivos');
+                                                } finally {
+                                                    setIsUploading(false);
                                                 }
                                             }}
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
                                         />
-                                        <div className={`p-4 rounded-2xl transition-colors ${isDragging ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 group-hover:text-emerald-400'}`}>
-                                            <Upload size={32} />
+                                        <div className={`p-4 rounded-2xl transition-all ${
+                                            isUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                            isDragging ? 'bg-emerald-500 text-white' : 
+                                            'bg-slate-800 text-slate-400 group-hover:text-emerald-400'
+                                        }`}>
+                                            {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-black text-white uppercase tracking-widest">
-                                                {isDragging ? '¡SUELTA LOS ARCHIVOS!' : 'ARRASTRA O HAZ CLIC AQUÍ'}
+                                            <p className={`text-xs font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                {isUploading ? 'SUBIENDO ARCHIVOS...' : isDragging ? '¡SUELTA LOS ARCHIVOS!' : 'ARRASTRA O HAZ CLIC AQUÍ'}
                                             </p>
                                             <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">
-                                                {uploadedFiles.length > 0 ? `${uploadedFiles.length} ARCHIVOS CARGADOS` : 'SOPORTA PDF E IMÁGENES'}
+                                                {isUploading ? 'POR FAVOR ESPERE UN MOMENTO' : uploadedFiles.length > 0 ? `✅ ${uploadedFiles.length} ARCHIVOS LISTOS` : 'SOPORTA PDF E IMÁGENES'}
                                             </p>
                                         </div>
                                     </div>
@@ -333,11 +360,11 @@ export default function SCSSTPage() {
 
                                 <div className="md:col-span-3 flex justify-end pt-4">
                                     <button 
-                                        disabled={isSaving}
+                                        disabled={isSaving || isUploading}
                                         onClick={handleSave}
                                         className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-10 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-900/20"
                                     >
-                                        {isSaving ? 'Guardando...' : 'Registrar Actividad'}
+                                        {isSaving ? 'Guardando...' : isUploading ? 'Espere, subiendo...' : 'Registrar Actividad'}
                                     </button>
                                 </div>
                             </div>
