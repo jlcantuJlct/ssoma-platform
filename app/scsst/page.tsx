@@ -9,9 +9,20 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl } from "@/lib/utils";
 
+// Activities from Annual Program OBJ 01 (Based on image)
+const SCSST_ACTIVITIES = [
+    "Inspecciones del SCSST",
+    "Capacitaciones Notificación, investigación y reporte de incidentes (SCSST).",
+    "Elaboración de Informes trimestrales (SCSST).",
+    "Capacitaciones IPERC (SCSST).",
+    "Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "Capacitaciones Inspecciones de Seguridad y salud en el trabajo (SCSST).",
+    "Capacitaciones seguridad y salud en el trabajo, actualización de la Ley 29783 (SCSST)."
+];
+
 export default function SCSSTPage() {
     const { user } = useAuth();
-    const [activities, setActivities] = useState<string[]>([]);
+    const [activities, setActivities] = useState<string[]>(SCSST_ACTIVITIES);
     const [records, setRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -22,7 +33,7 @@ export default function SCSSTPage() {
         date: new Date().toISOString().split('T')[0],
         activity: '',
         responsable: user?.name || '',
-        zona: 'Oficina Principal',
+        zona: SSOMA_LOCATIONS[0],
         description: '',
         fileUrl: ''
     });
@@ -228,15 +239,19 @@ export default function SCSSTPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ubicación / Zona</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
+                                    <div className="relative group">
+                                        <MapPin className="absolute left-3 top-3 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
                                         <select 
                                             value={formData.zona}
                                             onChange={(e) => setFormData({...formData, zona: e.target.value})}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer"
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer hover:border-slate-700 transition-all"
                                         >
+                                            <option value="">Seleccionar Lugar...</option>
                                             {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                                         </select>
+                                        <div className="absolute right-3 top-3.5 pointer-events-none text-slate-600">
+                                            <Filter size={12} />
+                                        </div>
                                     </div>
                                 </div>
 
