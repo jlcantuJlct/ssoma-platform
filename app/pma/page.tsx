@@ -876,7 +876,7 @@ export default function PMAPage() {
                         />
                         
                         {/* Zoom/Link Controls Overlay */}
-                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-2xl">
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-2xl z-50">
                              <a 
                                 href={selectedImages[currentImageIndex]} 
                                 target="_blank" 
@@ -888,6 +888,34 @@ export default function PMAPage() {
                             </a>
                         </div>
                     </div>
+
+                    {/* Tira de Miniaturas (Thumbnails) */}
+                    {selectedImages.length > 1 && (
+                        <div className="absolute bottom-20 inset-x-0 flex justify-center gap-2 p-4 overflow-x-auto no-scrollbar">
+                            <div className="flex gap-2 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/5 shadow-2xl">
+                                {selectedImages.map((img, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all hover:scale-110 active:scale-95 ${
+                                            currentImageIndex === idx ? 'border-emerald-500 scale-110 shadow-lg shadow-emerald-500/20' : 'border-white/10 opacity-50 hover:opacity-100'
+                                        }`}
+                                    >
+                                        <img 
+                                            src={getDriveViewerUrl(img, true)} 
+                                            alt={`Miniatura ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {currentImageIndex === idx && (
+                                            <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
+                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Navegación - Derecha */}
                     {selectedImages.length > 1 && (
