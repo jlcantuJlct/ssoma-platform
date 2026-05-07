@@ -336,8 +336,6 @@ export default function SSOMAAssistant() {
     };
 
     return (
-    // v1.0.4 - Forced Update for Vercel
-    return (
         <div className="fixed inset-0 pointer-events-none z-[9999]">
             <style jsx="true">{`
                 @keyframes robot-wave {
