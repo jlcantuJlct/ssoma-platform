@@ -53,84 +53,83 @@ export default function SSOMAAssistant() {
 
     // ... (handleMouseDown y useEffect de drag igual que antes)
 
+    const [searchState, setSearchState] = useState({
+        category: null as string | null,
+        location: null as string | null,
+        month: null as string | null
+    });
+
     const handleOptionClick = (option: { label: string, value: string }) => {
         setMessages(prev => [...prev, { id: Date.now().toString(), text: option.label, sender: 'user' }]);
         
         if (option.value === "search_photos" || option.value.includes("foto")) {
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "¿De qué lugar deseas ver las fotos?", 
+                text: "¿Qué categoría de actividad deseas consultar?", 
                 sender: 'assistant',
-                options: SSOMA_LOCATIONS.map(loc => ({ label: loc, value: `loc_${loc}` })),
+                options: PMA_CATEGORIES.slice(0, 8).map(cat => ({ label: cat.label, value: `cat_${cat.id}` })),
                 type: 'options'
             }]);
             setCurrentFlow("searching");
-        } else if (option.value.startsWith("loc_")) {
-            const loc = option.value.replace("loc_", "");
-            const currentMonth = new Date().getMonth();
-            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        } else if (option.value.startsWith("cat_")) {
+            const catId = option.value.replace("cat_", "");
+            setSearchState(prev => ({ ...prev, category: catId }));
             
-            const monthOptions = [
-                { label: months[currentMonth], value: `month_${currentMonth + 1}_${loc}` },
-                { label: months[currentMonth - 1] || months[11], value: `month_${currentMonth}_${loc}` },
-                { label: "Ver todo el año", value: `month_all_${loc}` }
-            ];
-
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: `Perfecto. ¿De qué periodo necesitas las fotos de ${loc}?`, 
-                sender: 'assistant',
-                options: monthOptions,
-                type: 'options'
-            }]);
-        } else if (option.value.startsWith("month_")) {
-            const parts = option.value.split("_");
-            const month = parts[1];
-            const loc = parts[2];
-            handleSearch(`fotos de ${loc}${month !== 'all' ? ' mes ' + month : ''}`, loc, month);
-        } else if (option.value === "new_record") {
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: "¿Qué tipo de registro deseas ingresar?", 
-                sender: 'assistant',
-                options: [
-                    { label: "Fotos PMA", value: "goto_pma" },
-                    { label: "Entrega EPP", value: "goto_epp" },
-                    { label: "Inspecciones", value: "goto_inspections" }
-                ],
-                type: 'options'
-            }]);
-        } else if (option.value.startsWith("goto_")) {
-            const tool = option.value.replace("goto_", "");
-            window.location.href = `/${tool}`;
-        }
-    };
-
-    const handleSearch = async (query: string, loc?: string, month?: string) => {
-        setIsTyping(true);
-        const queryLower = query.toLowerCase();
-        
-        if ((queryLower.includes("baño") || queryLower.includes("foto")) && !loc) {
-            await new Promise(r => setTimeout(r, 800));
-            setMessages(prev => [...prev, { 
-                id: Date.now().toString(), 
-                text: "¿De qué lugar deseas ver las fotos?", 
+                text: "Excelente. ¿En qué sede o lugar se realizó?", 
                 sender: 'assistant',
                 options: SSOMA_LOCATIONS.map(loc => ({ label: loc, value: `loc_${loc}` })),
                 type: 'options'
             }]);
-            setIsTyping(false);
-            return;
-        }
+        } else if (option.value.startsWith("loc_")) {
+            const loc = option.value.replace("loc_", "");
+            setSearchState(prev => ({ ...prev, location: loc }));
+            
+            const currentMonth = new Date().getMonth();
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: `Casi listo. ¿De qué mes necesitas la información?`, 
+                sender: 'assistant',
+                options: [
+                    { label: months[currentMonth], value: `month_${currentMonth + 1}` },
+                    { label: months[currentMonth - 1] || months[11], value: `month_${currentMonth}` },
+                    { label: "Ver todo el año", value: "month_all" }
+                ],
+                type: 'options'
+            }]);
+        } else if (option.value.startsWith("month_")) {
+            const month = option.value.replace("month_", "");
+            
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: `Buscando resultados exactos...`, 
+                sender: 'assistant'
+            }]);
+            
+            handleSearch(
+                `fotos`, 
+                searchState.location || undefined, 
+                month, 
+                searchState.category || undefined
+            );
+        } else if (option.value === "new_record") {
+            // ... (resto igual)
 
+    const handleSearch = async (query: string, loc?: string, month?: string, cat?: string) => {
+        setIsTyping(true);
+        const queryLower = query.toLowerCase();
+        
         const locationMatch = loc || SSOMA_LOCATIONS.find(l => queryLower.includes(l.toLowerCase()));
-        const categoryMatch = PMA_CATEGORIES.find(cat => 
-            queryLower.includes(cat.label.toLowerCase()) || 
-            cat.id.toLowerCase().includes(queryLower.replace(/\s+/g, '_'))
-        );
+        const categoryMatch = cat || PMA_CATEGORIES.find(c => 
+            queryLower.includes(c.label.toLowerCase()) || 
+            c.id.toLowerCase().includes(queryLower.replace(/\s+/g, '_'))
+        )?.id;
 
         try {
-            let apiUrl = `/api/evidence-records?location=${locationMatch || ''}&category=${categoryMatch?.id || ''}&limit=12`;
+            let apiUrl = `/api/evidence-records?location=${locationMatch || ''}&category=${categoryMatch || ''}&limit=12`;
             if (month && month !== 'all') apiUrl += `&month=${month}`;
 
             const res = await fetch(apiUrl);
@@ -147,7 +146,6 @@ export default function SSOMAAssistant() {
                         file_type: (r.file_type || '').toLowerCase()
                     }))
                     .filter((r: any) => {
-                        // FILTRO ESTRICTO: Solo imágenes
                         const url = (r.url || '').toLowerCase();
                         const isImage = url.match(/\.(jpg|jpeg|png|webp|gif)$/i) || r.file_type.includes('image');
                         const isPdf = url.endsWith('.pdf') || r.file_type.includes('pdf');
@@ -157,7 +155,7 @@ export default function SSOMAAssistant() {
                 if (results.length > 0) {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
-                        text: `He encontrado ${results.length} fotografías en ${locationMatch || 'la plataforma'}:`,
+                        text: `He encontrado estas fotos que coinciden con tu búsqueda en ${locationMatch || 'la plataforma'}:`,
                         sender: 'assistant',
                         results: results,
                         type: 'gallery'
@@ -165,25 +163,27 @@ export default function SSOMAAssistant() {
                 } else {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
-                        text: `Encontré registros en ${locationMatch}, pero son documentos PDF. No hay fotografías cargadas para este periodo.`,
+                        text: `Encontré registros para este criterio, pero son documentos. No hay fotografías cargadas aquí.`,
                         sender: 'assistant'
                     }]);
                 }
             } else {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
-                    text: `Lo siento, no encontré fotos para "${query}". Intenta con otros términos o verifica que el mes y lugar sean correctos.`,
+                    text: `No encontré resultados para ese filtro. Intenta con otra categoría o mes.`,
                     sender: 'assistant'
                 }]);
             }
         } catch (error) {
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
-                text: "Hubo un error al conectar con la base de datos.",
+                text: "Error de conexión con el servidor.",
                 sender: 'assistant'
             }]);
         } finally {
             setIsTyping(false);
+            // Reset state for next search
+            setSearchState({ category: null, location: null, month: null });
         }
     };
 
