@@ -39,6 +39,35 @@ type PMAEvidenceRecord = {
     images: string[];
 };
 
+const MIGRATION_MAP: Record<string, string> = {
+    "SIGNAGE_PERIMETERS": "DELIMITATION_AREAS",
+    "WASTE_RRSS_STATION": "WASTE_CONTAINERS",
+    "SIGNAGE_MA": "SIGNAGE_MA",
+    "ACCESS_MAINTENANCE": "DUST_WATERING",
+    "DUST_IRRIGATION": "DUST_WATERING",
+    "WASTE_SPILL_KIT": "SPILL_KIT",
+    "WELLBEING_DINING": "W_DINING_CLEAN",
+    "OPS_PPE_ARNES": "SST_PPE_USE",
+    "WELLBEING_HYDRATION": "W_HYDRATION",
+    "WELLBEING_CLEANING": "W_BATHROOMS",
+    "WELLBEING_HANDWASH": "W_HANDWASH",
+    "OPS_LOCKOUT": "SST_AST_REVIEW",
+    "COMM_INFO_PANEL": "SOCIAL_SUGGESTION_BOX",
+    "SIGNAGE_SST": "SST_SIGNAGE",
+    "WASTE_SEGREGATION": "WASTE_CONTAINERS",
+    "OPS_PPE_TAPONES": "SST_PPE_USE",
+    "SST_EMERGENCY_STATION": "SST_EMERGENCY_STATION",
+    "SST_EMERGENCY_VEHICLE": "SST_EMERGENCY_VEHICLE",
+    "OPS_PPE_DELIVERY": "SST_PPE_DELIVERY",
+    "WELLBEING_BATHROOMS": "W_BATHROOMS",
+    "PORTABLE_TOILETS": "W_BATHROOMS",
+    "WELLBEING_SHOWERS": "W_SHOWERS",
+    "WELLBEING_DINING_CLEAN": "W_DINING_CLEAN",
+    "BAÑOS_Y_LIMPIEZA": "W_BATHROOMS",
+    "CLEANING": "W_DINING_CLEAN",
+    "HYGIENE": "W_BATHROOMS"
+};
+
 export default function PMAPage() {
     const { user } = useAuth();
 
@@ -85,7 +114,10 @@ export default function PMAPage() {
                 try {
                     const parsed = JSON.parse(stored);
                     if (Array.isArray(parsed)) {
-                        initialRecords = parsed.filter(r => r && typeof r === 'object');
+                        initialRecords = parsed.filter(r => r && typeof r === 'object').map(r => ({
+                            ...r,
+                            category: MIGRATION_MAP[r.category] || r.category
+                        }));
                     }
                     setRecords(initialRecords);
                 } catch (e) {
@@ -110,7 +142,7 @@ export default function PMAPage() {
                             id: Number(r.id) || Number(r.record_id),
                             date: r.date,
                             responsible: r.responsible,
-                            category: r.category,
+                            category: MIGRATION_MAP[r.category] || r.category,
                             description: r.description,
                             location: r.location || '',
                             images: Array.isArray(parsedImages) ? parsedImages : []
@@ -232,11 +264,12 @@ export default function PMAPage() {
     const handleEdit = (record: PMAEvidenceRecord) => {
         const [datePart, timePart] = (record.date || "").split(" ");
         setEditingId(record.id);
+        const rawCat = record.category?.trim?.() || record.category;
         setForm({
             date: datePart || record.date,
             time: timePart || "00:00:00",
             responsible: record.responsible,
-            category: record.category,
+            category: MIGRATION_MAP[rawCat] || rawCat,
             description: record.description || '',
             location: record.location || ''
         });
@@ -344,12 +377,45 @@ export default function PMAPage() {
             "BAÑOS_Y_LIMPIEZA": "Baños y Limpieza",
             "W_BATHROOMS": "Baños y Limpieza",
             "WASTE_CONTAINERS": "Contenedores de Residuos",
-            "SST_PPE_USE": "Uso de EPP"
+            "SST_PPE_USE": "Uso de EPP",
+            "OPS_PPE_TAPONES": "Uso de EPP",
+            "OPS_PPE_DELIVERY": "Entrega de EPP",
+            "WELLBEING_BATHROOMS": "Baños y Limpieza",
+            "SIGNAGE_PERIMETERS": "Delimitación de las áreas y perimetro",
+            "WELLBEING_HANDWASH": "Lavamanos",
+            "WELLBEING_SHOWERS": "Duchas",
+            "WELLBEING_HYDRATION": "Punto de Hidratación",
+            "WELLBEING_DINING_CLEAN": "Limpieza de Comedor",
+            "WASTE_TRANSPORT": "Recolección y transporte de los residuos",
+            "WASTE_STORAGE_NP": "Centro de acopio de Residuos No peligrosos",
+            "WASTE_STORAGE_P": "Centro de acopio de Residuos peligrosos",
+            "WASTE_INTERNAL_COLLECT": "Recojo Interno",
+            "SPILL_KIT": "Kit antiderrame",
+            "SPILL_TRAY": "Uso de Bandeja antiderrames",
+            "CISTERN_MESH": "Mangueras cuentan con cabezal con malla",
+            "CISTERN_SPILL_KIT": "Cisterna cuenta con kit Antiderrame",
+            "WATER_COURSE_PROTECT": "Vehículos no ingresan al curso de agua",
+            "DUST_WATERING": "Realización de riego",
+            "NOISE_SILENCER": "Maquinarias con silenciador",
+            "DUST_CONTROL_SIGN": "Señal de control de polvo",
+            "SIGNAGE_MA": "Señalización MA ambiental instalada",
+            "SIGNAGE_PROHIBITION": "Señalización MA de prohibición",
+            "SST_SIGNAGE": "Señale de SST uso de EPP",
+            "SST_AST_REVIEW": "Revisión y llenado de AST",
+            "SST_IPERC_DISPLAY": "Matriz IPERC en exhibición",
+            "SST_EMERGENCY_STATION": "Estación de Emergencia",
+            "SST_EMERGENCY_VEHICLE": "Vehículo de Emergencia",
+            "SST_HEALTH_TOPIC": "Tópico y su especialista de Salud",
+            "SST_PHONE_DIRECTORY": "Directorio telefónico de emergencia",
+            "SOCIAL_SUGGESTION_BOX": "Buzón de Sugerencia",
+            "SOCIAL_COMPLAINTS_BOOK": "Libro de Reclamos",
+            "FLORA_FAUNA_TALK": "Charla sobre cuidado de la Flora y Fauna",
+            "MONITORING": "Monitoreos"
         };
 
-        const catLabel = categoryTranslations[record.category] || 
-                       pmaCategories.find(c => c.id === record.category)?.label || 
-                       record.category;
+        const rawCat = record.category?.trim?.() || record.category || record.description;
+        const officialCategory = PMA_CATEGORIES.find(c => c.id === rawCat);
+        const catLabel = officialCategory ? officialCategory.label : (categoryTranslations[rawCat] || rawCat || 'S/A');
 
         const displayLocation = (record.location || "").replace(/Hawuay/i, "Jahuay");
 
@@ -569,11 +635,13 @@ export default function PMAPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Control de Fotos PMA</label>
                                         <SearchableSelect 
-                                            options={pmaCategories}
-                                            value={form.category}
-                                            onChange={(val) => setForm({ ...form, category: val })}
+                                            options={pmaCategories.map(c => c.label)}
+                                            value={pmaCategories.find(c => c.id === form.category)?.label || form.category}
+                                            onChange={(val) => {
+                                                const cat = pmaCategories.find(c => c.label === val);
+                                                setForm({ ...form, category: cat ? cat.id : val });
+                                            }}
                                             placeholder="Seleccionar Actividad..."
-                                            searchPlaceholder="Buscar actividad..."
                                             icon={<Leaf size={16} />}
                                         />
                                         
@@ -585,17 +653,6 @@ export default function PMAPage() {
                                                 </p>
                                             </div>
                                         )}
-                                    </div>
-
-                                    {/* Descripción (Opcional) */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Descripción / Observaciones</label>
-                                        <textarea
-                                            value={form.description}
-                                            onChange={e => setForm({ ...form, description: e.target.value })}
-                                            placeholder="Detalles adicionales..."
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs focus:border-emerald-500 outline-none h-20 resize-none transition-colors"
-                                        />
                                     </div>
 
 
@@ -725,27 +782,26 @@ export default function PMAPage() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
-                                        <select
-                                            value={filterCategory}
-                                            onChange={e => setFilterCategory(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
-                                        >
-                                            <option value="">Todas las categorías...</option>
-                                            {pmaCategories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                            ))}
-                                        </select>
+                                        <SearchableSelect 
+                                            options={pmaCategories.map(c => c.label)}
+                                            value={pmaCategories.find(c => c.id === filterCategory)?.label || filterCategory}
+                                            onChange={(val) => {
+                                                const cat = pmaCategories.find(c => c.label === val);
+                                                setFilterCategory(cat ? cat.id : (val === "" ? "" : val));
+                                            }}
+                                            placeholder="Todas las categorías..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
-                                        <select
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS}
                                             value={filterLocation}
-                                            onChange={e => setFilterLocation(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
-                                        >
-                                            <option value="">Todos los lugares...</option>
-                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                        </select>
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
                                     </div>
                                 </div>
 
@@ -764,15 +820,18 @@ export default function PMAPage() {
                                         <tbody className="divide-y divide-slate-800">
                                             {(() => {
                                                 const filtered = records.filter(r => {
-                                                    const matchesDate = filterDate === "" || r.date.includes(filterDate);
-                                                    const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                                    const safeDate = String(r.date || "");
+                                                    const safeResp = String(r.responsible || "").toLowerCase();
+                                                    const safeLoc = String(r.location || "").toLowerCase().replace(/h/g, 'j').trim();
+                                                    const safeCat = String(r.category || "");
+
+                                                    const matchesDate = filterDate === "" || safeDate.includes(filterDate);
+                                                    const matchesResp = filterResponsible === "" || safeResp.includes(filterResponsible.toLowerCase());
                                                     
-                                                    // Normalización de Lugar (Hawuay/Jahuay)
-                                                    const normLoc = (r.location || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const normFilterLoc = (filterLocation || "").toLowerCase().replace(/h/g, 'j').trim();
-                                                    const matchesLoc = filterLocation === "" || normLoc === normFilterLoc || r.location === filterLocation;
+                                                    const matchesLoc = filterLocation === "" || safeLoc === normFilterLoc || safeLoc.includes(normFilterLoc);
                                                     
-                                                    const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                    const matchesCat = filterCategory === "" || safeCat === filterCategory || safeCat === filterCategory.trim();
                                                     return matchesDate && matchesResp && matchesLoc && matchesCat;
                                                 });
 

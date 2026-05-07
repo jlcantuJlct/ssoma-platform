@@ -46,10 +46,12 @@ export default function SSOMAAssistant() {
         category: string | null;
         location: string | null;
         month: string | null;
+        query: string | null;
     }>({
         category: null,
         location: null,
-        month: null
+        month: null,
+        query: null
     });
 
     useEffect(() => {
@@ -159,6 +161,25 @@ export default function SSOMAAssistant() {
                     window.location.href = `/${routes[searchState.category || ''] || searchState.category}`;
                 }, 1500);
             }
+        } else if (option.value.startsWith("free_loc_")) {
+            const loc = option.value.replace("free_loc_", "");
+            setSearchState(prev => ({ ...prev, location: loc }));
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const currentMonth = new Date().getMonth();
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: `Casi listo. ¿De qué mes requieres los registros?`, 
+                sender: 'assistant',
+                options: [
+                    { label: months[currentMonth], value: `free_month_${currentMonth + 1}` },
+                    { label: months[currentMonth - 1] || months[11], value: `free_month_${currentMonth}` },
+                    { label: "Ver todo el año", value: "all" }
+                ],
+                type: 'options'
+            }]);
+        } else if (option.value.startsWith("free_month_") || (option.value === "all" && searchState.query)) {
+            const month = option.value.replace("free_month_", "");
+            handleSearch(searchState.query || "", searchState.location || undefined, month, undefined);
         } else if (option.value.startsWith("goto_")) {
             const tool = option.value.replace("goto_", "");
             window.location.href = `/${tool}`;
@@ -199,19 +220,31 @@ export default function SSOMAAssistant() {
 
         const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
 
-        if (matchedTool && !loc && !month) {
-            setSearchState({ category: matchedTool.id, location: null, month: null });
-            await new Promise(r => setTimeout(r, 600));
-            setMessages(prev => [...prev, { 
-                id: Date.now().toString(), 
-                text: `¿Qué acción deseas realizar con **${matchedTool.name}**?`, 
-                sender: 'assistant',
-                options: [
-                    { label: `🔍 Visualizar registros`, value: `tool_view_${matchedTool.id}` },
-                    { label: `➕ Ingresar nuevo`, value: `tool_new_${matchedTool.id}` }
-                ],
-                type: 'options'
-            }]);
+        if (!loc && !month) {
+            if (matchedTool) {
+                setSearchState({ category: matchedTool.id, location: null, month: null, query: null });
+                await new Promise(r => setTimeout(r, 600));
+                setMessages(prev => [...prev, { 
+                    id: Date.now().toString(), 
+                    text: `¿Qué acción deseas realizar con **${matchedTool.name}**?`, 
+                    sender: 'assistant',
+                    options: [
+                        { label: `🔍 Visualizar registros`, value: `tool_view_${matchedTool.id}` },
+                        { label: `➕ Ingresar nuevo`, value: `tool_new_${matchedTool.id}` }
+                    ],
+                    type: 'options'
+                }]);
+            } else {
+                setSearchState(prev => ({ ...prev, query: query, location: null, month: null }));
+                await new Promise(r => setTimeout(r, 600));
+                setMessages(prev => [...prev, { 
+                    id: Date.now().toString(), 
+                    text: `Para buscar "${query}", ¿De qué sede o lugar necesitas la información?`, 
+                    sender: 'assistant',
+                    options: SSOMA_LOCATIONS.map(locationItem => ({ label: locationItem, value: `free_loc_${locationItem}` })),
+                    type: 'options'
+                }]);
+            }
             setIsTyping(false);
             return;
         }
@@ -275,7 +308,7 @@ export default function SSOMAAssistant() {
                                 sender: 'assistant'
                             }
                         ]);
-                        setSearchState({ category: null, location: null, month: null });
+                        setSearchState({ category: null, location: null, month: null, query: null });
                     }
                     setIsOpen(!isOpen);
                 }}
