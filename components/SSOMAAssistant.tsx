@@ -115,17 +115,18 @@ export default function SSOMAAssistant() {
                 text: "Entendido. ¿Qué tipo de registros deseas visualizar?", 
                 sender: 'assistant',
                 options: [
-                    { label: "📸 Fotos PMA", value: "cat_pma" },
-                    { label: "📄 Documentos/Registros", value: "search_docs" },
-                    { label: "📊 Estadísticas", value: "stats" }
+                    { label: "📸 Fotos PMA", value: "tool_view_pma" },
+                    { label: "✋ Control HHC", value: "tool_view_hhc" },
+                    { label: "📄 Entrega EPP", value: "tool_view_epp" },
+                    { label: "📑 ATS/PETAR", value: "tool_view_permits" },
+                    { label: "📋 Inspecciones", value: "tool_view_inspections" }
                 ],
                 type: 'options'
             }]);
-            setCurrentFlow("searching");
         } else if (option.value === "start_upload") {
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "¿Qué herramienta necesitas utilizar para el ingreso?", 
+                text: "¿Qué herramienta necesitas utilizar para el ingreso de datos?", 
                 sender: 'assistant',
                 options: [
                     { label: "📸 Fotos PMA", value: "goto_pma" },
@@ -136,12 +137,12 @@ export default function SSOMAAssistant() {
                 ],
                 type: 'options'
             }]);
-        } else if (option.value.startsWith("cat_")) {
-            const catId = option.value.replace("cat_", "");
-            setSearchState(prev => ({ ...prev, category: catId }));
+        } else if (option.value.startsWith("tool_view_")) {
+            const tool = option.value.replace("tool_view_", "");
+            setSearchState(prev => ({ ...prev, category: tool }));
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "Excelente. ¿En qué sede o lugar se realizó?", 
+                text: "Excelente. ¿De qué sede o lugar necesitas la información?", 
                 sender: 'assistant',
                 options: SSOMA_LOCATIONS.map(loc => ({ label: loc, value: `loc_${loc}` })),
                 type: 'options'
@@ -149,11 +150,11 @@ export default function SSOMAAssistant() {
         } else if (option.value.startsWith("loc_")) {
             const loc = option.value.replace("loc_", "");
             setSearchState(prev => ({ ...prev, location: loc }));
-            const currentMonth = new Date().getMonth();
             const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const currentMonth = new Date().getMonth();
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: `Casi listo. ¿De qué mes necesitas la información?`, 
+                text: `Casi listo. ¿De qué mes requieres los registros?`, 
                 sender: 'assistant',
                 options: [
                     { label: months[currentMonth], value: `month_${currentMonth + 1}` },
@@ -164,32 +165,43 @@ export default function SSOMAAssistant() {
             }]);
         } else if (option.value.startsWith("month_")) {
             const month = option.value.replace("month_", "");
-            handleSearch(`fotos`, searchState.location || undefined, month, searchState.category || undefined);
+            
+            // Si es PMA, hacemos búsqueda real en galería
+            if (searchState.category === "pma") {
+                handleSearch(`fotos`, searchState.location || undefined, month, undefined);
+            } else {
+                // Para otras herramientas, redirigimos a su historial
+                const routes: Record<string, string> = {
+                    hhc: "analytics",
+                    epp: "epp",
+                    permits: "ats",
+                    inspections: "inspections"
+                };
+                setMessages(prev => [...prev, { 
+                    id: (Date.now()+1).toString(), 
+                    text: `Te estoy llevando al historial de ${searchState.category?.toUpperCase()} filtrado por los criterios seleccionados.`, 
+                    sender: 'assistant'
+                }]);
+                setTimeout(() => {
+                    window.location.href = `/${routes[searchState.category || ''] || searchState.category}`;
+                }, 1500);
+            }
         } else if (option.value.startsWith("goto_")) {
             const tool = option.value.replace("goto_", "");
             window.location.href = `/${tool}`;
-        } else if (option.value.startsWith("tool_")) {
-            const [_, action, tool] = option.value.split("_");
-            // Mapeo de rutas
+        } else if (option.value.startsWith("tool_new_")) {
+            const tool = option.value.replace("tool_new_", "");
             const routes: Record<string, string> = {
                 hhc: "analytics",
                 training: "registros",
                 permits: "ats",
                 pma: "pma",
                 epp: "epp",
-                inspections: "inspections",
-                program: "program",
-                scsst: "scsst",
-                emo: "evidence",
-                manifiesto: "manifiesto",
-                desvio: "desvio",
-                ac: "reporte-ac",
-                residuos: "residuos",
-                simulacro: "simulacro",
-                brigadistas: "brigadistas"
+                inspections: "inspections"
             };
             window.location.href = `/${routes[tool] || tool}`;
         }
+    };
     };
 
     const handleSearch = async (query: string, loc?: string, month?: string, cat?: string) => {
@@ -220,11 +232,11 @@ export default function SSOMAAssistant() {
             await new Promise(r => setTimeout(r, 600));
             setMessages(prev => [...prev, { 
                 id: Date.now().toString(), 
-                text: `He detectado que necesitas trabajar con **${matchedTool.name}**. ¿Qué acción deseas realizar?`, 
+                text: `He detectado que buscas información sobre **${matchedTool.name}**. ¿Qué acción deseas realizar?`, 
                 sender: 'assistant',
                 options: [
-                    { label: `➕ Ingresar nuevo registro`, value: `tool_new_${matchedTool.id}` },
-                    { label: `🔍 Visualizar historial`, value: `tool_view_${matchedTool.id}` }
+                    { label: `🔍 Visualizar registros (Ver)`, value: `tool_view_${matchedTool.id}` },
+                    { label: `➕ Ingresar nuevo registro (Nuevo)`, value: `tool_new_${matchedTool.id}` }
                 ],
                 type: 'options'
             }]);
