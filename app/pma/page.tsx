@@ -25,7 +25,7 @@ import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
-import { PMA_CATEGORIES, PMACategory, RESPONSIBLES } from "@/lib/categories";
+import { PMA_CATEGORIES, PMACategory, RESPONSIBLES, ALL_RESPONSIBLES } from "@/lib/categories";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 // --- TYPES ---
@@ -770,12 +770,12 @@ export default function PMAPage() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre..."
+                                        <SearchableSelect 
+                                            options={ALL_RESPONSIBLES.map(r => ({ id: r, label: r }))}
                                             value={filterResponsible}
-                                            onChange={e => setFilterResponsible(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                            onChange={(val) => setFilterResponsible(val)}
+                                            placeholder="Todos los responsables..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -829,13 +829,11 @@ export default function PMAPage() {
                                             {(() => {
                                                 const filtered = records.filter(r => {
                                                     const safeDate = String(r.date || "");
-                                                    const safeResp = String(r.responsible || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
                                                     const safeLoc = String(r.location || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const safeCat = String(r.category || "");
 
-                                                    const normFilterResp = filterResponsible.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
                                                     const matchesDate = filterDate === "" || safeDate.includes(filterDate);
-                                                    const matchesResp = filterResponsible === "" || safeResp.includes(normFilterResp);
+                                                    const matchesResp = filterResponsible === "" || r.responsible === filterResponsible;
                                                     
                                                     const normFilterLoc = (filterLocation || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const matchesLoc = filterLocation === "" || safeLoc === normFilterLoc || safeLoc.includes(normFilterLoc);
