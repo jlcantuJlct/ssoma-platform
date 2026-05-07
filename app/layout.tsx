@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AlertaBanner from "@/components/AlertaBanner";
+import SSOMAAssistant from "@/components/SSOMAAssistant";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -32,9 +33,10 @@ export default function RootLayout({
             <main className="flex-1 overflow-y-auto h-screen relative">
               <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
               <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
-              {children}
+            {children}
             </main>
             <AlertaBanner />
+            <SSOMAAssistant />
           </ErrorBoundary>
         </Providers>
       </body>

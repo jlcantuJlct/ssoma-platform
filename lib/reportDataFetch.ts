@@ -46,25 +46,31 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
         return `(${inclusionPart} AND ${exclusionPart})`;
     };
 
+    // Helper to generate parameters
+    const getParams = (prefix: string, isCreatedCheck = false) => {
+        const base = isCreatedCheck ? [prefix, prefix] : [prefix];
+        return [...base, ...locationFilters, ...exclusions];
+    };
+
     // 1. Fetch System Stats
     const inspectionsRes = await db.fetchOne(
         `SELECT COUNT(*) as count FROM inspection_records WHERE (CAST(date AS TEXT) LIKE ? OR CAST(created_at AS TEXT) LIKE ?) AND ${generateWhere('zone')}`,
-        [`${datePrefix}%`, `${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`, true)
     );
 
     const atsRes = await db.fetchOne(
         `SELECT COUNT(*) as count FROM ats_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
-        [`${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`)
     );
 
     const petarRes = await db.fetchOne(
         `SELECT COUNT(*) as count FROM petar_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
-        [`${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`)
     );
 
     const hhcRes = await db.fetchOne(
         `SELECT COUNT(*) as count FROM hhc_records WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('lugar')}`,
-        [`${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`)
     );
 
     // 2. Fetch Manual Stats from Command Center
@@ -81,14 +87,14 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
         `SELECT category as activity_name, responsible, 'OK' as status
          FROM pma_evidence_records
          WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('location')}`,
-        [`${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`)
     );
 
     // 4. Evidence & Annexes
     const evidence = await db.fetchAll(
         `SELECT * FROM evidence_center_records 
          WHERE CAST(date AS TEXT) LIKE ? AND ${generateWhere('zona')}`,
-        [`${datePrefix}%`, ...locationFilters]
+        getParams(`${datePrefix}%`)
     );
 
     const annexes = await db.fetchAll(
@@ -101,7 +107,7 @@ export async function fetchMonthlyReportData(month: number, year: number, locati
     // 5. Desvios (Optional but useful for certain sections)
     const desvios = await db.fetchAll(
         `SELECT * FROM desvio_evidence_records WHERE ${generateWhere('location')} AND CAST(date AS TEXT) LIKE ?`,
-        [...locationFilters, `${datePrefix}%`]
+        [...locationFilters, ...exclusions, `${datePrefix}%`]
     );
 
     return {

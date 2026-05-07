@@ -75,31 +75,50 @@ export async function GET(request: Request) {
         if (location.toUpperCase() === 'SAN CLEMENTE') {
             console.log("Utilizando Procesador Inteligente de Python para San Clemente...");
             
-            const templatePath = path.resolve(process.cwd(), 'public/templates/Plantilla_PMA_SanClemente.docx');
-            const outputPath = path.resolve(process.cwd(), `public/templates/TEMP_REPORT_${Date.now()}.docx`);
-            const dataString = JSON.stringify(data);
+            const monthName = data.monthName.charAt(0).toUpperCase() + data.monthName.slice(1).toLowerCase();
+            const folderName = `${monthName} ${year}`;
+            const templatePath = `C:\\Users\\jlcan\\Desktop\\Seguimiento de plataforma de seguridad Antigravity\\Informe mensual\\PAD_SAN CLEMENTE  GUIA .docx`;
+            const outputDir = `C:\\Users\\jlcan\\Desktop\\Seguimiento de plataforma de seguridad Antigravity\\Informes Generados\\${folderName}`;
+            const outputFilename = `Informe_Mensual_SSOMA_SAN_CLEMENTE_${monthName.toUpperCase()}_${year}.docx`;
+            const outputPath = path.join(outputDir, outputFilename);
+            
+            // Asegurar que el directorio de salida exista
+            if (!fs.existsSync(outputDir)) {
+                fs.mkdirSync(outputDir, { recursive: true });
+            }
+
+            // Guardar datos en archivo temporal para que Python los lea sin errores
+            const dataPath = path.resolve(process.cwd(), `public/templates/data_${Date.now()}.json`);
+            fs.writeFileSync(dataPath, JSON.stringify(data));
+            
             const scriptPath = path.resolve(process.cwd(), 'lib/report_processor.py');
 
-            // Ejecutar el script de Python
-            // Comandos: python script_path template_path output_path data_json
-            const command = `python "${scriptPath}" "${templatePath}" "${outputPath}" '${dataString.replace(/'/g, "'\\''")}'`;
+            // Ejecutar el script de Python pasando la RUTA del archivo JSON
+            const command = `python "${scriptPath}" "${templatePath}" "${outputPath}" "${dataPath}"`;
             
             try {
                 await execPromise(command);
+                
+                if (!fs.existsSync(outputPath)) {
+                    throw new Error("El archivo de salida no fue generado por el script de Python.");
+                }
+
                 const buffer = fs.readFileSync(outputPath);
                 
-                // Limpiar archivo temporal
-                fs.unlinkSync(outputPath);
+                // Limpiar archivo temporal de datos
+                if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
 
                 return new NextResponse(buffer, {
                     status: 200,
                     headers: {
                         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'Content-Disposition': `attachment; filename="Informe_PMA_San_Clemente_${data.monthName}_${year}.docx"`,
+                        'Content-Disposition': `attachment; filename="${outputFilename}"`,
                     },
                 });
             } catch (pyError: any) {
                 console.error("Error en el procesador de Python:", pyError);
+                // Intentar limpiar el temporal si falló
+                if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
                 throw new Error(`Error en el motor de Python: ${pyError.message}`);
             }
         }

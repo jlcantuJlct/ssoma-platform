@@ -209,6 +209,14 @@ export default function MonthlyReportPage() {
                             )}
                         </button>
 
+                        {/* NUEVO BOTÓN DIRECTO PARA LA PLANTILLA DE 109MB */}
+                        <a
+                            href={`/api/export-word?month=${selectedMonth + 1}&year=${selectedYear}&location=SAN CLEMENTE`}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-tighter text-sm"
+                        >
+                            <Download size={20} className="text-blue-200" /> GENERAR WORD DIRECTO (SIN ROBOT)
+                        </a>
+
                         <button 
                             onClick={() => setShowFeedingPanel(!showFeedingPanel)}
                             className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-400 py-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all border border-slate-800"

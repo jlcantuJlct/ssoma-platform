@@ -22,25 +22,48 @@ async function ensureTable() {
     `);
 }
 
-// GET - Obtener registros de evidencias
-export async function GET() {
+// GET - Obtener registros de evidencias (soporta filtros para el Asistente SSOMA)
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
         
+        const { searchParams } = new URL(req.url);
+        const location = searchParams.get('location')?.toLowerCase();
+        const category = searchParams.get('category')?.toLowerCase();
+        const limit = parseInt(searchParams.get('limit') || '100');
+
         // MIGRATION: Convert old 'EMO' objective to 'OBJ 05'
         await db.execute("UPDATE evidence_center_records SET objective = 'OBJ 05' WHERE objective = 'EMO'");
 
-        const rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
+        let rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
         
-        // Deduplicate in JS to handle existing DB duplicates gracefully
+        // Deduplicate and filter in JS for better fuzzy matching
         const uniqueRecords = [];
         const seenKeys = new Set();
         for (const r of rawRecords) {
             const contentKey = `${r.date}|${r.responsable || r.responsible}|${r.objective}|${r.activity || r.description}|${r.zona || r.location}|${r.file_url || r.fileUrl}`;
+            
             if (!seenKeys.has(contentKey)) {
-                uniqueRecords.push(r);
-                seenKeys.add(contentKey);
+                let match = true;
+                
+                if (location && !r.zona?.toLowerCase().includes(location) && !r.description?.toLowerCase().includes(location)) {
+                    match = false;
+                }
+                
+                if (category && !r.activity?.toLowerCase().includes(category) && !r.description?.toLowerCase().includes(category) && !r.objective?.toLowerCase().includes(category)) {
+                    match = false;
+                }
+
+                if (match) {
+                    uniqueRecords.push({
+                        ...r,
+                        images: [r.file_url] // Standardize for assistant gallery
+                    });
+                    seenKeys.add(contentKey);
+                }
             }
+
+            if (uniqueRecords.length >= limit) break;
         }
 
         return NextResponse.json({ success: true, records: uniqueRecords });

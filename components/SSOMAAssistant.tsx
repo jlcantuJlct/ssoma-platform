@@ -1,0 +1,263 @@
+"use client";
+
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+    MessageSquare, 
+    X, 
+    Send, 
+    Bot, 
+    Search, 
+    Image as ImageIcon, 
+    Calendar,
+    MapPin,
+    ArrowRight,
+    Sparkles,
+    Loader2
+} from 'lucide-react';
+import { PMA_CATEGORIES } from '@/lib/categories';
+import { SSOMA_LOCATIONS } from '@/lib/locations';
+import { getDriveViewerUrl } from '@/lib/utils';
+
+type Message = {
+    id: string;
+    text: string;
+    sender: 'user' | 'assistant';
+    results?: any[];
+    type?: 'text' | 'gallery';
+};
+
+export default function SSOMAAssistant() {
+    const [isOpen, setIsOpen] = useState(false);
+    const [input, setInput] = useState("");
+    const [messages, setMessages] = useState<Message[]>([
+        {
+            id: '1',
+            text: "¡Hola! Soy tu asistente SSOMA. ¿En qué puedo ayudarte hoy? Puedes pedirme cosas como: 'Busca fotos de limpieza de baños en San Clemente' o '¿Hay fotos de residuos en Pisco?'",
+            sender: 'assistant'
+        }
+    ]);
+    const [isTyping, setIsTyping] = useState(false);
+    const [position, setPosition] = useState({ x: 0, y: 0 }); // Posición relativa desde bottom-right
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStart = useRef({ x: 0, y: 0 });
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Lógica de Arrastre (Drag)
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (isOpen) return; // No arrastrar si está abierto el chat
+        setIsDragging(true);
+        dragStart.current = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        };
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging) return;
+            const newX = e.clientX - dragStart.current.x;
+            const newY = e.clientY - dragStart.current.y;
+            setPosition({ x: newX, y: newY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging]);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages, isTyping]);
+
+    const handleSearch = async (query: string) => {
+        setIsTyping(true);
+        // ... (resto de la lógica de búsqueda igual)
+        
+        // Simular pensamiento del asistente
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const queryLower = query.toLowerCase();
+        
+        // 1. Identificar Lugar
+        const locationMatch = SSOMA_LOCATIONS.find(loc => queryLower.includes(loc.toLowerCase()));
+        
+        // 2. Identificar Actividad/Categoría
+        const categoryMatch = PMA_CATEGORIES.find(cat => 
+            queryLower.includes(cat.label.toLowerCase()) || 
+            cat.id.toLowerCase().includes(queryLower.replace(/\s+/g, '_'))
+        );
+
+        try {
+            const res = await fetch(`/api/evidence-records?location=${locationMatch || ''}&category=${categoryMatch?.id || ''}&limit=6`);
+            const data = await res.json();
+            
+            if (data.success && data.records.length > 0) {
+                const results = data.records.map((r: any) => ({
+                    id: r.id,
+                    url: Array.isArray(r.images) ? r.images[0] : (typeof r.images === 'string' ? JSON.parse(r.images)[0] : null),
+                    title: r.category_label || r.category,
+                    date: r.date,
+                    location: r.location
+                })).filter((r: any) => r.url);
+
+                setMessages(prev => [...prev, {
+                    id: Date.now().toString(),
+                    text: `He encontrado estas fotos de ${categoryMatch?.label || 'evidencia'} en ${locationMatch || 'la plataforma'}:`,
+                    sender: 'assistant',
+                    results: results,
+                    type: 'gallery'
+                }]);
+            } else {
+                setMessages(prev => [...prev, {
+                    id: Date.now().toString(),
+                    text: `Lo siento, no encontré fotos específicas para "${query}". Asegúrate de que el lugar (${SSOMA_LOCATIONS.join(', ')}) y la actividad estén escritos correctamente.`,
+                    sender: 'assistant'
+                }]);
+            }
+        } catch (error) {
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                text: "Hubo un error al conectar con la base de datos. Por favor, intenta de nuevo en unos momentos.",
+                sender: 'assistant'
+            }]);
+        } finally {
+            setIsTyping(false);
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+
+        const userMsg = input;
+        setMessages(prev => [...prev, { id: Date.now().toString(), text: userMsg, sender: 'user' }]);
+        setInput("");
+        handleSearch(userMsg);
+    };
+
+    return (
+        <>
+            {/* Bubble Button */}
+            <button
+                onMouseDown={handleMouseDown}
+                onClick={() => !isDragging && setIsOpen(!isOpen)}
+                style={{ 
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    cursor: isOpen ? 'pointer' : (isDragging ? 'grabbing' : 'grab')
+                }}
+                className={`fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-shadow duration-300 hover:scale-110 active:scale-95 ${
+                    isOpen ? 'bg-slate-800 rotate-90' : 'bg-emerald-600'
+                }`}
+            >
+                {isOpen ? <X className="text-white" /> : <Bot className="text-white animate-pulse" />}
+                {!isOpen && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
+                    </span>
+                )}
+            </button>
+
+            {/* Chat Window */}
+            {isOpen && (
+                <div 
+                    style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+                    className="fixed bottom-24 right-6 z-[100] w-[90vw] md:w-[400px] h-[70vh] max-h-[600px] bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300"
+                >
+                    
+                    {/* Header */}
+                    <div className="p-4 bg-gradient-to-r from-emerald-600/20 to-blue-600/20 border-b border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-900/20">
+                                <Sparkles size={20} className="text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-white uppercase tracking-tighter">Asistente SSOMA</h3>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">En Línea</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Messages Area */}
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
+                        {messages.map((msg) => (
+                            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${
+                                    msg.sender === 'user' 
+                                    ? 'bg-emerald-600 text-white rounded-tr-none' 
+                                    : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
+                                }`}>
+                                    <p className="leading-relaxed">{msg.text}</p>
+                                    
+                                    {msg.type === 'gallery' && msg.results && (
+                                        <div className="grid grid-cols-2 gap-2 mt-3">
+                                            {msg.results.map((item, idx) => (
+                                                <div key={idx} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-700 bg-slate-900">
+                                                    <img 
+                                                        src={getDriveViewerUrl(item.url, true)} 
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <p className="text-[8px] font-bold text-white truncate">{item.title}</p>
+                                                        <p className="text-[6px] text-slate-400">{item.location}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {isTyping && (
+                            <div className="flex justify-start">
+                                <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-none p-4 flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Buscando en la nube...</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Input Area */}
+                    <form onSubmit={handleSubmit} className="p-4 border-t border-slate-800 bg-slate-900/50">
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Escribe tu búsqueda aquí..."
+                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-4 pr-12 py-4 text-sm text-white focus:border-emerald-500 outline-none transition-all"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!input.trim() || isTyping}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-emerald-900/20"
+                            >
+                                <ArrowRight size={20} className="text-white" />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+        </>
+    );
+}
