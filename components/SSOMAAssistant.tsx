@@ -327,7 +327,21 @@ export default function SSOMAAssistant() {
             {/* Bubble Button */}
             <button
                 onMouseDown={handleMouseDown}
-                onClick={() => !isDragging && setIsOpen(!isOpen)}
+                onClick={() => {
+                    if (isDragging) return;
+                    if (!isOpen) {
+                        // Limpiar memoria al abrir
+                        setMessages([
+                            {
+                                id: '1',
+                                text: "¡Hola! Soy tu asistente SSOMA. Escribe qué herramienta necesitas o qué fotos buscas para ayudarte.",
+                                sender: 'assistant'
+                            }
+                        ]);
+                        setSearchState({ category: null, location: null, month: null });
+                    }
+                    setIsOpen(!isOpen);
+                }}
                 style={{ 
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     cursor: isOpen ? 'pointer' : (isDragging ? 'grabbing' : 'grab')
