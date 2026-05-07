@@ -118,39 +118,33 @@ export default function SSOMAAssistant() {
         if (option.value === "start_view") {
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "Entendido. ¿Qué categoría de fotos deseas visualizar?", 
+                text: "Entendido. ¿Qué tipo de registros deseas visualizar?", 
                 sender: 'assistant',
-                options: PMA_CATEGORIES.slice(0, 8).map(cat => ({ label: cat.label, value: `cat_${cat.id}` })),
+                options: [
+                    { label: "📸 Fotos PMA", value: "cat_pma" },
+                    { label: "📄 Documentos/Registros", value: "search_docs" },
+                    { label: "📊 Estadísticas", value: "stats" }
+                ],
                 type: 'options'
             }]);
             setCurrentFlow("searching");
         } else if (option.value === "start_upload") {
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "¿Qué tipo de evidencia deseas registrar? Te llevaré a la herramienta correcta.", 
+                text: "¿Qué herramienta necesitas utilizar para el ingreso?", 
                 sender: 'assistant',
                 options: [
-                    { label: "📸 Fotos PMA (Limpieza/Residuos)", value: "goto_pma" },
-                    { label: "📄 Entrega de EPP", value: "goto_epp" },
-                    { label: "📋 Inspecciones de Seguridad", value: "goto_inspections" }
-                ],
-                type: 'options'
-            }]);
-        } else if (option.value === "start_other") {
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: "Puedo ayudarte con otras consultas. ¿Qué necesitas?", 
-                sender: 'assistant',
-                options: [
-                    { label: "📊 Ver Estadísticas", value: "stats" },
-                    { label: "📅 Programa Anual", value: "goto_program" }
+                    { label: "📸 Fotos PMA", value: "goto_pma" },
+                    { label: "📄 Entrega EPP", value: "goto_epp" },
+                    { label: "📋 Inspecciones", value: "goto_inspections" },
+                    { label: "📑 ATS/PETAR", value: "goto_ats" },
+                    { label: "✋ Control HHC", value: "goto_analytics" }
                 ],
                 type: 'options'
             }]);
         } else if (option.value.startsWith("cat_")) {
             const catId = option.value.replace("cat_", "");
             setSearchState(prev => ({ ...prev, category: catId }));
-            
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
                 text: "Excelente. ¿En qué sede o lugar se realizó?", 
@@ -161,10 +155,8 @@ export default function SSOMAAssistant() {
         } else if (option.value.startsWith("loc_")) {
             const loc = option.value.replace("loc_", "");
             setSearchState(prev => ({ ...prev, location: loc }));
-            
             const currentMonth = new Date().getMonth();
             const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
                 text: `Casi listo. ¿De qué mes necesitas la información?`, 
@@ -182,6 +174,27 @@ export default function SSOMAAssistant() {
         } else if (option.value.startsWith("goto_")) {
             const tool = option.value.replace("goto_", "");
             window.location.href = `/${tool}`;
+        } else if (option.value.startsWith("tool_")) {
+            const [_, action, tool] = option.value.split("_");
+            // Mapeo de rutas
+            const routes: Record<string, string> = {
+                hhc: "analytics",
+                training: "registros",
+                permits: "ats",
+                pma: "pma",
+                epp: "epp",
+                inspections: "inspections",
+                program: "program",
+                scsst: "scsst",
+                emo: "evidence",
+                manifiesto: "manifiesto",
+                desvio: "desvio",
+                ac: "reporte-ac",
+                residuos: "residuos",
+                simulacro: "simulacro",
+                brigadistas: "brigadistas"
+            };
+            window.location.href = `/${routes[tool] || tool}`;
         }
     };
 
@@ -189,6 +202,42 @@ export default function SSOMAAssistant() {
         setIsTyping(true);
         const queryLower = query.toLowerCase();
         
+        // MAPA MAESTRO DE PALABRAS CLAVE PARA TODA LA PLATAFORMA
+        const toolMap = [
+            { keys: ["hhc", "higiene", "manos"], name: "Control HHC", id: "hhc" },
+            { keys: ["formacion", "charla", "capacitacion", "entrenamiento"], name: "Formación/Charlas", id: "training" },
+            { keys: ["ats", "petar", "permiso", "alto riesgo"], name: "ATS/PETAR", id: "permits" },
+            { keys: ["epp", "equipo", "proteccion"], name: "Control EPP", id: "epp" },
+            { keys: ["pma", "fotos", "limpieza", "residuos"], name: "Fotos PMA", id: "pma" },
+            { keys: ["manifiesto", "basura", "peligroso"], name: "Manifiestos", id: "manifiesto" },
+            { keys: ["inspeccion", "checklist", "verificacion"], name: "Inspecciones", id: "inspections" },
+            { keys: ["programa", "anual", "planificacion"], name: "Programa Anual", id: "program" },
+            { keys: ["emo", "salud", "medico", "examen"], name: "Control EMO", id: "emo" },
+            { keys: ["scsst", "comite", "seguridad"], name: "Control SCSST", id: "scsst" },
+            { keys: ["desvio", "incumplimiento", "hallazgo"], name: "Control de Desvíos", id: "desvio" },
+            { keys: ["ac", "correctiva", "preventiva"], name: "Reporte de A/C", id: "ac" },
+            { keys: ["simulacro", "emergencia", "evacuacion"], name: "Simulacros", id: "simulacro" },
+            { keys: ["brigadista", "primeros auxilios"], name: "Brigadistas", id: "brigadistas" }
+        ];
+
+        const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
+
+        if (matchedTool && !loc && !month && !cat) {
+            await new Promise(r => setTimeout(r, 600));
+            setMessages(prev => [...prev, { 
+                id: Date.now().toString(), 
+                text: `He detectado que necesitas trabajar con **${matchedTool.name}**. ¿Qué acción deseas realizar?`, 
+                sender: 'assistant',
+                options: [
+                    { label: `➕ Ingresar nuevo registro`, value: `tool_new_${matchedTool.id}` },
+                    { label: `🔍 Visualizar historial`, value: `tool_view_${matchedTool.id}` }
+                ],
+                type: 'options'
+            }]);
+            setIsTyping(false);
+            return;
+        }
+
         const locationMatch = loc || SSOMA_LOCATIONS.find(l => queryLower.includes(l.toLowerCase()));
         const categoryMatch = cat || PMA_CATEGORIES.find(c => 
             queryLower.includes(c.label.toLowerCase()) || 
@@ -222,7 +271,7 @@ export default function SSOMAAssistant() {
                 if (results.length > 0) {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
-                        text: `He encontrado estas fotos que coinciden con tu búsqueda en ${locationMatch || 'la plataforma'}:`,
+                        text: `He encontrado estas fotos en ${locationMatch || 'la plataforma'}:`,
                         sender: 'assistant',
                         results: results,
                         type: 'gallery'
@@ -230,15 +279,19 @@ export default function SSOMAAssistant() {
                 } else {
                     setMessages(prev => [...prev, {
                         id: Date.now().toString(),
-                        text: `Encontré registros para este criterio, pero son documentos. No hay fotografías cargadas aquí.`,
-                        sender: 'assistant'
+                        text: `Encontré registros para este criterio, pero son documentos. ¿Deseas ir a la herramienta para verlos?`,
+                        sender: 'assistant',
+                        options: matchedTool ? [{ label: "Ir a la herramienta", value: `tool_view_${matchedTool.id}` }] : [],
+                        type: 'options'
                     }]);
                 }
             } else {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
-                    text: `No encontré resultados para ese filtro. Intenta con otra categoría o mes.`,
-                    sender: 'assistant'
+                    text: `No encontré resultados específicos. ¿Deseas que te lleve a la sección de **${matchedTool?.name || 'Búsqueda'}** para revisar manualmente?`,
+                    sender: 'assistant',
+                    options: matchedTool ? [{ label: "Sí, llévame ahí", value: `tool_view_${matchedTool.id}` }] : [],
+                    type: 'options'
                 }]);
             }
         } catch (error) {
@@ -249,7 +302,6 @@ export default function SSOMAAssistant() {
             }]);
         } finally {
             setIsTyping(false);
-            // Reset state for next search
             setSearchState({ category: null, location: null, month: null });
         }
     };
