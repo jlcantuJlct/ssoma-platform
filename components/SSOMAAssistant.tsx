@@ -51,7 +51,60 @@ export default function SSOMAAssistant() {
     const dragStart = useRef({ x: 0, y: 0 });
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // ... (handleMouseDown y useEffect de drag igual que antes)
+    // Lógica de Arrastre (Drag) con Protección de Bordes
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (isOpen) return; // No arrastrar si está abierto el chat
+        setIsDragging(true);
+        dragStart.current = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        };
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging) return;
+            
+            let newX = e.clientX - dragStart.current.x;
+            let newY = e.clientY - dragStart.current.y;
+
+            // RESTRICCIONES DE BORDES (Boundaries)
+            const padding = 20;
+            const bubbleSize = 60;
+            
+            // Límites para la burbuja (relativos a bottom-right: 24px)
+            const maxX = 24; 
+            const minX = -(window.innerWidth - bubbleSize - padding);
+            
+            const maxY = 24;
+            const minY = -(window.innerHeight - bubbleSize - padding);
+
+            newX = Math.max(minX, Math.min(maxX, newX));
+            newY = Math.max(minY, Math.min(maxY, newY));
+
+            setPosition({ x: newX, y: newY });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging]);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages, isTyping]);
 
     const [searchState, setSearchState] = useState({
         category: null as string | null,
@@ -116,7 +169,22 @@ export default function SSOMAAssistant() {
                 searchState.category || undefined
             );
         } else if (option.value === "new_record") {
-            // ... (resto igual)
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "¿Qué tipo de registro deseas ingresar?", 
+                sender: 'assistant',
+                options: [
+                    { label: "Fotos PMA", value: "goto_pma" },
+                    { label: "Entrega EPP", value: "goto_epp" },
+                    { label: "Inspecciones", value: "goto_inspections" }
+                ],
+                type: 'options'
+            }]);
+        } else if (option.value.startsWith("goto_")) {
+            const tool = option.value.replace("goto_", "");
+            window.location.href = `/${tool}`;
+        }
+    };
 
     const handleSearch = async (query: string, loc?: string, month?: string, cat?: string) => {
         setIsTyping(true);
