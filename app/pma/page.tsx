@@ -758,7 +758,7 @@ export default function PMAPage() {
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10 items-end">
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
                                         <input
@@ -798,6 +798,19 @@ export default function PMAPage() {
                                             className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
                                         />
                                     </div>
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setFilterDate("");
+                                                setFilterResponsible("");
+                                                setFilterCategory("");
+                                                setFilterLocation("");
+                                            }}
+                                            className="w-full h-[33px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold uppercase transition-colors border border-slate-700 flex items-center justify-center gap-2"
+                                        >
+                                            <Trash2 size={12} /> Limpiar
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="overflow-x-auto">
@@ -816,12 +829,13 @@ export default function PMAPage() {
                                             {(() => {
                                                 const filtered = records.filter(r => {
                                                     const safeDate = String(r.date || "");
-                                                    const safeResp = String(r.responsible || "").toLowerCase();
+                                                    const safeResp = String(r.responsible || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
                                                     const safeLoc = String(r.location || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const safeCat = String(r.category || "");
 
+                                                    const normFilterResp = filterResponsible.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
                                                     const matchesDate = filterDate === "" || safeDate.includes(filterDate);
-                                                    const matchesResp = filterResponsible === "" || safeResp.includes(filterResponsible.toLowerCase());
+                                                    const matchesResp = filterResponsible === "" || safeResp.includes(normFilterResp);
                                                     
                                                     const normFilterLoc = (filterLocation || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const matchesLoc = filterLocation === "" || safeLoc === normFilterLoc || safeLoc.includes(normFilterLoc);
