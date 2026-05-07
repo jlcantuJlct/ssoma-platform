@@ -206,15 +206,26 @@ export default function SSOMAAssistant() {
 
     const handleSearch = async (query: string, loc?: string, month?: string, cat?: string) => {
         setIsTyping(true);
-        const queryLower = query.toLowerCase();
+        const queryLower = query.toLowerCase().trim();
         
+        // MANEJO DE RESPUESTAS AFIRMATIVAS (CONTEXTO)
+        if (queryLower === "si" || queryLower === "sí" || queryLower === "ok" || queryLower === "vale") {
+            // Si el último mensaje tenía opciones, tomamos la primera (generalmente la positiva)
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg?.options && lastMsg.options.length > 0) {
+                handleOptionClick(lastMsg.options[0]);
+                setIsTyping(false);
+                return;
+            }
+        }
+
         // MAPA MAESTRO DE PALABRAS CLAVE PARA TODA LA PLATAFORMA
         const toolMap = [
             { keys: ["hhc", "higiene", "manos"], name: "Control HHC", id: "hhc" },
             { keys: ["formacion", "charla", "capacitacion", "entrenamiento"], name: "Formación/Charlas", id: "training" },
             { keys: ["ats", "petar", "permiso", "alto riesgo"], name: "ATS/PETAR", id: "permits" },
             { keys: ["epp", "equipo", "proteccion"], name: "Control EPP", id: "epp" },
-            { keys: ["pma", "fotos", "limpieza", "residuos"], name: "Fotos PMA", id: "pma" },
+            { keys: ["pma", "fotos", "limpieza", "residuos", "baño", "baño", "baños"], name: "Fotos PMA", id: "pma" },
             { keys: ["manifiesto", "basura", "peligroso"], name: "Manifiestos", id: "manifiesto" },
             { keys: ["inspeccion", "checklist", "verificacion"], name: "Inspecciones", id: "inspections" },
             { keys: ["programa", "anual", "planificacion"], name: "Programa Anual", id: "program" },
@@ -228,7 +239,9 @@ export default function SSOMAAssistant() {
 
         const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
 
-        if (matchedTool && !loc && !month && !cat) {
+        // Si detectamos un tema nuevo, reseteamos el estado de búsqueda para evitar conflictos
+        if (matchedTool && !loc && !month) {
+            setSearchState({ category: matchedTool.id, location: null, month: null });
             await new Promise(r => setTimeout(r, 600));
             setMessages(prev => [...prev, { 
                 id: Date.now().toString(), 
