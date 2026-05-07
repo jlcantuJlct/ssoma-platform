@@ -741,29 +741,32 @@ export default function PMAPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
-                                            {records.filter(r => {
-                                                const matchesDate = filterDate === "" || r.date.includes(filterDate);
-                                                const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
-                                                const matchesLoc = filterLocation === "" || r.location === filterLocation;
-                                                const matchesCat = filterCategory === "" || r.category === filterCategory;
-                                                return matchesDate && matchesResp && matchesLoc && matchesCat;
-                                            }).length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={7} className="py-12 text-center text-slate-600 italic">
-                                                        {records.length === 0 ? "No hay evidencias registradas en el rastro." : "No se encontraron registros con los filtros aplicados."}
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                records
-                                                    .filter(r => {
-                                                        const matchesDate = filterDate === "" || r.date.includes(filterDate);
-                                                        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
-                                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
-                                                        const matchesCat = filterCategory === "" || r.category === filterCategory;
-                                                        return matchesDate && matchesResp && matchesLoc && matchesCat;
-                                                    })
-                                                    .map((record) => {
-                                                        const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
+                                            {(() => {
+                                                const filtered = records.filter(r => {
+                                                    const matchesDate = filterDate === "" || r.date.includes(filterDate);
+                                                    const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                                    
+                                                    // Normalización de Lugar (Hawuay/Jahuay)
+                                                    const normLoc = (r.location || "").toLowerCase().replace(/h/g, 'j').trim();
+                                                    const normFilterLoc = (filterLocation || "").toLowerCase().replace(/h/g, 'j').trim();
+                                                    const matchesLoc = filterLocation === "" || normLoc === normFilterLoc || r.location === filterLocation;
+                                                    
+                                                    const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                    return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                                });
+
+                                                if (filtered.length === 0) {
+                                                    return (
+                                                        <tr>
+                                                            <td colSpan={7} className="py-12 text-center text-slate-600 italic">
+                                                                {records.length === 0 ? "No hay evidencias registradas en el rastro." : "No se encontraron registros con los filtros aplicados."}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }
+
+                                                return filtered.map((record) => {
+                                                    const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">
                                                             <td className="py-4 pl-2 font-mono text-[10px] text-white align-top leading-tight">
@@ -848,8 +851,8 @@ export default function PMAPage() {
                                                             </td>
                                                         </tr>
                                                     );
-                                                })
-                                            )}
+                                                });
+                                            })()}
                                         </tbody>
                                     </table>
                                 </div>
