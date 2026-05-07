@@ -9,7 +9,7 @@ export const SSOMA_LOCATIONS = [
     "DME Camacho",
     "DME IV Pisco",
     "Cañete",
-    "Peaje Hawuay",
+    "Peaje Jahuay",
     "Mant. Periodico",
     "Mant. Rutinario"
 ];

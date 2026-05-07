@@ -335,6 +335,27 @@ export default function PMAPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedImages]);
 
+    // --- HELPERS ---
+    const getFormattedData = (record: PMAEvidenceRecord) => {
+        const categoryTranslations: Record<string, string> = {
+            "WASTE_SEGREGATION": "Segregación de Residuos",
+            "CLEANING": "Limpieza y Desinfección",
+            "HYGIENE": "Higiene y Bienestar",
+            "BAÑOS_Y_LIMPIEZA": "Baños y Limpieza",
+            "W_BATHROOMS": "Baños y Limpieza",
+            "WASTE_CONTAINERS": "Contenedores de Residuos",
+            "SST_PPE_USE": "Uso de EPP"
+        };
+
+        const catLabel = categoryTranslations[record.category] || 
+                       pmaCategories.find(c => c.id === record.category)?.label || 
+                       record.category;
+
+        const displayLocation = (record.location || "").replace(/Hawuay/i, "Jahuay");
+
+        return { catLabel, displayLocation };
+    };
+
     const handleDelete = (id: number) => {
         if (confirm("¿Está seguro de eliminar este registro?")) {
             setRecords(prev => prev.filter(r => r.id !== id));
@@ -343,10 +364,9 @@ export default function PMAPage() {
 
     // Helper para generar nombre de archivo con categoría reducida
     const getFileName = (record: PMAEvidenceRecord) => {
-        const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
-        // Reducir categoría: tomar primeras 3 palabras y max 20 chars
+        const { catLabel, displayLocation } = getFormattedData(record);
         const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
-        const lugarShort = (record.location || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
+        const lugarShort = (displayLocation || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
         return `PMA_${catShort}_${lugarShort}_${record.date}`;
     };
 
@@ -361,11 +381,12 @@ export default function PMAPage() {
         y += 15;
 
         // Info
+        const { catLabel, displayLocation } = getFormattedData(record);
         doc.setFontSize(10);
         doc.setTextColor(0);
         doc.text(`Fecha: ${record.date}`, 20, y);
         doc.text(`Responsable: ${record.responsible}`, 80, y);
-        doc.text(`Lugar: ${record.location || 'No especificado'}`, 140, y);
+        doc.text(`Lugar: ${displayLocation || 'No especificado'}`, 140, y);
         y += 8;
 
         // Category wrapping
@@ -373,7 +394,7 @@ export default function PMAPage() {
         doc.text("Categoría:", 20, y);
         y += 5;
         doc.setFont("helvetica", "normal");
-        const categoryLines = doc.splitTextToSize(pmaCategories.find(c => c.id === record.category)?.label || record.category, 170);
+        const categoryLines = doc.splitTextToSize(catLabel, 170);
         doc.text(categoryLines, 20, y);
         y += (categoryLines.length * 5) + 5;
 
@@ -766,7 +787,7 @@ export default function PMAPage() {
                                                 }
 
                                                 return filtered.map((record) => {
-                                                    const catLabel = pmaCategories.find(c => c.id === record.category)?.label || record.category;
+                                                    const { catLabel, displayLocation } = getFormattedData(record);
                                                     return (
                                                         <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group">
                                                             <td className="py-4 pl-2 font-mono text-[10px] text-white align-top leading-tight">
@@ -788,7 +809,7 @@ export default function PMAPage() {
                                                                 </span>
                                                             </td>
                                                             <td className="py-4 align-top">
-                                                                <span className="text-[11px] text-slate-300 font-medium">{record.location || '-'}</span>
+                                                                <span className="text-[11px] text-slate-300 font-medium">{displayLocation || '-'}</span>
                                                             </td>
 
                                                             <td className="py-4 align-top">
