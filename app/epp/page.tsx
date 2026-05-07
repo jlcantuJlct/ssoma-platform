@@ -214,7 +214,7 @@ export default function EPPPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-1">
+                                        <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Descripción / Título del Lote</label>
                                             <input 
                                                 type="text" 
@@ -223,6 +223,22 @@ export default function EPPPage() {
                                                 onChange={e => setForm({...form, description: e.target.value})} 
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none" 
                                             />
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setForm({...form, description: 'EPP nuevo o recambio'})}
+                                                    className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-blue-600/20 hover:border-blue-500/50 transition-all text-slate-400 hover:text-blue-400"
+                                                >
+                                                    EPP nuevo o recambio
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setForm({...form, description: 'EPP rutinario'})}
+                                                    className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-slate-400 hover:text-emerald-400"
+                                                >
+                                                    EPP rutinario
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
