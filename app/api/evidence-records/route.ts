@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const location = searchParams.get('location')?.toLowerCase();
         const category = searchParams.get('category')?.toLowerCase();
+        const monthParam = searchParams.get('month');
         const limit = parseInt(searchParams.get('limit') || '100');
 
         // MIGRATION: Convert old 'EMO' objective to 'OBJ 05'
@@ -52,6 +53,14 @@ export async function GET(req: NextRequest) {
                 
                 if (category && !r.activity?.toLowerCase().includes(category) && !r.description?.toLowerCase().includes(category) && !r.objective?.toLowerCase().includes(category)) {
                     match = false;
+                }
+
+                if (monthParam && monthParam !== 'all') {
+                    const recordDate = new Date(r.date);
+                    const recordMonth = recordDate.getMonth() + 1; // 1-12
+                    if (recordMonth !== parseInt(monthParam)) {
+                        match = false;
+                    }
                 }
 
                 if (match) {
