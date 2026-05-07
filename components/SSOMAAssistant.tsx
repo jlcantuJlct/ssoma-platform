@@ -336,7 +336,43 @@ export default function SSOMAAssistant() {
     };
 
     return (
-        <>
+        <div className="fixed inset-0 pointer-events-none z-[9999]">
+            <style>{`
+                @keyframes robot-wave {
+                    0%, 100% { transform: rotate(-10deg); }
+                    50% { transform: rotate(10deg); }
+                }
+                @keyframes robot-point {
+                    0%, 100% { transform: translateY(0) rotate(45deg); }
+                    50% { transform: translateY(5px) rotate(60deg); }
+                }
+                .robot-arm {
+                    position: absolute;
+                    width: 12px;
+                    height: 24px;
+                    background: #10b981;
+                    border-radius: 6px;
+                    border: 2px solid #064e3b;
+                    z-index: -1;
+                    transition: all 0.3s ease;
+                }
+                .arm-left {
+                    left: -8px;
+                    top: 15px;
+                    transform-origin: top right;
+                    animation: robot-wave 2s infinite ease-in-out;
+                }
+                .arm-right {
+                    right: -8px;
+                    top: 15px;
+                    transform-origin: top left;
+                    animation: robot-point 1.5s infinite ease-in-out;
+                }
+                .robot-bubble {
+                    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+                }
+            `}</style>
+            
             {/* Bubble Button */}
             <button
                 onMouseDown={handleMouseDown}
@@ -359,11 +395,19 @@ export default function SSOMAAssistant() {
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     cursor: isOpen ? 'pointer' : (isDragging ? 'grabbing' : 'grab')
                 }}
-                className={`fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-shadow duration-300 hover:scale-110 active:scale-95 ${
+                className={`fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 robot-bubble ${
                     isOpen ? 'bg-slate-800 rotate-90' : 'bg-emerald-600'
                 }`}
             >
-                {isOpen ? <X className="text-white" /> : <Bot className="text-white animate-pulse" />}
+                {/* Brasitos */}
+                {!isOpen && (
+                    <>
+                        <div className="robot-arm arm-left shadow-lg"></div>
+                        <div className="robot-arm arm-right shadow-lg"></div>
+                    </>
+                )}
+
+                {isOpen ? <X size={28} className="text-white" /> : <Bot size={28} className="text-white animate-pulse" />}
                 {!isOpen && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
