@@ -190,10 +190,10 @@ export default function SSOMAAssistant() {
         }
 
         const toolMap = [
+            { keys: ["foto", "imagen", "evidencia", "pma", "limpieza", "baño", "baños"], name: "Fotos PMA", id: "pma" },
             { keys: ["hhc", "manos"], name: "Control HHC", id: "hhc" },
             { keys: ["ats", "petar", "permiso"], name: "ATS/PETAR", id: "permits" },
             { keys: ["epp", "equipo"], name: "Control EPP", id: "epp" },
-            { keys: ["pma", "fotos", "limpieza", "baño", "baños"], name: "Fotos PMA", id: "pma" },
             { keys: ["inspeccion", "checklist"], name: "Inspecciones", id: "inspections" }
         ];
 
