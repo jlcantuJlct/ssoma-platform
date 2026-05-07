@@ -832,8 +832,13 @@ export default function PMAPage() {
                                                     const safeLoc = String(r.location || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const safeCat = String(r.category || "");
 
+                                                    const normFilterResp = filterResponsible.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                                                    const safeResp = String(r.responsible || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                                                    
                                                     const matchesDate = filterDate === "" || safeDate.includes(filterDate);
-                                                    const matchesResp = filterResponsible === "" || r.responsible === filterResponsible;
+                                                    const matchesResp = filterResponsible === "" || 
+                                                                        normFilterResp.includes(safeResp) || 
+                                                                        safeResp.includes(normFilterResp);
                                                     
                                                     const normFilterLoc = (filterLocation || "").toLowerCase().replace(/h/g, 'j').trim();
                                                     const matchesLoc = filterLocation === "" || safeLoc === normFilterLoc || safeLoc.includes(normFilterLoc);
