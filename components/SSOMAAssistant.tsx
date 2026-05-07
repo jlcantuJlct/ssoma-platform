@@ -516,6 +516,6 @@ export default function SSOMAAssistant() {
                     </form>
                 </div>
             )}
-        </>
+        </div>
     );
 }
