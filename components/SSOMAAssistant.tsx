@@ -33,12 +33,12 @@ export default function SSOMAAssistant() {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: "¡Hola! Soy tu asistente SSOMA. ¿En qué puedo ayudarte hoy?",
+            text: "¡Hola! Soy tu asistente SSOMA. ¿Qué deseas hacer hoy?",
             sender: 'assistant',
             options: [
-                { label: "🔍 Buscar Fotos", value: "search_photos" },
-                { label: "📝 Registrar Evidencia", value: "new_record" },
-                { label: "📊 Ver Estadísticas", value: "stats" }
+                { label: "🖼️ Ver fotos guardadas", value: "start_view" },
+                { label: "➕ Ingresar fotos nuevas", value: "start_upload" },
+                { label: "📊 Otros", value: "start_other" }
             ],
             type: 'options'
         }
@@ -115,15 +115,38 @@ export default function SSOMAAssistant() {
     const handleOptionClick = (option: { label: string, value: string }) => {
         setMessages(prev => [...prev, { id: Date.now().toString(), text: option.label, sender: 'user' }]);
         
-        if (option.value === "search_photos" || option.value.includes("foto")) {
+        if (option.value === "start_view") {
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "¿Qué categoría de actividad deseas consultar?", 
+                text: "Entendido. ¿Qué categoría de fotos deseas visualizar?", 
                 sender: 'assistant',
                 options: PMA_CATEGORIES.slice(0, 8).map(cat => ({ label: cat.label, value: `cat_${cat.id}` })),
                 type: 'options'
             }]);
             setCurrentFlow("searching");
+        } else if (option.value === "start_upload") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "¿Qué tipo de evidencia deseas registrar? Te llevaré a la herramienta correcta.", 
+                sender: 'assistant',
+                options: [
+                    { label: "📸 Fotos PMA (Limpieza/Residuos)", value: "goto_pma" },
+                    { label: "📄 Entrega de EPP", value: "goto_epp" },
+                    { label: "📋 Inspecciones de Seguridad", value: "goto_inspections" }
+                ],
+                type: 'options'
+            }]);
+        } else if (option.value === "start_other") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "Puedo ayudarte con otras consultas. ¿Qué necesitas?", 
+                sender: 'assistant',
+                options: [
+                    { label: "📊 Ver Estadísticas", value: "stats" },
+                    { label: "📅 Programa Anual", value: "goto_program" }
+                ],
+                type: 'options'
+            }]);
         } else if (option.value.startsWith("cat_")) {
             const catId = option.value.replace("cat_", "");
             setSearchState(prev => ({ ...prev, category: catId }));
@@ -155,31 +178,7 @@ export default function SSOMAAssistant() {
             }]);
         } else if (option.value.startsWith("month_")) {
             const month = option.value.replace("month_", "");
-            
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: `Buscando resultados exactos...`, 
-                sender: 'assistant'
-            }]);
-            
-            handleSearch(
-                `fotos`, 
-                searchState.location || undefined, 
-                month, 
-                searchState.category || undefined
-            );
-        } else if (option.value === "new_record") {
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: "¿Qué tipo de registro deseas ingresar?", 
-                sender: 'assistant',
-                options: [
-                    { label: "Fotos PMA", value: "goto_pma" },
-                    { label: "Entrega EPP", value: "goto_epp" },
-                    { label: "Inspecciones", value: "goto_inspections" }
-                ],
-                type: 'options'
-            }]);
+            handleSearch(`fotos`, searchState.location || undefined, month, searchState.category || undefined);
         } else if (option.value.startsWith("goto_")) {
             const tool = option.value.replace("goto_", "");
             window.location.href = `/${tool}`;
