@@ -635,13 +635,11 @@ export default function PMAPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Control de Fotos PMA</label>
                                         <SearchableSelect 
-                                            options={pmaCategories.map(c => c.label)}
-                                            value={pmaCategories.find(c => c.id === form.category)?.label || form.category}
-                                            onChange={(val) => {
-                                                const cat = pmaCategories.find(c => c.label === val);
-                                                setForm({ ...form, category: cat ? cat.id : val });
-                                            }}
+                                            options={pmaCategories}
+                                            value={form.category}
+                                            onChange={(val) => setForm({ ...form, category: val })}
                                             placeholder="Seleccionar Actividad..."
+                                            searchPlaceholder="Buscar actividad..."
                                             icon={<Leaf size={16} />}
                                         />
                                         
@@ -783,12 +781,9 @@ export default function PMAPage() {
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
                                         <SearchableSelect 
-                                            options={pmaCategories.map(c => c.label)}
-                                            value={pmaCategories.find(c => c.id === filterCategory)?.label || filterCategory}
-                                            onChange={(val) => {
-                                                const cat = pmaCategories.find(c => c.label === val);
-                                                setFilterCategory(cat ? cat.id : (val === "" ? "" : val));
-                                            }}
+                                            options={pmaCategories}
+                                            value={filterCategory}
+                                            onChange={(val) => setFilterCategory(val)}
                                             placeholder="Todas las categorías..."
                                             className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
                                         />
@@ -796,7 +791,7 @@ export default function PMAPage() {
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
                                         <SearchableSelect 
-                                            options={SSOMA_LOCATIONS}
+                                            options={SSOMA_LOCATIONS.map(loc => ({ id: loc, label: loc }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}
                                             placeholder="Todos los lugares..."
