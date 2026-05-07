@@ -339,9 +339,25 @@ export default function SSOMAAssistant() {
                                     {msg.type === 'gallery' && msg.results && (
                                         <div className="grid grid-cols-2 gap-2 mt-3">
                                             {msg.results.map((item, idx) => (
-                                                <div key={idx} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-700">
-                                                    <img src={getDriveViewerUrl(item.url, true)} alt={item.title} className="w-full h-full object-cover" />
-                                                </div>
+                                                <a 
+                                                    key={idx} 
+                                                    href={item.url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="group relative aspect-square rounded-xl overflow-hidden border border-slate-700 bg-slate-900 hover:border-emerald-500 transition-all shadow-lg"
+                                                    title="Click para ver original"
+                                                >
+                                                    <img 
+                                                        src={getDriveViewerUrl(item.url, true)} 
+                                                        alt={item.title} 
+                                                        className="w-full h-full object-cover transition-transform group-hover:scale-110" 
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-0 group-hover:opacity-100 flex flex-col justify-end p-2 transition-opacity">
+                                                        <Search size={16} className="text-white mb-1 mx-auto" />
+                                                        <p className="text-[8px] font-bold text-white truncate uppercase tracking-tighter">{item.title}</p>
+                                                        <p className="text-[7px] text-emerald-400 font-bold uppercase">{item.location}</p>
+                                                    </div>
+                                                </a>
                                             ))}
                                         </div>
                                     )}
