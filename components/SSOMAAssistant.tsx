@@ -33,14 +33,8 @@ export default function SSOMAAssistant() {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: "¡Hola! Soy tu asistente SSOMA. ¿Qué deseas hacer hoy?",
-            sender: 'assistant',
-            options: [
-                { label: "🖼️ Ver fotos guardadas", value: "start_view" },
-                { label: "➕ Ingresar fotos nuevas", value: "start_upload" },
-                { label: "📊 Otros", value: "start_other" }
-            ],
-            type: 'options'
+            text: "¡Hola! Soy tu asistente SSOMA. Escribe qué herramienta necesitas o qué fotos buscas para ayudarte.",
+            sender: 'assistant'
         }
     ]);
     const [isTyping, setIsTyping] = useState(false);
