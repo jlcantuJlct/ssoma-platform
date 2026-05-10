@@ -16,8 +16,11 @@ import {
     CheckCircle2,
     Upload,
     Eye,
-    Edit2
+    Edit2,
+    X,
+    Filter
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { 
     BarChart as RechartsBarChart, 
     Bar, 
@@ -81,6 +84,8 @@ export default function WasteManagementPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     
     const [filterLocation, setFilterLocation] = useState('');
+    const [filterDate, setFilterDate] = useState('');
+    const [filterWasteType, setFilterWasteType] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
@@ -466,34 +471,103 @@ export default function WasteManagementPage() {
 
                             {/* Detailed History Table Card */}
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4">
                                     <h3 className="text-white font-black text-lg flex items-center gap-2">
                                         <BarChart size={20} className="text-slate-500" /> Historial Detallado
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        <div className="relative">
-                                            <select 
-                                                value={filterLocation}
-                                                onChange={e => setFilterLocation(e.target.value)}
-                                                className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none appearance-none pr-10"
-                                            >
-                                                <option value="">Todos los lugares...</option>
-                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                            </select>
-                                            {filterLocation && (
-                                                <button onClick={() => setFilterLocation('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                    <X size={14} />
+                                        <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                            {records.filter(r => {
+                                                const matchesLoc = !filterLocation || r.location === filterLocation;
+                                                const matchesDate = !filterDate || r.date === filterDate;
+                                                const matchesType = !filterWasteType || r.wasteType === filterWasteType;
+                                                return matchesLoc && matchesDate && matchesType;
+                                            }).length} REGISTROS
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
                                                 </button>
                                             )}
                                         </div>
-                                        {filterLocation && (
+                                        <input 
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Tipo</label>
+                                            {filterWasteType && (
+                                                <button onClick={() => setFilterWasteType('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={WASTE_CATEGORIES.map(c => ({ id: c.label, label: c.label }))}
+                                            value={filterWasteType}
+                                            onChange={(val) => setFilterWasteType(val)}
+                                            placeholder="Todos los tipos..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                            value={filterLocation}
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                                        {(filterLocation || filterDate || filterWasteType) && (
                                             <button 
-                                                onClick={() => setFilterLocation('')}
-                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95 h-[38px]"
+                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterWasteType(''); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
                                                 <X size={14} strokeWidth={3} /> Limpiar Filtros
                                             </button>
                                         )}
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const d = new Date(r.date + 'T00:00:00');
+                                            return d.getMonth() === i;
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex flex-col items-center justify-center min-w-[42px] py-1.5 rounded-xl border ${count > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50'}`}>
+                                                <span className="text-[7px] font-black uppercase tracking-tighter">{m}</span>
+                                                <span className="text-[9px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[60px] py-1.5 rounded-xl border bg-blue-500/10 border-blue-500/30 text-blue-400 ml-auto">
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[9px] font-black">{records.length}</span>
                                     </div>
                                 </div>
                                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto no-scrollbar">

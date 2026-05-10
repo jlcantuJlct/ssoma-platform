@@ -53,6 +53,8 @@ export default function EPPPage() {
         description: ''
     });
     const [filterLocation, setFilterLocation] = useState('');
+    const [filterResponsible, setFilterResponsible] = useState('');
+    const [filterMonth, setFilterMonth] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
@@ -312,34 +314,103 @@ export default function EPPPage() {
                         {/* List */}
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl min-h-[600px]">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4">
                                     <h3 className="text-white font-black text-lg flex items-center gap-2">
                                         <FileText size={20} className="text-slate-500" /> Archivo de Entrega Mensual
                                     </h3>
                                     <div className="flex items-center gap-2">
-                                        <div className="relative">
-                                            <select 
-                                                value={filterLocation}
-                                                onChange={e => setFilterLocation(e.target.value)}
-                                                className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none appearance-none pr-10"
-                                            >
-                                                <option value="">Filtrar por Lugar...</option>
-                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                            </select>
-                                            {filterLocation && (
-                                                <button onClick={() => setFilterLocation('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                    <X size={14} />
+                                        <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                            {records.filter(r => {
+                                                const matchesLoc = !filterLocation || r.location === filterLocation;
+                                                const matchesResp = !filterResponsible || r.responsible === filterResponsible;
+                                                const matchesMonth = !filterMonth || r.month === filterMonth;
+                                                return matchesLoc && matchesResp && matchesMonth;
+                                            }).length} REGISTROS
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Mes</label>
+                                            {filterMonth && (
+                                                <button onClick={() => setFilterMonth('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
                                                 </button>
                                             )}
                                         </div>
-                                        {filterLocation && (
+                                        <input 
+                                            type="month"
+                                            value={filterMonth}
+                                            onChange={e => setFilterMonth(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Responsable</label>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
+                                            value={filterResponsible}
+                                            onChange={(val) => setFilterResponsible(val)}
+                                            placeholder="Todos los responsables..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                            value={filterLocation}
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                                        {(filterLocation || filterResponsible || filterMonth) && (
                                             <button 
-                                                onClick={() => setFilterLocation('')}
-                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95 h-[38px]"
+                                                onClick={() => { setFilterLocation(''); setFilterResponsible(''); setFilterMonth(''); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
                                                 <X size={14} strokeWidth={3} /> Limpiar Filtros
                                             </button>
                                         )}
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const mPart = parseInt(r.month?.split('-')[1] || "0");
+                                            return mPart === (i + 1);
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex flex-col items-center justify-center min-w-[42px] py-1.5 rounded-xl border ${count > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50'}`}>
+                                                <span className="text-[7px] font-black uppercase tracking-tighter">{m}</span>
+                                                <span className="text-[9px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[60px] py-1.5 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[9px] font-black">{records.length}</span>
                                     </div>
                                 </div>
 
@@ -357,7 +428,12 @@ export default function EPPPage() {
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
                                             {records
-                                                .filter(r => !filterLocation || r.location === filterLocation)
+                                                .filter(r => {
+                                                    const matchesLoc = !filterLocation || r.location === filterLocation;
+                                                    const matchesResp = !filterResponsible || r.responsible === filterResponsible;
+                                                    const matchesMonth = !filterMonth || r.month === filterMonth;
+                                                    return matchesLoc && matchesResp && matchesMonth;
+                                                })
                                                 .sort((a, b) => b.month.localeCompare(a.month))
                                                 .map(r => (
                                                 <tr key={r.id} className="group hover:bg-slate-800/30 transition-colors">

@@ -40,6 +40,11 @@ export default function ClientCommunicationPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
+    // Filter State
+    const [filterDate, setFilterDate] = useState("");
+    const [filterType, setFilterType] = useState("");
+    const [filterSearch, setFilterSearch] = useState("");
+
     useEffect(() => {
         const stored = localStorage.getItem('client_comm_records_v1');
         if (stored) {
@@ -132,6 +137,92 @@ export default function ClientCommunicationPage() {
 
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl min-h-[600px]">
+                                {/* FILTERS GRID */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-950/50 p-4 rounded-2xl border border-slate-800 items-end">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Tipo</label>
+                                            {filterType && (
+                                                <button onClick={() => setFilterType("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <select 
+                                            value={filterType}
+                                            onChange={e => setFilterType(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none"
+                                        >
+                                            <option value="">Todos los Tipos...</option>
+                                            <option value="Enviada">Carta Enviada</option>
+                                            <option value="Recibida">Carta Recibida</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Buscar Asunto/Remitente</label>
+                                            {filterSearch && (
+                                                <button onClick={() => setFilterSearch("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            placeholder="Palabra clave..."
+                                            value={filterSearch}
+                                            onChange={e => setFilterSearch(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col justify-end h-full">
+                                        {(filterDate || filterType || filterSearch) && (
+                                            <button 
+                                                onClick={() => { setFilterDate(""); setFilterType(""); setFilterSearch(""); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                <X size={14} strokeWidth={3} /> Limpiar
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-8 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const mPart = parseInt(r.date?.split('-')[1] || "0");
+                                            return mPart === (i + 1);
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                                <span className="text-[10px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[10px] font-black">{records.length}</span>
+                                    </div>
+                                </div>
+
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
@@ -143,7 +234,14 @@ export default function ClientCommunicationPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {records.map(r => (
+                                        {records
+                                            .filter(r => {
+                                                const matchesDate = !filterDate || r.date === filterDate;
+                                                const matchesType = !filterType || r.type === filterType;
+                                                const matchesSearch = !filterSearch || r.description.toLowerCase().includes(filterSearch.toLowerCase()) || r.reference.toLowerCase().includes(filterSearch.toLowerCase());
+                                                return matchesDate && matchesType && matchesSearch;
+                                            })
+                                            .map(r => (
                                             <tr key={r.id} className="group hover:bg-slate-800/30">
                                                 <td className="py-4 text-xs font-mono text-slate-400">{r.date}</td>
                                                 <td className="py-4">

@@ -432,9 +432,29 @@ export default function AtsPage() {
                         {/* HISTORIAL */}
                         <div className="xl:col-span-2 space-y-6">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden min-h-[500px]">
-                                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                                     <Activity className="text-blue-500" size={20} /> Rastro de Registros
                                 </h3>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const d = new Date(r.date + 'T00:00:00');
+                                            return d.getMonth() === i;
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border ${count > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50'}`}>
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">{m}</span>
+                                                <span className="text-[10px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[60px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                        <span className="text-[8px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[10px] font-black">{records.length}</span>
+                                    </div>
+                                </div>
 
                                 {/* FILTERS */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50 items-end">

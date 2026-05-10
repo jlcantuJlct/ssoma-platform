@@ -1498,119 +1498,151 @@ export default function InspectionsPage() {
                             {/* Panel Superior de Filtros */}
                             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
                                 <div className="flex flex-col gap-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                                        {/* Filtro Fecha */}
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
+                                                {filterDate && (
+                                                    <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-2.5 text-emerald-500/50" size={14} />
+                                                <input 
+                                                    type="date"
+                                                    value={filterDate}
+                                                    onChange={(e) => setFilterDate(e.target.value)}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-emerald-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
 
                                         {/* Filtro Responsable */}
-                                        <div className="relative">
-                                            <User className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <select
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
+                                                {filterResponsible && (
+                                                    <button onClick={() => setFilterResponsible('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <SearchableSelect 
+                                                options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
                                                 value={filterResponsible}
-                                                onChange={(e) => setFilterResponsible(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                            >
-                                                <option value="">Todo Responsable</option>
-                                                {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
-                                            </select>
-                                            {filterResponsible && (
-                                                <button onClick={() => setFilterResponsible('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                    <X size={14} />
-                                                </button>
-                                            )}
+                                                onChange={(val) => setFilterResponsible(val)}
+                                                placeholder="Todo Responsable"
+                                                icon={<User size={14} />}
+                                            />
                                         </div>
 
                                         {/* Filtro Zona */}
-                                        <div className="relative">
-                                            <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <select
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Zona</label>
+                                                {filterZone && (
+                                                    <button onClick={() => setFilterZone('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <SearchableSelect 
+                                                options={ZONES.map(z => ({ id: z, label: z }))}
                                                 value={filterZone}
-                                                onChange={(e) => setFilterZone(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
-                                            >
-                                                <option value="">Toda Zona</option>
-                                                {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
-                                            </select>
-                                            {filterZone && (
-                                                <button onClick={() => setFilterZone('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                    <X size={14} />
-                                                </button>
-                                            )}
+                                                onChange={(val) => setFilterZone(val)}
+                                                placeholder="Toda Zona"
+                                                icon={<MapPin size={14} />}
+                                            />
+                                        </div>
+
+                                        {/* Filtro Area */}
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Área</label>
+                                                {filterArea !== 'Todas' && (
+                                                    <button onClick={() => setFilterArea('Todas')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <SearchableSelect 
+                                                options={AREAS.map(a => ({ id: a, label: a }))}
+                                                value={filterArea === 'Todas' ? '' : filterArea}
+                                                onChange={(val) => setFilterArea(val || 'Todas')}
+                                                placeholder="Todas las Áreas"
+                                                icon={<Filter size={14} />}
+                                            />
                                         </div>
 
                                         {/* Filtro Tipo */}
-                                        <div className="relative group">
+                                        <div className="space-y-1.5 lg:col-span-2">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tipo de Inspección</label>
+                                                {filterType && (
+                                                    <button onClick={() => setFilterType('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
                                             <SearchableSelect
-                                                options={["Todo Tipo", ...Object.values(inspectionTypesByArea).flat().sort()]}
-                                                value={filterType || "Todo Tipo"}
-                                                onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
+                                                options={Object.values(inspectionTypesByArea).flat().sort().map(t => ({ id: t, label: t }))}
+                                                value={filterType}
+                                                onChange={(val) => setFilterType(val)}
                                                 placeholder="Todo Tipo"
-                                                icon={<AlertCircle className="text-slate-500" size={16} />}
-                                                className="h-[42px]"
+                                                icon={<AlertCircle size={14} />}
                                             />
-                                            {filterType && filterType !== "Todo Tipo" && (
-                                                <button onClick={() => setFilterType('')} className="absolute right-8 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors z-10 bg-slate-950 rounded" style={{marginTop: '-2px'}}>
-                                                    <X size={14} />
-                                                </button>
-                                            )}
                                         </div>
 
-                                        {/* Filtro Fecha */}
-                                        <div className="relative">
-                                            <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <input
-                                                type="date"
-                                                value={filterDate}
-                                                onChange={(e) => setFilterDate(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
-                                            />
-                                            {filterDate && (
-                                                <button onClick={() => setFilterDate('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
-                                                    <X size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Filtro Area (reset button if needed or just Area select) */}
-                                        <div className="relative">
-                                            <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <select
-                                                value={filterArea}
-                                                onChange={(e) => setFilterArea(e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                            >
-                                                <option value="Todas">Todas las Áreas</option>
-                                                {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                                            </select>
-                                            {filterArea !== 'Todas' && (
-                                                <button onClick={() => setFilterArea('Todas')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                    <X size={14} />
+                                        <div className="lg:col-span-2 flex flex-col justify-end">
+                                            {(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas') && (
+                                                <button 
+                                                    onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
+                                                    className="w-full h-[42px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                >
+                                                    <X size={14} strokeWidth={3} /> Limpiar Filtros
                                                 </button>
                                             )}
                                         </div>
                                     </div>
-                                    
-                                    {(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas') && (
-                                        <div className="flex justify-end pt-2 border-t border-slate-800/50">
-                                            <button 
-                                                onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
-                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
-                                            >
-                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
                             {/* PANEL DE HISTORIAL (Tabla) */}
                             <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-280px)]">
-                                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                                    <h2 className="font-bold text-lg text-white flex items-center gap-2">
-                                        <ClipboardCheck className="text-emerald-500" />
-                                        Rastro de Registros
-                                    </h2>
-                                    <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
-                                        Total: {filteredInspections.length}
-                                    </span>
+                                <div className="p-4 border-b border-slate-800 bg-slate-900/50">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                                            <ClipboardCheck className="text-emerald-500" />
+                                            Rastro de Registros
+                                        </h2>
+                                        <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                                            Total: {inspections.length}
+                                        </span>
+                                    </div>
+
+                                    {/* RESUMEN MENSUAL */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                            const count = inspections.filter(r => {
+                                                const d = new Date(r.date + 'T00:00:00');
+                                                return d.getMonth() === i;
+                                            }).length;
+                                            return (
+                                                <div key={m} className={`flex flex-col items-center justify-center min-w-[42px] py-1.5 rounded-xl border ${count > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50'}`}>
+                                                    <span className="text-[7px] font-black uppercase tracking-tighter">{m}</span>
+                                                    <span className="text-[9px] font-black">{count}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        <div className="flex flex-col items-center justify-center min-w-[60px] py-1.5 rounded-xl border bg-blue-500/10 border-blue-500/30 text-blue-400 ml-auto">
+                                            <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                            <span className="text-[9px] font-black">{inspections.length}</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="overflow-auto flex-1">

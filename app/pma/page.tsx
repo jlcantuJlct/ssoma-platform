@@ -758,7 +758,7 @@ export default function PMAPage() {
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10 items-end">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10 items-end">
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center px-1">
                                             <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
@@ -826,7 +826,7 @@ export default function PMAPage() {
                                             className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
                                         />
                                     </div>
-                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
                                         {(filterDate || filterResponsible || filterCategory || filterLocation) && (
                                             <button
                                                 onClick={() => {

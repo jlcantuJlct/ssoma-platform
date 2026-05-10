@@ -21,8 +21,8 @@ import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth, USER_LIST } from "@/lib/auth";
-import { DETOUR_CATEGORIES, DetourCategory, RESPONSIBLES } from "@/lib/categories";
-import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { RESPONSIBLES } from "@/lib/categories";
+import SearchableSelect from "@/components/SearchableSelect";
 
 // --- TYPES ---
 type DetourEvidenceRecord = {
@@ -455,9 +455,16 @@ export default function DetourPage() {
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-blue-950/10 p-4 rounded-xl border border-blue-500/10">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-blue-950/10 p-4 rounded-xl border border-blue-500/10 items-end">
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <input
                                             type="date"
                                             value={filterDate}
@@ -466,38 +473,90 @@ export default function DetourPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre..."
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Responsable</label>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
                                             value={filterResponsible}
-                                            onChange={e => setFilterResponsible(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
+                                            onChange={(val) => setFilterResponsible(val)}
+                                            placeholder="Todos los responsables..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
-                                        <select
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Categoría</label>
+                                            {filterCategory && (
+                                                <button onClick={() => setFilterCategory("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={detourCategories}
                                             value={filterCategory}
-                                            onChange={e => setFilterCategory(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
-                                        >
-                                            <option value="">Todas las categorías...</option>
-                                            {detourCategories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                            ))}
-                                        </select>
+                                            onChange={(val) => setFilterCategory(val)}
+                                            placeholder="Todas las categorías..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
-                                        <select
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS.map(loc => ({ id: loc, label: loc }))}
                                             value={filterLocation}
-                                            onChange={e => setFilterLocation(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-colors"
-                                        >
-                                            <option value="">Todos los lugares...</option>
-                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                        </select>
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col justify-end h-full">
+                                        {(filterDate || filterResponsible || filterCategory || filterLocation) && (
+                                            <button
+                                                onClick={() => {
+                                                    setFilterDate("");
+                                                    setFilterResponsible("");
+                                                    setFilterCategory("");
+                                                    setFilterLocation("");
+                                                }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                <X size={12} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const mPart = parseInt(r.date?.split('-')[1] || "0");
+                                            return mPart === (i + 1);
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                                <span className="text-[10px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[10px] font-black">{records.length}</span>
                                     </div>
                                 </div>
 

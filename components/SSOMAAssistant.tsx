@@ -33,8 +33,14 @@ export default function SSOMAAssistant() {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: "¡Hola! Soy tu asistente SSOMA. Escribe qué herramienta necesitas o qué fotos buscas para ayudarte.",
-            sender: 'assistant'
+            text: "¡Hola! Soy tu asistente SSOMA. ¿En qué puedo ayudarte hoy?",
+            sender: 'assistant',
+            options: [
+                { label: "📊 Dashboard", value: "opt_dashboard" },
+                { label: "📅 Programa Anual", value: "opt_program" },
+                { label: "🔍 Buscar Fotos", value: "opt_fotos" }
+            ],
+            type: 'options'
         }
     ]);
     const [input, setInput] = useState("");
@@ -170,6 +176,7 @@ export default function SSOMAAssistant() {
                 rac: "/reporte-ac",
                 desvio: "/desvio",
                 analytics: "/",
+                dashboard: "/",
                 reports: "/reports",
                 ositran: "/ositran-report",
                 manifiesto: "/manifiesto",
@@ -223,6 +230,50 @@ export default function SSOMAAssistant() {
                 options: months.map((m, idx) => ({ label: m, value: `month_${idx + 1}` })),
                 type: 'options'
             }]);
+        } else if (option.value === "opt_dashboard") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "Te estoy llevando al **Dashboard Principal**.", 
+                sender: 'assistant'
+            }]);
+            setTimeout(() => window.location.href = "/", 1500);
+        } else if (option.value === "opt_program") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "Abriendo el **Programa Anual de SSOMA**.", 
+                sender: 'assistant'
+            }]);
+            setTimeout(() => window.location.href = "/program", 1500);
+        } else if (option.value === "opt_fotos") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "¿De qué sede o lugar necesitas ver las fotos?", 
+                sender: 'assistant',
+                options: SSOMA_LOCATIONS.map(loc => ({ label: loc, value: `loc_${loc}` })),
+                type: 'options'
+            }]);
+        } else if (option.value === "opt_export") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "¿Qué tipo de exportación necesitas gestionar?", 
+                sender: 'assistant',
+                options: [
+                    { label: "📂 SharePoint CASA", value: "nav_export" },
+                    { label: "📑 Anexos OSITRAN", value: "nav_ositran" },
+                    { label: "🤖 Activar Robot", value: "opt_robot_help" }
+                ],
+                type: 'options'
+            }]);
+        } else if (option.value === "nav_export") {
+            window.location.href = "/export-center";
+        } else if (option.value === "nav_ositran") {
+            window.location.href = "/ositran-report";
+        } else if (option.value === "opt_robot_help") {
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: "Para que las descargas funcionen, debes ejecutar el archivo **EJECUTAR_ROBOT.bat** en tu escritorio. Si no lo tienes, puedes descargarlo desde la sección de Herramientas.", 
+                sender: 'assistant'
+            }]);
         } else if (option.value.startsWith("month_")) {
             const month = option.value.replace("month_", "");
             handleSearch(searchState.query || "fotos", searchState.location || undefined, month, searchState.category || undefined);
@@ -245,20 +296,20 @@ export default function SSOMAAssistant() {
                 { keys: ["inspeccion", "checklist", "verificacion", "extintores", "botiquines"], name: "Inspecciones de Seguridad", id: "inspections" },
                 { keys: ["sctr", "seguro", "poliza", "vigencia", "trabajador"], name: "Control SCTR y Personal", id: "sctr" },
                 { keys: ["brigadista", "emergencia", "primeros auxilios", "evacuacion"], name: "Brigadas de Emergencia", id: "brigadistas" },
-                { keys: ["entrenamiento", "capacitacion", "charla", "induccion", "programa"], name: "Programa Anual / Capacitaciones", id: "training" },
+                { keys: ["entrenamiento", "capacitacion", "charla", "induccion", "programa", "programa anual"], name: "Programa Anual / Capacitaciones", id: "training" },
                 { keys: ["simulacro", "practica", "alerta"], name: "Simulacros de Emergencia", id: "simulacros" },
                 { keys: ["rac", "acto", "condicion", "ac", "a/c"], name: "Reporte de Actos y Condiciones (RAC)", id: "rac" },
                 { keys: ["desvio", "desvíos", "hallazgo"], name: "Control de Desvíos", id: "desvio" },
-                { keys: ["estadistica", "indicador", "kpi", "grafico"], name: "Estadísticas y Dashboard", id: "analytics" },
+                { keys: ["estadistica", "indicador", "kpi", "grafico", "dashboard", "panel general", "principal"], name: "Dashboard Principal", id: "analytics" },
                 { keys: ["reporte word", "informe word", "informe mensual", "generador word"], name: "Generar Informe Word", id: "word_report" },
-                { keys: ["ositran", "anexo", "anexos ositran"], name: "Anexos OSITRAN", id: "ositran" },
+                { keys: ["ositran", "anexo", "anexos ositran", "robot ositran"], name: "Anexos OSITRAN", id: "ositran" },
                 { keys: ["emo", "medico", "médico", "salud"], name: "Control de EMO", id: "emo" },
                 { keys: ["scsst", "comite", "comité", "seguridad"], name: "Control SCSST", id: "scsst" },
                 { keys: ["risstma", "reglamento"], name: "Control de RISSTMA", id: "risstma" },
                 { keys: ["actas", "supervision", "supervisión"], name: "Actas de Supervisión", id: "actas" },
                 { keys: ["monitoreo", "ocupacional"], name: "Monitoreo Ocupacional", id: "monitoreos" },
                 { keys: ["certificados", "equipo", "calibracion", "calibración"], name: "Certificados de Equipo", id: "equipment" },
-                { keys: ["sharepoint", "export", "archivo central"], name: "Archivo Central SharePoint", id: "sharepoint" },
+                { keys: ["sharepoint", "export", "archivo central", "robot sharepoint", "descarga", "carpetas", "exportar"], name: "Archivo Central SharePoint", id: "sharepoint" },
                 { keys: ["reporte", "pdf", "documento", "accidentabilidad"], name: "Control de Accidentabilidad", id: "reports" }
             ];
 
@@ -364,8 +415,15 @@ export default function SSOMAAssistant() {
                         setMessages([
                             {
                                 id: '1',
-                                text: "¡Hola! Soy tu asistente SSOMA. Escribe qué herramienta necesitas o qué fotos buscas para ayudarte.",
-                                sender: 'assistant'
+                                text: "¡Hola! Soy tu asistente SSOMA. ¿En qué puedo ayudarte hoy?",
+                                sender: 'assistant',
+                                options: [
+                                    { label: "📊 Dashboard", value: "opt_dashboard" },
+                                    { label: "📅 Programa Anual", value: "opt_program" },
+                                    { label: "🔍 Buscar Fotos", value: "opt_fotos" },
+                                    { label: "📂 Exportar/Robot", value: "opt_export" }
+                                ],
+                                type: 'options'
                             }
                         ]);
                         setSearchState({ category: null, location: null, month: null, query: null, intent: null });

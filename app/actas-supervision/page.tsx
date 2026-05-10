@@ -20,8 +20,10 @@ import {
     Plus,
     ImageIcon,
     FileIcon,
-    AlertCircle
+    AlertCircle,
+    X
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { getInitials } from "@/lib/utils";
 
 // --- TYPES ---
@@ -51,6 +53,12 @@ export default function ActasSupervisionPage() {
     const [levantamientos, setLevantamientos] = useState<Levantamiento[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Filter State
+    const [filterDate, setFilterDate] = useState("");
+    const [filterPlace, setFilterPlace] = useState("");
+    const [filterReport, setFilterReport] = useState("");
+    const [filterResponsible, setFilterResponsible] = useState("");
 
     // FORMS
     const [actaForm, setActaForm] = useState({
@@ -406,8 +414,87 @@ export default function ActasSupervisionPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
+                                    {/* FILTERS GRID */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-950/50 p-4 rounded-2xl border border-slate-800 items-end">
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                                {filterDate && (
+                                                    <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <input 
+                                                type="date"
+                                                value={filterDate}
+                                                onChange={e => setFilterDate(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                                {filterPlace && (
+                                                    <button onClick={() => setFilterPlace("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <SearchableSelect 
+                                                options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                                value={filterPlace}
+                                                onChange={(val) => setFilterPlace(val)}
+                                                placeholder="Todos los lugares..."
+                                                className="[&>div]:bg-slate-950 [&>div]:border-slate-800 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[9px] font-black text-slate-500 uppercase">N° Informe / Responsable</label>
+                                                {filterReport && (
+                                                    <button onClick={() => setFilterReport("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <input 
+                                                type="text"
+                                                placeholder="Buscar..."
+                                                value={filterReport}
+                                                onChange={e => setFilterReport(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col justify-end h-full">
+                                            {(filterDate || filterPlace || filterReport) && (
+                                                <button 
+                                                    onClick={() => { setFilterDate(""); setFilterPlace(""); setFilterReport(""); }}
+                                                    className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                                >
+                                                    <X size={14} strokeWidth={3} /> Limpiar
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-6">
-                                        {actas.length === 0 ? (
+                                        {actas
+                                            .filter(acta => {
+                                                const matchesDate = !filterDate || acta.date === filterDate;
+                                                const matchesPlace = !filterPlace || acta.place === filterPlace;
+                                                const matchesReport = !filterReport || acta.report_number.toLowerCase().includes(filterReport.toLowerCase());
+                                                
+                                                // Also check if any levantamiento matches report/responsible search
+                                                const matchesLiftingSearch = levantamientos.some(l => 
+                                                    l.report_number === acta.report_number && 
+                                                    (l.responsible.toLowerCase().includes(filterReport.toLowerCase()) || 
+                                                     l.place.toLowerCase().includes(filterReport.toLowerCase()))
+                                                );
+
+                                                return (matchesDate && matchesPlace && matchesReport) || (matchesDate && matchesPlace && filterReport && matchesLiftingSearch);
+                                            })
+                                            .length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-20 text-slate-600 space-y-4">
                                                 <AlertCircle size={48} className="opacity-20" />
                                                 <p className="font-black uppercase tracking-widest text-xs italic">No hay registros de supervisión</p>

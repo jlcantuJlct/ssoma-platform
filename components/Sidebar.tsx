@@ -116,7 +116,7 @@ export default function Sidebar() {
                         </div>
                         <SidebarItem
                             icon={<LayoutDashboard size={16} />}
-                            label="Panel General"
+                            label="Dashboard"
                             href="/"
                             active={pathname === '/' && (!searchParams.get('view') || searchParams.get('view') === 'analytics')}
                         />

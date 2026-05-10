@@ -32,6 +32,9 @@ export default function EquipmentCertsPage() {
     const [records, setRecords] = useState<EquipmentCert[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [filterCertType, setFilterCertType] = useState("");
+    const [filterCompany, setFilterCompany] = useState("");
+    const [filterDate, setFilterDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
@@ -100,10 +103,13 @@ export default function EquipmentCertsPage() {
 
     const isExpired = (date: string) => new Date(date) < new Date();
 
-    const filteredRecords = records.filter(r => 
-        r.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.plate_id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredRecords = records.filter(r => {
+        const matchesSearch = !searchTerm || r.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) || r.plate_id.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = !filterCertType || r.cert_type === filterCertType;
+        const matchesCompany = !filterCompany || r.issuing_company === filterCompany;
+        const matchesDate = !filterDate || r.issue_date === filterDate;
+        return matchesSearch && matchesType && matchesCompany && matchesDate;
+    });
 
     return (
         <div className="p-8 bg-slate-950 min-h-screen flex-1 text-slate-100">
@@ -221,15 +227,92 @@ export default function EquipmentCertsPage() {
                     </Card>
                 )}
 
-                <div className="flex flex-col md:flex-row gap-6 mb-8">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-900/50 p-4 rounded-2xl border border-slate-800 items-end">
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Buscar Equipo/Placa</label>
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                            <input 
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-blue-500 outline-none transition-all"
+                                placeholder="Buscar..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Certificado</label>
+                            {filterCertType && (
+                                <button onClick={() => setFilterCertType("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
+                        <select 
+                            value={filterCertType}
+                            onChange={e => setFilterCertType(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"
+                        >
+                            <option value="">Todos los Tipos...</option>
+                            <option value="Operatividad">Operatividad</option>
+                            <option value="RITE">Inspección Técnica</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                            <option value="Emisiones">Control de Emisiones</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Fecha Emisión</label>
+                            {filterDate && (
+                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
                         <input 
-                            className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 pl-12 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="Buscar por equipo, placa o código..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
+                            type="date"
+                            value={filterDate}
+                            onChange={e => setFilterDate(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-all"
                         />
+                    </div>
+                    <div className="flex flex-col justify-end h-full">
+                        {(searchTerm || filterCertType || filterDate || filterCompany) && (
+                            <button 
+                                onClick={() => { setSearchTerm(""); setFilterCertType(""); setFilterDate(""); setFilterCompany(""); }}
+                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* RESUMEN MENSUAL */}
+                <div className="flex flex-wrap gap-2 mb-8 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                        const count = records.filter(r => {
+                            const mPart = parseInt(r.issue_date?.split('-')[1] || "0");
+                            return mPart === (i + 1);
+                        }).length;
+                        return (
+                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                <span className="text-[10px] font-black">{count}</span>
+                            </div>
+                        );
+                    })}
+                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                        <span className="text-[10px] font-black">{records.length}</span>
                     </div>
                 </div>
 

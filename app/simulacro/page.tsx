@@ -16,8 +16,11 @@ import {
     Pencil,
     Siren,
     X,
-    Image as ImageIcon
+    AlertTriangle,
+    Image as ImageIcon,
+    Filter
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { generateFilename, getInitials } from "@/lib/utils";
 
 // --- TYPES ---
@@ -422,60 +425,102 @@ export default function SimulacroPage() {
                         {/* TABLE */}
                         <div className="xl:col-span-2 space-y-6">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden min-h-[500px]">
-                                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                    <Activity className="text-orange-500" size={20} /> Rastro de Simulacros
+                                <h3 className="text-xl font-bold text-white mb-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Activity className="text-orange-500" size={20} /> Rastro de Simulacros
+                                    </div>
+                                    <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                        {records.filter(r => {
+                                            const matchesLoc = !filterLocation || r.location === filterLocation;
+                                            const matchesResp = !filterResponsible || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                            const matchesDate = !filterDate || r.date === filterDate;
+                                            return matchesLoc && matchesResp && matchesDate;
+                                        }).length} REGISTROS
+                                    </div>
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="flex flex-col gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="space-y-1 relative">
-                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar Fecha</label>
-                                            <div className="relative">
-                                                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none pr-8" />
-                                                {filterDate && (
-                                                    <button onClick={() => setFilterDate('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
                                         </div>
-                                        <div className="space-y-1 relative">
-                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Responsable</label>
-                                            <div className="relative">
-                                                <input type="text" placeholder="Buscar..." value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none pr-8" />
-                                                {filterResponsible && (
-                                                    <button onClick={() => setFilterResponsible('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1 relative">
-                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Lugar</label>
-                                            <div className="relative flex items-center">
-                                                <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
-                                                    <option value="">Todos...</option>
-                                                    {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                                </select>
-                                                {filterLocation && (
-                                                    <button onClick={() => setFilterLocation('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
-                                                        <X size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <input 
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-orange-500 outline-none"
+                                        />
                                     </div>
-                                    {(filterDate || filterResponsible || filterLocation) && (
-                                        <div className="flex justify-end pt-2 border-t border-slate-800/50">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Responsable</label>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            placeholder="Buscar..."
+                                            value={filterResponsible}
+                                            onChange={e => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-orange-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                            value={filterLocation}
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col justify-end h-full">
+                                        {(filterLocation || filterDate || filterResponsible) && (
                                             <button 
-                                                onClick={() => { setFilterDate(''); setFilterResponsible(''); setFilterLocation(''); }}
-                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
+                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterResponsible(''); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
                                                 <X size={14} strokeWidth={3} /> Limpiar Filtros
                                             </button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN MENSUAL */}
+                                <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                        const count = records.filter(r => {
+                                            const mPart = parseInt(r.date?.split('-')[1] || "0");
+                                            return mPart === (i + 1);
+                                        }).length;
+                                        return (
+                                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-orange-500/10 border-orange-500/30 text-orange-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                                <span className="text-[10px] font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                        <span className="text-[10px] font-black">{records.length}</span>
+                                    </div>
                                 </div>
 
                                 <div className="overflow-x-auto">
@@ -491,11 +536,15 @@ export default function SimulacroPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800/50">
-                                            {records.filter(r => {
-                                                return (filterDate === "" || r.date === filterDate) &&
-                                                       (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) &&
-                                                       (filterLocation === "" || r.location === filterLocation);
-                                            }).map((record) => (
+                                            {records
+                                                .filter(r => {
+                                                    const matchesLoc = !filterLocation || r.location === filterLocation;
+                                                    const matchesResp = !filterResponsible || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                                    const matchesDate = !filterDate || r.date === filterDate;
+                                                    return matchesLoc && matchesResp && matchesDate;
+                                                })
+                                                .sort((a, b) => b.date.localeCompare(a.date))
+                                                .map((record) => (
                                                 <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group text-sm">
                                                     <td className="py-4 pl-4 font-mono text-slate-300">{record.date}</td>
                                                     <td className="py-4">
@@ -514,9 +563,9 @@ export default function SimulacroPage() {
                                                     <td className="py-4 text-slate-400 text-xs">{record.location}</td>
                                                     <td className="py-4 text-center">
                                                         {record.fileUrl && (
-                                                            <a href={record.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex p-2 bg-slate-800 rounded-lg text-teal-400 hover:bg-teal-500/20 transition-colors">
-                                                                <FileText size={16} />
-                                                            </a>
+                                                            <button onClick={() => setPreviewFile(record.fileUrl!)} className="inline-flex p-2 bg-slate-800 rounded-lg text-teal-400 hover:bg-teal-500/20 transition-colors">
+                                                                <Eye size={16} />
+                                                            </button>
                                                         )}
                                                     </td>
                                                     <td className="py-4 text-right pr-4">
@@ -542,6 +591,29 @@ export default function SimulacroPage() {
                     </div>
                 </div>
             </main>
+
+            {/* PREVIEW */}
+            {previewFile && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-950/95 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-5xl h-full flex flex-col bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                            <h3 className="text-xl font-black text-white flex items-center gap-3 italic">
+                                <Siren className="text-orange-500" /> VISUALIZACIÓN DE EVIDENCIA
+                            </h3>
+                            <button onClick={() => setPreviewFile(null)} className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all active:scale-95">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="flex-1 bg-slate-950 p-2">
+                            <iframe 
+                                src={getDriveViewerUrl(previewFile)} 
+                                className="w-full h-full rounded-2xl border border-slate-800"
+                                title="Visualizador"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -681,22 +681,34 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 Rastro de Cargas
                             </h3>
                             <div className="flex items-center gap-2">
-                                {(filters.date || filters.activity || filters.responsible || filters.location || filters.objective) && (
-                                    <button 
-                                        onClick={() => setFilters({ date: '', activity: '', responsible: '', location: '', objective: '' })}
-                                        className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1"
-                                    >
-                                        <X size={12} /> Limpiar Filtros
-                                    </button>
-                                )}
                                 <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                                     {filteredRecords.length} REGISTROS
                                 </div>
                             </div>
                         </div>
 
+                        {/* RESUMEN MENSUAL */}
+                        <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                            {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                const count = records.filter(r => {
+                                    const mPart = parseInt(r.date?.split('-')[1] || "0");
+                                    return mPart === (i + 1);
+                                }).length;
+                                return (
+                                    <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                        <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                        <span className="text-[10px] font-black">{count}</span>
+                                    </div>
+                                );
+                            })}
+                            <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                <span className="text-[10px] font-black">{records.length}</span>
+                            </div>
+                        </div>
+
                         {/* FILTROS AVANZADOS */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 mb-6 items-end">
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center px-1">
                                     <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
@@ -707,7 +719,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     )}
                                 </div>
                                 <SearchableSelect 
-                                    options={filterOptions.dates}
+                                    options={filterOptions.dates.map(d => ({ id: d, label: d }))}
                                     value={filters.date}
                                     onChange={(val) => setFilters({...filters, date: val})}
                                     placeholder="Todas las fechas"
@@ -723,7 +735,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     )}
                                 </div>
                                 <SearchableSelect 
-                                    options={filterOptions.responsibles}
+                                    options={filterOptions.responsibles.map(r => ({ id: r, label: r }))}
                                     value={filters.responsible}
                                     onChange={(val) => setFilters({...filters, responsible: val})}
                                     placeholder="Todos los responsables"
@@ -739,11 +751,21 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     )}
                                 </div>
                                 <SearchableSelect 
-                                    options={filterOptions.locations}
+                                    options={filterOptions.locations.map(l => ({ id: l, label: l }))}
                                     value={filters.location}
                                     onChange={(val) => setFilters({...filters, location: val})}
                                     placeholder="Todos los lugares"
                                 />
+                            </div>
+                            <div className="flex flex-col justify-end h-[53px]">
+                                {(filters.date || filters.activity || filters.responsible || filters.location || filters.objective) && (
+                                    <button 
+                                        onClick={() => setFilters({ date: '', activity: '', responsible: '', location: '', objective: '' })}
+                                        className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                    >
+                                        <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                    </button>
+                                )}
                             </div>
                         </div>
 

@@ -313,66 +313,97 @@ export default function RISSTMAPage() {
                     </Card>
                 )}
 
-                {/* Filters */}
-                <div className="bg-slate-900/50 p-4 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center gap-4 backdrop-blur-sm relative">
-                    <div className="flex items-center gap-2 text-slate-500 mr-2">
-                        <Filter size={18} className="text-indigo-400" />
-                        <span className="font-bold text-xs uppercase tracking-widest">Filtros:</span>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white font-black text-lg flex items-center gap-2 uppercase tracking-tighter">
+                        <FileText size={20} className="text-slate-500" /> Historial de Entregas
+                    </h3>
+                    <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                        {filteredRecords.length} REGISTROS
                     </div>
+                </div>
 
-                    <div className="relative">
+                {/* FILTERS */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                            {filters.date && (
+                                <button onClick={() => setFilters({...filters, date: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
                         <input 
-                            type="date" 
+                            type="date"
                             value={filters.date}
                             onChange={e => setFilters({...filters, date: e.target.value})}
-                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500 pr-8"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-indigo-500 outline-none"
                         />
-                        {filters.date && (
-                            <button onClick={() => setFilters({...filters, date: ''})} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors" title="Limpiar fecha">
-                                <X size={14} />
-                            </button>
-                        )}
                     </div>
-
-                    <div className="relative">
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Trabajador</label>
+                            {filters.workerName && (
+                                <button onClick={() => setFilters({...filters, workerName: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
                         <input 
-                            type="text" 
-                            placeholder="Filtrar por trabajador..."
+                            type="text"
+                            placeholder="Buscar..."
                             value={filters.workerName}
                             onChange={e => setFilters({...filters, workerName: e.target.value})}
-                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none w-48 focus:border-indigo-500 pr-8"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-indigo-500 outline-none"
                         />
-                        {filters.workerName && (
-                            <button onClick={() => setFilters({...filters, workerName: ''})} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors" title="Limpiar trabajador">
-                                <X size={14} />
-                            </button>
-                        )}
                     </div>
-
-                    <div className="relative flex items-center">
-                        <select 
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                            {filters.lugar && (
+                                <button onClick={() => setFilters({...filters, lugar: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                    <X size={10} />
+                                </button>
+                            )}
+                        </div>
+                        <SearchableSelect 
+                            options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                             value={filters.lugar}
-                            onChange={e => setFilters({...filters, lugar: e.target.value})}
-                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
-                        >
-                            <option value="">Todos los lugares...</option>
-                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                        </select>
-                        {filters.lugar && (
-                            <button onClick={() => setFilters({...filters, lugar: ''})} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded" title="Limpiar lugar">
-                                <X size={14} />
+                            onChange={(val) => setFilters({...filters, lugar: val})}
+                            placeholder="Todos los lugares..."
+                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                        />
+                    </div>
+                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                        {(filters.lugar || filters.date || filters.workerName) && (
+                            <button 
+                                onClick={() => setFilters({ date: '', workerName: '', lugar: '' })}
+                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                <X size={14} strokeWidth={3} /> Limpiar Filtros
                             </button>
                         )}
                     </div>
+                </div>
 
-                    {(filters.date || filters.workerName || filters.lugar) && (
-                        <button 
-                            onClick={() => setFilters({ date: '', workerName: '', lugar: '' })}
-                            className="ml-auto flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
-                        >
-                            <X size={14} strokeWidth={3} /> Limpiar Filtros
-                        </button>
-                    )}
+                {/* RESUMEN MENSUAL */}
+                <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                        const count = records.filter(r => {
+                            const mPart = parseInt(r.date?.split('-')[1] || "0");
+                            return mPart === (i + 1);
+                        }).length;
+                        return (
+                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                <span className="text-[10px] font-black">{count}</span>
+                            </div>
+                        );
+                    })}
+                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                        <span className="text-[10px] font-black">{records.length}</span>
+                    </div>
                 </div>
 
                 {/* Records Table */}

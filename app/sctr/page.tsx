@@ -20,6 +20,8 @@ import {
     Users
 } from 'lucide-react';
 import { uploadEvidence } from "@/lib/uploadClient";
+import SearchableSelect from "@/components/SearchableSelect";
+import { SSOMA_LOCATIONS } from "@/lib/locations";
 
 // Versión estable de PDF.js
 const PDF_JS_VERSION = '3.11.174'; 
@@ -42,11 +44,26 @@ const MONTHS = [
 ];
 
 const COMPANIES = ["CASA", "CONTRATISTA", "SUB-CONTRATISTA", "OTROS"];
+const SSOMA_LOCATIONS = ["GENERAL", "LIMA", "PROYECTOS", "PLANTA"];
+
+const SearchableSelect = ({ options, value, onChange, placeholder, className }: any) => (
+    <select 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        className={`w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none ${className}`}
+    >
+        <option value="">{placeholder}</option>
+        {options.map((o: any) => <option key={o.id} value={o.id}>{o.label}</option>)}
+    </select>
+);
 
 export default function SCTRPage() {
     const [records, setRecords] = useState<SCTRMonthlyRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [filterSearch, setFilterSearch] = useState('');
+    const [filterPolicy, setFilterPolicy] = useState('');
+    const [filterLocation, setFilterLocation] = useState('');
+    const [filterMonth, setFilterMonth] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -90,7 +107,6 @@ export default function SCTRPage() {
 
         setIsUploading(true);
         try {
-            // 1. Preparar datos para el Log del Excel
             const logData = {
                 control: "SCTR",
                 periodo: `${form.month} ${form.year}`,
@@ -98,7 +114,6 @@ export default function SCTRPage() {
                 detalle: `Póliza: ${form.policy_number || 'N/A'}, Vencimiento: ${form.expiration_date || 'N/A'}`
             };
 
-            // 2. Subir el archivo al almacenamiento (Blob/Drive) y anotar en Excel
             const url = await uploadEvidence(
                 selectedFile,
                 'SCTR',
@@ -108,12 +123,11 @@ export default function SCTRPage() {
                 'sctr',
                 'seguridad',
                 'GENERAL',
-                undefined, // objective
-                logData // Enviamos los datos al Excel
+                undefined, 
+                logData 
             );
             setForm(prev => ({ ...prev, file_url: url }));
 
-            // 2. Robot Local (Browser-side) - Versión Inmune a Vercel
             try {
                 const script = document.createElement('script');
                 script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.min.js`;
@@ -137,14 +151,11 @@ export default function SCTRPage() {
                             fullText += pageText + "\n";
                         }
 
-                        // Preservamos saltos de línea pero limpiamos espacios múltiples horizontales
                         const text = fullText.split('\n')
                             .map(line => line.replace(/[^\S\r\n]+/g, ' ').trim())
                             .filter(line => line.length > 0)
                             .join('\n');
                         
-                        console.log(`[Robot Browser] Extraído: ${text.length} caracteres.`);
-
                         let extractedDate = '';
                         let extractedPolicy = '';
 
@@ -163,16 +174,9 @@ export default function SCTRPage() {
                             expiration_date: extractedDate || prev.expiration_date,
                             policy_number: extractedPolicy || prev.policy_number
                         }));
-                        
-                        alert(`✅ Robot Browser Activo: ${text.length} caracteres extraídos de ${pdf.numPages} páginas.`);
                     } catch (innerErr) {
                         console.error("[Robot Browser] Error interno:", innerErr);
-                        alert("⚠️ Error al procesar el contenido del PDF. Ingrese los datos manualmente.");
                     }
-                };
-
-                script.onerror = () => {
-                    alert("❌ No se pudo cargar el motor del robot. Verifique su conexión a internet.");
                 };
             } catch (browserErr: any) {
                 console.error("[Robot Browser] Error de inicio:", browserErr);
@@ -247,7 +251,6 @@ export default function SCTRPage() {
         const target = normalize(search).trim();
         const targetWords = target.split(/\s+/).filter(w => w.length >= 2);
         
-        // Si no hay palabras válidas de búsqueda, retornamos vacío
         if (targetWords.length === 0) return [];
 
         const lines = record.personnel_list.split('\n');
@@ -257,14 +260,12 @@ export default function SCTRPage() {
             const normalizedLine = normalize(line);
             if (!normalizedLine.trim()) continue;
 
-            // Búsqueda por DNI (numérico)
             if (/^\d+$/.test(target)) {
                 const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
                 if (dniRegex.test(normalizedLine)) {
                     matches.push(line.trim());
                 }
             } else {
-                // COINCIDENCIA ESTRICTA: Todas las palabras deben estar EN LA MISMA LÍNEA
                 if (targetWords.every(word => normalizedLine.includes(word))) {
                     matches.push(line.trim());
                 }
@@ -273,7 +274,6 @@ export default function SCTRPage() {
         return matches;
     };
 
-    // Meses con cobertura para el año seleccionado
     const getMonthStatus = (monthName: string) => {
         return records.some(r => r.month === monthName && r.year === currentYear);
     };
@@ -283,7 +283,6 @@ export default function SCTRPage() {
             <main className="flex-1 overflow-auto p-4 md:p-8">
                 <div className="max-w-[1400px] mx-auto space-y-8">
                     
-                    {/* HEADER */}
                     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800 pb-8">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
@@ -304,7 +303,6 @@ export default function SCTRPage() {
                         </button>
                     </header>
 
-                    {/* DASHBOARD DE ESTADO MENSUAL */}
                     <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         <div className="lg:col-span-8 space-y-6">
                             <div className="flex items-center justify-between">
@@ -334,10 +332,13 @@ export default function SCTRPage() {
                                         </div>
                                     );
                                 })}
+                                <div className="p-4 rounded-2xl border-2 bg-blue-500/10 border-blue-500/50 flex flex-col items-center justify-center gap-2 shadow-lg shadow-blue-900/20">
+                                    <span className="text-[10px] font-black uppercase text-blue-400">TOTAL {currentYear}</span>
+                                    <span className="text-2xl font-black text-white">{records.filter(r => r.year === currentYear).length}</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* BUSCADOR RÁPIDO */}
                         <div className="lg:col-span-4 space-y-4">
                             <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Search size={16} /> Verificador de Personal
@@ -347,16 +348,14 @@ export default function SCTRPage() {
                                 <input 
                                     className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
                                     placeholder="Ingrese DNI o Nombre..."
-                                     onChange={e => setSearchTerm(e.target.value)}
+                                     onChange={e => setFilterSearch(e.target.value)}
                                 />
                             </div>
 
-                            {searchTerm.length >= 3 && (() => {
-                                // Agrupar hallazgos por la línea exacta (Persona)
+                            {filterSearch.length >= 3 && (() => {
                                 const allMatches: { [line: string]: string[] } = {};
-                                
                                 records.forEach(record => {
-                                    const matches = getMatchesFromRecord(record, searchTerm);
+                                    const matches = getMatchesFromRecord(record, filterSearch);
                                     matches.forEach(line => {
                                         if (!allMatches[line]) allMatches[line] = [];
                                         const label = `${record.month} ${record.year}`;
@@ -365,9 +364,7 @@ export default function SCTRPage() {
                                         }
                                     });
                                 });
-
                                 const uniqueLines = Object.keys(allMatches);
-
                                 return (
                                     <div className="animate-in fade-in zoom-in-95 duration-200 space-y-3">
                                         {uniqueLines.length > 0 ? (
@@ -381,15 +378,12 @@ export default function SCTRPage() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                
                                                 {uniqueLines.map((line, idx) => (
                                                     <div key={idx} className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
                                                             <div className="flex-1">
-                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">
-                                                                    {line}
-                                                                </p>
+                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">{line}</p>
                                                                 <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-emerald-500/20">
                                                                     {allMatches[line].map((period, pIdx) => (
                                                                         <div key={pIdx} className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400">
@@ -417,7 +411,6 @@ export default function SCTRPage() {
                         </div>
                     </section>
 
-                    {/* FORMULARIO DE CARGA */}
                     {showForm && (
                         <Card className="bg-slate-900 border-2 border-emerald-500/30 animate-in slide-in-from-top-4 duration-300">
                             <CardContent className="p-8">
@@ -482,13 +475,107 @@ export default function SCTRPage() {
                         </Card>
                     )}
 
-                    {/* BITÁCORA (TABLA) */}
                     <section className="space-y-4">
                         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                             <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest italic flex items-center gap-2">
                                 <FileText size={18} /> Historial de Bitácora
                             </h2>
-                            <span className="text-[10px] font-bold text-slate-600">{records.length} registros totales</span>
+                            <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                {records.filter(r => {
+                                    const matchesLoc = !filterLocation || r.location === filterLocation;
+                                    const matchesPolicy = !filterPolicy || r.policy_number.includes(filterPolicy);
+                                    const matchesMonth = !filterMonth || r.month === filterMonth;
+                                    return matchesLoc && matchesPolicy && matchesMonth;
+                                }).length} REGISTROS
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Mes</label>
+                                    {filterMonth && (
+                                        <button onClick={() => setFilterMonth('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
+                                <select 
+                                    value={filterMonth}
+                                    onChange={e => setFilterMonth(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none"
+                                >
+                                    <option value="">Todos los meses...</option>
+                                    {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase">Nº Póliza</label>
+                                    {filterPolicy && (
+                                        <button onClick={() => setFilterPolicy('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
+                                <input 
+                                    type="text"
+                                    placeholder="Buscar póliza..."
+                                    value={filterPolicy}
+                                    onChange={e => setFilterPolicy(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                    {filterLocation && (
+                                        <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
+                                <SearchableSelect 
+                                    options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                    value={filterLocation}
+                                    onChange={(val: string) => setFilterLocation(val)}
+                                    placeholder="Todos los lugares..."
+                                    className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                />
+                            </div>
+                            <div className="flex flex-col justify-end h-full">
+                                {(filterLocation || filterPolicy || filterMonth) && (
+                                    <button 
+                                        onClick={() => { setFilterLocation(''); setFilterPolicy(''); setFilterMonth(''); }}
+                                        className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                    >
+                                        <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* RESUMEN MENSUAL */}
+                        <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                            {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                                const count = records.filter(r => {
+                                    const mPart = i + 1; // 1-indexed
+                                    // SCTR records have 'month' as name like 'Enero', 'Febrero'... or index?
+                                    // Let's check getMonthIndex or similar logic
+                                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                                    return r.month === monthNames[i];
+                                }).length;
+                                return (
+                                    <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
+                                        <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                        <span className="text-[10px] font-black">{count}</span>
+                                    </div>
+                                );
+                            })}
+                            <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
+                                <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                                <span className="text-[10px] font-black">{records.length}</span>
+                            </div>
                         </div>
 
                         <div className="bg-slate-900/30 border border-slate-800 rounded-3xl overflow-hidden">

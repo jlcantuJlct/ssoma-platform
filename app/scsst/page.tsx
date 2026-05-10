@@ -428,22 +428,33 @@ export default function SCSSTPage() {
                             Rastro de Cargas SCSST
                         </h2>
                         <div className="flex items-center gap-2">
-                            {(filters.date || filters.activity || filters.responsable || filters.zona) && (
-                                <button 
-                                    onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
-                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
-                                >
-                                    <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                </button>
-                            )}
-                            <div className="text-[10px] font-mono text-slate-600 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                                {filteredRecords.length} REGISTROS ENCONTRADOS
-                            </div>
+                        <div className="flex items-center gap-2">
+                        </div>
+                        </div>
+                    </div>
+
+                    {/* RESUMEN MENSUAL */}
+                    <div className="flex flex-wrap gap-2 px-2">
+                        {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
+                            const count = records.filter(r => {
+                                const d = new Date(r.date + 'T00:00:00');
+                                return d.getMonth() === i;
+                            }).length;
+                            return (
+                                <div key={m} className={`flex flex-col items-center justify-center min-w-[45px] py-1.5 rounded-xl border ${count > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-600 opacity-50'}`}>
+                                    <span className="text-[7px] font-black uppercase tracking-tighter">{m}</span>
+                                    <span className="text-[9px] font-black">{count}</span>
+                                </div>
+                            );
+                        })}
+                        <div className="flex flex-col items-center justify-center min-w-[60px] py-1.5 rounded-xl border bg-blue-500/10 border-blue-500/30 text-blue-400 ml-auto">
+                            <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
+                            <span className="text-[9px] font-black">{records.length}</span>
                         </div>
                     </div>
 
                     {/* Filters Bar */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50 items-end">
                         <div className="space-y-1.5">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
@@ -505,11 +516,21 @@ export default function SCSSTPage() {
                                 )}
                             </div>
                             <SearchableSelect 
-                                options={filterOptions.zones}
+                                options={filterOptions.zonas}
                                 value={filters.zona}
                                 onChange={(val) => setFilters({...filters, zona: val})}
                                 placeholder="Todas las zonas"
                             />
+                        </div>
+                        <div className="space-y-1.5 flex flex-col justify-end h-[53px]">
+                             {(filters.date || filters.activity || filters.responsable || filters.zona) && (
+                                <button 
+                                    onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
+                                    className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                >
+                                    <X size={12} strokeWidth={3} /> Limpiar Filtros
+                                </button>
+                            )}
                         </div>
                     </div>
 

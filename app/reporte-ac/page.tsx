@@ -17,7 +17,8 @@ import {
     Plus,
     Activity,
     BarChart3,
-    TrendingUp
+    TrendingUp,
+    Filter
 } from "lucide-react";
 import { 
     BarChart, 
@@ -76,6 +77,7 @@ export default function ReporteACPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
     const [filterActo, setFilterActo] = useState("");
+    const [filterMonth, setFilterMonth] = useState("");
 
     // Dynamic Activities from Program (OBJ 04)
     const [programActivities, setProgramActivities] = useState<any[]>([]);
@@ -189,11 +191,21 @@ export default function ReporteACPage() {
 
     const filteredRecords = (records || []).filter(r => {
         const matchesDate = !filterDate || (r.date && r.date.includes(filterDate));
-        const matchesLocation = !filterLocation || (r.location && r.location.toLowerCase().includes(filterLocation.toLowerCase()));
-        const matchesActo = !filterActo || (r.acto && r.acto.includes(filterActo));
+        const matchesLocation = !filterLocation || (r.location && r.location === filterLocation);
+        const matchesActo = !filterActo || (r.acto && r.acto === filterActo);
+        const matchesMonth = !filterMonth || (r.date && new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '') === filterMonth.toLowerCase());
         
-        return matchesDate && matchesLocation && matchesActo;
+        return matchesDate && matchesLocation && matchesActo && matchesMonth;
     });
+
+    const MONTHS_LIST = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const getMonthCount = (m: string) => {
+        return records.filter(r => {
+            if (!r.date) return false;
+            const monthStr = new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '');
+            return monthStr === m.toLowerCase();
+        }).length;
+    };
 
     // --- CHART DATA LOGIC ---
     const getChartData = () => {
@@ -421,23 +433,97 @@ export default function ReporteACPage() {
                     {/* Table Side */}
                     <div className="lg:col-span-8 space-y-6">
                         <div className="bg-slate-900 border border-slate-800 rounded-[2rem] shadow-xl overflow-hidden">
-                            <div className="p-6 border-b border-slate-800 flex flex-wrap gap-4 items-center justify-between">
-                                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                    <FileText size={20} className="text-orange-500" />
-                                    Registros Recientes
-                                </h3>
-                                <div className="flex gap-2">
-                                    <input 
-                                        placeholder="Filtrar Lugar..." 
-                                        className="bg-slate-950 border border-slate-800 text-xs px-3 py-1.5 rounded-lg outline-none focus:border-orange-500"
-                                        value={filterLocation}
-                                        onChange={e => setFilterLocation(e.target.value)}
-                                    />
-                                    <button className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                                        <Search size={16} />
-                                    </button>
+                            <div className="p-6 border-b border-slate-800 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <FileText size={20} className="text-orange-500" />
+                                        Registros Recientes
+                                    </h3>
+                                    <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                        {filteredRecords.length} REGISTROS
+                                    </div>
                                 </div>
-                            </div>
+
+                                {/* Month Summary Bar */}
+                                <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+                                    {MONTHS_LIST.map(m => {
+                                        const count = getMonthCount(m);
+                                        return (
+                                            <div 
+                                                key={m} 
+                                                onClick={() => setFilterMonth(filterMonth === m ? "" : m)}
+                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonth === m ? 'bg-orange-500 border-orange-400 text-black' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
+                                            >
+                                                <span className="text-[8px] font-black uppercase">{m}</span>
+                                                <span className="text-xs font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* FILTERS */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input 
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={e => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-orange-500 outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
+                                            value={filterLocation}
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Acto</label>
+                                            {filterActo && (
+                                                <button onClick={() => setFilterActo('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={ACTOS_LIST.map(l => ({ id: l, label: l }))}
+                                            value={filterActo}
+                                            onChange={(val) => setFilterActo(val)}
+                                            placeholder="Todos los actos..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-[10px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                                        {(filterLocation || filterDate || filterActo || filterMonth) && (
+                                            <button 
+                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterActo(''); setFilterMonth(''); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
