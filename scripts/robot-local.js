@@ -168,8 +168,21 @@ async function processRequest(request) {
                     const fileName = `${annexFolderName.replace(/\./g, '')}_${currentLoc}_${monthName}.pdf`;
                     const filePath = path.join(sedePath, fileName);
                     
-                    // Simulación de descarga
-                    fs.writeFileSync(filePath, `Contenido simulado de reporte OSITRAN - ${annexFolderName} - ${currentLoc}`);
+                    // PDF MÍNIMO VÁLIDO PARA QUE ADOBE LO ABRA
+                    const minimalPdf = Buffer.from(
+                        "%PDF-1.4\n" +
+                        "1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj\n" +
+                        "2 0 obj <</Type /Pages /Kids [3 0 R] /Count 1>> endobj\n" +
+                        "3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R>> endobj\n" +
+                        "4 0 obj <</Length 20>> stream\n" +
+                        "BT /F1 12 Tf ET\n" +
+                        "endstream\n" +
+                        "endobj\n" +
+                        "xref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000202 00000 n\ntrailer <</Size 5 /Root 1 0 R>>\nstartxref\n271\n%%EOF"
+                    );
+
+                    // TODO: Implementar búsqueda real en Drive con drive.files.list({ q: "name contains '...'" })
+                    fs.writeFileSync(filePath, minimalPdf);
                     
                     // Calcular progreso total
                     const annexWeight = 100 / annexes.length;
@@ -180,6 +193,7 @@ async function processRequest(request) {
                         await updateStatus(id, 'update-progress', Math.max(10, totalProgress));
                     }
                     console.log(`      ✓ ${currentLoc}: ${fileName}`);
+                    await new Promise(r => setTimeout(r, 100)); // Pequeña pausa
                 }
             }
         }

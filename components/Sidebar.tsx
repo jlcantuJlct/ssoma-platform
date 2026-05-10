@@ -37,7 +37,9 @@ import {
     Scale,
     LifeBuoy,
     TrendingDown,
-    ClipboardSignature
+    ClipboardSignature,
+    Calendar,
+    BarChart2
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -115,12 +117,12 @@ export default function Sidebar() {
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Principal</span>
                         </div>
                         <SidebarItem
-                            icon={<LayoutDashboard size={16} />}
+                            icon={<BarChart2 size={16} />}
                             label="Dashboard"
                             href="/"
                             active={pathname === '/' && (!searchParams.get('view') || searchParams.get('view') === 'analytics')}
                         />
-                        <SidebarItem icon={<LayoutDashboard size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
+                        <SidebarItem icon={<Calendar size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                     </div>
 
                     {/* HERRAMIENTAS */}
