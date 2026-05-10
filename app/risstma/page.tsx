@@ -314,32 +314,65 @@ export default function RISSTMAPage() {
                 )}
 
                 {/* Filters */}
-                <div className="bg-slate-900/50 p-4 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center gap-4 backdrop-blur-sm">
+                <div className="bg-slate-900/50 p-4 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center gap-4 backdrop-blur-sm relative">
                     <div className="flex items-center gap-2 text-slate-500 mr-2">
                         <Filter size={18} className="text-indigo-400" />
                         <span className="font-bold text-xs uppercase tracking-widest">Filtros:</span>
                     </div>
-                    <input 
-                        type="date" 
-                        value={filters.date}
-                        onChange={e => setFilters({...filters, date: e.target.value})}
-                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
-                    />
-                    <input 
-                        type="text" 
-                        placeholder="Filtrar por trabajador..."
-                        value={filters.workerName}
-                        onChange={e => setFilters({...filters, workerName: e.target.value})}
-                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none w-48 focus:border-indigo-500"
-                    />
-                    <select 
-                        value={filters.lugar}
-                        onChange={e => setFilters({...filters, lugar: e.target.value})}
-                        className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
-                    >
-                        <option value="">Todos los lugares...</option>
-                        {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                    </select>
+
+                    <div className="relative">
+                        <input 
+                            type="date" 
+                            value={filters.date}
+                            onChange={e => setFilters({...filters, date: e.target.value})}
+                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500 pr-8"
+                        />
+                        {filters.date && (
+                            <button onClick={() => setFilters({...filters, date: ''})} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors" title="Limpiar fecha">
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Filtrar por trabajador..."
+                            value={filters.workerName}
+                            onChange={e => setFilters({...filters, workerName: e.target.value})}
+                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none w-48 focus:border-indigo-500 pr-8"
+                        />
+                        {filters.workerName && (
+                            <button onClick={() => setFilters({...filters, workerName: ''})} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors" title="Limpiar trabajador">
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="relative flex items-center">
+                        <select 
+                            value={filters.lugar}
+                            onChange={e => setFilters({...filters, lugar: e.target.value})}
+                            className="p-2 bg-slate-950 border border-slate-800 text-white rounded-xl text-sm outline-none focus:border-indigo-500"
+                        >
+                            <option value="">Todos los lugares...</option>
+                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                        </select>
+                        {filters.lugar && (
+                            <button onClick={() => setFilters({...filters, lugar: ''})} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded" title="Limpiar lugar">
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {(filters.date || filters.workerName || filters.lugar) && (
+                        <button 
+                            onClick={() => setFilters({ date: '', workerName: '', lugar: '' })}
+                            className="ml-auto text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20"
+                        >
+                            <X size={12} /> Limpiar Filtros
+                        </button>
+                    )}
                 </div>
 
                 {/* Records Table */}

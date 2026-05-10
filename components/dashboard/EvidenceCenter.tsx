@@ -702,7 +702,14 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         {/* FILTROS AVANZADOS */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 mb-6">
                             <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
+                                    {filters.date && (
+                                        <button onClick={() => setFilters({...filters, date: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
                                 <SearchableSelect 
                                     options={filterOptions.dates}
                                     value={filters.date}
@@ -711,7 +718,14 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
+                                    {filters.responsible && (
+                                        <button onClick={() => setFilters({...filters, responsible: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
                                 <SearchableSelect 
                                     options={filterOptions.responsibles}
                                     value={filters.responsible}
@@ -720,7 +734,14 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Lugar</label>
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Lugar</label>
+                                    {filters.location && (
+                                        <button onClick={() => setFilters({...filters, location: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <X size={10} />
+                                        </button>
+                                    )}
+                                </div>
                                 <SearchableSelect 
                                     options={filterOptions.locations}
                                     value={filters.location}

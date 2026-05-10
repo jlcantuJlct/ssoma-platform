@@ -236,7 +236,8 @@ export default function SSOMAAssistant() {
         if (!loc && !month) {
             const toolMap = [
                 { keys: ["pma", "limpieza", "baño", "baños", "derrames", "acopio", "ambiental"], name: "PMA / Gestión Ambiental", id: "pma" },
-                { keys: ["residuos", "pesaje", "basura", "manifiesto"], name: "Control de Manifiesto / Residuos", id: "manifiesto" },
+                { keys: ["manifiesto", "basura", "disposicion final", "eps"], name: "Control de Manifiesto de Residuos", id: "manifiesto" },
+                { keys: ["pesaje", "residuos", "pesajes"], name: "Pesaje de Residuos", id: "residuos" },
                 { keys: ["hhc", "manos", "higiene"], name: "Control Higiene de Manos (HHC)", id: "hhc" },
                 { keys: ["ats", "permiso", "altura", "caliente", "espacios confinados"], name: "Control de ATS", id: "ats" },
                 { keys: ["petar"], name: "Control de PETAR", id: "petar" },
@@ -396,7 +397,7 @@ export default function SSOMAAssistant() {
                         <div className="absolute -right-1.5 top-4 w-2.5 h-6 bg-emerald-500 rounded-full animate-pulse shadow-md border border-emerald-700"></div>
                     </>
                 )}
-                {isOpen ? <X size={28} className="text-white" /> : <Bot size={28} className="text-white animate-pulse" />}
+                {isOpen ? <X size={28} className="text-white" /> : <Bot size={28} className="text-white animate-periodic-spin" />}
             </button>
 
             {isOpen && (

@@ -25,7 +25,19 @@ import {
     ArrowUpRight,
     BookOpen,
     Trash2,
-    Truck
+    Truck,
+    GraduationCap,
+    Search,
+    ClipboardList,
+    FileSignature,
+    Stethoscope,
+    HardHat,
+    Recycle,
+    GitBranch,
+    Scale,
+    LifeBuoy,
+    TrendingDown,
+    ClipboardSignature
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -117,23 +129,23 @@ export default function Sidebar() {
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Herramientas</span>
                         </div>
 
-                        <SidebarItem icon={<ActivityIcon size={16} />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
-                        <SidebarItem icon={<ClipboardCheck size={16} />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
-                        <SidebarItem icon={<Shield size={16} />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
-                        <SidebarItem icon={<Clipboard size={16} />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
-                        <SidebarItem icon={<ShieldCheck size={16} />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
-                        <SidebarItem icon={<ShieldCheck size={16} />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
-                        <SidebarItem icon={<ShieldCheck size={16} className="text-blue-400" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
-                        <SidebarItem icon={<Leaf size={16} />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
-                        <SidebarItem icon={<FileText size={16} className="text-emerald-400" />} label="Control de Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
-                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-400" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
-                        <SidebarItem icon={<ArrowUpRight size={16} />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
-                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500" />} label="Reporte de A/C" href="/reporte-ac" active={pathname === '/reporte-ac'} />
-                        <SidebarItem icon={<Trash2 size={16} className="text-red-400" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
-                        <SidebarItem icon={<Siren size={16} className="text-orange-400" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
-                        <SidebarItem icon={<Users size={16} className="text-red-400" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
-                        <SidebarItem icon={<BarChart2 size={16} />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
-                        <SidebarItem icon={<Clipboard size={16} className="text-emerald-500" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
+                        <SidebarItem icon={<GraduationCap size={16} className="text-yellow-500 group-hover:text-yellow-300 transition-colors" />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
+                        <SidebarItem icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
+                        <SidebarItem icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
+                        <SidebarItem icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
+                        <SidebarItem icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
+                        <SidebarItem icon={<Stethoscope size={16} className="text-rose-500 group-hover:text-rose-300 transition-colors" />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
+                        <SidebarItem icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
+                        <SidebarItem icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
+                        <SidebarItem icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Reporte de A/C" href="/reporte-ac" active={pathname === '/reporte-ac'} />
+                        <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        <SidebarItem icon={<Siren size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
+                        <SidebarItem icon={<LifeBuoy size={16} className="text-sky-500 group-hover:text-sky-300 transition-colors" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
+                        <SidebarItem icon={<TrendingDown size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
+                        <SidebarItem icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
 
                         {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
                         {(user?.role === 'developer' || user?.role === 'manager') && (

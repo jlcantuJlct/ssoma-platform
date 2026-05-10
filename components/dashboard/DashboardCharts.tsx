@@ -2926,12 +2926,22 @@ export function DashboardCharts({
                                         <h4 className="text-white font-bold flex items-center gap-2 text-sm">
                                             <History size={18} className="text-blue-400" /> Rastro de Formación
                                         </h4>
-                                        <button
-                                            onClick={generateBulkHHCPDF}
-                                            className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ml-auto shadow-lg shadow-red-900/20"
-                                        >
-                                            <Download size={12} /> Exportar PDF (.pdf)
-                                        </button>
+                                        <div className="flex gap-2 ml-auto">
+                                            {(filters.responsable || filters.lugar || filters.startDate || filters.endDate || filters.tema || filters.type !== 'todos') && (
+                                                <button 
+                                                    onClick={() => setFilters({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' })}
+                                                    className="bg-slate-800 hover:bg-slate-700 text-red-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-slate-700 hover:border-red-500/50"
+                                                >
+                                                    <X size={12} /> Limpiar Filtros
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={generateBulkHHCPDF}
+                                                className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-red-900/20"
+                                            >
+                                                <Download size={12} /> Exportar PDF (.pdf)
+                                            </button>
+                                        </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                             <div className="md:col-span-1">
