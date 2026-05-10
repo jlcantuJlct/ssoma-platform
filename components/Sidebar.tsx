@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import {
     AlertTriangle,
-    LayoutDashboard,
     CheckSquare,
     BarChart2,
     FileText,
@@ -38,8 +37,7 @@ import {
     LifeBuoy,
     TrendingDown,
     ClipboardSignature,
-    Calendar,
-    BarChart2
+    Calendar
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
