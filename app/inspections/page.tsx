@@ -1497,69 +1497,107 @@ export default function InspectionsPage() {
 
                             {/* Panel Superior de Filtros */}
                             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                <div className="flex flex-col gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 
-                                    {/* Filtro Responsable */}
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
-                                            value={filterResponsible}
-                                            onChange={(e) => setFilterResponsible(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                        >
-                                            <option value="">Todo Responsable</option>
-                                            {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
-                                        </select>
-                                    </div>
+                                        {/* Filtro Responsable */}
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-3 text-slate-500" size={16} />
+                                            <select
+                                                value={filterResponsible}
+                                                onChange={(e) => setFilterResponsible(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                            >
+                                                <option value="">Todo Responsable</option>
+                                                {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
 
-                                    {/* Filtro Zona */}
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
-                                            value={filterZone}
-                                            onChange={(e) => setFilterZone(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
-                                        >
-                                            <option value="">Toda Zona</option>
-                                            {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
-                                        </select>
-                                    </div>
+                                        {/* Filtro Zona */}
+                                        <div className="relative">
+                                            <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
+                                            <select
+                                                value={filterZone}
+                                                onChange={(e) => setFilterZone(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
+                                            >
+                                                <option value="">Toda Zona</option>
+                                                {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+                                            </select>
+                                            {filterZone && (
+                                                <button onClick={() => setFilterZone('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
 
-                                    {/* Filtro Tipo */}
-                                    <div className="relative">
-                                        <SearchableSelect
-                                            options={["Todo Tipo", ...Object.values(inspectionTypesByArea).flat().sort()]}
-                                            value={filterType || "Todo Tipo"}
-                                            onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
-                                            placeholder="Todo Tipo"
-                                            icon={<AlertCircle className="text-slate-500" size={16} />}
-                                            className="h-[42px]"
-                                        />
-                                    </div>
+                                        {/* Filtro Tipo */}
+                                        <div className="relative group">
+                                            <SearchableSelect
+                                                options={["Todo Tipo", ...Object.values(inspectionTypesByArea).flat().sort()]}
+                                                value={filterType || "Todo Tipo"}
+                                                onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
+                                                placeholder="Todo Tipo"
+                                                icon={<AlertCircle className="text-slate-500" size={16} />}
+                                                className="h-[42px]"
+                                            />
+                                            {filterType && filterType !== "Todo Tipo" && (
+                                                <button onClick={() => setFilterType('')} className="absolute right-8 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors z-10 bg-slate-950 rounded" style={{marginTop: '-2px'}}>
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
 
-                                    {/* Filtro Fecha */}
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input
-                                            type="date"
-                                            value={filterDate}
-                                            onChange={(e) => setFilterDate(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
-                                        />
-                                    </div>
+                                        {/* Filtro Fecha */}
+                                        <div className="relative">
+                                            <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
+                                            <input
+                                                type="date"
+                                                value={filterDate}
+                                                onChange={(e) => setFilterDate(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-8 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
+                                            />
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
 
-                                    {/* Filtro Area (reset button if needed or just Area select) */}
-                                    <div className="relative">
-                                        <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
-                                            value={filterArea}
-                                            onChange={(e) => setFilterArea(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                        >
-                                            <option value="Todas">Todas las Áreas</option>
-                                            {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                                        </select>
+                                        {/* Filtro Area (reset button if needed or just Area select) */}
+                                        <div className="relative">
+                                            <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
+                                            <select
+                                                value={filterArea}
+                                                onChange={(e) => setFilterArea(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                            >
+                                                <option value="Todas">Todas las Áreas</option>
+                                                {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                                            </select>
+                                            {filterArea !== 'Todas' && (
+                                                <button onClick={() => setFilterArea('Todas')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
+                                    
+                                    {(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas') && (
+                                        <div className="flex justify-end pt-2 border-t border-slate-800/50">
+                                            <button 
+                                                onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
+                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
+                                            >
+                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

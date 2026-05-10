@@ -488,13 +488,15 @@ export default function AtsPage() {
                                             className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-xs"
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <button 
-                                            onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
-                                            className="w-full h-[33px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold uppercase transition-colors border border-slate-700 flex items-center justify-center gap-2"
-                                        >
-                                            <Trash2 size={12} /> Limpiar
-                                        </button>
+                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                                        {(filterDate || filterResponsible || filterLocation) && (
+                                            <button 
+                                                onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                <X size={12} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 

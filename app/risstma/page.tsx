@@ -368,9 +368,9 @@ export default function RISSTMAPage() {
                     {(filters.date || filters.workerName || filters.lugar) && (
                         <button 
                             onClick={() => setFilters({ date: '', workerName: '', lugar: '' })}
-                            className="ml-auto text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20"
+                            className="ml-auto flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
                         >
-                            <X size={12} /> Limpiar Filtros
+                            <X size={14} strokeWidth={3} /> Limpiar Filtros
                         </button>
                     )}
                 </div>

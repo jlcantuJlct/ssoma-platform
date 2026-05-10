@@ -427,22 +427,55 @@ export default function SimulacroPage() {
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar Fecha</label>
-                                        <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none" />
+                                <div className="flex flex-col gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-1 relative">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar Fecha</label>
+                                            <div className="relative">
+                                                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none pr-8" />
+                                                {filterDate && (
+                                                    <button onClick={() => setFilterDate('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1 relative">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Responsable</label>
+                                            <div className="relative">
+                                                <input type="text" placeholder="Buscar..." value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none pr-8" />
+                                                {filterResponsible && (
+                                                    <button onClick={() => setFilterResponsible('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors">
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1 relative">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Lugar</label>
+                                            <div className="relative flex items-center">
+                                                <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
+                                                    <option value="">Todos...</option>
+                                                    {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                                </select>
+                                                {filterLocation && (
+                                                    <button onClick={() => setFilterLocation('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Responsable</label>
-                                        <input type="text" placeholder="Buscar..." value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Lugar</label>
-                                        <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none">
-                                            <option value="">Todos...</option>
-                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                        </select>
-                                    </div>
+                                    {(filterDate || filterResponsible || filterLocation) && (
+                                        <div className="flex justify-end pt-2 border-t border-slate-800/50">
+                                            <button 
+                                                onClick={() => { setFilterDate(''); setFilterResponsible(''); setFilterLocation(''); }}
+                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
+                                            >
+                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="overflow-x-auto">

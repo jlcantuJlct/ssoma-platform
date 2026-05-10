@@ -470,14 +470,31 @@ export default function WasteManagementPage() {
                                     <h3 className="text-white font-black text-lg flex items-center gap-2">
                                         <BarChart size={20} className="text-slate-500" /> Historial Detallado
                                     </h3>
-                                    <select 
-                                        value={filterLocation}
-                                        onChange={e => setFilterLocation(e.target.value)}
-                                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none"
-                                    >
-                                        <option value="">Todos los lugares...</option>
-                                        {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                    </select>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                            <select 
+                                                value={filterLocation}
+                                                onChange={e => setFilterLocation(e.target.value)}
+                                                className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none appearance-none pr-10"
+                                            >
+                                                <option value="">Todos los lugares...</option>
+                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                            </select>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 transition-colors bg-slate-950 rounded">
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {filterLocation && (
+                                            <button 
+                                                onClick={() => setFilterLocation('')}
+                                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95 h-[38px]"
+                                            >
+                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto no-scrollbar">
                                     <table className="w-full text-left">
