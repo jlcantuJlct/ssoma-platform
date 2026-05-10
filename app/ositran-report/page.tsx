@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Download, FileText, CheckCircle2, Loader2, AlertTriangle, ChevronRight, MapPin, FolderSync } from 'lucide-react';
+import { Download, FileText, CheckCircle2, Loader2, AlertTriangle, ChevronRight, MapPin, FolderSync, XCircle } from 'lucide-react';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 
 export default function OsitranReportPage() {
@@ -12,6 +12,8 @@ export default function OsitranReportPage() {
     const [progress, setProgress] = useState(0);
     const [currentStep, setCurrentStep] = useState<'request' | 'folders' | 'download' | 'complete' | null>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
+    
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const months = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -38,6 +40,17 @@ export default function OsitranReportPage() {
         "ANEXO 16. PLAN DE CONTINGENCIA",
         "ANEXO 17. PÓLIZA"
     ];
+
+    const cancelExport = () => {
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+        setIsRequesting(false);
+        setProgress(0);
+        setCurrentStep(null);
+        setStatus({ type: 'error', message: '⚠️ Descarga cancelada por el usuario.' });
+    };
 
     const handleExportRequest = async () => {
         setIsRequesting(true);
@@ -68,7 +81,7 @@ export default function OsitranReportPage() {
                 });
 
                 // Polling for completion
-                const pollInterval = setInterval(async () => {
+                pollIntervalRef.current = setInterval(async () => {
                     try {
                         const statusRes = await fetch(`/api/export-center?action=check-status&id=${requestId}`);
                         const statusData = await statusRes.json();
@@ -82,7 +95,7 @@ export default function OsitranReportPage() {
                         }
 
                         if (statusData.status === 'completed') {
-                            clearInterval(pollInterval);
+                            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
                             setProgress(100);
                             setCurrentStep('complete');
                             setIsRequesting(false);
@@ -196,7 +209,16 @@ export default function OsitranReportPage() {
                                                         {currentStep === 'complete' && 'Finalizando organización...'}
                                                     </p>
                                                 </div>
-                                                <span className="text-4xl font-black text-amber-500 tabular-nums">{progress}%</span>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className="text-4xl font-black text-amber-500 tabular-nums">{progress}%</span>
+                                                    <button 
+                                                        onClick={cancelExport}
+                                                        className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                                    >
+                                                        <XCircle className="w-3 h-3" />
+                                                        Cancelar Descarga
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="relative pt-1">

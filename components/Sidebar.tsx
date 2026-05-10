@@ -115,12 +115,12 @@ export default function Sidebar() {
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Principal</span>
                         </div>
                         <SidebarItem
-                            icon={<BarChart2 size={16} />}
+                            icon={<BarChart2 size={16} className="text-sky-400" />}
                             label="Dashboard"
                             href="/"
                             active={pathname === '/' && (!searchParams.get('view') || searchParams.get('view') === 'analytics')}
                         />
-                        <SidebarItem icon={<Calendar size={16} />} label="Programa Anual" href="/program" active={pathname === '/program'} />
+                        <SidebarItem icon={<Calendar size={16} className="text-emerald-400" />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                     </div>
 
                     {/* HERRAMIENTAS */}
