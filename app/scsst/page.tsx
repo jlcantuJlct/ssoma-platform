@@ -431,9 +431,9 @@ export default function SCSSTPage() {
                             {(filters.date || filters.activity || filters.responsable || filters.zona) && (
                                 <button 
                                     onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
-                                    className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1"
+                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95"
                                 >
-                                    <X size={12} /> Limpiar Filtros
+                                    <X size={14} strokeWidth={3} /> Limpiar Filtros
                                 </button>
                             )}
                             <div className="text-[10px] font-mono text-slate-600 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">

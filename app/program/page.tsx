@@ -1115,7 +1115,7 @@ export default function ProgramPage() {
             </div>
 
             {/* MAIN CONTENT */}
-            <div className={`flex-1 flex flex-col h-full bg-[url('/grid.svg')] bg-center overflow-hidden relative ${mobileView === 'content' ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 flex flex-col h-full overflow-hidden relative ${mobileView === 'content' ? 'flex' : 'hidden md:flex'}`}>
                 <div className="flex flex-col h-full p-6 md:p-8 pb-4">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex items-center gap-2">
