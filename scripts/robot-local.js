@@ -138,25 +138,43 @@ async function processRequest(request) {
             }
         } 
         else if (type === 'OSITRAN') {
-            const baseDir = path.join(OSITRAN_ROOT, String(location), String(year), monthName);
-            if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
+            const locations = String(location).split(',').map(l => l.trim());
+            console.log(`   > Iniciando descarga de Anexos para ${locations.length} sedes: ${locations.join(', ')}...`);
+            
+            for (let locIdx = 0; locIdx < locations.length; locIdx++) {
+                const currentLoc = locations[locIdx];
+                const baseDir = path.join(OSITRAN_ROOT, currentLoc, String(year), monthName);
+                if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
 
-            console.log(`   > Iniciando descarga de Anexos para ${location}...`);
-            await updateStatus(id, 'update-progress', 20);
+                console.log(`   [${locIdx + 1}/${locations.length}] Procesando ${currentLoc}...`);
+                
+                const annexes = [
+                    "ANEXO 0. INFORME SIMULACRO", "ANEXO 1. CERTIFICADO EORS", "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD",
+                    "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES", "ANEXO 4. FLUJOGRAMA", "ANEXO 5. CÓDIGO DE CONDUCTA",
+                    "ANEXO 6. COMPRAS LOCALES", "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN", "ANEXO 8. POLÍTICA Y PLAN",
+                    "ANEXO 9. ESTADÍSTICAS SSOMA", "ANEXO 10. CHARLA DIARIA", "ANEXO 11. EMOs",
+                    "ANEXO 12. ENTREGA DE EPPs", "ANEXO 13. SUB COMITÉ", "ANEXO 14. SCTR",
+                    "ANEXO 15. ATS Y PETAR", "ANEXO 16. PLAN DE CONTINGENCIA", "ANEXO 17. PÓLIZA"
+                ];
 
-            // En un sistema real, buscaríamos archivos en Drive que coincidan con los anexos
-            // Aquí simulamos la descarga de los 18 archivos para demostrar el flujo
-            for (let i = 1; i <= 18; i++) {
-                const fileName = `Anexo_${i}_${location}_${monthName}.pdf`;
-                const filePath = path.join(baseDir, fileName);
-                
-                // Simulamos descarga creando un archivo vacío o descargando uno real si tuviéramos IDs
-                fs.writeFileSync(filePath, `Contenido simulado del Anexo ${i}`);
-                
-                const p = Math.round(20 + (i / 18) * 75);
-                await updateStatus(id, 'update-progress', p);
-                console.log(`   > Descargado: ${fileName}`);
-                await new Promise(r => setTimeout(r, 500)); // Simular delay de red
+                for (let i = 0; i < annexes.length; i++) {
+                    const fileName = `${annexes[i].replace(/\//g, '_')}_${currentLoc}_${monthName}.pdf`;
+                    const filePath = path.join(baseDir, fileName);
+                    
+                    // Simulación de descarga (en un caso real buscaríamos en Drive por el nombre)
+                    fs.writeFileSync(filePath, 'Contenido simulado de reporte OSITRAN');
+                    
+                    // Calcular progreso total: (sedes completadas / total sedes) + (progreso en sede actual / total sedes)
+                    const sedeWeight = 100 / locations.length;
+                    const progressInSede = ((i + 1) / annexes.length) * sedeWeight;
+                    const totalProgress = Math.round((locIdx * sedeWeight) + progressInSede);
+                    
+                    if (i % 3 === 0) { // Actualizar cada 3 archivos para no saturar
+                        await updateStatus(id, 'update-progress', Math.max(10, totalProgress));
+                    }
+                    console.log(`      ✓ Descargado: ${fileName}`);
+                    await new Promise(r => setTimeout(r, 500)); // Simular delay de red
+                }
             }
         }
 

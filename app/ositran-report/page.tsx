@@ -7,7 +7,7 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 
 export default function OsitranReportPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedLocation, setSelectedLocation] = useState('PAD San Clemente');
+    const [selectedLocations, setSelectedLocations] = useState<string[]>(['PAD San Clemente']);
     const [isRequesting, setIsRequesting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentStep, setCurrentStep] = useState<'request' | 'folders' | 'download' | 'complete' | null>(null);
@@ -53,7 +53,7 @@ export default function OsitranReportPage() {
                     type: 'OSITRAN',
                     month: selectedMonth,
                     year: 2026,
-                    location: selectedLocation
+                    location: selectedLocations.join(', ')
                 })
             });
 
@@ -144,11 +144,17 @@ export default function OsitranReportPage() {
                                             {SSOMA_LOCATIONS.map((loc) => (
                                                 <button
                                                     key={loc}
-                                                    onClick={() => setSelectedLocation(loc)}
+                                                    onClick={() => {
+                                                        setSelectedLocations(prev => 
+                                                            prev.includes(loc) 
+                                                                ? prev.filter(l => l !== loc) 
+                                                                : [...prev, loc]
+                                                        );
+                                                    }}
                                                     className={`px-4 py-3 rounded-xl text-[10px] font-bold transition-all border ${
-                                                        selectedLocation === loc 
+                                                        selectedLocations.includes(loc) 
                                                         ? 'bg-amber-500/10 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
-                                                        : 'bg-slate-950 text-slate-500 border-slate-800 hover:border-slate-600'
+                                                        : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
                                                     }`}
                                                 >
                                                     {loc}
