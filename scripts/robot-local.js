@@ -141,39 +141,45 @@ async function processRequest(request) {
             const locations = String(location).split(',').map(l => l.trim());
             console.log(`   > Iniciando descarga de Anexos para ${locations.length} sedes: ${locations.join(', ')}...`);
             
-            for (let locIdx = 0; locIdx < locations.length; locIdx++) {
-                const currentLoc = locations[locIdx];
-                const baseDir = path.join(OSITRAN_ROOT, currentLoc, String(year), monthName);
-                if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
+            const annexes = [
+                "ANEXO 0. INFORME SIMULACRO", "ANEXO 1. CERTIFICADO EORS", "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD",
+                "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES", "ANEXO 4. FLUJOGRAMA", "ANEXO 5. CÓDIGO DE CONDUCTA",
+                "ANEXO 6. COMPRAS LOCALES", "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN", "ANEXO 8. POLÍTICA Y PLAN",
+                "ANEXO 9. ESTADÍSTICAS SSOMA", "ANEXO 10. CHARLA DIARIA", "ANEXO 11. EMOS",
+                "ANEXO 12. ENTREGA DE EPPS", "ANEXO 13. SUB COMITÉ", "ANEXO 14. SCTR",
+                "ANEXO 15. ATS Y PETAR", "ANEXO 16. PLAN DE CONTINGENCIA", "ANEXO 17. PÓLIZA"
+            ];
 
-                console.log(`   [${locIdx + 1}/${locations.length}] Procesando ${currentLoc}...`);
+            const reportRoot = path.join(OSITRAN_ROOT, String(year), monthName);
+            if (!fs.existsSync(reportRoot)) fs.mkdirSync(reportRoot, { recursive: true });
+
+            for (let i = 0; i < annexes.length; i++) {
+                const annexFolderName = annexes[i];
+                const annexPath = path.join(reportRoot, annexFolderName);
+                if (!fs.existsSync(annexPath)) fs.mkdirSync(annexPath, { recursive: true });
+
+                console.log(`   [${i + 1}/${annexes.length}] Procesando ${annexFolderName}...`);
                 
-                const annexes = [
-                    "ANEXO 0. INFORME SIMULACRO", "ANEXO 1. CERTIFICADO EORS", "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD",
-                    "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES", "ANEXO 4. FLUJOGRAMA", "ANEXO 5. CÓDIGO DE CONDUCTA",
-                    "ANEXO 6. COMPRAS LOCALES", "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN", "ANEXO 8. POLÍTICA Y PLAN",
-                    "ANEXO 9. ESTADÍSTICAS SSOMA", "ANEXO 10. CHARLA DIARIA", "ANEXO 11. EMOs",
-                    "ANEXO 12. ENTREGA DE EPPs", "ANEXO 13. SUB COMITÉ", "ANEXO 14. SCTR",
-                    "ANEXO 15. ATS Y PETAR", "ANEXO 16. PLAN DE CONTINGENCIA", "ANEXO 17. PÓLIZA"
-                ];
+                for (let locIdx = 0; locIdx < locations.length; locIdx++) {
+                    const currentLoc = locations[locIdx];
+                    const sedePath = path.join(annexPath, currentLoc);
+                    if (!fs.existsSync(sedePath)) fs.mkdirSync(sedePath, { recursive: true });
 
-                for (let i = 0; i < annexes.length; i++) {
-                    const fileName = `${annexes[i].replace(/\//g, '_')}_${currentLoc}_${monthName}.pdf`;
-                    const filePath = path.join(baseDir, fileName);
+                    const fileName = `${annexFolderName.replace(/\./g, '')}_${currentLoc}_${monthName}.pdf`;
+                    const filePath = path.join(sedePath, fileName);
                     
-                    // Simulación de descarga (en un caso real buscaríamos en Drive por el nombre)
-                    fs.writeFileSync(filePath, 'Contenido simulado de reporte OSITRAN');
+                    // Simulación de descarga
+                    fs.writeFileSync(filePath, `Contenido simulado de reporte OSITRAN - ${annexFolderName} - ${currentLoc}`);
                     
-                    // Calcular progreso total: (sedes completadas / total sedes) + (progreso en sede actual / total sedes)
-                    const sedeWeight = 100 / locations.length;
-                    const progressInSede = ((i + 1) / annexes.length) * sedeWeight;
-                    const totalProgress = Math.round((locIdx * sedeWeight) + progressInSede);
+                    // Calcular progreso total
+                    const annexWeight = 100 / annexes.length;
+                    const progressInAnnex = ((locIdx + 1) / locations.length) * annexWeight;
+                    const totalProgress = Math.round((i * annexWeight) + progressInAnnex);
                     
-                    if (i % 3 === 0) { // Actualizar cada 3 archivos para no saturar
+                    if (locIdx === locations.length - 1) { // Actualizar al terminar cada anexo
                         await updateStatus(id, 'update-progress', Math.max(10, totalProgress));
                     }
-                    console.log(`      ✓ Descargado: ${fileName}`);
-                    await new Promise(r => setTimeout(r, 500)); // Simular delay de red
+                    console.log(`      ✓ ${currentLoc}: ${fileName}`);
                 }
             }
         }

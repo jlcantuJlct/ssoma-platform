@@ -30,8 +30,8 @@ export default function OsitranReportPage() {
         "ANEXO 8. POLÍTICA Y PLAN",
         "ANEXO 9. ESTADÍSTICAS SSOMA",
         "ANEXO 10. CHARLA DIARIA",
-        "ANEXO 11. EMOs",
-        "ANEXO 12. ENTREGA DE EPPs",
+        "ANEXO 11. EMOS",
+        "ANEXO 12. ENTREGA DE EPPS",
         "ANEXO 13. SUB COMITÉ",
         "ANEXO 14. SCTR",
         "ANEXO 15. ATS Y PETAR",
@@ -227,7 +227,7 @@ export default function OsitranReportPage() {
                                             <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
                                             <div className="text-sm space-y-1">
                                                 <p className="text-amber-500 font-black text-[10px] uppercase tracking-widest">Información de Destino</p>
-                                                <p className="text-slate-400 text-xs">El sistema creará la carpeta <strong className="text-slate-200">"Informes OSITRAN / {selectedLocation}"</strong> en tu Escritorio con los 18 documentos necesarios del mes de {months[selectedMonth]}.</p>
+                                                <p className="text-slate-400 text-xs">El sistema creará la carpeta <strong className="text-slate-200">"Informes OSITRAN / {selectedLocations.join(', ')}"</strong> en tu Escritorio con los 18 documentos necesarios del mes de {months[selectedMonth]}.</p>
                                             </div>
                                         </div>
                                     )}
