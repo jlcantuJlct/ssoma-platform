@@ -622,5 +622,6 @@ export default function ReporteACPage() {
                 </div>
             )}
         </div>
+    </div>
     );
 }
