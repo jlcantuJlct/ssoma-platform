@@ -445,7 +445,14 @@ export default function SCSSTPage() {
                     {/* Filters Bar */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
+                                {filters.date && (
+                                    <button onClick={() => setFilters({...filters, date: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-2.5 text-emerald-500/50" size={14} />
                                 <input 
@@ -457,7 +464,14 @@ export default function SCSSTPage() {
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad</label>
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Actividad</label>
+                                {filters.activity && (
+                                    <button onClick={() => setFilters({...filters, activity: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
                             <SearchableSelect 
                                 options={filterOptions.activities}
                                 value={filters.activity}
@@ -466,7 +480,14 @@ export default function SCSSTPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
+                                {filters.responsable && (
+                                    <button onClick={() => setFilters({...filters, responsable: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
                             <SearchableSelect 
                                 options={filterOptions.responsibles}
                                 value={filters.responsable}
@@ -475,7 +496,14 @@ export default function SCSSTPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">Lugar / Zona</label>
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Lugar / Zona</label>
+                                {filters.zona && (
+                                    <button onClick={() => setFilters({...filters, zona: ''})} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
                             <SearchableSelect 
                                 options={filterOptions.zones}
                                 value={filters.zona}
@@ -515,7 +543,14 @@ export default function SCSSTPage() {
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
-                                                    onClick={() => window.open(getDriveViewerUrl(rec.fileUrl), '_blank')}
+                                                    onClick={() => {
+                                                        const url = rec.fileUrl || rec.file_url || (rec.fileUrls && rec.fileUrls[0]);
+                                                        if (url) {
+                                                            window.open(getDriveViewerUrl(url), '_blank');
+                                                        } else {
+                                                            alert('No hay archivo adjunto para este registro.');
+                                                        }
+                                                    }}
                                                     className="p-2 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
                                                 >
                                                     <FileText size={14} />

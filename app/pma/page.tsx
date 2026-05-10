@@ -760,7 +760,14 @@ export default function PMAPage() {
                                 {/* FILTERS */}
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10 items-end">
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <input
                                             type="date"
                                             value={filterDate}
@@ -769,7 +776,14 @@ export default function PMAPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Responsable</label>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <SearchableSelect 
                                             options={ALL_RESPONSIBLES.map(r => ({ id: r, label: r }))}
                                             value={filterResponsible}
@@ -779,7 +793,14 @@ export default function PMAPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Categoría</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Categoría</label>
+                                            {filterCategory && (
+                                                <button onClick={() => setFilterCategory("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <SearchableSelect 
                                             options={pmaCategories}
                                             value={filterCategory}
@@ -789,7 +810,14 @@ export default function PMAPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <SearchableSelect 
                                             options={SSOMA_LOCATIONS.map(loc => ({ id: loc, label: loc }))}
                                             value={filterLocation}

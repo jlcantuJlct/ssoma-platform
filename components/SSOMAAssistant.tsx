@@ -12,9 +12,10 @@ import {
     MapPin,
     ArrowRight,
     Sparkles,
-    Loader2
+    Loader2,
+    LayoutDashboard,
+    ExternalLink
 } from 'lucide-react';
-import { PMA_CATEGORIES } from '@/lib/categories';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { getDriveViewerUrl } from '@/lib/utils';
 
@@ -38,41 +39,108 @@ export default function SSOMAAssistant() {
     ]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
-    const dragStart = useRef({ x: 0, y: 0 });
     const scrollRef = useRef<HTMLDivElement>(null);
     const [searchState, setSearchState] = useState<{
         category: string | null;
         location: string | null;
         month: string | null;
         query: string | null;
+        intent: 'tool' | 'file' | null;
     }>({
         category: null,
         location: null,
         month: null,
-        query: null
+        query: null,
+        intent: null
     });
 
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isFlying, setIsFlying] = useState(true);
+    const flightAngle = useRef(Math.random() * Math.PI * 2);
+    const flightVelocity = useRef(0.5); // Slow speed
+    const dragStart = useRef({ x: 0, y: 0 });
+    
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, isTyping]);
 
+    useEffect(() => {
+        if (isOpen || isDragging) {
+            setIsFlying(false);
+            return;
+        }
+
+        const moveInterval = setInterval(() => {
+            setIsFlying(true);
+            setPosition(prev => {
+                // Random walk logic
+                flightAngle.current += (Math.random() - 0.5) * 0.2;
+                const dx = Math.cos(flightAngle.current) * flightVelocity.current;
+                const dy = Math.sin(flightAngle.current) * flightVelocity.current;
+                
+                let newX = prev.x + dx;
+                let newY = prev.y + dy;
+
+                // Bounce off boundaries
+                const margin = 100;
+                if (newX < -window.innerWidth + margin || newX > 0) {
+                    flightAngle.current = Math.PI - flightAngle.current;
+                }
+                if (newY < -window.innerHeight + margin || newY > 0) {
+                    flightAngle.current = -flightAngle.current;
+                }
+
+                return {
+                    x: Math.max(-window.innerWidth + margin, Math.min(0, newX)),
+                    y: Math.max(-window.innerHeight + margin, Math.min(0, newY))
+                };
+            });
+        }, 16); // ~60fps
+
+        return () => clearInterval(moveInterval);
+    }, [isOpen, isDragging]);
+
+    useEffect(() => {
+        const handleUploadError = (e: any) => {
+            const errorMsg = e.detail?.message || "He detectado un problema con la carga de archivos.";
+            setIsOpen(true);
+            returnToHome();
+            setMessages(prev => [...prev, { 
+                id: Date.now().toString(), 
+                text: `⚠️ **¡ALERTA DE SISTEMA!** ${errorMsg} Te recomiendo bajar la cantidad de archivos o comprimirlos para que la carga sea exitosa.`, 
+                sender: 'assistant' 
+            }]);
+        };
+
+        window.addEventListener('ssoma-upload-error', handleUploadError);
+        return () => window.removeEventListener('ssoma-upload-error', handleUploadError);
+    }, []);
+
+    const returnToHome = () => {
+        setIsFlying(false);
+        setPosition({ x: 0, y: 0 });
+    };
+
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsDragging(false);
+        setIsFlying(false);
         dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
         
         const moveHandler = (moveEvent: MouseEvent) => {
             const newX = moveEvent.clientX - dragStart.current.x;
             const newY = moveEvent.clientY - dragStart.current.y;
             
-            if (Math.abs(newX - position.x) > 5 || Math.abs(newY - position.y) > 5) {
+            const boundedX = Math.max(-window.innerWidth + 100, Math.min(0, newX));
+            const boundedY = Math.max(-window.innerHeight + 100, Math.min(0, newY));
+            
+            if (Math.abs(boundedX - position.x) > 5 || Math.abs(boundedY - position.y) > 5) {
                 setIsDragging(true);
             }
             
-            setPosition({ x: newX, y: newY });
+            setPosition({ x: boundedX, y: boundedY });
         };
         
         const upHandler = () => {
@@ -87,40 +155,48 @@ export default function SSOMAAssistant() {
     const handleOptionClick = (option: { label: string, value: string }) => {
         setMessages(prev => [...prev, { id: Date.now().toString(), text: option.label, sender: 'user' }]);
         
-        if (option.value === "start_view") {
+        if (option.value === "intent_tool") {
+            const routes: Record<string, string> = {
+                pma: "/pma",
+                hhc: "/analytics",
+                ats: "/ats",
+                petar: "/petar",
+                epp: "/epp",
+                inspections: "/inspections",
+                sctr: "/sctr",
+                brigadistas: "/brigadistas",
+                training: "/program",
+                simulacros: "/simulacro",
+                rac: "/reporte-ac",
+                desvio: "/desvio",
+                analytics: "/",
+                reports: "/reports",
+                ositran: "/ositran-report",
+                manifiesto: "/manifiesto",
+                residuos: "/residuos",
+                emo: "/evidence",
+                scsst: "/scsst",
+                risstma: "/risstma",
+                actas: "/actas-supervision",
+                monitoreos: "/monitoreos",
+                equipment: "/equipment-certs",
+                sharepoint: "/export-center",
+                word_report: "/monthly-report"
+            };
+            const route = routes[searchState.category || ''] || `/${searchState.category}`;
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "Entendido. ¿Qué tipo de registros deseas visualizar?", 
-                sender: 'assistant',
-                options: [
-                    { label: "📸 Fotos PMA", value: "tool_view_pma" },
-                    { label: "✋ Control HHC", value: "tool_view_hhc" },
-                    { label: "📄 Entrega EPP", value: "tool_view_epp" },
-                    { label: "📑 ATS/PETAR", value: "tool_view_permits" },
-                    { label: "📋 Inspecciones", value: "tool_view_inspections" }
-                ],
-                type: 'options'
+                text: `Te estoy llevando a la herramienta de **${searchState.category?.toUpperCase()}**.`, 
+                sender: 'assistant'
             }]);
-        } else if (option.value === "start_upload") {
+            setTimeout(() => {
+                window.location.href = route;
+            }, 1500);
+        } else if (option.value === "intent_file") {
+            setSearchState(prev => ({ ...prev, intent: 'file' }));
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: "¿Qué herramienta necesitas utilizar para el ingreso de datos?", 
-                sender: 'assistant',
-                options: [
-                    { label: "📸 Fotos PMA", value: "goto_pma" },
-                    { label: "📄 Entrega EPP", value: "goto_epp" },
-                    { label: "📋 Inspecciones", value: "goto_inspections" },
-                    { label: "📑 ATS/PETAR", value: "goto_ats" },
-                    { label: "✋ Control HHC", value: "goto_analytics" }
-                ],
-                type: 'options'
-            }]);
-        } else if (option.value.startsWith("tool_view_")) {
-            const tool = option.value.replace("tool_view_", "");
-            setSearchState(prev => ({ ...prev, category: tool }));
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: "Excelente. ¿De qué sede o lugar necesitas la información?", 
+                text: "Entendido. Para buscar los archivos, ¿de qué sede o lugar necesitas la información?", 
                 sender: 'assistant',
                 options: SSOMA_LOCATIONS.map(loc => ({ label: loc, value: `loc_${loc}` })),
                 type: 'options'
@@ -128,72 +204,28 @@ export default function SSOMAAssistant() {
         } else if (option.value.startsWith("loc_")) {
             const loc = option.value.replace("loc_", "");
             setSearchState(prev => ({ ...prev, location: loc }));
-            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const currentMonth = new Date().getMonth();
             setMessages(prev => [...prev, { 
                 id: (Date.now()+1).toString(), 
-                text: `Casi listo. ¿De qué mes requieres los registros?`, 
+                text: `Casi listo. ¿Deseas ver los registros de un mes específico o todo el año?`, 
                 sender: 'assistant',
                 options: [
-                    { label: months[currentMonth], value: `month_${currentMonth + 1}` },
-                    { label: months[currentMonth - 1] || months[11], value: `month_${currentMonth}` },
-                    { label: "Ver todo el año", value: "month_all" }
+                    { label: "📅 Por Mes", value: "ask_month" },
+                    { label: "📂 Ver Todo el Año", value: "month_all" }
                 ],
+                type: 'options'
+            }]);
+        } else if (option.value === "ask_month") {
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            setMessages(prev => [...prev, { 
+                id: (Date.now()+1).toString(), 
+                text: `Selecciona el mes que deseas consultar:`, 
+                sender: 'assistant',
+                options: months.map((m, idx) => ({ label: m, value: `month_${idx + 1}` })),
                 type: 'options'
             }]);
         } else if (option.value.startsWith("month_")) {
             const month = option.value.replace("month_", "");
-            if (searchState.category === "pma") {
-                handleSearch(`fotos`, searchState.location || undefined, month, undefined);
-            } else {
-                const routes: Record<string, string> = {
-                    hhc: "analytics",
-                    epp: "epp",
-                    permits: "ats",
-                    inspections: "inspections"
-                };
-                setMessages(prev => [...prev, { 
-                    id: (Date.now()+1).toString(), 
-                    text: `Te estoy llevando al historial de ${searchState.category?.toUpperCase()} filtrado.`, 
-                    sender: 'assistant'
-                }]);
-                setTimeout(() => {
-                    window.location.href = `/${routes[searchState.category || ''] || searchState.category}`;
-                }, 1500);
-            }
-        } else if (option.value.startsWith("free_loc_")) {
-            const loc = option.value.replace("free_loc_", "");
-            setSearchState(prev => ({ ...prev, location: loc }));
-            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const currentMonth = new Date().getMonth();
-            setMessages(prev => [...prev, { 
-                id: (Date.now()+1).toString(), 
-                text: `Casi listo. ¿De qué mes requieres los registros?`, 
-                sender: 'assistant',
-                options: [
-                    { label: months[currentMonth], value: `free_month_${currentMonth + 1}` },
-                    { label: months[currentMonth - 1] || months[11], value: `free_month_${currentMonth}` },
-                    { label: "Ver todo el año", value: "all" }
-                ],
-                type: 'options'
-            }]);
-        } else if (option.value.startsWith("free_month_") || (option.value === "all" && searchState.query)) {
-            const month = option.value.replace("free_month_", "");
-            handleSearch(searchState.query || "", searchState.location || undefined, month, undefined);
-        } else if (option.value.startsWith("goto_")) {
-            const tool = option.value.replace("goto_", "");
-            window.location.href = `/${tool}`;
-        } else if (option.value.startsWith("tool_new_")) {
-            const tool = option.value.replace("tool_new_", "");
-            const routes: Record<string, string> = {
-                hhc: "analytics",
-                training: "registros",
-                permits: "ats",
-                pma: "pma",
-                epp: "epp",
-                inspections: "inspections"
-            };
-            window.location.href = `/${routes[tool] || tool}`;
+            handleSearch(searchState.query || "fotos", searchState.location || undefined, month, searchState.category || undefined);
         }
     };
 
@@ -201,59 +233,74 @@ export default function SSOMAAssistant() {
         setIsTyping(true);
         const queryLower = query.toLowerCase().trim();
         
-        if (queryLower === "si" || queryLower === "sí" || queryLower === "ok") {
-            const lastMsg = messages[messages.length - 1];
-            if (lastMsg?.options && lastMsg.options.length > 0) {
-                handleOptionClick(lastMsg.options[0]);
-                setIsTyping(false);
-                return;
-            }
-        }
-
-        const toolMap = [
-            { keys: ["foto", "imagen", "evidencia", "pma", "limpieza", "baño", "baños"], name: "Fotos PMA", id: "pma" },
-            { keys: ["hhc", "manos"], name: "Control HHC", id: "hhc" },
-            { keys: ["ats", "petar", "permiso"], name: "ATS/PETAR", id: "permits" },
-            { keys: ["epp", "equipo"], name: "Control EPP", id: "epp" },
-            { keys: ["inspeccion", "checklist"], name: "Inspecciones", id: "inspections" }
-        ];
-
-        const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
-
         if (!loc && !month) {
+            const toolMap = [
+                { keys: ["pma", "limpieza", "baño", "baños", "derrames", "acopio", "ambiental"], name: "PMA / Gestión Ambiental", id: "pma" },
+                { keys: ["residuos", "pesaje", "basura", "manifiesto"], name: "Control de Manifiesto / Residuos", id: "manifiesto" },
+                { keys: ["hhc", "manos", "higiene"], name: "Control Higiene de Manos (HHC)", id: "hhc" },
+                { keys: ["ats", "permiso", "altura", "caliente", "espacios confinados"], name: "Control de ATS", id: "ats" },
+                { keys: ["petar"], name: "Control de PETAR", id: "petar" },
+                { keys: ["epp", "equipo", "implemento", "entrega", "botas", "casco", "guantes"], name: "Control de Entrega de EPP", id: "epp" },
+                { keys: ["inspeccion", "checklist", "verificacion", "extintores", "botiquines"], name: "Inspecciones de Seguridad", id: "inspections" },
+                { keys: ["sctr", "seguro", "poliza", "vigencia", "trabajador"], name: "Control SCTR y Personal", id: "sctr" },
+                { keys: ["brigadista", "emergencia", "primeros auxilios", "evacuacion"], name: "Brigadas de Emergencia", id: "brigadistas" },
+                { keys: ["entrenamiento", "capacitacion", "charla", "induccion", "programa"], name: "Programa Anual / Capacitaciones", id: "training" },
+                { keys: ["simulacro", "practica", "alerta"], name: "Simulacros de Emergencia", id: "simulacros" },
+                { keys: ["rac", "acto", "condicion", "ac", "a/c"], name: "Reporte de Actos y Condiciones (RAC)", id: "rac" },
+                { keys: ["desvio", "desvíos", "hallazgo"], name: "Control de Desvíos", id: "desvio" },
+                { keys: ["estadistica", "indicador", "kpi", "grafico"], name: "Estadísticas y Dashboard", id: "analytics" },
+                { keys: ["reporte word", "informe word", "informe mensual", "generador word"], name: "Generar Informe Word", id: "word_report" },
+                { keys: ["ositran", "anexo", "anexos ositran"], name: "Anexos OSITRAN", id: "ositran" },
+                { keys: ["emo", "medico", "médico", "salud"], name: "Control de EMO", id: "emo" },
+                { keys: ["scsst", "comite", "comité", "seguridad"], name: "Control SCSST", id: "scsst" },
+                { keys: ["risstma", "reglamento"], name: "Control de RISSTMA", id: "risstma" },
+                { keys: ["actas", "supervision", "supervisión"], name: "Actas de Supervisión", id: "actas" },
+                { keys: ["monitoreo", "ocupacional"], name: "Monitoreo Ocupacional", id: "monitoreos" },
+                { keys: ["certificados", "equipo", "calibracion", "calibración"], name: "Certificados de Equipo", id: "equipment" },
+                { keys: ["sharepoint", "export", "archivo central"], name: "Archivo Central SharePoint", id: "sharepoint" },
+                { keys: ["reporte", "pdf", "documento", "accidentabilidad"], name: "Control de Accidentabilidad", id: "reports" }
+            ];
+
+            const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
+
             if (matchedTool) {
-                setSearchState({ category: matchedTool.id, location: null, month: null, query: null });
+                setSearchState({ category: matchedTool.id, location: null, month: null, query: query, intent: null });
                 await new Promise(r => setTimeout(r, 600));
                 setMessages(prev => [...prev, { 
                     id: Date.now().toString(), 
-                    text: `¿Qué acción deseas realizar con **${matchedTool.name}**?`, 
+                    text: `He detectado que buscas información sobre **${matchedTool.name}**. ¿Qué deseas hacer?`, 
                     sender: 'assistant',
                     options: [
-                        { label: `🔍 Visualizar registros`, value: `tool_view_${matchedTool.id}` },
-                        { label: `➕ Ingresar nuevo`, value: `tool_new_${matchedTool.id}` }
+                        { label: `🛠️ Ir a la Herramienta`, value: `intent_tool` },
+                        { label: `📂 Ver Archivos / Evidencias`, value: `intent_file` }
                     ],
                     type: 'options'
                 }]);
+                setIsTyping(false);
+                return;
             } else {
-                setSearchState(prev => ({ ...prev, query: query, location: null, month: null }));
-                await new Promise(r => setTimeout(r, 600));
+                setSearchState({ category: queryLower, location: null, month: null, query: query, intent: null });
                 setMessages(prev => [...prev, { 
                     id: Date.now().toString(), 
-                    text: `Para buscar "${query}", ¿De qué sede o lugar necesitas la información?`, 
+                    text: `¿Buscas utilizar una herramienta o ver archivos relacionados con "**${query}**"?`, 
                     sender: 'assistant',
-                    options: SSOMA_LOCATIONS.map(locationItem => ({ label: locationItem, value: `free_loc_${locationItem}` })),
+                    options: [
+                        { label: `🛠️ Herramienta`, value: `intent_tool` },
+                        { label: `📂 Archivos`, value: `intent_file` }
+                    ],
                     type: 'options'
                 }]);
+                setIsTyping(false);
+                return;
             }
-            setIsTyping(false);
-            return;
         }
 
         try {
             const params = new URLSearchParams();
             if (query) params.append('q', query);
             if (loc) params.append('location', loc);
-            if (month && month !== 'all') params.append('month', month);
+            if (month && month !== 'month_all' && month !== 'all') params.append('month', month);
+            if (cat) params.append('category', cat);
             
             const response = await fetch(`/api/evidence-records?${params.toString()}`);
             const data = await response.json();
@@ -261,21 +308,33 @@ export default function SSOMAAssistant() {
             if (data.success && data.records.length > 0) {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
-                    text: `He encontrado ${data.records.length} fotos que coinciden con tu búsqueda.`,
+                    text: `He encontrado ${data.records.length} registros. Puedes verlos aquí o ir al panel completo.`,
                     sender: 'assistant',
                     results: data.records,
                     type: 'gallery'
                 }]);
+                
+                const panelRoutes: Record<string, string> = {
+                    pma: "/evidence",
+                    sctr: "/sctr",
+                    epp: "/epp",
+                    inspections: "/evidence"
+                };
+                const route = panelRoutes[searchState.category || ''] || "/evidence";
+                
+                setMessages(prev => [...prev, {
+                    id: (Date.now()+1).toString(),
+                    text: "¿Deseas ir al panel de control completo?",
+                    sender: 'assistant',
+                    options: [{ label: "🚀 Ir al Panel Completo", value: `goto_panel_${route}` }],
+                    type: 'options'
+                }]);
+
             } else {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString(),
-                    text: "No encontré resultados específicos. ¿Deseas ver todas las opciones?",
-                    sender: 'assistant',
-                    options: [
-                        { label: "🔍 Ver todo", value: "start_view" },
-                        { label: "➕ Registrar", value: "start_upload" }
-                    ],
-                    type: 'options'
+                    text: "No encontré evidencias específicas. ¿Deseas intentar con otro término?",
+                    sender: 'assistant'
                 }]);
             }
         } catch (error) {
@@ -308,19 +367,29 @@ export default function SSOMAAssistant() {
                                 sender: 'assistant'
                             }
                         ]);
-                        setSearchState({ category: null, location: null, month: null, query: null });
+                        setSearchState({ category: null, location: null, month: null, query: null, intent: null });
+                        returnToHome();
                     }
                     setIsOpen(!isOpen);
                 }}
                 style={{ 
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     cursor: isOpen ? 'pointer' : (isDragging ? 'grabbing' : 'grab'),
-                    boxShadow: '0 0 25px rgba(16, 185, 129, 0.4)'
+                    boxShadow: '0 0 25px rgba(16, 185, 129, 0.4)',
+                    transition: isFlying ? 'none' : 'transform 0.8s cubic-bezier(0.19, 1, 0.22, 1)'
                 }}
-                className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 ${
+                className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center group ${
                     isOpen ? 'bg-slate-800 rotate-90' : 'bg-emerald-600'
                 }`}
             >
+                {/* CAPITA (CAPE) ANIMATION */}
+                {!isOpen && (
+                    <div className="absolute -z-10 w-full h-full">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[140%] bg-emerald-500/30 blur-xl rounded-full animate-pulse"></div>
+                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-10 h-16 bg-gradient-to-t from-transparent via-emerald-600/40 to-emerald-600/80 rounded-b-full origin-top animate-[cape_2s_infinite_ease-in-out]"></div>
+                    </div>
+                )}
+                
                 {!isOpen && (
                     <>
                         <div className="absolute -left-1.5 top-4 w-2.5 h-6 bg-emerald-500 rounded-full animate-bounce shadow-md border border-emerald-700"></div>
@@ -363,7 +432,13 @@ export default function SSOMAAssistant() {
                                     {msg.type === 'options' && msg.options && (
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {msg.options.map((opt, idx) => (
-                                                <button key={idx} onClick={() => handleOptionClick(opt)} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-black text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-tighter">
+                                                <button key={idx} onClick={() => {
+                                                    if (opt.value.startsWith('goto_panel_')) {
+                                                        window.location.href = opt.value.replace('goto_panel_', '');
+                                                    } else {
+                                                        handleOptionClick(opt);
+                                                    }
+                                                }} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-black text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-tighter">
                                                     {opt.label}
                                                 </button>
                                             ))}
@@ -374,21 +449,20 @@ export default function SSOMAAssistant() {
                                             {msg.results.map((item, idx) => (
                                                 <a 
                                                     key={idx} 
-                                                    href={item.url} 
+                                                    href={item.file_url || item.fileUrl} 
                                                     target="_blank" 
                                                     rel="noopener noreferrer"
                                                     className="group relative aspect-square rounded-xl overflow-hidden border border-slate-700 bg-slate-900 hover:border-emerald-500 transition-all shadow-lg"
-                                                    title="Click para ver original"
                                                 >
                                                     <img 
-                                                        src={getDriveViewerUrl(item.url, true)} 
-                                                        alt={item.title} 
+                                                        src={getDriveViewerUrl(item.file_url || item.fileUrl, true)} 
+                                                        alt={item.activity || item.description} 
                                                         className="w-full h-full object-cover transition-transform group-hover:scale-110" 
                                                     />
                                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-0 group-hover:opacity-100 flex flex-col justify-end p-2 transition-opacity">
                                                         <Search size={16} className="text-white mb-1 mx-auto" />
-                                                        <p className="text-[8px] font-bold text-white truncate uppercase tracking-tighter">{item.title}</p>
-                                                        <p className="text-[7px] text-emerald-400 font-bold uppercase">{item.location}</p>
+                                                        <p className="text-[8px] font-bold text-white truncate uppercase tracking-tighter">{item.activity || item.description}</p>
+                                                        <p className="text-[7px] text-emerald-400 font-bold uppercase">{item.zona || item.location}</p>
                                                     </div>
                                                 </a>
                                             ))}
@@ -401,7 +475,7 @@ export default function SSOMAAssistant() {
                             <div className="flex justify-start">
                                 <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center gap-2">
                                     <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Buscando...</span>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Analizando...</span>
                                 </div>
                             </div>
                         )}
@@ -413,7 +487,7 @@ export default function SSOMAAssistant() {
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="Escribe aquí..."
+                                placeholder="Ej: Control de SCTR..."
                                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-4 pr-12 py-4 text-sm text-white outline-none focus:border-emerald-500 transition-all"
                             />
                             <button
@@ -430,5 +504,3 @@ export default function SSOMAAssistant() {
         </>
     );
 }
-
-// VERSION_CONTROL: 1.1.1_FORCED_REBUILD_CLEAN

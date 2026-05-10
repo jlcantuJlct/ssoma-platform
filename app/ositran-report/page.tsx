@@ -7,6 +7,8 @@ import { Download, FileText, CheckCircle2, Loader2, AlertTriangle, ChevronRight 
 export default function OsitranReportPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [isRequesting, setIsRequesting] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [estimatedSeconds, setEstimatedSeconds] = useState(54); // ~3s por anexo (18 anexos)
     const [status, setStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
 
     const months = [
@@ -37,10 +39,11 @@ export default function OsitranReportPage() {
 
     const handleExportRequest = async () => {
         setIsRequesting(true);
+        setProgress(0);
         setStatus({ type: null, message: '' });
 
         try {
-            const res = await fetch('/api/export-center', { // Reusamos el canal de exportación pero con etiqueta OSITRAN
+            const res = await fetch('/api/export-center', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -56,8 +59,16 @@ export default function OsitranReportPage() {
                 const requestId = data.requestId;
                 setStatus({ 
                     type: 'success', 
-                    message: '⏳ Solicitud de Informe OSITRAN enviada. El Robot Local está procesando los anexos...' 
+                    message: '⏳ Solicitud enviada. El Robot Local está organizando los archivos en tu escritorio...' 
                 });
+
+                // Simulación de progreso suave mientras polleamos
+                const progressInterval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev >= 92) return prev; // Quedarse en 92% hasta que el robot confirme
+                        return prev + 1;
+                    });
+                }, 600); // 1% cada 0.6s -> 100% en ~60s
 
                 // Polling for completion
                 const pollInterval = setInterval(async () => {
@@ -67,22 +78,25 @@ export default function OsitranReportPage() {
 
                         if (statusData.status === 'completed') {
                             clearInterval(pollInterval);
+                            clearInterval(progressInterval);
+                            setProgress(100);
                             setIsRequesting(false);
                             setStatus({ 
                                 type: 'success', 
-                                message: '✅ ¡INFORME OSITRAN LISTO! El robot ha organizado los 18 anexos en tu escritorio.' 
+                                message: '✅ ¡INFORME OSITRAN LISTO! Los 18 anexos ya están en la carpeta del escritorio.' 
                             });
                         }
                     } catch (e) {
                         console.error("Error polling:", e);
                     }
-                }, 5000);
+                }, 3000);
 
             } else {
                 throw new Error(data.error || 'Error al procesar la solicitud');
             }
         } catch (error: any) {
             setIsRequesting(false);
+            setProgress(0);
             setStatus({ type: 'error', message: `❌ Error: ${error.message}` });
         }
     };
@@ -92,37 +106,37 @@ export default function OsitranReportPage() {
             <div className="max-w-5xl mx-auto">
                 <header className="mb-10">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-amber-500 rounded-lg">
+                        <div className="p-2 bg-amber-500 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                             <FileText className="w-6 h-6 text-slate-900" />
                         </div>
-                        <h1 className="text-3xl font-bold">Generador de Informe OSITRAN</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Generador de Informe <span className="text-amber-500">OSITRAN</span></h1>
                     </div>
-                    <p className="text-slate-400">Automatización de reportes mensuales y compilación de anexos para supervisión.</p>
+                    <p className="text-slate-400">Automatización de reportes mensuales y compilación de anexos para supervisión externa.</p>
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Panel de Control */}
                     <div className="lg:col-span-2 space-y-6">
-                        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+                        <Card className="bg-slate-800 border-slate-700 overflow-hidden shadow-2xl">
                             <CardHeader className="border-b border-slate-700 bg-slate-800/50">
-                                <CardTitle className="text-lg flex items-center gap-2">
+                                <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tighter">
                                     <Download className="w-5 h-5 text-amber-500" />
-                                    Configuración del Reporte
+                                    Panel de Generación
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
                                 <div className="space-y-8">
                                     <div className="flex flex-col gap-4">
-                                        <label className="text-sm font-medium text-slate-300">Seleccionar Mes del Informe:</label>
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Mes del Informe:</label>
                                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                             {months.map((name, idx) => (
                                                 <button
                                                     key={name}
                                                     onClick={() => setSelectedMonth(idx)}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                    className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                                                         selectedMonth === idx 
-                                                        ? 'bg-amber-500 text-slate-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
-                                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border border-slate-600'
+                                                        ? 'bg-amber-500 text-slate-900 shadow-[0_0_20px_rgba(245,158,11,0.3)] border-transparent' 
+                                                        : 'bg-slate-900 text-slate-400 hover:bg-slate-700 border border-slate-700'
                                                     }`}
                                                 >
                                                     {name}
@@ -131,11 +145,33 @@ export default function OsitranReportPage() {
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700 flex gap-4 items-start">
+                                    {isRequesting && (
+                                        <div className="space-y-4 animate-in fade-in zoom-in duration-300">
+                                            <div className="flex justify-between items-end mb-1">
+                                                <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Progreso de Compilación</span>
+                                                <span className="text-xl font-black text-white">{progress}%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-900 rounded-full h-4 p-1 border border-slate-700 shadow-inner">
+                                                <div 
+                                                    className="bg-gradient-to-r from-amber-600 to-amber-400 h-full rounded-full transition-all duration-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+                                                <p className="text-[9px] font-bold uppercase tracking-wider italic">
+                                                    {progress < 40 ? 'Recolectando evidencias...' : progress < 80 ? 'Generando PDFs de anexos...' : 'Organizando archivos en escritorio...'}
+                                                </p>
+                                                <span className="ml-auto text-[9px] font-black text-slate-500">Tiempo estimado: ~{Math.max(0, 60 - Math.round(progress * 0.6))}s</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 flex gap-4 items-start">
                                         <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
                                         <div className="text-sm space-y-1">
-                                            <p className="text-slate-200 font-semibold">Nota del Robot:</p>
-                                            <p className="text-slate-400">Esta acción descargará automáticamente los 18 archivos correspondientes en tu carpeta de escritorio <strong>"Informes OSITRAN"</strong>.</p>
+                                            <p className="text-amber-500 font-black text-[10px] uppercase tracking-widest">Información de Destino</p>
+                                            <p className="text-slate-400 text-xs">El sistema creará la carpeta <strong className="text-slate-200">"Informes OSITRAN"</strong> en tu Escritorio con los 18 documentos necesarios.</p>
                                         </div>
                                     </div>
 

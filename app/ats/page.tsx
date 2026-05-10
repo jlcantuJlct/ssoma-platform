@@ -18,8 +18,11 @@ import {
     Search,
     Shield,
     Pencil,
-    CheckCircle2
+    CheckCircle2,
+    X
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
+import { RESPONSIBLES } from "@/lib/categories";
 import { generateFilename, getInitials } from "@/lib/utils";
 
 // --- TYPES ---
@@ -434,9 +437,16 @@ export default function AtsPage() {
                                 </h3>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50 items-end">
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Fecha</label>
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                            {filterDate && (
+                                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <input
                                             type="date"
                                             value={filterDate}
@@ -445,25 +455,46 @@ export default function AtsPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Responsable</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre..."
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Responsable</label>
+                                            {filterResponsible && (
+                                                <button onClick={() => setFilterResponsible("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={RESPONSIBLES}
                                             value={filterResponsible}
-                                            onChange={e => setFilterResponsible(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
+                                            onChange={(val) => setFilterResponsible(val)}
+                                            placeholder="Todos los responsables..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-xs"
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Filtrar por Lugar</label>
-                                        <select
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                            {filterLocation && (
+                                                <button onClick={() => setFilterLocation("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <SearchableSelect 
+                                            options={SSOMA_LOCATIONS}
                                             value={filterLocation}
-                                            onChange={e => setFilterLocation(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
+                                            onChange={(val) => setFilterLocation(val)}
+                                            placeholder="Todos los lugares..."
+                                            className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-xs"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <button 
+                                            onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
+                                            className="w-full h-[33px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold uppercase transition-colors border border-slate-700 flex items-center justify-center gap-2"
                                         >
-                                            <option value="">Todos los lugares...</option>
-                                            {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                                        </select>
+                                            <Trash2 size={12} /> Limpiar
+                                        </button>
                                     </div>
                                 </div>
 

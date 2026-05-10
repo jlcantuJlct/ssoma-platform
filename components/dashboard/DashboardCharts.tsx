@@ -828,199 +828,33 @@ export function DashboardCharts({
             return;
         }
 
-        // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
-        const finalPdfDoc = await PDFDocument.create();
-        const recordsToExport = finalFilteredHistory.slice().reverse();
-
-        // Determinar título dinámico si hay filtros
-        let reportTitle = "Reporte de Actividades HHC";
-        if (filters.startDate || filters.endDate) {
-            reportTitle += ` (${filters.startDate || 'Inicio'} a ${filters.endDate || 'Fin'})`;
+        const recordsWithPdf = finalFilteredHistory.filter(r => r.evidencePdf);
+        
+        if (recordsWithPdf.length === 0) {
+            alert("⚠️ Ninguno de los registros filtrados tiene un PDF adjunto.");
+            return;
         }
 
-        // 1. CALCULAR ESTADÍSTICAS GLOBALES PARA EL RESUMEN
-        const summaryStats = finalFilteredHistory.reduce((acc, curr) => {
-            const totalP = (Number(curr.hombres) || 0) + (Number(curr.mujeres) || 0);
-            acc.totalParticipants += totalP;
-            acc.totalHours += (Number(curr.hhc) || 0);
-            
-            const typeKey = curr.tipo || 'otros';
-            if (!acc.byType[typeKey]) acc.byType[typeKey] = 0;
-            acc.byType[typeKey] += totalP;
-            
-            return acc;
-        }, { totalParticipants: 0, totalHours: 0, byType: {} as Record<string, number> });
+        // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
+        const finalPdfDoc = await PDFDocument.create();
 
-        // 2. GENERAR PÁGINA DE RESUMEN EJECUTIVO
-        const summaryDoc = new jsPDF();
-        summaryDoc.setFillColor(245, 247, 251);
-        summaryDoc.rect(0, 0, 210, 297, 'F');
-
-        summaryDoc.setFontSize(22);
-        summaryDoc.setTextColor(30, 64, 175);
-        summaryDoc.setFont("helvetica", "bold");
-        summaryDoc.text("RESUMEN EJECUTIVO DE FORMACIÓN", 105, 40, { align: "center" });
-
-        summaryDoc.setDrawColor(30, 64, 175);
-        summaryDoc.setLineWidth(1);
-        summaryDoc.line(20, 45, 190, 45);
-
-        // Grid de Totales
-        summaryDoc.setFillColor(255, 255, 255);
-        summaryDoc.roundedRect(20, 60, 80, 40, 3, 3, 'FD');
-        summaryDoc.roundedRect(110, 60, 80, 40, 3, 3, 'FD');
-
-        summaryDoc.setFontSize(10);
-        summaryDoc.setTextColor(100);
-        summaryDoc.text("PARTICIPANTES TOTALES", 60, 75, { align: "center" });
-        summaryDoc.text("TIEMPO CAPACITADO (HHC)", 150, 75, { align: "center" });
-
-        summaryDoc.setFontSize(24);
-        summaryDoc.setTextColor(0, 0, 0);
-        summaryDoc.text(summaryStats.totalParticipants.toString(), 60, 90, { align: "center" });
-        summaryDoc.text(summaryStats.totalHours.toFixed(2), 150, 90, { align: "center" });
-
-        // Desglose por Tipo
-        summaryDoc.setFontSize(14);
-        summaryDoc.setTextColor(30, 64, 175);
-        summaryDoc.text("DESGLOSE DE PERSONAL POR TIPO DE ACTIVIDAD", 20, 120);
-
-        let sumY = 135;
-        const labels: Record<string, string> = {
-            'induccion_gen': 'INDUCCIÓN GENERAL',
-            'induccion_esp': 'INDUCCIÓN ESPECÍFICA',
-            'capacitacion': 'CAPACITACIÓN',
-            'difusion': 'DIFUSIÓN',
-            'entrenamiento': 'ENTRENAMIENTO',
-            'charla': 'CHARLA'
-        };
-
-        summaryDoc.setFontSize(10);
-        summaryDoc.setTextColor(60);
-        
-        Object.entries(summaryStats.byType).forEach(([type, count]) => {
-            summaryDoc.setFont("helvetica", "bold");
-            summaryDoc.text(labels[type] || type.toUpperCase().replace('_', ' '), 25, sumY);
-            summaryDoc.setFont("helvetica", "normal");
-            summaryDoc.text(`${count} personas`, 150, sumY);
-            
-            summaryDoc.setDrawColor(200);
-            summaryDoc.setLineWidth(0.1);
-            summaryDoc.line(20, sumY + 4, 190, sumY + 4);
-            sumY += 12;
-        });
-
-        const summaryBytes = summaryDoc.output('arraybuffer');
-        const summaryPdfDoc = await PDFDocument.load(summaryBytes);
-        const summaryPages = await finalPdfDoc.copyPages(summaryPdfDoc, summaryPdfDoc.getPageIndices());
-        summaryPages.forEach(p => finalPdfDoc.addPage(p));
-
-        // 3. AGRUPAR REGISTROS POR FECHA
-        const groupedByDate: Record<string, any[]> = {};
-        recordsToExport.forEach(r => {
-            const dStr = r.date || 'Sin Fecha';
-            if (!groupedByDate[dStr]) groupedByDate[dStr] = [];
-            groupedByDate[dStr].push(r);
-        });
-
-        // Ordenar fechas cronológicamente
-        const sortedDates = Object.keys(groupedByDate).sort();
-
-        for (const dateKey of sortedDates) {
-            const dailyRecords = groupedByDate[dateKey];
-            const doc = new jsPDF();
-            let y = 20;
-
-            // Encabezado de Fecha
-            doc.setFillColor(30, 64, 175);
-            doc.rect(20, y, 170, 12, 'F');
-            doc.setFontSize(14);
-            doc.setTextColor(255, 255, 255);
-            doc.setFont("helvetica", "bold");
-            doc.text(`FECHA: ${dateKey}`, 105, y + 8, { align: "center" });
-            y += 20;
-
-            // Listar todos los registros de ese día
-            for (let idx = 0; idx < dailyRecords.length; idx++) {
-                const record = dailyRecords[idx];
-                
-                doc.setFontSize(11);
-                doc.setTextColor(30, 64, 175);
-                doc.setFont("helvetica", "bold");
-                doc.text(`REGISTRO ${idx + 1}: ${record.tema || 'Sin Tema'}`, 20, y);
-                y += 6;
-
-                doc.setFontSize(9);
-                doc.setTextColor(60);
-                doc.setFont("helvetica", "normal");
-                const tipoStr = (record.tipo || 'actividad').toUpperCase().replace('_', ' ');
-                const resena = `Tipo: ${tipoStr} | Área: ${record.area?.toUpperCase()} | Resp: ${record.responsable} | Lugar: ${record.lugar || 'N/A'}`;
-                doc.text(resena, 20, y);
-                y += 5;
-                const totalPers = (Number(record.hombres)||0)+(Number(record.mujeres)||0);
-                const hhcCalc = (totalPers * (FORMATION_DURATIONS[record.tipo] || 0)).toFixed(1);
-                doc.text(`Participantes: ${record.hombres}H / ${record.mujeres}M | Total: ${totalPers} | Cant. HHC: ${hhcCalc}`, 20, y);
-                y += 10;
-
-                if (y > 270) { doc.addPage(); y = 20; }
-            }
-
-            doc.setDrawColor(200);
-            doc.line(20, y, 190, y);
-            y += 10;
-
-            // Evidencia Imágenes del Día (De todos los registros)
-            doc.setFontSize(11);
-            doc.setTextColor(0);
-            doc.setFont("helvetica", "bold");
-            doc.text("Evidencia Fotográfica del Día:", 20, y);
-            y += 10;
-
-            for (const record of dailyRecords) {
-                if (record.evidenceImgs && record.evidenceImgs.length > 0) {
-                    for (const imgUrl of record.evidenceImgs) {
-                        const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                        const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
-                        const buffer = await fetchProxiedFile(fetchUrl);
-                        
-                        if (buffer) {
-                            try {
-                                const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
-                                if (y > 210) { doc.addPage(); y = 20; }
-                                doc.addImage(base64, 'JPEG', 40, y, 130, 75);
-                                y += 85;
-                            } catch (e) {}
-                        }
-                    }
-                }
-            }
-
-            // Convertir JS-PDF del día a PDF-Lib y añadir
-            const pagePdfBytes = doc.output('arraybuffer');
-            const pagePdfDoc = await PDFDocument.load(pagePdfBytes);
-            const copiedPages = await finalPdfDoc.copyPages(pagePdfDoc, pagePdfDoc.getPageIndices());
-            copiedPages.forEach(p => finalPdfDoc.addPage(p));
-
-            // Anexar todos los PDFs de evidencia del día
-            for (const record of dailyRecords) {
-                if (record.evidencePdf) {
-                    const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                    const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
-                    const evidenceBuffer = await fetchProxiedFile(fetchUrl);
-                    if (evidenceBuffer) {
-                        try {
-                            const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
-                            const evidencePages = await finalPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
-                            evidencePages.forEach(p => finalPdfDoc.addPage(p));
-                        } catch (e) { console.error("Error merging daily evidence PDF", e); }
-                    }
-                }
+        // Anexar todos los PDFs de evidencia
+        for (const record of recordsWithPdf.slice().reverse()) {
+            const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
+            const evidenceBuffer = await fetchProxiedFile(fetchUrl);
+            if (evidenceBuffer) {
+                try {
+                    const evidencePdfDoc = await PDFDocument.load(evidenceBuffer);
+                    const evidencePages = await finalPdfDoc.copyPages(evidencePdfDoc, evidencePdfDoc.getPageIndices());
+                    evidencePages.forEach(p => finalPdfDoc.addPage(p));
+                } catch (e) { console.error("Error merging evidence PDF", e); }
             }
         }
 
         const filename = (filters.startDate || filters.endDate) 
-            ? `Reporte_HHC_Filtrado_${filters.startDate || ''}_${filters.endDate || ''}.pdf`
-            : "Reporte_Mensual_HHC_Completo.pdf";
+            ? `Evidencias_HHC_Filtradas_${filters.startDate || ''}_${filters.endDate || ''}.pdf`
+            : "Evidencias_HHC_Completas.pdf";
 
         const mergedPdfBytes = await finalPdfDoc.save();
         const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
@@ -1030,6 +864,7 @@ export function DashboardCharts({
         link.download = filename;
         link.click();
     };
+
 
 
 
@@ -3100,27 +2935,81 @@ export function DashboardCharts({
 
                                         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Responsable</label>
-                                                <input type="text" placeholder="Buscar..." value={filters.responsable} onChange={(e) => setFilters(prev => ({ ...prev, responsable: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Responsable</label>
+                                                    {filters.responsable && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, responsable: '' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <SearchableSelect 
+                                                    options={USER_LIST.map(u => u.name)}
+                                                    value={filters.responsable}
+                                                    onChange={(val) => setFilters(prev => ({ ...prev, responsable: val }))}
+                                                    placeholder="Buscar..."
+                                                    className="w-full text-xs"
+                                                />
                                             </div>
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Lugar</label>
-                                                <input type="text" placeholder="Buscar lugar..." value={filters.lugar} onChange={(e) => setFilters(prev => ({ ...prev, lugar: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Lugar</label>
+                                                    {filters.lugar && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, lugar: '' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <SearchableSelect 
+                                                    options={SSOMA_LOCATIONS}
+                                                    value={filters.lugar}
+                                                    onChange={(val) => setFilters(prev => ({ ...prev, lugar: val }))}
+                                                    placeholder="Buscar lugar..."
+                                                    className="w-full text-xs"
+                                                />
                                             </div>
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Desde</label>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Desde</label>
+                                                    {filters.startDate && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, startDate: '' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <input type="date" value={filters.startDate} onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none" />
                                             </div>
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Hasta</label>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Hasta</label>
+                                                    {filters.endDate && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, endDate: '' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <input type="date" value={filters.endDate} onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none" />
                                             </div>
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Tema</label>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Tema</label>
+                                                    {filters.tema && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, tema: '' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <input type="text" placeholder="Buscar tema..." value={filters.tema} onChange={(e) => setFilters(prev => ({ ...prev, tema: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 outline-none" />
                                             </div>
                                             <div className="md:col-span-1">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase block mb-1">Tipo</label>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Tipo</label>
+                                                    {filters.type !== 'todos' && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, type: 'todos' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <select value={filters.type} onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none">
                                                     <option value="todos">TODOS</option>
                                                     <option value="induccion_gen">INDUCCIÓN GENERAL</option>
