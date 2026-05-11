@@ -34,17 +34,35 @@ export function SearchableSelect({
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    const normalizedOptions = (options || []).map(opt => {
+        if (typeof opt === 'string') return { id: opt, label: opt };
+        
+        // If it's an object, ensure id and label are strings
+        const sanitize = (val: any) => {
+            if (val === null || val === undefined) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') return val.label || val.id || JSON.stringify(val);
+            return String(val);
+        };
+
+        return {
+            ...opt,
+            id: sanitize(opt.id),
+            label: sanitize(opt.label)
+        };
+    });
+
     // Filter logic
-    const filteredOptions = options.filter(opt =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const filteredOptions = normalizedOptions.filter(opt =>
+        (opt.label || "").toString().toLowerCase().includes((searchTerm || "").toLowerCase()) ||
         (opt.group && opt.group.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // Grouping logic (if groups exist)
-    const hasGroups = options.some(opt => opt.group);
-    const groups = hasGroups ? Array.from(new Set(options.map(opt => opt.group).filter(Boolean))) : [];
+    const hasGroups = normalizedOptions.some(opt => opt.group);
+    const groups = hasGroups ? Array.from(new Set(normalizedOptions.map(opt => opt.group).filter(Boolean))) : [];
 
-    const selectedOption = options.find(opt => opt.id === value);
+    const selectedOption = normalizedOptions.find(opt => opt.id === value);
 
     // Click outside to close
     useEffect(() => {
@@ -69,7 +87,7 @@ export function SearchableSelect({
                         {icon}
                     </span>
                     <span className={`block truncate ${value ? 'text-slate-100' : 'text-slate-500'} text-xs font-medium`}>
-                        {selectedOption ? selectedOption.label : placeholder}
+                        {selectedOption ? selectedOption.label : (typeof value === 'object' ? placeholder : (value || placeholder))}
                     </span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -116,7 +134,7 @@ export function SearchableSelect({
                                             >
                                                 <div>
                                                     <div className={`text-xs font-semibold ${value === opt.id ? (variant === 'blue' ? 'text-blue-400' : 'text-emerald-400') : 'text-slate-100'}`}>
-                                                        {opt.label}
+                                                        {typeof opt.label === 'object' ? JSON.stringify(opt.label) : opt.label}
                                                     </div>
                                                     {opt.hint && <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{opt.hint}</div>}
                                                 </div>
@@ -140,7 +158,7 @@ export function SearchableSelect({
                                 >
                                     <div>
                                         <div className={`text-xs font-semibold ${value === opt.id ? (variant === 'blue' ? 'text-blue-400' : 'text-emerald-400') : 'text-slate-100'}`}>
-                                            {opt.label}
+                                            {typeof opt.label === 'object' ? JSON.stringify(opt.label) : opt.label}
                                         </div>
                                         {opt.hint && <div className="text-[10px] text-slate-500 mt-0.5">{opt.hint}</div>}
                                     </div>

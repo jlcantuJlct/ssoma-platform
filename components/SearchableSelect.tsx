@@ -3,8 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check, X } from 'lucide-react';
 
+interface Option {
+    id: string;
+    label: string;
+}
+
 interface SearchableSelectProps {
-    options: string[];
+    options: (string | Option)[];
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
@@ -15,7 +20,7 @@ interface SearchableSelectProps {
 }
 
 export default function SearchableSelect({
-    options,
+    options = [],
     value,
     onChange,
     placeholder = "Seleccionar...",
@@ -28,9 +33,28 @@ export default function SearchableSelect({
     const [searchTerm, setSearchTerm] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const filteredOptions = (options || []).filter(option =>
-        (option || "").toString().toLowerCase().includes((searchTerm || "").toLowerCase())
+    const normalizedOptions = (options || []).map(opt => {
+        if (typeof opt === 'string') return { id: opt, label: opt };
+        
+        // If it's an object, ensure id and label are strings
+        const sanitize = (val: any) => {
+            if (val === null || val === undefined) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') return val.label || val.id || JSON.stringify(val);
+            return String(val);
+        };
+
+        return {
+            id: sanitize(opt.id),
+            label: sanitize(opt.label)
+        };
+    });
+
+    const filteredOptions = normalizedOptions.filter(option =>
+        (option.label || "").toString().toLowerCase().includes((searchTerm || "").toLowerCase())
     );
+
+    const selectedOption = normalizedOptions.find(opt => opt.id === value);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -42,8 +66,8 @@ export default function SearchableSelect({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSelect = (option: string) => {
-        onChange(option);
+    const handleSelect = (optionId: string) => {
+        onChange(optionId);
         setIsOpen(false);
         setSearchTerm("");
     };
@@ -65,7 +89,7 @@ export default function SearchableSelect({
                 </div>
 
                 <span className={`truncate ${!value ? 'text-slate-500 italic' : 'font-medium'}`}>
-                    {value || placeholder}
+                    {selectedOption ? selectedOption.label : (typeof value === 'object' ? String((value as any)?.label || (value as any)?.id || JSON.stringify(value)) : (value || placeholder))}
                 </span>
 
                 <div className="absolute right-3 top-2.5 text-slate-500">
@@ -100,17 +124,19 @@ export default function SearchableSelect({
                             filteredOptions.map((option, idx) => (
                                 <div
                                     key={idx}
-                                    onClick={() => handleSelect(option)}
+                                    onClick={() => handleSelect(option.id)}
                                     className={`
                                         w-full px-3 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer flex items-center justify-between group
-                                        ${value === option 
+                                        ${value === option.id 
                                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                                             : 'text-slate-300 hover:bg-slate-800 hover:text-white border border-transparent'
                                         }
                                     `}
                                 >
-                                    <span className="flex-1 leading-tight whitespace-normal break-words">{option}</span>
-                                    {value === option && (
+                                    <span className="flex-1 leading-tight whitespace-normal break-words">
+                                        {typeof option.label === 'object' ? JSON.stringify(option.label) : option.label}
+                                    </span>
+                                    {value === option.id && (
                                         <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
                                             <Check size={10} className="text-emerald-500" />
                                         </div>
@@ -123,4 +149,5 @@ export default function SearchableSelect({
             )}
         </div>
     );
+
 }

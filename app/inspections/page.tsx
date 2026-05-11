@@ -27,7 +27,8 @@ import {
     X,
     Image as ImageIcon,
     Pencil,
-    CheckCircle2
+    CheckCircle2,
+    RotateCcw
 } from "lucide-react";
 import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
@@ -82,10 +83,28 @@ export default function InspectionsPage() {
     useEffect(() => {
         // Load Master Data updates
         if (typeof window !== 'undefined') {
+            const sanitize = (data: any[]): string[] => {
+                return (data || []).map(item => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object') return item.label || item.id || JSON.stringify(item);
+                    return String(item);
+                });
+            };
+
             const storedR = localStorage.getItem('ssoma_responsibles');
             const storedZ = localStorage.getItem('ssoma_zones');
-            if (storedR) setRESPONSIBLES(JSON.parse(storedR));
-            if (storedZ) setZONES(JSON.parse(storedZ));
+            if (storedR) {
+                try {
+                    const parsed = JSON.parse(storedR);
+                    setRESPONSIBLES(sanitize(parsed));
+                } catch (e) { console.error(e); }
+            }
+            if (storedZ) {
+                try {
+                    const parsed = JSON.parse(storedZ);
+                    setZONES(sanitize(parsed));
+                } catch (e) { console.error(e); }
+            }
         }
     }, []);
 
@@ -101,24 +120,29 @@ export default function InspectionsPage() {
                         "Salud": [],
                         "Medioambiente": []
                     };
+                    const sanitizeArray = (items: any[]): string[] => {
+                        return Array.from(new Set(items.map(i => {
+                            const d = i.description;
+                            if (!d) return '';
+                            if (typeof d === 'string') return d;
+                            if (typeof d === 'object') return d.label || d.id || JSON.stringify(d);
+                            return String(d);
+                        }).filter(Boolean))) as string[];
+                    };
 
                     // OBJ 03 -> Seguridad
                     if (data.programData['obj3']) {
-                        const items = data.programData['obj3'] as any[];
-                        newMapping["Seguridad"] = Array.from(new Set(items.map(i => i.description).filter(d => d && typeof d === 'string'))) as string[];
+                        newMapping["Seguridad"] = sanitizeArray(data.programData['obj3']);
                     }
-
                     // OBJ 06 (SEG 01) -> Salud
                     if (data.programData['obj6']) {
-                        const items = data.programData['obj6'] as any[];
-                        newMapping["Salud"] = Array.from(new Set(items.map(i => i.description).filter(Boolean))) as string[];
+                        newMapping["Salud"] = sanitizeArray(data.programData['obj6']);
                     }
-
                     // OBJ 08 (SEG 03) -> Medioambiente
                     if (data.programData['obj8']) {
-                        const items = data.programData['obj8'] as any[];
-                        newMapping["Medioambiente"] = Array.from(new Set(items.map(i => i.description).filter(d => d && typeof d === 'string'))) as string[];
+                        newMapping["Medioambiente"] = sanitizeArray(data.programData['obj8']);
                     }
+
 
                     // Update state if we found anything
                     if (newMapping["Seguridad"].length > 0 || newMapping["Salud"].length > 0 || newMapping["Medioambiente"].length > 0) {
@@ -1598,14 +1622,17 @@ export default function InspectionsPage() {
                                         </div>
 
                                         <div className="lg:col-span-2 flex flex-col justify-end">
-                                            {(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas') && (
-                                                <button 
-                                                    onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
-                                                    className="w-full h-[42px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-bold text-[10px] uppercase border border-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                                >
-                                                    <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                                </button>
-                                            )}
+                                            <button 
+                                                onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
+                                                className={`w-full h-[42px] rounded-xl font-bold text-[10px] uppercase border transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                                                    (filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas')
+                                                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                    : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                                }`}
+                                                disabled={!(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas')}
+                                            >
+                                                <RotateCcw size={14} strokeWidth={3} /> Limpiar Filtros
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

@@ -14,14 +14,20 @@ import {
     Save,
     Target,
     Filter,
-    ArrowUpRight
+    ArrowUpRight,
+    MapPin,
+    AlertCircle,
+    CheckCircle2,
+    Download,
+    TrendingUp,
+    RotateCcw
 } from "lucide-react";
 import * as Utils from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth, USER_LIST } from "@/lib/auth";
-import { RESPONSIBLES } from "@/lib/categories";
+import * as Categories from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 
 // --- TYPES ---
@@ -61,7 +67,7 @@ export default function DetourPage() {
     const [filterLocation, setFilterLocation] = useState("");
     const [filterCategory, setFilterCategory] = useState("");
     // Categories from static list
-    const [detourCategories, setDetourCategories] = useState<DetourCategory[]>(DETOUR_CATEGORIES);
+    const [detourCategories] = useState<Categories.DetourCategory[]>(Categories.DETOUR_CATEGORIES);
 
 
     // --- EFFECT: LOAD/SAVE ---
@@ -356,12 +362,10 @@ export default function DetourPage() {
                                                 required
                                             >
                                                 <option value="">Seleccionar Responsable...</option>
-                                                {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                                {USER_LIST.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
                                             </select>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-2">
+                                                              <div className="space-y-2">
                                         <label className="text-[10px] font-black text-emerald-400 uppercase flex items-center gap-2">
                                             <Target size={14} className="text-emerald-500" />
                                             Lugar / Zona
@@ -382,6 +386,8 @@ export default function DetourPage() {
                                                 ))}
                                             </select>
                                         </div>
+                                    </div>
+
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
                                         <SearchableSelect 
@@ -401,7 +407,8 @@ export default function DetourPage() {
                                                 </p>
                                             </div>
                                         )}
-                                    </div>                     </div>
+                                    </div>
+                   </div>
 
 
                                     <div className="space-y-2">
@@ -482,7 +489,7 @@ export default function DetourPage() {
                                             )}
                                         </div>
                                         <SearchableSelect 
-                                            options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
+                                            options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
                                             placeholder="Todos los responsables..."
@@ -524,19 +531,22 @@ export default function DetourPage() {
                                         />
                                     </div>
                                     <div className="flex flex-col justify-end h-full">
-                                        {(filterDate || filterResponsible || filterCategory || filterLocation) && (
-                                            <button
-                                                onClick={() => {
-                                                    setFilterDate("");
-                                                    setFilterResponsible("");
-                                                    setFilterCategory("");
-                                                    setFilterLocation("");
-                                                }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={12} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => {
+                                                setFilterDate("");
+                                                setFilterResponsible("");
+                                                setFilterCategory("");
+                                                setFilterLocation("");
+                                            }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterDate || filterResponsible || filterCategory || filterLocation)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterDate || filterResponsible || filterCategory || filterLocation)}
+                                        >
+                                            <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

@@ -13,10 +13,11 @@ import {
     MapPin,
     AlertTriangle,
     Download,
-    Filter
+    Filter,
+    RotateCcw
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { getDriveViewerUrl, getInitials } from '@/lib/utils';
+import { getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue } from '@/lib/utils';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
@@ -64,7 +65,10 @@ export default function ManifestPage() {
         const stored = localStorage.getItem('manifest_records_v1');
         if (stored) {
             try {
-                setRecords(JSON.parse(stored));
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    setRecords(sanitizeRecords(parsed, ['manifestNumber', 'transportCompany', 'wasteType', 'location', 'date']));
+                }
             } catch (e) { console.error(e); }
         }
         setIsLoaded(true);
@@ -364,14 +368,17 @@ export default function ManifestPage() {
                                         />
                                     </div>
                                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterLocation || filterDate || filterWasteType) && (
-                                            <button 
-                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterWasteType(''); }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterWasteType(''); }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterLocation || filterDate || filterWasteType)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterLocation || filterDate || filterWasteType)}
+                                        >
+                                            <RotateCcw size={14} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

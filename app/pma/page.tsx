@@ -18,9 +18,10 @@ import {
     Edit2,
     ChevronLeft,
     ChevronRight,
-    ExternalLink
+    ExternalLink,
+    RotateCcw
 } from "lucide-react";
-import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -114,12 +115,13 @@ export default function PMAPage() {
                 try {
                     const parsed = JSON.parse(stored);
                     if (Array.isArray(parsed)) {
-                        initialRecords = parsed.filter(r => r && typeof r === 'object').map(r => ({
+                        const mapped = parsed.filter(r => r && typeof r === 'object').map(r => ({
                             ...r,
                             category: MIGRATION_MAP[r.category] || r.category
                         }));
+                        initialRecords = sanitizeRecords(mapped, ['responsible', 'category', 'description', 'location', 'date']);
+                        setRecords(initialRecords);
                     }
-                    setRecords(initialRecords);
                 } catch (e) {
                     console.error("Error parsing pma_evidence_records", e);
                 }
@@ -148,6 +150,8 @@ export default function PMAPage() {
                             images: Array.isArray(parsedImages) ? parsedImages : []
                         };
                     });
+                    
+                    const sanitizedCloud = sanitizeRecords(mapped, ['responsible', 'category', 'description', 'location', 'date']);
 
                     // Deduplicate and merge: prefer cloud data but keep unique local ones
                     const merged = [...mapped];
@@ -827,19 +831,22 @@ export default function PMAPage() {
                                         />
                                     </div>
                                      <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterDate || filterResponsible || filterCategory || filterLocation) && (
-                                            <button
-                                                onClick={() => {
-                                                    setFilterDate("");
-                                                    setFilterResponsible("");
-                                                    setFilterCategory("");
-                                                    setFilterLocation("");
-                                                }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={12} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => {
+                                                setFilterDate("");
+                                                setFilterResponsible("");
+                                                setFilterCategory("");
+                                                setFilterLocation("");
+                                            }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterDate || filterResponsible || filterCategory || filterLocation)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterDate || filterResponsible || filterCategory || filterLocation)}
+                                        >
+                                            <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

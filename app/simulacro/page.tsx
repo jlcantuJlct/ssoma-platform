@@ -16,12 +16,12 @@ import {
     Pencil,
     Siren,
     X,
-    AlertTriangle,
-    Image as ImageIcon,
-    Filter
+    Filter,
+    RotateCcw,
+    Eye
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { generateFilename, getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, sanitizeRecords, sanitizeValue } from "@/lib/utils";
 
 // --- TYPES ---
 type SimulacroRecord = {
@@ -61,6 +61,16 @@ export default function SimulacroPage() {
     const [filterLocation, setFilterLocation] = useState("");
 
     const [drillTypes, setDrillTypes] = useState<string[]>([]);
+    const [previewFile, setPreviewFile] = useState<string | null>(null);
+
+    const getDriveViewerUrl = (url: string) => {
+        if (!url) return '';
+        if (url.includes('drive.google.com/file/d/')) {
+            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) return `https://drive.google.com/file/d/${match[1]}/preview`;
+        }
+        return url;
+    };
 
     // LOAD DYNAMIC TYPES FROM ANNUAL PROGRAM (SEG 05 - Simulacros)
     useEffect(() => {
@@ -94,7 +104,7 @@ export default function SimulacroPage() {
                 const res = await fetch('/api/simulacro-records');
                 const data = await res.json();
                 if (data.success && Array.isArray(data.records)) {
-                    setRecords(data.records);
+                    setRecords(sanitizeRecords(data.records, ['responsible', 'drillType', 'location', 'date']));
                 }
             } catch (e) {
                 console.error("Error loading records:", e);
@@ -492,14 +502,17 @@ export default function SimulacroPage() {
                                         />
                                     </div>
                                     <div className="flex flex-col justify-end h-full">
-                                        {(filterLocation || filterDate || filterResponsible) && (
-                                            <button 
-                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterResponsible(''); }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterResponsible(''); }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterLocation || filterDate || filterResponsible)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterLocation || filterDate || filterResponsible)}
+                                        >
+                                            <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

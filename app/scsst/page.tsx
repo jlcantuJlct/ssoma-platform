@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
-import { Search, Plus, FileText, Calendar, User, MapPin, Upload, Shield, Trash2, Check, X, Filter } from 'lucide-react';
+import { Search, Plus, FileText, Calendar, User, MapPin, Upload, Shield, Trash2, Check, X, Filter, RotateCcw } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
@@ -523,14 +523,17 @@ export default function SCSSTPage() {
                             />
                         </div>
                         <div className="space-y-1.5 flex flex-col justify-end h-[53px]">
-                             {(filters.date || filters.activity || filters.responsable || filters.zona) && (
-                                <button 
-                                    onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
-                                    className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    <X size={12} strokeWidth={3} /> Limpiar Filtros
-                                </button>
-                            )}
+                            <button 
+                                onClick={() => setFilters({ date: '', activity: '', responsable: '', zona: '' })}
+                                className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                    (filters.date || filters.activity || filters.responsable || filters.zona)
+                                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                    : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                }`}
+                                disabled={!(filters.date || filters.activity || filters.responsable || filters.zona)}
+                            >
+                                <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                            </button>
                         </div>
                     </div>
 

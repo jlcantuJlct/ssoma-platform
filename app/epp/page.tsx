@@ -13,17 +13,15 @@ import {
     User,
     MapPin,
     Package,
-    CheckCircle2
+    CheckCircle2,
+    RotateCcw
 } from "lucide-react";
-import { generateFilename, getDriveViewerUrl, getInitials } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
-import { useAuth } from "@/lib/auth";
-
-import { 
-    RESPONSIBLES 
-} from "@/lib/categories";
+import { useAuth, USER_LIST } from "@/lib/auth";
+import * as Categories from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 
 // --- TYPES ---
@@ -64,9 +62,10 @@ export default function EPPPage() {
     useEffect(() => {
         const stored = localStorage.getItem('epp_records_v2');
         if (stored) {
-            try {
-                setRecords(JSON.parse(stored));
-            } catch (e) { console.error(e); }
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    setRecords(sanitizeRecords(parsed, ['responsible', 'location', 'description', 'date', 'month']));
+                }
         }
         setIsLoaded(true);
     }, []);
@@ -197,7 +196,7 @@ export default function EPPPage() {
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Responsable de Entrega</label>
                                             <SearchableSelect
-                                                options={RESPONSIBLES}
+                                                options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                                 value={form.responsible}
                                                 onChange={(val) => setForm({ ...form, responsible: val })}
                                                 placeholder="Seleccionar Responsable..."
@@ -358,7 +357,7 @@ export default function EPPPage() {
                                             )}
                                         </div>
                                         <SearchableSelect 
-                                            options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
+                                            options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
                                             placeholder="Todos los responsables..."
@@ -383,14 +382,17 @@ export default function EPPPage() {
                                         />
                                     </div>
                                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterLocation || filterResponsible || filterMonth) && (
-                                            <button 
-                                                onClick={() => { setFilterLocation(''); setFilterResponsible(''); setFilterMonth(''); }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={() => { setFilterLocation(''); setFilterResponsible(''); setFilterMonth(''); }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterLocation || filterResponsible || filterMonth)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterLocation || filterResponsible || filterMonth)}
+                                        >
+                                            <RotateCcw size={14} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

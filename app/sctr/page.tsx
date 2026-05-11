@@ -17,7 +17,8 @@ import {
     ArrowRight,
     Filter,
     Clock,
-    Users
+    Users,
+    RotateCcw
 } from 'lucide-react';
 import { uploadEvidence } from "@/lib/uploadClient";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -46,16 +47,6 @@ const MONTHS = [
 const COMPANIES = ["CASA", "CONTRATISTA", "SUB-CONTRATISTA", "OTROS"];
 const SSOMA_LOCATIONS = ["GENERAL", "LIMA", "PROYECTOS", "PLANTA"];
 
-const SearchableSelect = ({ options, value, onChange, placeholder, className }: any) => (
-    <select 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)} 
-        className={`w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none ${className}`}
-    >
-        <option value="">{placeholder}</option>
-        {options.map((o: any) => <option key={o.id} value={o.id}>{o.label}</option>)}
-    </select>
-);
 
 export default function SCTRPage() {
     const [records, setRecords] = useState<SCTRMonthlyRecord[]>([]);
@@ -544,14 +535,17 @@ export default function SCTRPage() {
                                 />
                             </div>
                             <div className="flex flex-col justify-end h-full">
-                                {(filterLocation || filterPolicy || filterMonth) && (
-                                    <button 
-                                        onClick={() => { setFilterLocation(''); setFilterPolicy(''); setFilterMonth(''); }}
-                                        className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                    >
-                                        <X size={14} strokeWidth={3} /> Limpiar Filtros
-                                    </button>
-                                )}
+                                <button 
+                                    onClick={() => { setFilterLocation(''); setFilterPolicy(''); setFilterMonth(''); }}
+                                    className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                        (filterLocation || filterPolicy || filterMonth)
+                                        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                        : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                    }`}
+                                    disabled={!(filterLocation || filterPolicy || filterMonth)}
+                                >
+                                    <RotateCcw size={14} strokeWidth={3} /> Limpiar Filtros
+                                </button>
                             </div>
                         </div>
 

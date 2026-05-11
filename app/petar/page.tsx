@@ -19,6 +19,7 @@ import {
     Search,
     Pencil,
     CheckCircle2,
+    RotateCcw,
     X
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -528,14 +529,17 @@ export default function PetarPage() {
                                         />
                                     </div>
                                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterDate || filterResponsible || filterLocation) && (
-                                            <button 
-                                                onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                                            >
-                                                <X size={12} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
+                                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                                (filterDate || filterResponsible || filterLocation)
+                                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                            }`}
+                                            disabled={!(filterDate || filterResponsible || filterLocation)}
+                                        >
+                                            <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                                        </button>
                                     </div>
                                 </div>
 

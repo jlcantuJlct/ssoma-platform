@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
-import { Search, Plus, FileText, Calendar, User, Upload, Shield, Trash2, Check, X, Filter, BookOpen } from 'lucide-react';
+import { Search, Plus, FileText, Calendar, User, Upload, Shield, Trash2, Check, X, Filter, BookOpen, RotateCcw } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl } from "@/lib/utils";
+import { getDriveViewerUrl, sanitizeRecords, sanitizeValue } from "@/lib/utils";
 
 export default function RISSTMAPage() {
     const { user } = useAuth();
@@ -72,7 +72,7 @@ export default function RISSTMAPage() {
             const res = await fetch('/api/risstma-records');
             const data = await res.json();
             if (data.success) {
-                setRecords(data.records);
+                setRecords(sanitizeRecords(data.records, ['workerName', 'documentType', 'responsable', 'lugar', 'date']));
             }
         } catch (error) {
             console.error('Error fetching RISSTMA records:', error);
@@ -375,14 +375,17 @@ export default function RISSTMAPage() {
                         />
                     </div>
                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                        {(filters.lugar || filters.date || filters.workerName) && (
-                            <button 
-                                onClick={() => setFilters({ date: '', workerName: '', lugar: '' })}
-                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
-                            >
-                                <X size={14} strokeWidth={3} /> Limpiar Filtros
-                            </button>
-                        )}
+                        <button 
+                            onClick={() => setFilters({ date: '', workerName: '', documentType: '', lugar: '' })}
+                            className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                (filters.lugar || filters.date || filters.workerName || filters.documentType)
+                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                            }`}
+                            disabled={!(filters.lugar || filters.date || filters.workerName || filters.documentType)}
+                        >
+                            <RotateCcw size={12} strokeWidth={3} /> Limpiar Filtros
+                        </button>
                     </div>
                 </div>
 

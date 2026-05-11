@@ -117,3 +117,35 @@ export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: b
     }
     return url;
 }
+
+/**
+ * Ensures a value is a string. If it's an object with label/id, extracts those.
+ */
+export function sanitizeValue(val: any): string {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+        // Handle common object shapes
+        if (val.label !== undefined) return sanitizeValue(val.label);
+        if (val.id !== undefined) return sanitizeValue(val.id);
+        if (val.name !== undefined) return sanitizeValue(val.name);
+        return JSON.stringify(val);
+    }
+    return String(val);
+}
+
+/**
+ * Sanitizes an array of objects by ensuring common fields are strings.
+ */
+export function sanitizeRecords<T extends Record<string, any>>(records: T[], fields: (keyof T)[]): T[] {
+    if (!Array.isArray(records)) return [];
+    return records.map(record => {
+        const newRecord = { ...record };
+        fields.forEach(field => {
+            if (newRecord[field] !== undefined) {
+                newRecord[field] = sanitizeValue(newRecord[field]) as any;
+            }
+        });
+        return newRecord;
+    });
+}

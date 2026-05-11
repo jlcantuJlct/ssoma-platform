@@ -6,6 +6,8 @@ import { join } from 'path';
 import { writeFile } from 'fs/promises';
 import crypto from 'crypto';
 
+import { sanitizeValue } from '@/lib/utils';
+
 // --- AUDIT LOG SYSTEM ---
 
 async function ensureAuditLogTable() {
@@ -168,7 +170,15 @@ export async function getMonthlyProgram() {
     try {
         await ensureInspectionTable();
         const rows = await db.fetchAll('SELECT * FROM monthly_program_records');
-        return { success: true, data: rows };
+        
+        const mapped = rows.map((r: any) => ({
+            ...r,
+            responsible: sanitizeValue(r.responsible),
+            type: sanitizeValue(r.type),
+            area: sanitizeValue(r.area)
+        }));
+
+        return { success: true, data: mapped };
     } catch (e) {
         return { success: true, data: [] }; // Fallback to empty array
     }
@@ -227,7 +237,7 @@ export async function getInspections() {
         const rows = await db.fetchAll('SELECT * FROM inspection_records ORDER BY date DESC');
 
         // Map back to frontend structure
-        // Map back to frontend structure with safe parsing
+        // Map back to frontend structure with safe parsing and sanitization
         const mapped = rows.map((r: any) => {
             let parsedImgs: string[] = [];
             try {
@@ -238,15 +248,23 @@ export async function getInspections() {
                 parsedImgs = [];
             }
 
+            // Exhaustive sanitization for string fields
+            const clean = (val: any) => {
+                if (val === null || val === undefined) return '';
+                if (typeof val === 'string') return val;
+                if (typeof val === 'object') return val.label || val.id || JSON.stringify(val);
+                return String(val);
+            };
+
             return {
                 id: Number(r.id),
-                date: r.date,
-                responsible: r.responsible,
-                inspectionType: r.inspection_type,
-                area: r.area,
-                zone: r.zone,
-                status: r.status,
-                observations: r.observations,
+                date: sanitizeValue(r.date),
+                responsible: sanitizeValue(r.responsible),
+                inspectionType: sanitizeValue(r.inspection_type),
+                area: sanitizeValue(r.area),
+                zone: sanitizeValue(r.zone),
+                status: sanitizeValue(r.status),
+                observations: sanitizeValue(r.observations),
                 evidencePdf: r.evidence_pdf || '',
                 evidenceImgs: parsedImgs
             };
