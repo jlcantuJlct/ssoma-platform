@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Download, Save, RefreshCw } from "lucide-react";
@@ -32,7 +32,12 @@ export default function ReportsPage() {
 
     const [data, setData] = useState<MonthlyData>(initialData);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [otherWorks, setOtherWorks] = useState<any[]>([]);
+    
+    // External Works State
+    const [otherWorks, setOtherWorks] = useState<string[]>(["PAD San Clemente", "PAD Chinchaysullo", "PAD 9 de Octubre", "San Antonio", "MP", "Longitudinal Peaje Jahuay"]);
+    const [selectedExtWork, setSelectedExtWork] = useState<string>("PAD San Clemente");
+    const [selectedExtYear, setSelectedExtYear] = useState<number>(2026);
+    const [externalFiles, setExternalFiles] = useState<Record<string, string>>({});
 
     // Load from LocalStorage
     useEffect(() => {
@@ -45,21 +50,28 @@ export default function ReportsPage() {
                 console.error("Error parsing stats", e);
             }
         }
-
-        const savedWorks = localStorage.getItem('other_works_accident_2026');
+        
+        const savedWorks = localStorage.getItem('other_works_list_v4');
         if (savedWorks) {
             try { setOtherWorks(JSON.parse(savedWorks)); } catch (e) {}
+        }
+
+        const savedFiles = localStorage.getItem('other_works_files_v4');
+        if (savedFiles) {
+            try { setExternalFiles(JSON.parse(savedFiles)); } catch (e) {}
         }
 
         setIsLoaded(true);
     }, []);
 
-    // Save to LocalStorage
+    // Save Data
     useEffect(() => {
         if (isLoaded) {
             localStorage.setItem('accidentability_stats_2026', JSON.stringify(data));
+            localStorage.setItem('other_works_list_v4', JSON.stringify(otherWorks));
+            localStorage.setItem('other_works_files_v4', JSON.stringify(externalFiles));
         }
-    }, [data, isLoaded]);
+    }, [data, otherWorks, externalFiles, isLoaded]);
 
     const handleChange = (key: string, monthIndex: number, value: string) => {
         const numVal = Number(value) || 0;
@@ -122,19 +134,13 @@ export default function ReportsPage() {
     const totalACDP = totalAI + totalAM;
     const totalTDP = getTotal('TDP');
     const totalHP = getTotal('HP');
-    const totalT = getTotal('T'); // Sum of workers usually implies average, but for annual 'Totals' in these sheets, it implies accumulation or snapshot. 
-    // IF Annual = (Total ACDP * 1M) / Total HP
+    const totalT = getTotal('T'); 
+    
     const totalIF = totalHP > 0 ? (totalACDP * 1000000) / totalHP : 0;
     const totalIS = totalHP > 0 ? (totalTDP * 1000000) / totalHP : 0;
     const totalIA = (totalIF * totalIS) / 1000;
 
-    // Using Max or Average for Workers (T)? Usually Average is used for annual rates.
-    // Let's use Average T for annual rates if T varies.
-    // However, simplistic total column usually just sums. But for Rate calculations:
-    const avgT = totalT > 0 ? totalT / 12 : 0; // Rough calc if T is entered every month
-    // If T is 0 in some months, we should maybe filter? 
-    // Let's calculate stats based on the Sums for checking (as per standard practice).
-
+    const avgT = totalT > 0 ? totalT / 12 : 0; 
     const totalTasaInc = avgT > 0 ? (getTotal('EO') * 1000) / avgT : 0;
     const totalFreqPrePat = avgT > 0 ? (getTotal('EP') * 1000) / avgT : 0;
 
@@ -212,71 +218,56 @@ export default function ReportsPage() {
                             </tr>
                         </thead>
                         <tbody className="text-slate-300 divide-y divide-slate-800">
-                            {/* 1. ENFERMEDADES OCUPACIONALES */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Enfermedades Ocupacionales (EO)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'EO')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('EO')}</td>
                             </tr>
-                            {/* 2. ESTADOS PRE PATOLOGICOS */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Estados Pre patológicos (EP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'EP')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('EP')}</td>
                             </tr>
-                            {/* 3. TRABAJADORES */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Trabajadores (T)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'T')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('T')}</td>
                             </tr>
-                            {/* 4. CANCER */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Trabajadores con Cáncer Prof.</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'Cancer')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('Cancer')}</td>
                             </tr>
-                            {/* 5. HORAS HOMBRE */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Horas hombre trabajadas (HP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'HP')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('HP')}</td>
                             </tr>
-
-                            {/* SEPARATOR */}
                             <tr className="bg-slate-950/30"><td colSpan={15} className="h-2"></td></tr>
-
-                            {/* 6. ACCIDENTES LEVES */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Accidentes Leves (AL)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'AL')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('AL')}</td>
                             </tr>
-                            {/* 7. INCIDENTES LEVES */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Incidentes Leves</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'IncLeves')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('IncLeves')}</td>
                             </tr>
-                            {/* 8. INCIDENTES PELIGROSOS */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Nº Incidentes Peligrosos</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'IncPelig')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('IncPelig')}</td>
                             </tr>
-
-                            {/* SEPARATOR */}
                             <tr className="bg-slate-950/30"><td colSpan={15} className="h-2"></td></tr>
-
-                            {/* 9. ACCIDENTES INCAPACITANTES (CALCULATED) */}
                             <tr className="bg-slate-800/20">
                                 <td className="p-2 border border-slate-700 font-bold sticky left-0 bg-slate-900">Nº Accidentes Incapacitantes (AI)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] font-mono">ATT+APP+ATP</td>
@@ -287,37 +278,30 @@ export default function ReportsPage() {
                                 ))}
                                 <td className="p-2 border border-slate-700 text-center font-black bg-slate-800/50 text-orange-400">{totalAI}</td>
                             </tr>
-                            {/* 10. ATT */}
                             <tr>
                                 <td className="p-2 border border-slate-700 text-slate-400 pl-6 sticky left-0 bg-slate-900">Total Temporal (ATT)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'ATT')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('ATT')}</td>
                             </tr>
-                            {/* 11. APP */}
                             <tr>
                                 <td className="p-2 border border-slate-700 text-slate-400 pl-6 sticky left-0 bg-slate-900">Parcial Permanente (APP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'APP')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('APP')}</td>
                             </tr>
-                            {/* 12. ATP */}
                             <tr>
                                 <td className="p-2 border border-slate-700 text-slate-400 pl-6 sticky left-0 bg-slate-900">Total Permanente (ATP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'ATP')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('ATP')}</td>
                             </tr>
-
-                            {/* 13. MORTALES */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900 text-red-400">Nº Accidentes Mortales (AM)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'AM')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50 text-red-500">{getTotal('AM')}</td>
                             </tr>
-
-                            {/* 14. TOTAL DIAS PERDIDOS (ACDP) - Wait image says ACDP = AI + AM but labelled 'Total Accidentes con dias perdidos'. logic suggests ACDP = AI + AM (count) not days. TDP is days. */}
                             <tr className="bg-slate-800/20">
                                 <td className="p-2 border border-slate-700 font-bold sticky left-0 bg-slate-900">Total Accidentes con días perdidos (ACDP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] font-mono">AI+AM</td>
@@ -328,19 +312,13 @@ export default function ReportsPage() {
                                 ))}
                                 <td className="p-2 border border-slate-700 text-center font-black bg-slate-800/50">{totalACDP}</td>
                             </tr>
-
-                            {/* 15. TDP */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Total Días Perdidos (TDP)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[10px] text-slate-500">...</td>
                                 {renderMonthCells('input', 'TDP')}
                                 <td className="p-2 border border-slate-700 text-center font-bold bg-slate-800/50">{getTotal('TDP')}</td>
                             </tr>
-
-                            {/* SEPARATOR INDICES */}
                             <tr className="bg-emerald-900/20"><td colSpan={15} className="h-4 border-l border-r border-slate-700"></td></tr>
-
-                            {/* 16. INDICE FRECUENCIA */}
                             <tr className="bg-emerald-900/10">
                                 <td className="p-2 border border-slate-700 font-bold sticky left-0 bg-slate-900">Índice de Frecuencia (IF)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[8px] font-mono leading-tight">(ACDP*10^6)/HP</td>
@@ -355,8 +333,6 @@ export default function ReportsPage() {
                                     {totalHP > 0 ? totalIF.toFixed(2) : '-'}
                                 </td>
                             </tr>
-
-                            {/* 17. INDICE SEVERIDAD */}
                             <tr className="bg-emerald-900/10">
                                 <td className="p-2 border border-slate-700 font-bold sticky left-0 bg-slate-900">Índice de Severidad (IS)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[8px] font-mono leading-tight">(TDP*10^6)/HP</td>
@@ -371,8 +347,6 @@ export default function ReportsPage() {
                                     {totalHP > 0 ? totalIS.toFixed(2) : '-'}
                                 </td>
                             </tr>
-
-                            {/* 18. INDICE ACCIDENTABILIDAD */}
                             <tr className="bg-emerald-900/20">
                                 <td className="p-2 border border-slate-700 font-bold sticky left-0 bg-slate-900">Índice de Accidentabilidad (IA)</td>
                                 <td className="p-2 border border-slate-700 text-center text-[8px] font-mono leading-tight">(IF*IS)/1000</td>
@@ -387,8 +361,6 @@ export default function ReportsPage() {
                                     {totalHP > 0 ? totalIA.toFixed(2) : '-'}
                                 </td>
                             </tr>
-
-                            {/* 19. TASA INCIDENCIA ENF */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Tasa de Incidencia de Enfermedades</td>
                                 <td className="p-2 border border-slate-700 text-center text-[8px] font-mono leading-tight">(EO*1000)/T</td>
@@ -403,8 +375,6 @@ export default function ReportsPage() {
                                     {avgT > 0 ? totalTasaInc.toFixed(2) : '-'}
                                 </td>
                             </tr>
-
-                            {/* 20. FREC PRE PAT */}
                             <tr>
                                 <td className="p-2 border border-slate-700 font-medium sticky left-0 bg-slate-900">Índice de Frecuencia de Estados Pre patológicos</td>
                                 <td className="p-2 border border-slate-700 text-center text-[8px] font-mono leading-tight">(EP*1000)/T</td>
@@ -423,115 +393,141 @@ export default function ReportsPage() {
                     </table>
                 </div>
 
-                {/* SECCIÓN: REGISTROS DE OBRAS EXTERNAS */}
-                <div className="mt-12 bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl">
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                {/* SECCIÓN: REGISTROS DE OBRAS EXTERNAS (SISTEMA DE MENÚS) */}
+                <div className="mt-12 bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
+                    
+                    <div className="flex flex-col lg:flex-row items-center justify-between mb-10 gap-6 relative z-10">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                <RefreshCw className="text-blue-400" size={24} />
+                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-900/40">
+                                <RefreshCw className="text-white" size={24} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Accidentabilidad de Obras Externas</h3>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registros mensuales de otros frentes de trabajo en desarrollo</p>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Accidentabilidad de Sedes y Obras</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Control de registros mensuales por proyecto y periodo</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => {
-                                const name = prompt("Nombre de la nueva Obra:");
-                                if (name) {
-                                    const newWork = { id: Date.now(), name, files: {} };
-                                    const updated = [...otherWorks, newWork];
-                                    setOtherWorks(updated);
-                                    localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
-                                }
-                            }}
-                            className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20 active:scale-95 border border-blue-400/20"
-                        >
-                            + Registrar Obra
-                        </button>
+                        
+                        <div className="flex flex-wrap items-center gap-3 bg-slate-950/50 p-2 rounded-2xl border border-white/5">
+                            <div className="flex flex-col px-3 border-r border-white/10">
+                                <span className="text-[8px] text-slate-500 font-black uppercase mb-1">Seleccionar Año</span>
+                                <select 
+                                    value={selectedExtYear}
+                                    onChange={(e) => setSelectedExtYear(Number(e.target.value))}
+                                    className="bg-transparent text-white font-black text-xs outline-none cursor-pointer"
+                                >
+                                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y} className="bg-slate-900">{y}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex flex-col px-3">
+                                <span className="text-[8px] text-slate-500 font-black uppercase mb-1">Sede / Obra</span>
+                                <select 
+                                    value={selectedExtWork}
+                                    onChange={(e) => setSelectedExtWork(e.target.value)}
+                                    className="bg-transparent text-blue-400 font-black text-xs outline-none cursor-pointer min-w-[200px]"
+                                >
+                                    {otherWorks.map(w => <option key={w} value={w} className="bg-slate-900">{w}</option>)}
+                                </select>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    const name = prompt("Nombre de la nueva Sede/Obra:");
+                                    if (name && !otherWorks.includes(name)) {
+                                        const updated = [...otherWorks, name];
+                                        setOtherWorks(updated);
+                                        setSelectedExtWork(name);
+                                    }
+                                }}
+                                className="ml-2 p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all"
+                                title="Añadir nueva obra"
+                            >
+                                <RefreshCw size={14} className="rotate-45" /> 
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6">
-                        {otherWorks.length === 0 ? (
-                            <div className="text-center py-20 border-2 border-dashed border-slate-800/50 rounded-[2rem] bg-slate-900/20">
-                                <p className="text-slate-600 text-xs font-black uppercase tracking-[0.2em] italic">No hay registros de obras externas</p>
-                                <p className="text-[9px] text-slate-700 uppercase font-bold mt-2">Usa el botón superior para añadir un nuevo proyecto</p>
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="px-4 py-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                                <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest">{selectedExtWork} • {selectedExtYear}</span>
                             </div>
-                        ) : (
-                            otherWorks.map((work) => (
-                                <div key={work.id} className="bg-slate-950/40 rounded-[2rem] border border-slate-800/50 p-6 hover:border-blue-500/30 transition-all group relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={() => {
-                                                if (confirm(`¿Eliminar permanentemente los registros de "${work.name}"?`)) {
-                                                    const updated = otherWorks.filter(w => w.id !== work.id);
-                                                    setOtherWorks(updated);
-                                                    localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
-                                                }
-                                            }}
-                                            className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all"
-                                        >
-                                            <RefreshCw size={14} className="rotate-45" /> 
-                                        </button>
-                                    </div>
+                            <button 
+                                onClick={() => {
+                                    if (confirm(`¿Eliminar la sede "${selectedExtWork}" y todos sus registros asociados?`)) {
+                                        const updated = otherWorks.filter(w => w !== selectedExtWork);
+                                        setOtherWorks(updated);
+                                        if (updated.length > 0) setSelectedExtWork(updated[0]);
+                                    }
+                                }}
+                                className="text-[8px] text-red-500/50 hover:text-red-500 font-black uppercase transition-colors"
+                            >
+                                Eliminar Sede
+                            </button>
+                        </div>
 
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-1.5 h-6 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                                        <h4 className="text-sm font-black text-white uppercase tracking-wider">{work.name}</h4>
-                                    </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            {MONTHS.map((mName, mIdx) => {
+                                const fileKey = `${selectedExtWork}-${selectedExtYear}-${mIdx}`;
+                                const fileName = externalFiles[fileKey];
+                                
+                                return (
+                                    <div key={mIdx} className="group/item flex flex-col gap-2 p-4 bg-slate-950/40 rounded-3xl border border-slate-800/50 hover:border-blue-500/50 transition-all duration-300">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{mName}</span>
+                                            {fileName && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>}
+                                        </div>
+                                        
+                                        <div className="mt-2">
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                id={`file-ext-${mIdx}`}
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        setExternalFiles(prev => ({ ...prev, [fileKey]: file.name }));
+                                                    }
+                                                }}
+                                            />
+                                            <label 
+                                                htmlFor={`file-ext-${mIdx}`}
+                                                className={`w-full py-6 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${fileName 
+                                                    ? 'bg-emerald-500/5 border-emerald-500/30 border-solid' 
+                                                    : 'bg-slate-900/30 border-slate-800 hover:border-blue-500/50'}`}
+                                            >
+                                                {fileName ? (
+                                                    <div className="flex flex-col items-center gap-2 text-emerald-400">
+                                                        <Download size={20} />
+                                                        <span className="text-[7px] text-emerald-300 font-black uppercase text-center px-2 truncate max-w-full">VER REGISTRO</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-2 opacity-40 group-hover/item:opacity-100 transition-opacity">
+                                                        <Download size={20} className="text-slate-600" />
+                                                        <span className="text-[7px] text-slate-500 font-bold uppercase">SUBIR</span>
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </div>
 
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
-                                        {MONTHS.map((mName, mIdx) => (
-                                            <div key={mIdx} className="flex flex-col gap-2">
-                                                <span className="text-[9px] text-slate-500 font-black uppercase text-center tracking-tighter">{mName}</span>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="file" 
-                                                        className="hidden" 
-                                                        id={`file-${work.id}-${mIdx}`}
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                const updated = otherWorks.map(w => {
-                                                                    if (w.id === work.id) {
-                                                                        return { ...w, files: { ...w.files, [mIdx]: file.name } };
-                                                                    }
-                                                                    return w;
-                                                                });
-                                                                setOtherWorks(updated);
-                                                                localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
-                                                            }
-                                                        }}
-                                                    />
-                                                    <label 
-                                                        htmlFor={`file-${work.id}-${mIdx}`}
-                                                        className={`w-full aspect-square rounded-2xl border flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${work.files?.[mIdx] 
-                                                            ? 'bg-emerald-500/10 border-emerald-500/50 hover:bg-emerald-500/20' 
-                                                            : 'bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/50'}`}
-                                                    >
-                                                        {work.files?.[mIdx] ? (
-                                                            <div className="flex flex-col items-center gap-1">
-                                                                <Download size={14} className="text-emerald-400" />
-                                                                <span className="text-[7px] text-emerald-300 font-black uppercase text-center px-1 truncate w-full">REGISTRO</span>
-                                                            </div>
-                                                        ) : (
-                                                            <Download size={14} className="text-slate-700 group-hover:text-blue-400/50 transition-colors" />
-                                                        )}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {fileName && (
+                                            <button 
+                                                onClick={() => {
+                                                    const updated = { ...externalFiles };
+                                                    delete updated[fileKey];
+                                                    setExternalFiles(updated);
+                                                }}
+                                                className="mt-1 text-[8px] text-slate-700 hover:text-red-400 font-bold uppercase transition-colors"
+                                            >
+                                                Quitar Archivo
+                                            </button>
+                                        )}
                                     </div>
-                                </div>
-                            ))
-                        )}
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
-
-
-
-
