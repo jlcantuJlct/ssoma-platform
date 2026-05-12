@@ -2583,14 +2583,14 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 3: HHT Mensual (CYAN) */}
+                            {/* Card 3: HHT Acumulado (CYAN) */}
                             <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 xl:col-span-3 flex flex-col justify-between shadow-2xl shadow-cyan-500/5">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                         <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-400">
                                             <TrendingUp size={12} />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">HHT del Mes</p>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">HHT del Año</p>
                                     </div>
                                     <div className="bg-slate-950/50 px-2 py-1 rounded-lg border border-cyan-500/20">
                                         <span className="text-[8px] text-cyan-400 font-black">EDITAR VALOR</span>
@@ -2612,7 +2612,7 @@ export function DashboardCharts({
                                         </div>
                                     </div>
                                     <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                                        <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">HHT Mensual</span>
+                                        <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">HHT Acumulado</span>
                                         <div className="w-2 h-2 rounded-full bg-cyan-500 animate-bounce shadow-[0_0_8px_rgba(6,182,212,0.5)]"></div>
                                     </div>
                                 </div>
