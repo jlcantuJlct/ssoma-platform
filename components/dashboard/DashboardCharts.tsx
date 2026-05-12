@@ -3546,3 +3546,4 @@ export function DashboardCharts({
         </div>
     );
 }
+
