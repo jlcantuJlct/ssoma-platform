@@ -3,7 +3,7 @@
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Rectangle, ComposedChart, Area, AreaChart, LabelList, ReferenceLine } from 'recharts';
-import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PieChart as PieChartIcon, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PlusCircle, PieChart as PieChartIcon, CheckCircle2 } from 'lucide-react';
 import { categorizeActivitiesByObjective, OBJECTIVES_CONFIG } from "@/lib/objective-categorization";
 import { USER_LIST, useAuth } from "@/lib/auth";
 import { useState, useEffect, useMemo } from "react";
