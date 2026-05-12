@@ -2599,7 +2599,7 @@ export function DashboardCharts({
                                 <div className="mt-4">
                                     <div className="flex items-center gap-6">
                                         <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
-                                            {Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0}
+                                            {monthlyHHCStats.totalHHTAccumulated || 0}
                                         </span>
                                         <div className="flex-1">
                                             <input
@@ -3546,6 +3546,7 @@ export function DashboardCharts({
         </div>
     );
 }
+
 
 
 
