@@ -298,7 +298,7 @@ export default function SSOMAAssistant() {
                 { keys: ["brigadista", "emergencia", "primeros auxilios", "evacuacion"], name: "Brigadas de Emergencia", id: "brigadistas" },
                 { keys: ["entrenamiento", "capacitacion", "charla", "induccion", "programa", "programa anual"], name: "Programa Anual / Capacitaciones", id: "training" },
                 { keys: ["simulacro", "practica", "alerta"], name: "Simulacros de Emergencia", id: "simulacros" },
-                { keys: ["rac", "acto", "condicion", "ac", "a/c"], name: "Reporte de Actos y Condiciones (RAC)", id: "rac" },
+                { keys: ["rac", "acto", "condicion", "ac", "a/c", "reporte de actos", "reporte de condiciones"], name: "Reporte de Actos y Condiciones (RAC)", id: "rac" },
                 { keys: ["desvio", "desvíos", "hallazgo"], name: "Control de Desvíos", id: "desvio" },
                 { keys: ["estadistica", "indicador", "kpi", "grafico", "dashboard", "panel general", "principal"], name: "Dashboard Principal", id: "analytics" },
                 { keys: ["reporte word", "informe word", "informe mensual", "generador word"], name: "Generar Informe Word", id: "word_report" },
@@ -310,7 +310,7 @@ export default function SSOMAAssistant() {
                 { keys: ["monitoreo", "ocupacional"], name: "Monitoreo Ocupacional", id: "monitoreos" },
                 { keys: ["certificados", "equipo", "calibracion", "calibración"], name: "Certificados de Equipo", id: "equipment" },
                 { keys: ["sharepoint", "export", "archivo central", "robot sharepoint", "descarga", "carpetas", "exportar"], name: "Archivo Central SharePoint", id: "sharepoint" },
-                { keys: ["reporte", "pdf", "documento", "accidentabilidad"], name: "Control de Accidentabilidad", id: "reports" }
+                { keys: ["accidentabilidad", "control de accidentabilidad", "indices de seguridad", "frecuencia", "severidad"], name: "Control de Accidentabilidad", id: "reports" }
             ];
 
             const matchedTool = toolMap.find(t => t.keys.some(k => queryLower.includes(k)));
@@ -563,3 +563,4 @@ export default function SSOMAAssistant() {
         </>
     );
 }
+
