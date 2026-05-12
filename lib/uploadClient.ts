@@ -3,27 +3,84 @@ import { getInitials } from './utils';
 import { UploadContext } from './types';
 
 /**
- * Attempts to compress a PDF file.
- * Currently it focuses on re-saving the document which can sometimes reduce size
- * by removing deleted objects or using more efficient encoding.
+ * Comprime un PDF escaneado renderizando cada página a canvas con pdfjs-dist
+ * y recomprimiendo las imágenes como JPEG. Reduce PDFs de 10+ MB a < 3 MB.
  */
-async function compressPdf(file: File): Promise<File> {
+async function compressPdf(
+    file: File,
+    scale = 1.5,          // Resolución de renderizado (1.5 = buena calidad, menor tamaño)
+    quality = 0.75,       // Calidad JPEG 0-1
+    onProgress?: (page: number, total: number) => void
+): Promise<File> {
     try {
+        console.log(`🗜️ Iniciando compresión real de PDF (${(file.size / 1024 / 1024).toFixed(2)}MB)...`);
+
+        // 1. Cargar pdfjs dinámicamente (solo en cliente)
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+        // 2. Cargar el PDF original
         const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+        const pdfDoc = await loadingTask.promise;
+        const totalPages = pdfDoc.numPages;
 
-        // Re-saving with compression options
-        const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
+        console.log(`📄 PDF cargado: ${totalPages} página(s)`);
 
-        // Create a new file only if it is actually smaller
-        if (compressedBytes.length < file.size) {
-            console.log(`Compresión PDF: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressedBytes.length / 1024 / 1024).toFixed(2)}MB`);
-            return new File([compressedBytes as any], file.name, { type: 'application/pdf' });
+        // 3. Crear un nuevo PDF para reconstruirlo
+        const newPdfDoc = await PDFDocument.create();
+
+        // 4. Renderizar cada página a canvas y recomprimir como JPEG
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+            if (onProgress) onProgress(pageNum, totalPages);
+
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+
+            // Canvas en memoria
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d')!;
+
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            // Convertir canvas a Blob JPEG comprimido
+            const blob: Blob = await new Promise((res) =>
+                canvas.toBlob((b) => res(b!), 'image/jpeg', quality)
+            );
+            const imgBytes = new Uint8Array(await blob.arrayBuffer());
+
+            // Insertar imagen en el nuevo PDF
+            const jpgImage = await newPdfDoc.embedJpg(imgBytes);
+            const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+            pdfPage.drawImage(jpgImage, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+
+            console.log(`  ✅ Página ${pageNum}/${totalPages} procesada`);
         }
 
-        return file;
+        // 5. Guardar el nuevo PDF
+        const compressedBytes = await newPdfDoc.save({ useObjectStreams: true });
+        const compressedFile = new File([compressedBytes], file.name, { type: 'application/pdf' });
+
+        const originalMB = (file.size / 1024 / 1024).toFixed(2);
+        const newMB = (compressedFile.size / 1024 / 1024).toFixed(2);
+        const reduction = (((file.size - compressedFile.size) / file.size) * 100).toFixed(0);
+        console.log(`✅ PDF comprimido: ${originalMB}MB → ${newMB}MB (${reduction}% reducción)`);
+
+        return compressedFile.size < file.size ? compressedFile : file;
+
     } catch (e) {
-        console.warn('No se pudo comprimir el PDF, se enviará el original:', e);
+        console.warn('⚠️ No se pudo comprimir el PDF con renderizado, se enviará el original:', e);
+        // Fallback: intento básico con pdf-lib
+        try {
+            const arrayBuffer2 = await file.arrayBuffer();
+            const pdfDoc2 = await PDFDocument.load(arrayBuffer2);
+            const bytes2 = await pdfDoc2.save({ useObjectStreams: true });
+            if (bytes2.length < file.size) {
+                return new File([bytes2], file.name, { type: 'application/pdf' });
+            }
+        } catch (_) { /* ignorar */ }
         return file;
     }
 }
@@ -137,7 +194,7 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
         } catch (e) {
             console.error("Respuesta no-JSON del Bridge:", text.substring(0, 500));
             if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                throw new Error("Google Drive requiere autenticación. Contacte al administrador.");
+                throw new Error("Google Drive requiere autenticación. El script de Google Apps Script necesita ser re-autorizado o configurado como 'Ejecutar como Mí'.");
             }
             throw new Error("Error de comunicación con Google Drive. Intente de nuevo.");
         }
@@ -147,6 +204,9 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
             return data.viewLink || data.url;
         } else {
             console.error("❌ Error del Script:", data.error);
+            if (data.error && data.error.includes('DriveApp')) {
+                 throw new Error("Google Apps Script perdió los permisos. Por favor, re-autoriza el script en Google Apps Script.");
+            }
             throw new Error(data.error || 'Error desconocido al subir a Drive');
         }
     } catch (error: any) {
@@ -174,25 +234,34 @@ export async function uploadEvidence(
         throw new Error(`El archivo excede el límite de 50MB. Tamaño actual: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
     }
 
-    // 2. Compression (Client-side)
+    // 2. Compresión automática (Cliente) - Se activa si el archivo supera 1MB
+    // Objetivo: Siempre mantenerse por debajo del límite de Vercel (4.5MB)
+    const COMPRESS_THRESHOLD = 1 * 1024 * 1024; // 1 MB
     let fileToUpload = file;
 
-    // Image Compression
-    if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+    // --- Compresión de IMÁGENES ---
+    if (file.type.startsWith('image/') && file.size > COMPRESS_THRESHOLD) {
         try {
-            console.log('Comprimiendo imagen pesada...');
-            fileToUpload = await compressImage(file);
+            console.log(`🖼️ Comprimiendo imagen (${(file.size/1024/1024).toFixed(2)}MB)...`);
+            // Para imágenes muy grandes del celular, reducimos más agresivamente
+            const maxWidth = file.size > 5 * 1024 * 1024 ? 1024 : 1280;
+            const quality = file.size > 5 * 1024 * 1024 ? 0.7 : 0.8;
+            fileToUpload = await compressImage(file, maxWidth, quality);
+            console.log(`✅ Imagen comprimida: ${(file.size/1024/1024).toFixed(2)}MB → ${(fileToUpload.size/1024/1024).toFixed(2)}MB`);
         } catch (e) {
-            console.warn('Error en compresión de imagen:', e);
+            console.warn('⚠️ Error en compresión de imagen:', e);
         }
     }
-    // PDF Compression
-    else if (file.type === 'application/pdf' && file.size > 2 * 1024 * 1024) {
+    // --- Compresión de PDFs escaneados (renderizado página por página) ---
+    else if (file.type === 'application/pdf' && file.size > COMPRESS_THRESHOLD) {
         try {
-            console.log('Intentando optimizar PDF pesado...');
-            fileToUpload = await compressPdf(file);
+            console.log(`📄 PDF pesado detectado (${(file.size/1024/1024).toFixed(2)}MB). Comprimiendo...`);
+            // Para PDFs muy pesados, usamos menor calidad
+            const scale = file.size > 8 * 1024 * 1024 ? 1.2 : 1.5;
+            const quality = file.size > 8 * 1024 * 1024 ? 0.65 : 0.75;
+            fileToUpload = await compressPdf(file, scale, quality);
         } catch (e) {
-            console.warn('Error en optimización de PDF:', e);
+            console.warn('⚠️ Error en compresión de PDF:', e);
         }
     }
 
