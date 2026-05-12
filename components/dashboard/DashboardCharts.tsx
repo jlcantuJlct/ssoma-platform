@@ -585,7 +585,7 @@ export function DashboardCharts({
 
         const savedObr = localStorage.getItem('monthly_obreros_inputs');
         if (savedObr) try { setMonthlyObrerosInputs(JSON.parse(savedObr)); } catch (e) {}
-    }, [currentYear]);
+    }, [currentYear, mode]);
 
     const handleMonthlyInputChange = (key: 'hht' | 'empleados' | 'obreros', val: string) => {
         const numericVal = Number(val);
