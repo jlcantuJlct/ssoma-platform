@@ -146,7 +146,7 @@ async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promis
 }
 
 // URL del puente Apps Script para subida directa (evita límite Vercel 4.5MB)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzejhIn8c-dF7bgoIEokyCsm1k-U2D_1Q50BCnjZI9OzTiVcGv5LcsgSql6zsoN69ne/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
 
 /**
  * Sube archivo directamente a Google Drive via Apps Script Bridge
@@ -172,7 +172,7 @@ async function uploadDirectToDrive(file: File, folderName: string, fileName: str
 
         const payload = {
             filename: fileName,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType: file.type, mimetype: file.type || 'application/octet-stream',
             fileBase64: base64,
             folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5", // Carpeta raíz SSOMA (Actualizado a 1j6w activo)
             folderPath: folderName, // NEW: Match 'folderPath' expected by Bridge
