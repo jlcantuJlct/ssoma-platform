@@ -563,16 +563,29 @@ export function DashboardCharts({
     const [monthlyObrerosInputs, setMonthlyObrerosInputs] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        // Load inputs
+        const savedAccidentStats = localStorage.getItem(`accidentability_stats_${currentYear}`);
+        const hhtFromAcc: Record<string, number> = {};
+        if (savedAccidentStats) {
+            try {
+                const parsed = JSON.parse(savedAccidentStats);
+                if (parsed.HP) {
+                    parsed.HP.forEach((val: number, idx: number) => {
+                        hhtFromAcc[`${currentYear}-${idx}`] = val;
+                    });
+                }
+            } catch (e) {}
+        }
+
         const savedHHT = localStorage.getItem('monthly_hht_inputs');
-        if (savedHHT) try { setMonthlyHHTInputs(JSON.parse(savedHHT)); } catch (e) {}
+        const hhtFromLocal = savedHHT ? JSON.parse(savedHHT) : {};
+        setMonthlyHHTInputs({ ...hhtFromLocal, ...hhtFromAcc });
         
         const savedEmp = localStorage.getItem('monthly_empleados_inputs');
         if (savedEmp) try { setMonthlyEmpleadosInputs(JSON.parse(savedEmp)); } catch (e) {}
 
         const savedObr = localStorage.getItem('monthly_obreros_inputs');
         if (savedObr) try { setMonthlyObrerosInputs(JSON.parse(savedObr)); } catch (e) {}
-    }, []);
+    }, [currentYear]);
 
     const handleMonthlyInputChange = (key: 'hht' | 'empleados' | 'obreros', val: string) => {
         const numericVal = Number(val);
@@ -582,6 +595,14 @@ export function DashboardCharts({
             const updated = { ...monthlyHHTInputs, [monthKey]: numericVal };
             setMonthlyHHTInputs(updated);
             localStorage.setItem('monthly_hht_inputs', JSON.stringify(updated));
+
+            // Sync with accidentability storage
+            const savedAccidentStats = localStorage.getItem(`accidentability_stats_${currentYear}`);
+            let stats = savedAccidentStats ? JSON.parse(savedAccidentStats) : { HP: Array(12).fill(0) };
+            if (!stats.HP) stats.HP = Array(12).fill(0);
+            stats.HP[hhcMonthFilter] = numericVal;
+            localStorage.setItem(`accidentability_stats_${currentYear}`, JSON.stringify(stats));
+
         } else if (key === 'empleados') {
             const updated = { ...monthlyEmpleadosInputs, [monthKey]: numericVal };
             setMonthlyEmpleadosInputs(updated);
@@ -593,31 +614,35 @@ export function DashboardCharts({
         }
     };
 
-    // Calculate Indice HHC for the selected month
+    // Calculate Accumulated HHC/HHT for the selected month
     const monthlyHHCStats = useMemo(() => {
-        const monthlyRecords = hhcRecords.filter(r => {
+        let accHHT = 0;
+        for (let i = 0; i <= hhcMonthFilter; i++) {
+            accHHT += Number(monthlyHHTInputs[`${currentYear}-${i}`]) || 0;
+        }
+
+        const accumulatedRecords = hhcRecords.filter(r => {
             if (!r || !r.date) return false;
             try {
                 const dateParts = String(r.date).split('-');
                 if (dateParts.length < 2) return false;
                 const rYear = parseInt(dateParts[0]);
                 const rMonth = parseInt(dateParts[1]) - 1;
-                return rYear === currentYear && rMonth === hhcMonthFilter;
+                return rYear === currentYear && rMonth <= hhcMonthFilter;
             } catch (e) { return false; }
         });
 
-        // Use the same formula as in the table for consistency
-        const totalHHCSum = monthlyRecords.reduce((acc, r) => {
+        const totalHHCSum = accumulatedRecords.reduce((acc, r) => {
             const total = (Number(r.hombres) || 0) + (Number(r.mujeres) || 0);
             const duration = FORMATION_DURATIONS[r.tipo] || 0;
             return acc + (total * duration);
         }, 0);
 
-        const totalHHT = Number(monthlyHHTInputs[`${currentYear}-${hhcMonthFilter}`]) || 0;
-        const index = totalHHT > 0 ? ((totalHHCSum / totalHHT) * 100).toFixed(2) : "0.00";
+        const index = accHHT > 0 ? ((totalHHCSum / accHHT) * 100).toFixed(2) : "0.00";
 
         return {
             totalHHC: totalHHCSum.toFixed(1),
+            totalHHTAccumulated: accHHT,
             index: index
         };
     }, [hhcRecords, currentYear, hhcMonthFilter, monthlyHHTInputs]);
@@ -3546,6 +3571,7 @@ export function DashboardCharts({
         </div>
     );
 }
+
 
 
 
