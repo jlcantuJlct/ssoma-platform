@@ -52,13 +52,15 @@ export const PMA_CATEGORIES: PMACategory[] = [
     // CONTROL DE DERRAMES Y MAQUINARIA
     { id: "SPILL_KIT", group: "PMA", label: "Kit antiderrame", hint: "Evidenciar disponibilidad y estado del kit." },
     { id: "SPILL_TRAY", group: "PMA", label: "Uso de Bandeja antiderrames", hint: "Uso de bandejas en abastecimiento o estacionamiento." },
-    { id: "CISTERN_MESH", group: "PMA", label: "Mangueras cuentan con cabezal con malla", hint: "Control de succión en cisternas." },
+    { id: "CISTERN_MESH", group: "PMA", label: "Cabezal de manguera con malla", hint: "Control de succión en cisternas." },
     { id: "CISTERN_SPILL_KIT", group: "PMA", label: "Cisterna cuenta con kit Antiderrame", hint: "Kit en unidades de riego." },
     { id: "WATER_COURSE_PROTECT", group: "PMA", label: "Vehículos no ingresan al curso de agua", hint: "Protección de cauces." },
+    { id: "WATER_INTAKE_EXTERNAL", group: "PMA", label: "Captación de agua fuera del flujo de agua", hint: "Control de succión de agua." },
     
     // EMISIONES Y POLVO
-    { id: "DUST_WATERING", group: "PMA", label: "Realización de riego", hint: "Riego de vías para control de polvo." },
+    { id: "DUST_WATERING", group: "PMA", label: "Riego de vías", hint: "Riego de vías para control de polvo." },
     { id: "NOISE_SILENCER", group: "PMA", label: "Maquinarias con silenciador", hint: "Control de emisiones sonoras." },
+    { id: "TRUCK_FULL_MATERIAL", group: "PMA", label: "Transporte de material volquete con material al ras de la tolva", hint: "Control de carga en volquetes." },
     { id: "DUST_CONTROL_SIGN", group: "PMA", label: "Señal de control de polvo", hint: "Señalización informativa de polvo." },
     
     // SEÑALIZACIÓN Y DELIMITACIÓN
