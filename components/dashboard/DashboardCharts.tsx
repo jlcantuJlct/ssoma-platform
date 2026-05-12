@@ -2568,7 +2568,7 @@ export function DashboardCharts({
                                         <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">Trabajadores</span>
                                     </div>
                                     <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                                        <span className="text-[11px] font-black text-pink-400 uppercase tracking-wider">Suma de Dotación</span>
+                                        <span className="text-[11px] font-black text-pink-400 uppercase tracking-wider">Suma de Trabajadores</span>
                                         <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]"></div>
                                     </div>
                                 </div>
@@ -3546,6 +3546,7 @@ export function DashboardCharts({
         </div>
     );
 }
+
 
 
 
