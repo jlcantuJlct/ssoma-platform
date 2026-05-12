@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { Download, Save, RefreshCw } from "lucide-react";
@@ -32,6 +32,7 @@ export default function ReportsPage() {
 
     const [data, setData] = useState<MonthlyData>(initialData);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [otherWorks, setOtherWorks] = useState<any[]>([]);
 
     // Load from LocalStorage
     useEffect(() => {
@@ -44,6 +45,12 @@ export default function ReportsPage() {
                 console.error("Error parsing stats", e);
             }
         }
+
+        const savedWorks = localStorage.getItem('other_works_accident_2026');
+        if (savedWorks) {
+            try { setOtherWorks(JSON.parse(savedWorks)); } catch (e) {}
+        }
+
         setIsLoaded(true);
     }, []);
 
@@ -414,6 +421,111 @@ export default function ReportsPage() {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                {/* SECCIÓN: REGISTROS DE OBRAS EXTERNAS */}
+                <div className="mt-12 bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl">
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                                <RefreshCw className="text-blue-400" size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight">Accidentabilidad de Obras Externas</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Registros mensuales de otros frentes de trabajo en desarrollo</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                const name = prompt("Nombre de la nueva Obra:");
+                                if (name) {
+                                    const newWork = { id: Date.now(), name, files: {} };
+                                    const updated = [...otherWorks, newWork];
+                                    setOtherWorks(updated);
+                                    localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
+                                }
+                            }}
+                            className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20 active:scale-95 border border-blue-400/20"
+                        >
+                            + Registrar Obra
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                        {otherWorks.length === 0 ? (
+                            <div className="text-center py-20 border-2 border-dashed border-slate-800/50 rounded-[2rem] bg-slate-900/20">
+                                <p className="text-slate-600 text-xs font-black uppercase tracking-[0.2em] italic">No hay registros de obras externas</p>
+                                <p className="text-[9px] text-slate-700 uppercase font-bold mt-2">Usa el botón superior para añadir un nuevo proyecto</p>
+                            </div>
+                        ) : (
+                            otherWorks.map((work) => (
+                                <div key={work.id} className="bg-slate-950/40 rounded-[2rem] border border-slate-800/50 p-6 hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={() => {
+                                                if (confirm(`¿Eliminar permanentemente los registros de "${work.name}"?`)) {
+                                                    const updated = otherWorks.filter(w => w.id !== work.id);
+                                                    setOtherWorks(updated);
+                                                    localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
+                                                }
+                                            }}
+                                            className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                                        >
+                                            <RefreshCw size={14} className="rotate-45" /> 
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-1.5 h-6 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                        <h4 className="text-sm font-black text-white uppercase tracking-wider">{work.name}</h4>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
+                                        {MONTHS.map((mName, mIdx) => (
+                                            <div key={mIdx} className="flex flex-col gap-2">
+                                                <span className="text-[9px] text-slate-500 font-black uppercase text-center tracking-tighter">{mName}</span>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="file" 
+                                                        className="hidden" 
+                                                        id={`file-${work.id}-${mIdx}`}
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                const updated = otherWorks.map(w => {
+                                                                    if (w.id === work.id) {
+                                                                        return { ...w, files: { ...w.files, [mIdx]: file.name } };
+                                                                    }
+                                                                    return w;
+                                                                });
+                                                                setOtherWorks(updated);
+                                                                localStorage.setItem('other_works_accident_2026', JSON.stringify(updated));
+                                                            }
+                                                        }}
+                                                    />
+                                                    <label 
+                                                        htmlFor={`file-${work.id}-${mIdx}`}
+                                                        className={`w-full aspect-square rounded-2xl border flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${work.files?.[mIdx] 
+                                                            ? 'bg-emerald-500/10 border-emerald-500/50 hover:bg-emerald-500/20' 
+                                                            : 'bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/50'}`}
+                                                    >
+                                                        {work.files?.[mIdx] ? (
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <Download size={14} className="text-emerald-400" />
+                                                                <span className="text-[7px] text-emerald-300 font-black uppercase text-center px-1 truncate w-full">REGISTRO</span>
+                                                            </div>
+                                                        ) : (
+                                                            <Download size={14} className="text-slate-700 group-hover:text-blue-400/50 transition-colors" />
+                                                        )}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
