@@ -17,7 +17,14 @@ async function compressPdf(
 
         // 1. Cargar pdfjs dinámicamente (solo en cliente)
         const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        // Usar worker local bundled (más confiable en celulares y sin depender de CDN)
+        try {
+            const { default: PdfjsWorker } = await import('pdfjs-dist/build/pdf.worker.mjs' as any);
+            pdfjsLib.GlobalWorkerOptions.workerSrc = PdfjsWorker;
+        } catch {
+            // Fallback a CDN si el import local falla
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+        }
 
         // 2. Cargar el PDF original
         const arrayBuffer = await file.arrayBuffer();
