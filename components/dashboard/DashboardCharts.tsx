@@ -840,7 +840,7 @@ export function DashboardCharts({
         const finalPdfDoc = await PDFDocument.create();
 
         // Anexar todos los PDFs de evidencia
-        for (const record of recordsWithPdf.slice().reverse()) {
+        for (const record of recordsWithPdf) {
             const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
             const evidenceBuffer = await fetchProxiedFile(fetchUrl);
@@ -3149,7 +3149,7 @@ export function DashboardCharts({
                                             </thead>
                                             <tbody className="divide-y divide-slate-800">
                                                 {finalFilteredHistory
-                                                    .slice().reverse()
+                                                    
                                                     .map((r, i) => {
                                                         const realRecordIndex = hhcRecords.findIndex(rec => rec === r);
                                                         return (
@@ -3546,5 +3546,6 @@ export function DashboardCharts({
         </div>
     );
 }
+
 
 
