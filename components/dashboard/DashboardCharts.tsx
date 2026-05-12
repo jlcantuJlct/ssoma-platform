@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
@@ -2529,18 +2529,18 @@ export function DashboardCharts({
                                 </div>
                             </div>
 
-                            {/* Card 2: Dotación Personal (PINK) */}
+                            {/* Card 2: Cant. de Trabajadores Personal (PINK) */}
                             <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-pink-500/50 transition-all duration-300 xl:col-span-3 flex flex-col justify-between shadow-2xl shadow-pink-500/5">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                         <div className="p-1.5 bg-pink-500/10 rounded-lg text-pink-400">
                                             <Users size={12} />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Dotación</p>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Cant. de Trabajadores</p>
                                     </div>
                                     <div className="flex gap-2">
                                         <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded-lg border border-white/5">
-                                            <span className="text-[8px] text-pink-500 font-black">E:</span>
+                                            <span className="text-[7px] text-pink-500 font-black uppercase tracking-tighter">Empleados</span>
                                             <input
                                                 type="number"
                                                 value={monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
@@ -2549,7 +2549,7 @@ export function DashboardCharts({
                                             />
                                         </div>
                                         <div className="flex items-center gap-1.5 bg-slate-950/50 px-2 py-1 rounded-lg border border-white/5">
-                                            <span className="text-[8px] text-blue-500 font-black">O:</span>
+                                            <span className="text-[7px] text-blue-500 font-black uppercase tracking-tighter">Obrero</span>
                                             <input
                                                 type="number"
                                                 value={monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`] || ''}
