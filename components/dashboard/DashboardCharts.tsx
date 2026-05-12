@@ -2852,7 +2852,7 @@ export function DashboardCharts({
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="space-y-4 mb-4">
                                     <div>
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
                                         <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
@@ -2861,25 +2861,25 @@ export function DashboardCharts({
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Hombres</label>
                                             <div className="relative group">
-                                                <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
-                                                <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-8 pr-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 transition-all" />
+                                                <Users className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
+                                                <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Mujeres</label>
                                             <div className="relative group">
-                                                <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
-                                                <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-8 pr-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 transition-all" />
+                                                <Users className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
+                                                <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
                                             </div>
                                         </div>
                                     </div>
 
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="space-y-4 mb-4">
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="space-y-4 mb-4">
                                     {/* Carga de Archivos */}
                                     <div className="col-span-2">
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Evidencias</label>
