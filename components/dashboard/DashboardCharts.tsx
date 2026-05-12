@@ -994,8 +994,7 @@ export function DashboardCharts({
         });
     };
 
-
-
+    const handleAddHHCRecord = () => {
         // STRICT VALIDATION
         const effectiveTema = newHHC.isAdditionalTopic ? newHHC.customTopic : newHHC.tema;
         if (!newHHC.date || !newHHC.area || !newHHC.tipo || !effectiveTema || !newHHC.responsable || !newHHC.lugar) {
@@ -1872,74 +1871,81 @@ export function DashboardCharts({
         ];
     };
 
-    const renderObjectiveList = (data: any[]) => (
-        <div className="flex gap-4 overflow-x-auto pb-6 px-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent snap-x snap-mandatory">
-            {data.map((obj, idx) => {
-                const donutData = [
-                    { name: 'Cumplimiento', value: obj.percent, fill: obj.fill },
-                    { name: 'Pendiente', value: 100 - obj.percent, fill: '#f1f5f9' }
-                ];
-                let Icon = Target;
-                if (obj.fill === '#10b981') Icon = ShieldCheck;
-                if (obj.fill === '#ec4899') Icon = ActivityIcon;
-                if (obj.fill === '#3b82f6') Icon = Leaf;
+    // --- RENDERING HELPERS ---
+    const renderObjectiveList = (data: any[]) => {
+        return (
+            <div className="flex gap-4 overflow-x-auto pb-6 px-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent snap-x snap-mandatory">
+                {data.map((obj, idx) => {
+                    const donutData = [
+                        { name: 'Cumplimiento', value: obj.percent, fill: obj.fill },
+                        { name: 'Pendiente', value: 100 - obj.percent, fill: '#f1f5f9' }
+                    ];
+                    let Icon = Target;
+                    if (obj.fill === '#10b981') Icon = ShieldCheck;
+                    if (obj.fill === '#ec4899') Icon = ActivityIcon;
+                    if (obj.fill === '#3b82f6') Icon = Leaf;
 
-                return (
-                    <div key={idx} className="min-w-[200px] w-[200px] bg-white rounded-[2rem] p-5 shadow-lg border border-slate-100 flex flex-col items-center relative overflow-hidden h-[240px] flex-shrink-0 snap-center">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
-                            <div className="h-full transition-all duration-1000" style={{ width: `${obj.percent}%`, backgroundColor: obj.fill }}></div>
-                        </div>
-                        <div className="text-center mb-1 z-10 w-full px-1">
-                            <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center justify-center gap-1 truncate">
-                                <Icon size={12} style={{ color: obj.fill }} />
-                                {obj.name}
-                            </h4>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5 truncate max-w-full" title={obj.fullName}>{obj.fullName}</p>
-                        </div>
-                        <div className="flex-1 w-full relative flex items-center justify-center">
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="text-center">
-                                    <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{obj.percent}%</span>
-                                    <div className="flex items-center justify-center gap-1.5 mt-0.5">
-                                        <span className="text-[9px] font-bold text-slate-400">P: {obj.plan}</span>
-                                        <span className="text-[9px] font-bold text-emerald-600">E: {obj.exec}</span>
+                    return (
+                        <div key={idx} className="min-w-[200px] w-[200px] bg-white rounded-[2rem] p-5 shadow-lg border border-slate-100 flex flex-col items-center relative overflow-hidden h-[240px] flex-shrink-0 snap-center">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
+                                <div className="h-full transition-all duration-1000" style={{ width: `${obj.percent}%`, backgroundColor: obj.fill }}></div>
+                            </div>
+                            <div className="text-center mb-1 z-10 w-full px-1">
+                                <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center justify-center gap-1 truncate">
+                                    <Icon size={12} style={{ color: obj.fill }} />
+                                    {obj.name}
+                                </h4>
+                                <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5 truncate max-w-full" title={obj.fullName}>{obj.fullName}</p>
+                            </div>
+                            <div className="flex-1 w-full relative flex items-center justify-center">
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="text-center">
+                                        <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{obj.percent}%</span>
+                                        <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                                            <span className="text-[9px] font-bold text-slate-400">P: {obj.plan}</span>
+                                            <span className="text-[9px] font-bold text-emerald-600">E: {obj.exec}</span>
+                                        </div>
                                     </div>
                                 </div>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={donutData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={45}
+                                            outerRadius={60}
+                                            startAngle={90}
+                                            endAngle={-270}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                            stroke="none"
+                                        >
+                                            {donutData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
                             </div>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={donutData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={45}
-                                        outerRadius={60}
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {donutData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
                         </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+                    );
+                })}
+            </div>
+        );
+    };
 
     if (!activities || activities.length === 0) {
         return (
-            <div className="p-4 text-center text-slate-400 bg-slate-900 rounded-xl border border-slate-800">
-                <p>Cargando datos del sistema...</p>
+            <div className="flex items-center justify-center min-h-[400px] p-6">
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl text-center shadow-2xl">
+                    <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Cargando datos del sistema...</p>
+                </div>
             </div>
         );
     }
+
 
 
     const monthlyData = calculateMonthlyData();
@@ -2670,23 +2676,23 @@ export function DashboardCharts({
                                                 setEditingIndex(null);
                                                 setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad', tipo: 'capacitacion', tema: '', evidenceImgs: [], evidencePdf: '', lugar: '', isAdditionalTopic: false, customTopic: '' });
                                             }}
-                                            className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors w-full sm:w-auto"
+                                            className="bg-slate-700/50 hover:bg-slate-600 text-white text-[10px] font-bold px-4 py-2 rounded-xl transition-all border border-slate-600/50 hover:border-slate-500 w-full sm:w-auto active:scale-95"
                                         >
-                                            Limpiar
+                                            Limpiar Formulario
                                         </button>
                                     </div>
-                                    <div className="flex flex-col sm:flex-row gap-2 relative">
+                                    <div className="flex flex-col sm:flex-row gap-3 relative">
                                         {/* IMPORT MENU */}
                                         <div className="relative flex-1 group w-full">
                                             <button
                                                 onClick={() => setImportMenuOpen(!importMenuOpen)}
-                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black px-4 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40 active:scale-95"
                                             >
-                                                📊 Importar / Gestión
+                                                📊 GESTIÓN DE DATOS
                                             </button>
 
                                             {importMenuOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                                <div className="absolute top-full left-0 mt-2 w-full bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                                                     {/* Option 1: Import for current month */}
                                                     <div className="relative border-b border-slate-800 hover:bg-slate-800 transition-colors">
                                                         <input
@@ -2698,10 +2704,10 @@ export function DashboardCharts({
                                                             }}
                                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                         />
-                                                        <div className="px-3 py-2 flex items-center justify-between">
+                                                        <div className="px-4 py-3 flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <Download size={12} className="text-emerald-400" />
-                                                                <span className="text-[9px] font-bold text-slate-300">
+                                                                <Download size={14} className="text-emerald-400" />
+                                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                                                                     Importar {MONTHS[hhcMonthFilter]}
                                                                 </span>
                                                             </div>
@@ -2716,12 +2722,12 @@ export function DashboardCharts({
                                                             }
                                                             setImportMenuOpen(false);
                                                         }}
-                                                        className="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-800 transition-colors text-left"
+                                                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800 transition-colors text-left"
                                                     >
                                                         <div className="flex items-center gap-2">
-                                                            <Trash2 size={12} className="text-red-400" />
-                                                            <span className="text-[9px] font-bold text-red-400">
-                                                                Eliminar {MONTHS[hhcMonthFilter]}
+                                                            <Trash2 size={14} className="text-red-400" />
+                                                            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
+                                                                Limpiar {MONTHS[hhcMonthFilter]}
                                                             </span>
                                                         </div>
                                                     </button>
@@ -2729,8 +2735,8 @@ export function DashboardCharts({
                                             )}
                                         </div>
 
-                                        <button onClick={() => setShowProgramModal(true)} className="flex-1 w-full bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
-                                            📅 Ver Calendario
+                                        <button onClick={() => setShowProgramModal(true)} className="flex-1 w-full bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black px-4 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-700 active:scale-95">
+                                            📅 CALENDARIO
                                         </button>
                                     </div>
                                 </div>
@@ -2790,19 +2796,19 @@ export function DashboardCharts({
 
                                         </select>
                                     </div>
-                                    <div className="space-y-3 p-3 bg-slate-900/50 rounded-xl border border-white/5">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[10px] text-white font-black uppercase tracking-wider">¿Tiene tema adicional?</label>
-                                            <div className="flex bg-slate-800 rounded-lg p-1 border border-white/5">
+                                    <div className="space-y-4 p-4 bg-slate-900/80 rounded-2xl border border-white/5 shadow-inner">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <label className="text-[11px] text-emerald-400 font-black uppercase tracking-widest leading-tight">¿Tema fuera del programa?</label>
+                                            <div className="flex bg-slate-950 rounded-xl p-1 border border-white/10 shadow-lg">
                                                 <button 
                                                     onClick={() => setNewHHC(prev => ({ ...prev, isAdditionalTopic: true }))}
-                                                    className={`px-3 py-1 rounded-md text-[9px] font-black transition-all ${newHHC.isAdditionalTopic ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                                    className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${newHHC.isAdditionalTopic ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'text-slate-500 hover:text-slate-400'}`}
                                                 >
                                                     SÍ
                                                 </button>
                                                 <button 
                                                     onClick={() => setNewHHC(prev => ({ ...prev, isAdditionalTopic: false, customTopic: '' }))}
-                                                    className={`px-3 py-1 rounded-md text-[9px] font-black transition-all ${!newHHC.isAdditionalTopic ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                                    className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${!newHHC.isAdditionalTopic ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-400'}`}
                                                 >
                                                     NO
                                                 </button>
@@ -2810,30 +2816,36 @@ export function DashboardCharts({
                                         </div>
 
                                         {newHHC.isAdditionalTopic ? (
-                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <label className="text-[9px] text-emerald-400 font-bold uppercase block mb-1">Nombre del Tema Adicional</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Escribe el nombre del tema aquí..."
-                                                    value={newHHC.customTopic}
-                                                    onChange={(e) => setNewHHC(prev => ({ ...prev, customTopic: e.target.value }))}
-                                                    className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 shadow-inner"
-                                                />
+                                            <div className="animate-in fade-in slide-in-from-top-3 duration-500">
+                                                <label className="text-[10px] text-emerald-400 font-black uppercase block mb-2 tracking-widest">NOMBRE DEL TEMA ADICIONAL</label>
+                                                <div className="relative group">
+                                                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Escriba el nombre del tema..."
+                                                        value={newHHC.customTopic}
+                                                        onChange={(e) => setNewHHC(prev => ({ ...prev, customTopic: e.target.value }))}
+                                                        className="w-full bg-slate-950 border border-emerald-500/20 group-focus-within:border-emerald-500/50 rounded-xl pl-10 pr-4 py-3 text-white text-xs font-bold outline-none transition-all shadow-inner"
+                                                    />
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-1">
+                                            <div className="space-y-2">
                                                 <SearchableSelect
-                                                    label="Tema / Actividad"
+                                                    label="TEMA DEL PROGRAMA ANUAL"
                                                     options={trainingTopicsByArea[newHHC.area] || []}
                                                     value={newHHC.tema}
                                                     onChange={(val) => updateStat('tema', val)}
-                                                    placeholder="Seleccionar tema del programa..."
+                                                    placeholder="Seleccionar capacitación..."
                                                     icon={<BookOpen size={16} className="text-emerald-500" />}
                                                 />
                                                 {!newHHC.tema && (
-                                                    <p className="text-[8px] text-amber-400 font-medium italic">
-                                                        * Seleccione un tema del Programa Anual para que se sume al Ejecutado (E).
-                                                    </p>
+                                                    <div className="flex items-center gap-2 px-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                                                        <p className="text-[9px] text-amber-500/80 font-bold italic tracking-wide">
+                                                            * Elija un tema programado para computar el avance (E).
+                                                        </p>
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
@@ -2845,14 +2857,23 @@ export function DashboardCharts({
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
                                         <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
                                     </div>
-                                    <div>
-                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Hombres</label>
-                                        <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Hombres</label>
+                                            <div className="relative group">
+                                                <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
+                                                <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-8 pr-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 transition-all" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Mujeres</label>
+                                            <div className="relative group">
+                                                <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
+                                                <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-8 pr-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 transition-all" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Mujeres</label>
-                                        <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
-                                    </div>
+
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3 mb-4">
@@ -2971,9 +2992,27 @@ export function DashboardCharts({
                                     </div>
                                 </div>
 
-                                <button onClick={handleAddHHCRecord} className={`${editingIndex !== null ? 'bg-orange-500 hover:bg-orange-400' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-black uppercase text-xs py-3 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2`}>
-                                    {editingIndex !== null ? <><Edit size={16} /> Actualizar Registro</> : <><Plus size={16} /> Registrar Actividad</>}
+                                <button 
+                                    onClick={handleAddHHCRecord} 
+                                    disabled={isUploading}
+                                    className={`w-full text-white font-black uppercase text-xs py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                                        isUploading ? 'bg-slate-700 cursor-wait opacity-80' : 
+                                        (editingIndex !== null ? 'bg-gradient-to-r from-orange-600 to-amber-500 hover:shadow-orange-500/20' : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:shadow-emerald-500/20')
+                                    }`}
+                                >
+                                    {isUploading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            Subiendo Archivos...
+                                        </>
+                                    ) : (
+                                        <>
+                                            {editingIndex !== null ? <Edit size={18} /> : <PlusCircle size={18} />}
+                                            {editingIndex !== null ? 'Actualizar Registro' : 'Registrar Actividad'}
+                                        </>
+                                    )}
                                 </button>
+
                             </div>
 
                             {/* 3. HISTORIAL (65%) */}
@@ -2985,20 +3024,20 @@ export function DashboardCharts({
                                         <h4 className="text-white font-bold flex items-center gap-2 text-sm">
                                             <History size={18} className="text-blue-400" /> Rastro de Formación
                                         </h4>
-                                        <div className="flex gap-2 ml-auto">
+                                        <div className="flex flex-col sm:flex-row gap-3 ml-auto w-full sm:w-auto">
                                             {(filters.responsable || filters.lugar || filters.startDate || filters.endDate || filters.tema || filters.type !== 'todos') && (
                                                 <button 
                                                     onClick={() => setFilters({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' })}
-                                                    className="bg-slate-800 hover:bg-slate-700 text-red-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-slate-700 hover:border-red-500/50"
+                                                    className="bg-slate-800/80 hover:bg-slate-700 text-red-400 text-[10px] font-black px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-700 hover:border-red-500/40 w-full sm:w-auto uppercase tracking-widest"
                                                 >
-                                                    <X size={12} /> Limpiar Filtros
+                                                    <X size={14} /> Limpiar Filtros
                                                 </button>
                                             )}
                                             <button
                                                 onClick={generateBulkHHCPDF}
-                                                className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-red-900/20"
+                                                className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-red-900/30 w-full sm:w-auto uppercase tracking-widest"
                                             >
-                                                <Download size={12} /> Exportar PDF (.pdf)
+                                                <Download size={14} /> Exportar PDF
                                             </button>
                                         </div>
 
