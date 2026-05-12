@@ -96,7 +96,7 @@ export default function ProgramPage() {
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
-    const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string, tema?: string, area?: string, date?: string } | null>(null);
+    const [reconfigRecord, setReconfigRecord] = useState<{ index: number, category: string, subtype: string, tema?: string, area?: string, date?: string, temaAdicional?: boolean, nombreTemaAdicional?: string } | null>(null);
     const [newTema, setNewTema] = useState(''); // For custom tema input
 
     const RECONFIG_CATEGORIES = [
@@ -1766,6 +1766,45 @@ export default function ProgramPage() {
                                                                 );
                                                             })()}
                                                         </div>
+
+                                                        {/* ¿Tiene tema adicional? */}
+                                                        <div className="flex-[2] space-y-2">
+                                                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">¿Tiene Tema Adicional?</label>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setReconfigRecord({ ...reconfigRecord!, temaAdicional: true, nombreTemaAdicional: reconfigRecord!.temaAdicional === true ? reconfigRecord!.nombreTemaAdicional : '' })}
+                                                                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-black border transition-all ${
+                                                                        reconfigRecord.temaAdicional === true
+                                                                        ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20'
+                                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-emerald-500/50'
+                                                                    }`}
+                                                                >
+                                                                    ✅ SÍ
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setReconfigRecord({ ...reconfigRecord!, temaAdicional: false, nombreTemaAdicional: '' })}
+                                                                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-black border transition-all ${
+                                                                        reconfigRecord.temaAdicional === false
+                                                                        ? 'bg-slate-600 border-slate-500 text-white'
+                                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'
+                                                                    }`}
+                                                                >
+                                                                    ❌ NO
+                                                                </button>
+                                                            </div>
+                                                            {reconfigRecord.temaAdicional === true && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Escribe el nombre del tema adicional..."
+                                                                    className="w-full mt-2 bg-slate-800 border border-emerald-400/60 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-emerald-400 outline-none"
+                                                                    value={reconfigRecord.nombreTemaAdicional || ''}
+                                                                    onChange={(e) => setReconfigRecord({ ...reconfigRecord!, nombreTemaAdicional: e.target.value })}
+                                                                    autoFocus
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -1789,7 +1828,8 @@ export default function ProgramPage() {
                                                                     targetSubtype: reconfigRecord.subtype,
                                                                     targetTema: reconfigRecord.tema === '__NUEVO__' ? newTema.trim() : reconfigRecord.tema,
                                                                     targetArea: reconfigRecord.area,
-                                                                    targetDate: reconfigRecord.date
+                                                                    targetDate: reconfigRecord.date,
+                                                                    temaAdicional: reconfigRecord.temaAdicional === true ? (reconfigRecord.nombreTemaAdicional || '').trim() : null
                                                                 })
                                                             });
                                                             const data = await res.json();
