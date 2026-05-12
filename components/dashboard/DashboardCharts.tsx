@@ -206,7 +206,8 @@ export function DashboardCharts({
 
     // --- HHC DRAFT LOGIC ---
     const [newHHC, setNewHHC] = useState({
-        responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [] as string[], evidencePdf: '', lugar: ''
+        responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad' as any, tipo: 'capacitacion' as any, tema: '', evidenceImgs: [] as string[], evidencePdf: '', lugar: '',
+        isAdditionalTopic: false, customTopic: ''
     });
 
     useEffect(() => {
@@ -995,9 +996,9 @@ export function DashboardCharts({
 
 
 
-    const handleAddHHCRecord = () => {
         // STRICT VALIDATION
-        if (!newHHC.date || !newHHC.area || !newHHC.tipo || !newHHC.tema || !newHHC.responsable || !newHHC.lugar) {
+        const effectiveTema = newHHC.isAdditionalTopic ? newHHC.customTopic : newHHC.tema;
+        if (!newHHC.date || !newHHC.area || !newHHC.tipo || !effectiveTema || !newHHC.responsable || !newHHC.lugar) {
             alert("⚠️ ALERTA DE REGISTRO\n\nPara guardar, debe completar TODOS los campos:\n\n- Fecha\n- Responsable\n- Área y Tipo\n- Lugar\n- Tema / Actividad");
             return;
         }
@@ -1010,7 +1011,7 @@ export function DashboardCharts({
             mujeres: Number(newHHC.mujeres) || 0,
             area: newHHC.area,
             tipo: newHHC.tipo,
-            tema: newHHC.tema,
+            tema: effectiveTema,
             responsable: newHHC.responsable,
             evidenceImgs: newHHC.evidenceImgs || [],
             evidencePdf: newHHC.evidencePdf || '',
@@ -2667,19 +2668,19 @@ export function DashboardCharts({
                                         <button
                                             onClick={() => {
                                                 setEditingIndex(null);
-                                                setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad', tipo: 'capacitacion', tema: '', evidenceImgs: [], evidencePdf: '', lugar: '' });
+                                                setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad', tipo: 'capacitacion', tema: '', evidenceImgs: [], evidencePdf: '', lugar: '', isAdditionalTopic: false, customTopic: '' });
                                             }}
                                             className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors w-full sm:w-auto"
                                         >
                                             Limpiar
                                         </button>
                                     </div>
-                                    <div className="flex gap-2 relative">
+                                    <div className="flex flex-col sm:flex-row gap-2 relative">
                                         {/* IMPORT MENU */}
-                                        <div className="relative flex-1 group">
+                                        <div className="relative flex-1 group w-full">
                                             <button
                                                 onClick={() => setImportMenuOpen(!importMenuOpen)}
-                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
                                             >
                                                 📊 Importar / Gestión
                                             </button>
@@ -2728,7 +2729,7 @@ export function DashboardCharts({
                                             )}
                                         </div>
 
-                                        <button onClick={() => setShowProgramModal(true)} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
+                                        <button onClick={() => setShowProgramModal(true)} className="flex-1 w-full bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20">
                                             📅 Ver Calendario
                                         </button>
                                     </div>
@@ -2789,19 +2790,52 @@ export function DashboardCharts({
 
                                         </select>
                                     </div>
-                                    <div className="space-y-1">
-                                        <SearchableSelect
-                                            label="Tema / Actividad"
-                                            options={trainingTopicsByArea[newHHC.area] || []}
-                                            value={newHHC.tema}
-                                            onChange={(val) => updateStat('tema', val)}
-                                            placeholder="Seleccionar tema del programa..."
-                                            icon={<BookOpen size={16} className="text-emerald-500" />}
-                                        />
-                                        {!newHHC.tema && (
-                                            <p className="text-[8px] text-amber-400 font-medium italic">
-                                                * Seleccione un tema del Programa Anual para que se sume al Ejecutado (E).
-                                            </p>
+                                    <div className="space-y-3 p-3 bg-slate-900/50 rounded-xl border border-white/5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] text-white font-black uppercase tracking-wider">¿Tiene tema adicional?</label>
+                                            <div className="flex bg-slate-800 rounded-lg p-1 border border-white/5">
+                                                <button 
+                                                    onClick={() => setNewHHC(prev => ({ ...prev, isAdditionalTopic: true }))}
+                                                    className={`px-3 py-1 rounded-md text-[9px] font-black transition-all ${newHHC.isAdditionalTopic ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                                >
+                                                    SÍ
+                                                </button>
+                                                <button 
+                                                    onClick={() => setNewHHC(prev => ({ ...prev, isAdditionalTopic: false, customTopic: '' }))}
+                                                    className={`px-3 py-1 rounded-md text-[9px] font-black transition-all ${!newHHC.isAdditionalTopic ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                                >
+                                                    NO
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {newHHC.isAdditionalTopic ? (
+                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <label className="text-[9px] text-emerald-400 font-bold uppercase block mb-1">Nombre del Tema Adicional</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Escribe el nombre del tema aquí..."
+                                                    value={newHHC.customTopic}
+                                                    onChange={(e) => setNewHHC(prev => ({ ...prev, customTopic: e.target.value }))}
+                                                    className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-white text-xs font-bold outline-none focus:border-emerald-500 shadow-inner"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                <SearchableSelect
+                                                    label="Tema / Actividad"
+                                                    options={trainingTopicsByArea[newHHC.area] || []}
+                                                    value={newHHC.tema}
+                                                    onChange={(val) => updateStat('tema', val)}
+                                                    placeholder="Seleccionar tema del programa..."
+                                                    icon={<BookOpen size={16} className="text-emerald-500" />}
+                                                />
+                                                {!newHHC.tema && (
+                                                    <p className="text-[8px] text-amber-400 font-medium italic">
+                                                        * Seleccione un tema del Programa Anual para que se sume al Ejecutado (E).
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
