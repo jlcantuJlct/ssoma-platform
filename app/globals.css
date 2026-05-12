@@ -118,3 +118,15 @@
 .animate-periodic-spin {
   animation: periodic-spin 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* Animación shimmer para barra de progreso de carga */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #6366f1 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}

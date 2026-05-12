@@ -2654,7 +2654,7 @@ export function DashboardCharts({
                             {/* 2. PANEL DE REGISTRO (35%) */}
                             <div className="w-full xl:w-[35%] bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 shadow-xl">
                                 <div className="flex flex-col gap-4 mb-4">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <h4 className="text-emerald-400 font-bold flex items-center gap-2 text-sm">
                                             <Edit size={16} /> Panel de Registro
                                             {isSyncing && (
@@ -2663,19 +2663,13 @@ export function DashboardCharts({
                                                     SINCRONIZANDO...
                                                 </span>
                                             )}
-                                            {isUploading && (
-                                                <span className="flex items-center gap-1 text-[8px] bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded-full animate-pulse border border-indigo-700/30">
-                                                    <span className="w-1 h-1 bg-indigo-400 rounded-full animate-ping"></span>
-                                                    SUBIENDO ARCHIVOS...
-                                                </span>
-                                            )}
                                         </h4>
                                         <button
                                             onClick={() => {
                                                 setEditingIndex(null);
                                                 setNewHHC({ responsable: '', date: '', hhc: '', hht: '', hombres: '', mujeres: '', area: 'seguridad', tipo: 'capacitacion', tema: '', evidenceImgs: [], evidencePdf: '', lugar: '' });
                                             }}
-                                            className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-2 py-1 rounded transition-colors"
+                                            className="bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors w-full sm:w-auto"
                                         >
                                             Limpiar
                                         </button>
@@ -2834,7 +2828,25 @@ export function DashboardCharts({
                                     {/* Carga de Archivos */}
                                     <div className="col-span-2">
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Evidencias</label>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col gap-2">
+                                            {/* Barra de progreso de carga - visible en móvil */}
+                                            {isUploading && (
+                                                <div className="w-full">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-[10px] text-indigo-400 font-black animate-pulse flex items-center gap-1">
+                                                            <span className="w-2 h-2 bg-indigo-400 rounded-full animate-ping inline-block"></span>
+                                                            Subiendo archivo... por favor espera
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-full animate-[progress_1.5s_ease-in-out_infinite] bg-[length:200%_100%]"
+                                                            style={{ animation: 'shimmer 1.5s linear infinite', backgroundSize: '200% 100%' }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-2">
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -2848,16 +2860,22 @@ export function DashboardCharts({
                                                 onDragOver={(e) => handleHhcDragOver(e, 'imgs')}
                                                 onDragLeave={(e) => handleHhcDragLeave(e, 'imgs')}
                                                 onDrop={(e) => handleHhcDrop(e, 'imgs')}
-                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.05]' : (newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer')} rounded-lg p-2 transition-all flex-1 text-center min-h-[48px]`}
+                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${
+                                                    isUploading ? 'border-indigo-500/50 opacity-60 cursor-wait' :
+                                                    isDraggingHhcImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.05]' :
+                                                    (newHHC.evidenceImgs.length >= 4 ? 'border-slate-700 text-slate-500 cursor-not-allowed' : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10 cursor-pointer')
+                                                } rounded-xl p-3 transition-all flex-1 text-center min-h-[56px]`}
                                             >
-                                                <div className="flex items-center gap-1">
-                                                    {newHHC.evidenceImgs.length > 0 ? (
-                                                        <CheckCircle2 size={14} className="text-emerald-400 animate-in zoom-in duration-300" />
+                                                <div className="flex items-center gap-1.5">
+                                                    {isUploading ? (
+                                                        <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
+                                                    ) : newHHC.evidenceImgs.length > 0 ? (
+                                                        <CheckCircle2 size={16} className="text-emerald-400 animate-in zoom-in duration-300" />
                                                     ) : (
-                                                        <ImageIcon size={14} />
+                                                        <ImageIcon size={16} />
                                                     )}
-                                                    <span className={`text-[9px] font-bold ${newHHC.evidenceImgs.length > 0 ? 'text-emerald-400' : ''}`}>
-                                                        FOTOS ({newHHC.evidenceImgs.length}/4)
+                                                    <span className={`text-[10px] font-bold ${newHHC.evidenceImgs.length > 0 ? 'text-emerald-400' : ''}`}>
+                                                        {isUploading ? 'SUBIENDO...' : `FOTOS (${newHHC.evidenceImgs.length}/4)`}
                                                     </span>
                                                 </div>
                                                 {isDraggingHhcImgs && <span className="text-[7px] text-blue-400 font-black animate-pulse uppercase">¡Suelta fotos!</span>}
@@ -2875,20 +2893,27 @@ export function DashboardCharts({
                                                 onDragOver={(e) => handleHhcDragOver(e, 'pdf')}
                                                 onDragLeave={(e) => handleHhcDragLeave(e, 'pdf')}
                                                 onDrop={(e) => handleHhcDrop(e, 'pdf')}
-                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${isDraggingHhcPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.05]' : (newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500')} rounded-lg p-2 transition-all flex-1 cursor-pointer text-center min-h-[48px]`}
+                                                className={`flex flex-col items-center justify-center gap-1 bg-slate-800 border ${
+                                                    isUploading ? 'border-indigo-500/50 opacity-60 cursor-wait' :
+                                                    isDraggingHhcPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.05]' :
+                                                    (newHHC.evidencePdf ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-400 hover:border-slate-500')
+                                                } rounded-xl p-3 transition-all flex-1 cursor-pointer text-center min-h-[56px]`}
                                             >
-                                                <div className="flex items-center gap-1">
-                                                    {newHHC.evidencePdf ? (
-                                                        <CheckCircle2 size={14} className="text-emerald-400 animate-in zoom-in duration-300" />
+                                                <div className="flex items-center gap-1.5">
+                                                    {isUploading ? (
+                                                        <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+                                                    ) : newHHC.evidencePdf ? (
+                                                        <CheckCircle2 size={16} className="text-emerald-400 animate-in zoom-in duration-300" />
                                                     ) : (
-                                                        <FileText size={14} />
+                                                        <FileText size={16} />
                                                     )}
-                                                    <span className={`text-[9px] font-bold ${newHHC.evidencePdf ? 'text-emerald-400' : ''}`}>
-                                                        {newHHC.evidencePdf ? 'PDF ADJUNTO' : 'PDF'}
+                                                    <span className={`text-[10px] font-bold ${newHHC.evidencePdf ? 'text-emerald-400' : ''}`}>
+                                                        {isUploading ? 'PROCESANDO...' : (newHHC.evidencePdf ? 'PDF ✓' : 'PDF')}
                                                     </span>
                                                 </div>
                                                 {isDraggingHhcPdf && <span className="text-[7px] text-emerald-400 font-black animate-pulse uppercase">¡Suelta PDF!</span>}
                                             </label>
+                                            </div>
                                         </div>
 
                                         {/* Thumbnails */}
