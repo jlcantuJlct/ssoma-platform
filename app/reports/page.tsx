@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Download, Save, RefreshCw } from "lucide-react";
@@ -34,7 +34,7 @@ export default function ReportsPage() {
     const [isLoaded, setIsLoaded] = useState(false);
     
     // External Works State
-    const [otherWorks, setOtherWorks] = useState<string[]>(["PAD San Clemente", "PAD Chinchaysullo", "PAD 9 de Octubre", "San Antonio", "MP", "Longitudinal Peaje Jahuay"]);
+    const [otherWorks, setOtherWorks] = useState<string[]>(["PAD San Clemente", "PAD Chinchaysullo", "PAD 9 de Octubre", "San Antonio", "MP", "Longitudinal", "Peaje Jahuay"]);
     const [selectedExtWork, setSelectedExtWork] = useState<string>("PAD San Clemente");
     const [selectedExtYear, setSelectedExtYear] = useState<number>(2026);
     const [externalFiles, setExternalFiles] = useState<Record<string, string>>({});
@@ -531,3 +531,4 @@ export default function ReportsPage() {
         </div>
     );
 }
+
