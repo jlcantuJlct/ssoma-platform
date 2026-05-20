@@ -35,6 +35,14 @@ type ManifestRecord = {
     files: string[];
 };
 
+type DisposicionRecord = {
+    id: number;
+    date: string;
+    type: string; // 'Residuos Sólidos' | 'Aguas Residuales (Baños/Pozo)'
+    location: string;
+    files: string[];
+};
+
 export default function ManifestPage() {
     const { user } = useAuth();
 
@@ -60,6 +68,17 @@ export default function ManifestPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
+    // Form State (Disposicion)
+    const [dispRecords, setDispRecords] = useState<DisposicionRecord[]>([]);
+    const [dispForm, setDispForm] = useState({
+        date: new Date().toISOString().split('T')[0],
+        type: 'Residuos Sólidos',
+        location: ''
+    });
+    const [dispFiles, setDispFiles] = useState<string[]>([]);
+    const [isDispUploading, setIsDispUploading] = useState(false);
+    const [isDispDragging, setIsDispDragging] = useState(false);
+
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
         const stored = localStorage.getItem('manifest_records_v1');
@@ -71,14 +90,25 @@ export default function ManifestPage() {
                 }
             } catch (e) { console.error(e); }
         }
+        
+        const storedDisp = localStorage.getItem('disposicion_records_v1');
+        if (storedDisp) {
+            try {
+                const parsed = JSON.parse(storedDisp);
+                if (Array.isArray(parsed)) {
+                    setDispRecords(sanitizeRecords(parsed, ['type', 'location', 'date']));
+                }
+            } catch (e) { console.error(e); }
+        }
         setIsLoaded(true);
     }, []);
 
     useEffect(() => {
         if (isLoaded) {
             localStorage.setItem('manifest_records_v1', JSON.stringify(records));
+            localStorage.setItem('disposicion_records_v1', JSON.stringify(dispRecords));
         }
-    }, [records, isLoaded]);
+    }, [records, dispRecords, isLoaded]);
 
     // --- HANDLERS ---
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,6 +175,69 @@ export default function ManifestPage() {
         }
     };
 
+    const handleDispFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const inputFiles = e.target.files;
+        if (!inputFiles) return;
+
+        if (!dispForm.location) {
+            alert("⚠️ Por favor selecciona el lugar antes de subir el certificado.");
+            e.target.value = '';
+            return;
+        }
+
+        try {
+            setIsDispUploading(true);
+            const uploadedUrls: string[] = [];
+            const filesArray = Array.from(inputFiles);
+
+            for (const file of filesArray) {
+                const url = await uploadEvidence(
+                    file,
+                    'PMA',
+                    `DISPOSICION_${dispForm.type.replace(/[^A-Za-z0-9]/g, '_').toUpperCase()}`,
+                    dispForm.date,
+                    user?.name || 'S/N',
+                    'pma',
+                    'medio_ambiente',
+                    dispForm.location,
+                    'Control de Disposición'
+                );
+                uploadedUrls.push(url);
+            }
+
+            setDispFiles(prev => [...prev, ...uploadedUrls]);
+        } catch (error: any) {
+            alert(`Error al subir: ${error.message}`);
+        } finally {
+            setIsDispUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleDispSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (dispFiles.length === 0) {
+            alert("Debe subir el certificado o documento.");
+            return;
+        }
+
+        const newRecord: DisposicionRecord = {
+            id: Date.now(),
+            ...dispForm,
+            files: dispFiles
+        };
+
+        setDispRecords(prev => [newRecord, ...prev]);
+        setDispFiles([]);
+        alert("Certificado de disposición registrado correctamente.");
+    };
+
+    const handleDispDelete = (id: number) => {
+        if (confirm("¿Eliminar este certificado de disposición?")) {
+            setDispRecords(prev => prev.filter(r => r.id !== id));
+        }
+    };
+
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
             <main className="flex-1 overflow-auto p-4 md:p-8">
@@ -164,7 +257,7 @@ export default function ManifestPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                         {/* Form */}
                         <div className="xl:col-span-1">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6">
@@ -450,6 +543,137 @@ export default function ManifestPage() {
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Control de Disposición */}
+                        <div className="xl:col-span-1 space-y-6">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6">
+                                <h3 className="text-blue-400 font-black uppercase text-sm tracking-widest mb-6 flex items-center gap-2">
+                                    <FileText size={18} /> Control de Disposición
+                                </h3>
+
+                                <form onSubmit={handleDispSubmit} className="space-y-4 mb-8">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
+                                        <div className="relative">
+                                            <Calendar className="absolute left-3 top-2.5 text-slate-600" size={16} />
+                                            <input type="date" value={dispForm.date} onChange={e => setDispForm({...dispForm, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-blue-500 outline-none" required />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Disposición</label>
+                                        <div className="relative">
+                                            <AlertTriangle className="absolute left-3 top-2.5 text-slate-600" size={16} />
+                                            <select value={dispForm.type} onChange={e => setDispForm({...dispForm, type: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-blue-500 outline-none appearance-none" required>
+                                                <option value="Residuos Sólidos">Residuos Sólidos</option>
+                                                <option value="Aguas Residuales (Baños/Pozo)">Aguas Residuales (Baños/Pozo)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase">Lugar</label>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-3 top-2.5 text-slate-600" size={16} />
+                                            <select value={dispForm.location} onChange={e => setDispForm({...dispForm, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-blue-500 outline-none appearance-none" required>
+                                                <option value="">Seleccionar Lugar...</option>
+                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 pt-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
+                                            Certificado (PDF)
+                                        </label>
+                                        <div 
+                                            onDragOver={(e) => { e.preventDefault(); setIsDispDragging(true); }}
+                                            onDragLeave={() => setIsDispDragging(false)}
+                                            onDrop={(e) => { e.preventDefault(); setIsDispDragging(false); handleDispFileUpload(e as any); }}
+                                            className={`relative border-2 border-dashed rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                                isDispUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
+                                                isDispDragging ? 'border-blue-500 bg-blue-500/10 scale-[1.01]' : 
+                                                dispFiles.length > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
+                                            }`}
+                                        >
+                                            <input 
+                                                type="file"
+                                                multiple
+                                                accept=".pdf"
+                                                disabled={isDispUploading}
+                                                onChange={handleDispFileUpload}
+                                                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                            />
+                                            <div className={`p-3 rounded-2xl transition-all ${
+                                                isDispUploading ? 'bg-amber-500 text-white animate-pulse' :
+                                                isDispDragging ? 'bg-blue-500 text-white' : 
+                                                'bg-slate-800 text-slate-400 group-hover:text-blue-400'
+                                            }`}>
+                                                {isDispUploading ? <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={24} />}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className={`text-[9px] font-black uppercase tracking-widest ${isDispUploading ? 'text-amber-500' : 'text-white'}`}>
+                                                    {isDispUploading ? 'SUBIENDO...' : isDispDragging ? '¡SUELTA!' : dispFiles.length > 0 ? `✅ ${dispFiles.length} DOCS` : 'ARRASTRA O HAZ CLIC'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {dispFiles.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                {dispFiles.map((url, idx) => (
+                                                    <div key={idx} className="bg-slate-800 px-3 py-1 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95 group">
+                                                        <FileText size={10} className="text-blue-400" />
+                                                        <span className="text-[8px] font-bold text-slate-300">PDF {idx + 1}</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setDispFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase py-3 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm">
+                                        {isDispUploading ? "Subiendo..." : <span className="flex items-center gap-2"><Save size={16} /> Guardar Certificado</span>}
+                                    </button>
+                                </form>
+
+                                {/* Lista de Disposiciones */}
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <h4 className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800 pb-2">Registros Recientes</h4>
+                                    {dispRecords.map(r => (
+                                        <div key={r.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex flex-col gap-2 relative group">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-slate-400">{r.date}</div>
+                                                    <div className="text-[11px] font-black text-white leading-tight mt-0.5">{r.type}</div>
+                                                    <div className="text-[9px] text-slate-500 mt-1">{r.location}</div>
+                                                </div>
+                                                <button onClick={() => handleDispDelete(r.id)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            {r.files.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1 border-t border-slate-800/50 pt-2">
+                                                    {r.files.map((f, i) => (
+                                                        <button key={i} onClick={() => setPreviewFile({url: f, type: 'pdf'})} className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-slate-700">
+                                                            <FileText size={12} />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {dispRecords.length === 0 && (
+                                        <p className="text-center text-[10px] text-slate-600 font-bold uppercase py-4">Sin registros</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
