@@ -28,11 +28,12 @@ export interface DBClient {
 let client: DBClient;
 
 if (process.env.POSTGRES_URL) {
-    // --- VERCEL POSTGRES MODE ---
-    const { createPool } = require('@vercel/postgres');
+    // --- POSTGRES MODE (SUPABASE / NEON) ---
+    const { Pool } = require('pg');
 
-    const pool = createPool({
+    const pool = new Pool({
         connectionString: process.env.POSTGRES_URL,
+        ssl: { rejectUnauthorized: false }
     });
 
     client = {
@@ -65,7 +66,7 @@ if (process.env.POSTGRES_URL) {
             await fn();
         }
     };
-    console.log("🔌 Connect mode: Vercel Postgres");
+    console.log("🔌 Connect mode: Postgres");
 
 } else {
     // --- LOCAL SQLITE MODE ---

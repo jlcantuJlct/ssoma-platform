@@ -123,88 +123,64 @@ export default function Sidebar() {
                         <SidebarItem icon={<Calendar size={16} className="text-emerald-400" />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                     </div>
 
-                    {/* HERRAMIENTAS */}
+                    {/* SEGURIDAD */}
                     <div className="space-y-1 pt-2 border-t border-slate-800">
                         <div className="px-3 py-2">
-                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Herramientas</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Seguridad</span>
                         </div>
-
                         <SidebarItem icon={<GraduationCap size={16} className="text-yellow-500 group-hover:text-yellow-300 transition-colors" />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
                         <SidebarItem icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
                         <SidebarItem icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
-                        <SidebarItem icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
-                        <SidebarItem icon={<Stethoscope size={16} className="text-rose-500 group-hover:text-rose-300 transition-colors" />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
                         <SidebarItem icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
-                        <SidebarItem icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
-                        <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiesto de Residuos" href="/manifiesto" active={pathname === '/manifiesto'} />
-                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
-                        <SidebarItem icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                         <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Reporte de A/C" href="/reporte-ac" active={pathname === '/reporte-ac'} />
-                        <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        {(user?.role === 'developer' || user?.role === 'manager') && (
+                            <SidebarItem icon={<ShieldCheck size={16} className="text-emerald-500" />} label="Control de SCTR" href="/sctr" active={pathname === '/sctr'} />
+                        )}
+                        <SidebarItem icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
+                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem icon={<Siren size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
+                        <SidebarItem icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                    </div>
+
+                    {/* SALUD */}
+                    <div className="space-y-1 pt-2 border-t border-slate-800">
+                        <div className="px-3 py-2">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Salud</span>
+                        </div>
+                        <SidebarItem icon={<Stethoscope size={16} className="text-rose-500 group-hover:text-rose-300 transition-colors" />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
+                        {(user?.role === 'developer' || user?.role === 'manager') && (
+                            <SidebarItem icon={<ActivityIcon size={16} className="text-rose-400" />} label="Monitoreo Ocupacional" href="/monitoreos" active={pathname === '/monitoreos'} />
+                        )}
                         <SidebarItem icon={<LifeBuoy size={16} className="text-sky-500 group-hover:text-sky-300 transition-colors" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
+                    </div>
+
+                    {/* MEDIO AMBIENTE */}
+                    <div className="space-y-1 pt-2 border-t border-slate-800">
+                        <div className="px-3 py-2">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Medio Ambiente</span>
+                        </div>
+                        <SidebarItem icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                    </div>
+
+                    {/* INFORMES Y OTROS */}
+                    <div className="space-y-1 pt-2 border-t border-slate-800 mb-4">
+                        <div className="px-3 py-2">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Informes y Gestión</span>
+                        </div>
                         <SidebarItem icon={<TrendingDown size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
                         <SidebarItem icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
-
-                        {/* SOLO DEVELOPER/MANAGER - Informe del Mes */}
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
-                                <SidebarItem
-                                    icon={<ExternalLink size={16} className="text-cyan-500" />}
-                                    label="Comunicación con Cliente"
-                                    href="/cliente"
-                                    active={pathname === '/cliente'}
-                                />
-                                <SidebarItem
-                                    icon={<ActivityIcon size={16} className="text-rose-400" />}
-                                    label="Monitoreo Ocupacional"
-                                    href="/monitoreos"
-                                    active={pathname === '/monitoreos'}
-                                />
-                                <SidebarItem
-                                    icon={<ShieldCheck size={16} className="text-emerald-500" />}
-                                    label="Control de SCTR"
-                                    href="/sctr"
-                                    active={pathname === '/sctr'}
-                                />
-                                <SidebarItem
-                                    icon={<Truck size={16} className="text-blue-500" />}
-                                    label="Certificados de Equipo"
-                                    href="/equipment-certs"
-                                    active={pathname === '/equipment-certs'}
-                                />
-                                <SidebarItem
-                                    icon={<ExternalLink size={16} className="text-cyan-500" />}
-                                    label="Archivo Central SharePoint"
-                                    href="/export-center"
-                                    active={pathname === '/export-center'}
-                                />
-                                <SidebarItem
-                                    icon={<FileText size={16} className="text-amber-500" />}
-                                    label="Anexos OSITRAN"
-                                    href="/ositran-report"
-                                    active={pathname === '/ositran-report'}
-                                />
-                                <SidebarItem
-                                    icon={<FileText size={16} className="text-emerald-500" />}
-                                    label="Generar Informe Word"
-                                    href="/monthly-report"
-                                    active={pathname === '/monthly-report'}
-                                />
-                            </>
-                        )}
-                        {/* SOLO DEVELOPER - Configuración de Maestros */}
-                        {/* SOLO DEVELOPER/MANAGER - Configuración e Informes */}
-                        {(user?.role === 'developer' || user?.role === 'manager') && (
-                            <>
+                                <SidebarItem icon={<Truck size={16} className="text-blue-500" />} label="Certificados de Equipo" href="/equipment-certs" active={pathname === '/equipment-certs'} />
+                                <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Comunicación con Cliente" href="/cliente" active={pathname === '/cliente'} />
+                                <SidebarItem icon={<FileText size={16} className="text-emerald-500" />} label="Generar Informe Word" href="/monthly-report" active={pathname === '/monthly-report'} />
+                                <SidebarItem icon={<FileText size={16} className="text-amber-500" />} label="Anexos OSITRAN" href="/ositran-report" active={pathname === '/ositran-report'} />
+                                <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Archivo Central SharePoint" href="/export-center" active={pathname === '/export-center'} />
                                 {user?.role === 'developer' && (
-                                    <SidebarItem
-                                        icon={<Settings size={16} className="text-pink-500" />}
-                                        label="Configuración Maestros"
-                                        href="/settings"
-                                        active={pathname === '/settings'}
-                                    />
+                                    <SidebarItem icon={<Settings size={16} className="text-pink-500" />} label="Configuración Maestros" href="/settings" active={pathname === '/settings'} />
                                 )}
                             </>
                         )}
