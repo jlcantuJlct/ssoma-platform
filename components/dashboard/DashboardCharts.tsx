@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
@@ -153,25 +153,28 @@ export function DashboardCharts({
     useEffect(() => {
         const loadAllRecords = async () => {
             try {
-                const [progRes, hhcRes, inspRes, evRes, pmaRes, atsRes, petarRes, detourRes, simRes, briRes, risRes, trainingRes, racRes] = await Promise.all([
-                    fetch('/api/programData').then(r => r.json()).catch(() => ({ programData: {} })),
-                    fetch('/api/hhc-records').then(r => r.json()).catch(() => ({ records: [] })),
+                const [
+                    progRes, inspRes, hhcRes, evRes, pmaRes, 
+                    atsRes, petarRes, detourRes, simRes, briRes, risRes, trainingRes, racRes
+                ] = await Promise.all([
+                    fetch('/api/annual-program').then(r => r.json()).catch(() => ({ programData: {} })),
                     fetch('/api/inspections').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/evidence').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/pma').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/ats').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/petar').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/detour').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/simulacro').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/brigadista').then(r => r.json()).catch(() => ({ records: [] })),
-                    fetch('/api/risstma').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/hhc-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/evidence-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/pma-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/ats-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/petar-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/desvio-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/simulacro-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/brigadista-records').then(r => r.json()).catch(() => ({ records: [] })),
+                    fetch('/api/risstma-records').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/training-program').then(r => r.json()).catch(() => ({ records: [] })),
                     fetch('/api/reporte-ac-records').then(r => r.json()).catch(() => ({ records: [] }))
                 ]);
 
                 setProgramData(progRes.programData || {});
-                setExecutedInspections(inspRes.records || inspRes.data || []);
-                setHhcRecords(hhcRes.records || hhcRes.data || []);
+                setExecutedInspections(inspRes.records || []);
+                setHhcRecords(hhcRes.records || []);
                 setEvidenceRecords(evRes.records || []);
                 setPmaRecords(pmaRes.records || []);
                 setAtsRecords(atsRes.records || []);
@@ -180,7 +183,7 @@ export function DashboardCharts({
                 setSimulacroRecords(simRes.records || []);
                 setBrigadistaRecords(briRes.records || []);
                 setRisstmaRecords(risRes.records || []);
-                setTrainingProgram(trainingRes.records || trainingRes.data || []);
+                setTrainingProgram(trainingRes.records || []);
                 setReporteAcRecords(racRes.records || []);
 
                 // Load localStorage-only records (manifiesto + residuos)
