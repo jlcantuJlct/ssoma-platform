@@ -70,6 +70,7 @@ export async function GET() {
             }
             return {
                 ...r,
+                id: Number(r.id),
                 evidenceImgs,
                 evidencePdf: r.evidence_pdf || ''
             };

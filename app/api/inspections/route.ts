@@ -38,7 +38,7 @@ export async function GET() {
                 console.warn('Could not parse evidence_imgs:', e);
             }
             return {
-                id: r.id,
+                id: Number(r.id),
                 date: r.date,
                 responsible: r.responsible,
                 inspectionType: r.inspection_type, // Mapped to frontend expectation
