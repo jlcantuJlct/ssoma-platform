@@ -26,6 +26,10 @@ export default function InformesPage() {
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
+    // Filters
+    const [filterMonth, setFilterMonth] = useState('');
+    const [filterLocation, setFilterLocation] = useState('');
+    
     // Form state
     const [formData, setFormData] = useState({
         date: '',
@@ -324,16 +328,73 @@ export default function InformesPage() {
                             Informes Subidos
                         </h2>
                         <div className="flex items-center gap-2">
+                            <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                {records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length} REGISTROS
+                            </div>
                             <button
                                 onClick={() => {
+                                    const filtered = records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation));
                                     setIsDownloading(true);
-                                    handleBulkDownload(records, 'Informes.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                                    handleBulkDownload(filtered, 'Informes.zip', setDownloadMsg).finally(() => setIsDownloading(false));
                                 }}
-                                disabled={isDownloading || records.length === 0}
+                                disabled={isDownloading || records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length === 0}
                                 className="bg-slate-800 hover:bg-violet-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
                             >
                                 {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
-                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Todos'}
+                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* FILTERS */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Mes</label>
+                                {filterMonth && (
+                                    <button onClick={() => setFilterMonth('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
+                            <select 
+                                value={filterMonth}
+                                onChange={e => setFilterMonth(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-violet-500 outline-none appearance-none"
+                            >
+                                <option value="">Todos los meses...</option>
+                                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Lugar</label>
+                                {filterLocation && (
+                                    <button onClick={() => setFilterLocation('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
+                            <select 
+                                value={filterLocation}
+                                onChange={e => setFilterLocation(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-violet-500 outline-none appearance-none"
+                            >
+                                <option value="">Todos los lugares...</option>
+                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                            <button 
+                                onClick={() => { setFilterMonth(''); setFilterLocation(''); }}
+                                className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                    (filterMonth || filterLocation)
+                                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                    : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                }`}
+                                disabled={!(filterMonth || filterLocation)}
+                            >
+                                <X size={14} strokeWidth={3} /> Limpiar Filtros
                             </button>
                         </div>
                     </div>
@@ -344,11 +405,11 @@ export default function InformesPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {records.length === 0 ? (
+                            {records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length === 0 ? (
                                 <div className="col-span-full text-center py-10 text-slate-500 text-xs font-bold uppercase tracking-widest">
                                     No hay informes subidos aún
                                 </div>
-                            ) : records.map(rec => (
+                            ) : records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).map(rec => (
                                 <Card key={rec.id} className="bg-slate-950 border-slate-800 hover:border-violet-500/30 transition-all">
                                     <div className="p-4">
                                         <div className="flex justify-between items-start mb-3">
