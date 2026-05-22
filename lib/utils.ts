@@ -115,7 +115,6 @@ export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: b
             }
         }
     }
-    }
     return url;
 }
 

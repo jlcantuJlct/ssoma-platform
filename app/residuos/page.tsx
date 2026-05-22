@@ -677,7 +677,7 @@ export default function WasteManagementPage() {
                                 </form>
                             </div>
                         </div>
-
+                    </div>
                 </div>
             </main>
 
