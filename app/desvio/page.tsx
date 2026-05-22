@@ -59,6 +59,8 @@ export default function DetourPage() {
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadMsg, setDownloadMsg] = useState('');
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // Table Filter State
@@ -457,9 +459,33 @@ export default function DetourPage() {
                         {/* LISTA */}
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl overflow-hidden">
-                                <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-emerald-400" /> Rastro de Controles
-                                </h3>
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                        <FileText size={20} className="text-emerald-400" /> Rastro de Controles
+                                    </h3>
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        {isDownloading && (
+                                            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest animate-pulse flex items-center gap-1">
+                                                <RotateCcw size={10} className="animate-spin" /> {downloadMsg}
+                                            </span>
+                                        )}
+                                        <button
+                                            onClick={() => Utils.handleBulkDownload(
+                                                records.filter(r => {
+                                                    const matchesDate = filterDate === "" || r.date === filterDate;
+                                                    const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                                    const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                    const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                                    return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                                }), 
+                                                'desvios', setIsDownloading, setDownloadMsg, true)}
+                                            disabled={isDownloading || records.length === 0}
+                                            className="w-full sm:w-auto bg-slate-800 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            <Download size={14} /> Descargar Visibles (ZIP)
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {/* FILTERS */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-blue-950/10 p-4 rounded-xl border border-blue-500/10 items-end">
@@ -631,7 +657,8 @@ export default function DetourPage() {
                                                         </td>
                                                         <td className="py-4">
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => generatePDF(r)} className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-slate-700 transition-colors" title="Ver PDF"><FileText size={14}/></button>
+                                                                <button onClick={() => Utils.handleBulkDownload([r], `Desvio_${r.date}`, setIsDownloading, setDownloadMsg, true)} className="p-1.5 hover:bg-blue-500/20 text-blue-400 rounded-lg border border-slate-700 transition-colors" title="Descargar Imágenes"><Download size={14}/></button>
+                                                                <button onClick={() => generatePDF(r)} className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-slate-700 transition-colors" title="Generar PDF"><FileText size={14}/></button>
                                                                 {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
                                                                     <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-500/20 text-red-500 rounded-lg border border-slate-700 transition-colors" title="Eliminar"><Trash2 size={14}/></button>
                                                                 )}

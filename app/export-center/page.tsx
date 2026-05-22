@@ -7,7 +7,22 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 
 export default function ExportCenterPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedLocation, setSelectedLocation] = useState('ALL');
+    const [selectedLocations, setSelectedLocations] = useState<string[]>(['ALL']);
+
+    const toggleLocation = (loc: string) => {
+        if (loc === 'ALL') {
+            setSelectedLocations(['ALL']);
+            return;
+        }
+        let newLocs = selectedLocations.filter(l => l !== 'ALL');
+        if (newLocs.includes(loc)) {
+            newLocs = newLocs.filter(l => l !== loc);
+            if (newLocs.length === 0) newLocs = ['ALL'];
+        } else {
+            newLocs.push(loc);
+        }
+        setSelectedLocations(newLocs);
+    };
     const [isRequesting, setIsRequesting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentStep, setCurrentStep] = useState<'request' | 'folders' | 'download' | 'complete' | null>(null);
@@ -31,7 +46,7 @@ export default function ExportCenterPage() {
                 body: JSON.stringify({
                     month: selectedMonth,
                     year: 2026,
-                    location: selectedLocation
+                    location: selectedLocations.join(',')
                 })
             });
 
@@ -116,18 +131,33 @@ export default function ExportCenterPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <MapPin className="w-4 h-4 text-indigo-400" />
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Sede / Ubicación:</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Sede / Ubicación (Múltiple):</label>
                                     </div>
-                                    <select 
-                                        value={selectedLocation}
-                                        onChange={(e) => setSelectedLocation(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-indigo-500 transition-all"
-                                    >
-                                        <option value="ALL">TODAS LAS SEDES (Consolidado)</option>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => toggleLocation('ALL')}
+                                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                selectedLocations.includes('ALL')
+                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40 ring-1 ring-indigo-400/50'
+                                                : 'bg-slate-950 border border-slate-800 text-slate-500 hover:border-indigo-500/50 hover:bg-slate-900'
+                                            }`}
+                                        >
+                                            TODAS LAS SEDES
+                                        </button>
                                         {SSOMA_LOCATIONS.map(loc => (
-                                            <option key={loc} value={loc}>{loc}</option>
+                                            <button
+                                                key={loc}
+                                                onClick={() => toggleLocation(loc)}
+                                                className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                    selectedLocations.includes(loc)
+                                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40 ring-1 ring-indigo-400/50'
+                                                    : 'bg-slate-950 border border-slate-800 text-slate-500 hover:border-indigo-500/50 hover:bg-slate-900'
+                                                }`}
+                                            >
+                                                {loc}
+                                            </button>
                                         ))}
-                                    </select>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">

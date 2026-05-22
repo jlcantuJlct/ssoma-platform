@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from "react";
 import {
-    ExternalLink,
     Upload,
     Trash2,
     FileText,
-    Eye,
     X,
-    Save,
-    Calendar,
-    User,
-    Send
+    Send,
+    Download,
+    DownloadCloud
 } from "lucide-react";
-import { getDriveViewerUrl } from '@/lib/utils';
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from '@/lib/utils';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { useAuth } from "@/lib/auth";
 
@@ -29,7 +26,7 @@ type LetterRecord = {
 export default function ClientCommunicationPage() {
     const { user } = useAuth();
     const [records, setRecords] = useState<LetterRecord[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({
         date: new Date().toISOString().split('T')[0],
         subject: '',
@@ -38,6 +35,8 @@ export default function ClientCommunicationPage() {
     });
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadMsg, setDownloadMsg] = useState('');
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // Filter State
@@ -45,19 +44,24 @@ export default function ClientCommunicationPage() {
     const [filterType, setFilterType] = useState("");
     const [filterSearch, setFilterSearch] = useState("");
 
-    useEffect(() => {
-        const stored = localStorage.getItem('client_comm_records_v1');
-        if (stored) {
-            try { setRecords(JSON.parse(stored)); } catch (e) { }
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch('/api/cliente-comms-records');
+            const data = await res.json();
+            if (data.success && Array.isArray(data.records)) {
+                setRecords(data.records);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
         }
-        setIsLoaded(true);
-    }, []);
+    };
 
     useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('client_comm_records_v1', JSON.stringify(records));
-        }
-    }, [records, isLoaded]);
+        fetchData();
+    }, []);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputFiles = e.target.files;
@@ -74,26 +78,86 @@ export default function ClientCommunicationPage() {
         finally { setIsUploading(false); }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (files.length === 0) return alert("Subir el PDF de la carta.");
+        
         const newRecord: LetterRecord = { id: Date.now(), ...form, files };
-        setRecords(prev => [newRecord, ...prev]);
-        setForm(prev => ({ ...prev, subject: '', recipient: '' }));
-        setFiles([]);
+        const allRecords = [newRecord, ...records];
+        
+        try {
+            const res = await fetch('/api/cliente-comms-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ records: allRecords })
+            });
+            if (res.ok) {
+                setRecords(allRecords);
+                setForm(prev => ({ ...prev, subject: '', recipient: '' }));
+                setFiles([]);
+            }
+        } catch (error) {
+            console.error('Error saving data:', error);
+        }
     };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('¿Eliminar este registro?')) return;
+        const updated = records.filter(r => r.id !== id);
+        try {
+            await fetch('/api/cliente-comms-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ records: updated })
+            });
+            setRecords(updated);
+        } catch (error) {
+            console.error('Error deleting record:', error);
+        }
+    };
+
+    // Calculate filtered records
+    const filteredRecords = records.filter(r => {
+        const matchesDate = !filterDate || r.date === filterDate;
+        const matchesType = !filterType || r.type === filterType;
+        const matchesSearch = !filterSearch || 
+            (r.subject && r.subject.toLowerCase().includes(filterSearch.toLowerCase())) || 
+            (r.recipient && r.recipient.toLowerCase().includes(filterSearch.toLowerCase()));
+        return matchesDate && matchesType && matchesSearch;
+    });
 
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
             <main className="flex-1 overflow-auto p-4 md:p-8">
                 <div className="max-w-[1400px] mx-auto space-y-6">
-                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center">
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <Send size={40} className="text-cyan-500" />
                                 08 Comunicación con Cliente
                             </h1>
                             <p className="text-slate-400 font-bold max-w-2xl">Registro de cartas, oficios y respuestas enviadas/recibidas del cliente.</p>
+                        </div>
+                        
+                        <div className="mt-4 md:mt-0 flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    setIsDownloading(true);
+                                    // Transform format to match what handleBulkDownload expects
+                                    const bulkItems = filteredRecords.map(r => ({
+                                        fileUrls: r.files,
+                                        date: r.date,
+                                        zona: 'CLIENTE',
+                                        month: r.date.split('-')[1]
+                                    }));
+                                    handleBulkDownload(bulkItems, 'Comunicaciones.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                                }}
+                                disabled={isDownloading || filteredRecords.length === 0}
+                                className="bg-slate-800 hover:bg-cyan-600 disabled:bg-slate-900 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                {isDownloading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={18} />}
+                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                            </button>
                         </div>
                     </div>
 
@@ -128,7 +192,7 @@ export default function ClientCommunicationPage() {
                                             <p className="text-[10px] font-bold text-slate-500">CLICK PARA SUBIR</p>
                                         </div>
                                     </div>
-                                    <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98]">
+                                    <button type="submit" disabled={isUploading || files.length === 0} className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98]">
                                         {isUploading ? "Subiendo..." : "Registrar Comunicación"}
                                     </button>
                                 </form>
@@ -223,43 +287,60 @@ export default function ClientCommunicationPage() {
                                     </div>
                                 </div>
 
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
-                                            <th className="pb-4">Fecha</th>
-                                            <th className="pb-4">Tipo</th>
-                                            <th className="pb-4">Asunto / Referencia</th>
-                                            <th className="pb-4 text-center">Docs</th>
-                                            <th className="pb-4 text-right">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {records
-                                            .filter(r => {
-                                                const matchesDate = !filterDate || r.date === filterDate;
-                                                const matchesType = !filterType || r.type === filterType;
-                                                const matchesSearch = !filterSearch || r.description.toLowerCase().includes(filterSearch.toLowerCase()) || r.reference.toLowerCase().includes(filterSearch.toLowerCase());
-                                                return matchesDate && matchesType && matchesSearch;
-                                            })
-                                            .map(r => (
-                                            <tr key={r.id} className="group hover:bg-slate-800/30">
-                                                <td className="py-4 text-xs font-mono text-slate-400">{r.date}</td>
-                                                <td className="py-4">
-                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded ${r.type === 'Enviada' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'}`}>{r.type}</span>
-                                                </td>
-                                                <td className="py-4 text-sm font-bold text-white">{r.subject}</td>
-                                                <td className="py-4 text-center">
-                                                    {r.files.map((f, i) => (
-                                                        <button key={i} onClick={() => setPreviewFile({url: f, type: 'pdf'})} className="p-2 bg-slate-800 text-cyan-400 rounded-lg"><FileText size={16} /></button>
-                                                    ))}
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-slate-600 hover:text-red-400"><Trash2 size={16} /></button>
-                                                </td>
+                                {loading ? (
+                                    <div className="flex justify-center items-center py-20">
+                                        <div className="w-10 h-10 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+                                    </div>
+                                ) : (
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
+                                                <th className="pb-4">Fecha</th>
+                                                <th className="pb-4">Tipo</th>
+                                                <th className="pb-4">Asunto / Referencia</th>
+                                                <th className="pb-4 text-center">Docs</th>
+                                                <th className="pb-4 text-right">Acciones</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800">
+                                            {filteredRecords.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="py-10 text-center text-slate-500 text-xs font-bold uppercase">
+                                                        No hay registros disponibles
+                                                    </td>
+                                                </tr>
+                                            ) : filteredRecords.map(r => (
+                                                <tr key={r.id} className="group hover:bg-slate-800/30">
+                                                    <td className="py-4 text-xs font-mono text-slate-400">{r.date}</td>
+                                                    <td className="py-4">
+                                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded ${r.type === 'Enviada' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'}`}>{r.type}</span>
+                                                    </td>
+                                                    <td className="py-4">
+                                                        <p className="text-sm font-bold text-white">{r.subject}</p>
+                                                        <p className="text-[10px] text-slate-500">{r.recipient}</p>
+                                                    </td>
+                                                    <td className="py-4 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {r.files && r.files.length > 0 && r.files.map((f, i) => (
+                                                                <div key={i} className="flex gap-1">
+                                                                    <button onClick={() => setPreviewFile({url: f, type: 'pdf'})} className="p-1.5 bg-slate-800 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-all" title="Ver Documento">
+                                                                        <FileText size={14} />
+                                                                    </button>
+                                                                    <a href={getDriveDownloadUrl(f)} target="_blank" rel="noreferrer" className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-all" title="Descargar">
+                                                                        <Download size={14} />
+                                                                    </a>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 text-right">
+                                                        <button onClick={() => handleDelete(r.id)} className="p-1.5 bg-slate-800/50 hover:bg-red-500/20 text-slate-600 hover:text-red-400 rounded-lg transition-all"><Trash2 size={14} /></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
                             </div>
                         </div>
                     </div>

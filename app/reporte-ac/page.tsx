@@ -18,7 +18,8 @@ import {
     Activity,
     BarChart3,
     TrendingUp,
-    Filter
+    Filter,
+    Users
 } from "lucide-react";
 import { 
     BarChart, 
@@ -243,7 +244,7 @@ export default function ReporteACPage() {
                         <div>
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <AlertTriangle size={40} className="text-orange-500" />
-                                Reporte de Actos y Condiciones (A/C)
+                                Control de Tarjeta de Observación Preventiva (TOP)
                             </h1>
                             <p className="text-slate-400 font-bold max-w-2xl">
                                 Herramienta para el registro de actos y condiciones inseguras identificadas en campo, sincronizado con el OBJ 04 del Programa Anual.
@@ -353,6 +354,17 @@ export default function ReporteACPage() {
                                         value={form.date}
                                         onChange={e => setForm({...form, date: e.target.value})}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-orange-500 outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
+                                    <SearchableSelect 
+                                        options={RESPONSIBLES}
+                                        value={form.responsible}
+                                        onChange={val => setForm({...form, responsible: val})}
+                                        placeholder="Seleccionar responsable..."
+                                        icon={<Users size={16} />}
                                     />
                                 </div>
 

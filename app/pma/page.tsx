@@ -21,7 +21,7 @@ import {
     ExternalLink,
     RotateCcw
 } from "lucide-react";
-import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue, handleBulkDownload } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -90,6 +90,8 @@ export default function PMAPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadMsg, setDownloadMsg] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -757,9 +759,34 @@ export default function PMAPage() {
                         {/* LISTA / HISTORIAL (TABLA) */}
                         <div className="xl:col-span-2">
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-                                <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                                    <FileText size={20} className="text-blue-400" /> Rastro de Cargas
-                                </h3>
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                        <FileText size={20} className="text-blue-400" /> Rastro de Cargas
+                                    </h3>
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        {isDownloading && (
+                                            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest animate-pulse flex items-center gap-1">
+                                                <RotateCcw size={10} className="animate-spin" /> {downloadMsg}
+                                            </span>
+                                        )}
+                                        <button
+                                            onClick={() => handleBulkDownload(
+                                                records.filter(r => {
+                                                    const matchesDate = filterDate === "" || r.date === filterDate;
+                                                    const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                                    const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                                    const rawCat = r.category?.trim?.() || r.category || r.description;
+                                                    const matchesCat = filterCategory === "" || rawCat === filterCategory;
+                                                    return matchesDate && matchesResp && matchesLoc && matchesCat;
+                                                }), 
+                                                'pma', setIsDownloading, setDownloadMsg, true)}
+                                            disabled={isDownloading || records.length === 0}
+                                            className="w-full sm:w-auto bg-slate-800 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            <Download size={14} /> Descargar Visibles (ZIP)
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {/* FILTERS */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-emerald-950/10 p-4 rounded-xl border border-emerald-500/10 items-end">
@@ -953,6 +980,13 @@ export default function PMAPage() {
                                                             </td>
                                                             <td className="py-4 align-top">
                                                                     <div className="flex items-center justify-center gap-2">
+                                                                        <button
+                                                                            onClick={() => handleBulkDownload([record], `PMA_${record.date}`, setIsDownloading, setDownloadMsg, true)}
+                                                                            className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors border border-slate-700"
+                                                                            title="Descargar Imágenes"
+                                                                        >
+                                                                            <Download size={14} />
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => generatePDF(record)}
                                                                             className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors border border-slate-700"

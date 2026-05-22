@@ -10,15 +10,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
 
 const DOCUMENT_TYPES = [
-    "Plan de SST",
-    "Programa de SST",
-    "Plan de contingencia",
-    "IPERC",
-    "Identificacion de aspectos e impactos ambientales",
-    "Mapa de riesgos",
-    "PETS",
-    "Programa de Capacitacion",
-    "Estadisticas"
+    "4.1. PLAN DE SST",
+    "4.2. PROGRAMA DE SST",
+    "4.3. PLAN DE CONTINGENCIA",
+    "4.4. IPERC",
+    "4.5. IDENTIFICACION DE ASPECTOS AMBIENTALES",
+    "4.6. MAPA DE RIESGOS",
+    "4.7. PETS",
+    "4.8. PROGRAMA DE CAPACITACION"
 ];
 
 export default function SSTMADocsPage() {

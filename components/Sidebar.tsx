@@ -134,7 +134,8 @@ export default function Sidebar() {
                         <SidebarItem icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
-                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Reporte de A/C" href="/reporte-ac" active={pathname === '/reporte-ac'} />
+                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Control de Tarjeta TOP" href="/reporte-ac" active={pathname === '/reporte-ac'} />
+                        <SidebarItem icon={<Siren size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de Accidentes" href="/accidentes" active={pathname === '/accidentes'} />
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <SidebarItem icon={<ShieldCheck size={16} className="text-emerald-500" />} label="Control de SCTR" href="/sctr" active={pathname === '/sctr'} />
                         )}
