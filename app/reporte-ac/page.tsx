@@ -22,16 +22,14 @@ import {
     Users
 } from "lucide-react";
 import { 
-    BarChart, 
-    Bar, 
+    LineChart, 
+    Line, 
     XAxis, 
     YAxis, 
     CartesianGrid, 
-    Tooltip, 
+    Tooltip as RechartsTooltip, 
     ResponsiveContainer,
-    Cell,
-    PieChart,
-    Pie
+    Legend
 } from 'recharts';
 import { generateFilename, getDriveViewerUrl } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -251,27 +249,93 @@ export default function ReporteACPage() {
     };
 
     // --- CHART DATA LOGIC ---
-    const getChartData = () => {
-        const actosCount: Record<string, number> = {};
-        const condicionesCount: Record<string, number> = {};
+    const getMonthlyData = () => {
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const data = months.map(m => ({ month: m, actos: 0, condiciones: 0, topActo: '', topCondicion: '' }));
+        
+        const detailCounts: Record<string, { actos: Record<string, number>, condiciones: Record<string, number> }> = {};
+        months.forEach(m => detailCounts[m] = { actos: {}, condiciones: {} });
 
         records.forEach(r => {
-            if (r.acto) actosCount[r.acto] = (actosCount[r.acto] || 0) + r.cantidad;
-            if (r.condicion) condicionesCount[r.condicion] = (condicionesCount[r.condicion] || 0) + r.cantidad;
+            if (!r.date) return;
+            const m = new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '');
+            const monthIndex = months.findIndex(x => x.toLowerCase() === m);
+            if (monthIndex === -1) return;
+            
+            const targetMonth = months[monthIndex];
+            const monthData = data[monthIndex];
+
+            if (r.acto) {
+                monthData.actos += r.cantidad;
+                detailCounts[targetMonth].actos[r.acto] = (detailCounts[targetMonth].actos[r.acto] || 0) + r.cantidad;
+            }
+            if (r.condicion) {
+                monthData.condiciones += r.cantidad;
+                detailCounts[targetMonth].condiciones[r.condicion] = (detailCounts[targetMonth].condiciones[r.condicion] || 0) + r.cantidad;
+            }
         });
 
-        const actosData = Object.entries(actosCount)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
+        data.forEach(d => {
+            const actosObj = detailCounts[d.month].actos;
+            const condObj = detailCounts[d.month].condiciones;
+            if (Object.keys(actosObj).length > 0) d.topActo = Object.entries(actosObj).sort((a,b) => b[1]-a[1])[0][0];
+            if (Object.keys(condObj).length > 0) d.topCondicion = Object.entries(condObj).sort((a,b) => b[1]-a[1])[0][0];
+        });
 
-        const condicionesData = Object.entries(condicionesCount)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
-
-        return { actosData, condicionesData };
+        return data;
     };
 
-    const { actosData, condicionesData } = getChartData();
+    const monthlyData = getMonthlyData();
+    const maxActoValue = Math.max(...monthlyData.map(d => d.actos));
+    const maxCondicionValue = Math.max(...monthlyData.map(d => d.condiciones));
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            const d = monthlyData.find(m => m.month === label);
+            return (
+                <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl">
+                    <p className="text-white font-black mb-2 uppercase">{label}</p>
+                    <div className="space-y-2">
+                        <div className="bg-orange-500/10 p-2 rounded-lg border border-orange-500/20">
+                            <p className="text-orange-500 font-bold text-xs">Actos: {payload[0]?.value}</p>
+                            {d?.topActo && <p className="text-orange-400 text-[10px] mt-1 line-clamp-2 leading-tight">🔥 Principal: {d.topActo}</p>}
+                        </div>
+                        <div className="bg-blue-500/10 p-2 rounded-lg border border-blue-500/20">
+                            <p className="text-blue-500 font-bold text-xs">Condiciones: {payload[1]?.value}</p>
+                            {d?.topCondicion && <p className="text-blue-400 text-[10px] mt-1 line-clamp-2 leading-tight">❄️ Principal: {d.topCondicion}</p>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    const CustomizedActoLabel = (props: any) => {
+        const { x, y, value, index } = props;
+        if (value === maxActoValue && value > 0) {
+            const top = monthlyData[index].topActo;
+            return (
+                <text x={x} y={y - 15} fill="#fb923c" fontSize={9} textAnchor="middle" fontWeight="black" className="bg-slate-900">
+                    🏆 {top?.substring(0, 20)}...
+                </text>
+            );
+        }
+        return null;
+    };
+
+    const CustomizedCondicionLabel = (props: any) => {
+        const { x, y, value, index } = props;
+        if (value === maxCondicionValue && value > 0) {
+            const top = monthlyData[index].topCondicion;
+            return (
+                <text x={x} y={y + 20} fill="#60a5fa" fontSize={9} textAnchor="middle" fontWeight="black" className="bg-slate-900">
+                    🏆 {top?.substring(0, 20)}...
+                </text>
+            );
+        }
+        return null;
+    };
 
     if (!isLoaded) return <div className="h-screen bg-slate-950 flex items-center justify-center text-white">Cargando...</div>;
 
@@ -306,75 +370,52 @@ export default function ReporteACPage() {
                 </div>
 
                 {/* Analysis Dashboard */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                <TrendingUp size={20} className="text-orange-500" />
-                                Top Actos Inseguros
-                            </h3>
-                        </div>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={actosData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
-                                    <XAxis type="number" hide />
-                                    <YAxis 
-                                        dataKey="name" 
-                                        type="category" 
-                                        width={150} 
-                                        axisLine={false} 
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                                        tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
-                                    />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
-                                        itemStyle={{ color: '#fb923c', fontWeight: 'bold' }}
-                                    />
-                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                                        {actosData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#ea580c' : '#fb923c'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-xl font-black text-white flex items-center gap-3">
+                            <TrendingUp size={24} className="text-emerald-500" />
+                            Tendencia de Actos y Condiciones
+                        </h3>
                     </div>
-
-                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                <TrendingUp size={20} className="text-blue-500" />
-                                Top Condiciones Inseguras
-                            </h3>
-                        </div>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={condicionesData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
-                                    <XAxis type="number" hide />
-                                    <YAxis 
-                                        dataKey="name" 
-                                        type="category" 
-                                        width={150} 
-                                        axisLine={false} 
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                                        tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
-                                    />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
-                                        itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
-                                    />
-                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                                        {condicionesData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#3b82f6'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                    <div className="h-[400px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={monthlyData} margin={{ top: 30, left: 10, right: 30, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                <XAxis 
+                                    dataKey="month" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} 
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
+                                />
+                                <RechartsTooltip content={<CustomTooltip />} />
+                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="actos" 
+                                    name="Actos Inseguros" 
+                                    stroke="#ea580c" 
+                                    strokeWidth={4} 
+                                    dot={{ fill: '#ea580c', r: 5, strokeWidth: 2, stroke: '#1e293b' }} 
+                                    activeDot={{ r: 8 }}
+                                    label={<CustomizedActoLabel />}
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="condiciones" 
+                                    name="Condiciones Inseguras" 
+                                    stroke="#2563eb" 
+                                    strokeWidth={4} 
+                                    dot={{ fill: '#2563eb', r: 5, strokeWidth: 2, stroke: '#1e293b' }} 
+                                    activeDot={{ r: 8 }}
+                                    label={<CustomizedCondicionLabel />}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
