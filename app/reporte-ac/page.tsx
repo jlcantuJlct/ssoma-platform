@@ -22,8 +22,8 @@ import {
     Users
 } from "lucide-react";
 import { 
-    LineChart, 
-    Line, 
+    AreaChart, 
+    Area, 
     XAxis, 
     YAxis, 
     CartesianGrid, 
@@ -379,42 +379,62 @@ export default function ReporteACPage() {
                     </div>
                     <div className="h-[400px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={monthlyData} margin={{ top: 30, left: 10, right: 30, bottom: 10 }}>
+                            <AreaChart data={monthlyData} margin={{ top: 30, left: 10, right: 30, bottom: 10 }}>
+                                <defs>
+                                    <linearGradient id="colorActos" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
+                                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorCondiciones" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
+                                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feGaussianBlur stdDeviation="4" result="blur" />
+                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                    </filter>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis 
                                     dataKey="month" 
                                     axisLine={false} 
                                     tickLine={false} 
                                     tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} 
+                                    dy={10}
                                 />
                                 <YAxis 
                                     axisLine={false} 
                                     tickLine={false} 
                                     tick={{ fill: '#94a3b8', fontSize: 10 }} 
+                                    dx={-10}
                                 />
-                                <RechartsTooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="actos" 
-                                    name="Actos Inseguros" 
-                                    stroke="#ea580c" 
-                                    strokeWidth={4} 
-                                    dot={{ fill: '#ea580c', r: 5, strokeWidth: 2, stroke: '#1e293b' }} 
-                                    activeDot={{ r: 8 }}
-                                    label={<CustomizedActoLabel />}
-                                />
-                                <Line 
+                                <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} iconType="circle" />
+                                <Area 
                                     type="monotone" 
                                     dataKey="condiciones" 
                                     name="Condiciones Inseguras" 
-                                    stroke="#2563eb" 
+                                    stroke="#3b82f6" 
                                     strokeWidth={4} 
-                                    dot={{ fill: '#2563eb', r: 5, strokeWidth: 2, stroke: '#1e293b' }} 
-                                    activeDot={{ r: 8 }}
+                                    fillOpacity={1} 
+                                    fill="url(#colorCondiciones)" 
+                                    filter="url(#glow)"
+                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#60a5fa' }}
                                     label={<CustomizedCondicionLabel />}
                                 />
-                            </LineChart>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="actos" 
+                                    name="Actos Inseguros" 
+                                    stroke="#f97316" 
+                                    strokeWidth={4} 
+                                    fillOpacity={1} 
+                                    fill="url(#colorActos)" 
+                                    filter="url(#glow)"
+                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#fb923c' }}
+                                    label={<CustomizedActoLabel />}
+                                />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
