@@ -166,8 +166,16 @@ export default function ReporteACPage() {
         try {
             let uploadedUrl = "";
             if (pdfFile) {
-                const filename = `AC_${form.date}_${form.location.replace(/\s+/g, '_')}.pdf`;
-                uploadedUrl = await uploadEvidence(pdfFile, filename);
+                uploadedUrl = await uploadEvidence(
+                    pdfFile,
+                    'ActosInseguros' as any,
+                    'Reporte_TOP',
+                    form.date,
+                    form.responsible,
+                    'EVID',
+                    'SEGURIDAD',
+                    form.location
+                );
             }
 
             const newRecords: ReporteACRecord[] = [];
