@@ -924,8 +924,10 @@ export default function ProgramPage() {
             }
         });
 
-        // 6. Map ATS Records (OBJ 02/03/04 usually)
+        // 6. Map ATS Records
         atsRecords.forEach(ats => {
+            if (targetObjId === 'obj2') return; // ATS are not Trainings
+
             const m = getMonthFromStr(ats.date);
             if (m < 0 || m > 11 || !hasEvidence(ats)) return;
 
@@ -941,6 +943,8 @@ export default function ProgramPage() {
 
         // 7. Map PETAR Records
         petarRecords.forEach(petar => {
+            if (targetObjId === 'obj2') return; // PETARs are not Trainings
+
             const m = getMonthFromStr(petar.date);
             if (m < 0 || m > 11 || !hasEvidence(petar)) return;
 
@@ -956,6 +960,8 @@ export default function ProgramPage() {
 
         // 8. Map Desvío Records
         detourRecords.forEach(det => {
+            if (targetObjId === 'obj2') return; // Desvíos are not Trainings
+
             const m = getMonthFromStr(det.date);
             if (m < 0 || m > 11 || !hasEvidence(det)) return;
 
