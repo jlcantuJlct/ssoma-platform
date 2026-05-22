@@ -170,7 +170,9 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Informes y Gestión</span>
                         </div>
-                        <SidebarItem icon={<TrendingDown size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
+                        <SidebarItem icon={<ClipboardCheck size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Doc. Gestión SSTMA" href="/sstma-docs" active={pathname === '/sstma-docs'} />
+                        <SidebarItem icon={<FileText size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Informes" href="/informes" active={pathname === '/informes'} />
+                        <SidebarItem icon={<TrendingDown size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
                         <SidebarItem icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
