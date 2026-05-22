@@ -31,6 +31,10 @@ export default function SSTMADocsPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
+    // Filters
+    const [filterDocType, setFilterDocType] = useState('');
+    const [filterDate, setFilterDate] = useState('');
+
     // Form state
     const [formData, setFormData] = useState({
         date: '',
@@ -320,90 +324,130 @@ export default function SSTMADocsPage() {
                     </Card>
                 )}
 
-                {/* List Section Grouped by Doc Type */}
-                <div className="space-y-8">
-                    <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2">
-                        <Folder size={18} className="text-cyan-500" />
-                        Biblioteca de Documentos
-                    </h2>
+                {/* List Section */}
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4">
+                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2">
+                            <Folder size={18} className="text-cyan-500" />
+                            Control Central Documentario
+                        </h2>
+                        <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                            {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate)).length} REGISTROS
+                        </div>
+                    </div>
+
+                    {/* FILTERS */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50 items-end">
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
+                                {filterDate && (
+                                    <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
+                            <input 
+                                type="date"
+                                value={filterDate}
+                                onChange={e => setFilterDate(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Documento</label>
+                                {filterDocType && (
+                                    <button onClick={() => setFilterDocType('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                        <X size={10} />
+                                    </button>
+                                )}
+                            </div>
+                            <select 
+                                value={filterDocType}
+                                onChange={e => setFilterDocType(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none appearance-none"
+                            >
+                                <option value="">Todos los documentos...</option>
+                                {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1 flex flex-col justify-end h-[53px]">
+                            <button 
+                                onClick={() => { setFilterDate(''); setFilterDocType(''); }}
+                                className={`w-full h-[33px] rounded-lg text-[10px] font-bold uppercase transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                                    (filterDate || filterDocType)
+                                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
+                                    : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
+                                }`}
+                                disabled={!(filterDate || filterDocType)}
+                            >
+                                <X size={14} strokeWidth={3} /> Limpiar Filtros
+                            </button>
+                        </div>
+                    </div>
 
                     {loading ? (
                         <div className="flex justify-center py-20">
                             <div className="w-10 h-10 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
                         </div>
                     ) : (
-                        <div className="space-y-6">
-                            {DOCUMENT_TYPES.map((docType, idx) => {
-                                const docRecords = records.filter(r => r.documentType === docType);
-                                
-                                return (
-                                    <div key={idx} className="bg-slate-900/40 border border-slate-800/50 rounded-3xl overflow-hidden">
-                                        <div className="bg-slate-800/40 px-6 py-4 flex items-center justify-between border-b border-slate-800/50">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-500 font-black flex items-center justify-center text-xs">
-                                                    {idx + 1}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate)).length === 0 ? (
+                                <div className="col-span-full text-center py-10 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                                    No hay documentos registrados
+                                </div>
+                            ) : records
+                                .filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate))
+                                .map(rec => (
+                                <Card key={rec.id} className="bg-slate-950 border-slate-800 hover:border-cyan-500/30 transition-all">
+                                    <div className="p-4">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-500 font-black flex items-center justify-center text-xs shrink-0">
+                                                    <FileText size={16} />
                                                 </div>
-                                                <h3 className="font-bold text-white text-sm">{docType}</h3>
+                                                <div>
+                                                    <h3 className="font-bold text-white text-xs leading-tight line-clamp-2" title={rec.documentType}>{rec.documentType}</h3>
+                                                    <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                                        <Calendar size={10} /> {rec.date}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
-                                                {docRecords.length} Archivos
+                                            <div className="flex gap-1 shrink-0 ml-2">
+                                                <button 
+                                                    onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
+                                                    className="p-1.5 bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-lg transition-all"
+                                                >
+                                                    <FileText size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(rec.id)}
+                                                    className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             </div>
                                         </div>
-                                        
-                                        <div className="p-6">
-                                            {docRecords.length === 0 ? (
-                                                <div className="text-center py-6 text-slate-500 text-xs font-bold uppercase tracking-widest">
-                                                    No hay documentos subidos en esta categoría
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                    {docRecords.map(rec => (
-                                                        <Card key={rec.id} className="bg-slate-950 border-slate-800 hover:border-cyan-500/30 transition-all">
-                                                            <div className="p-4">
-                                                                <div className="flex justify-between items-start mb-3">
-                                                                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                                                        <Calendar size={12} /> {rec.date}
-                                                                    </div>
-                                                                    <div className="flex gap-1">
-                                                                        <button 
-                                                                            onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
-                                                                            className="p-1.5 bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-lg transition-all"
-                                                                        >
-                                                                            <FileText size={14} />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={() => handleDelete(rec.id)}
-                                                                            className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
-                                                                        >
-                                                                            <Trash2 size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="grid grid-cols-2 gap-3 mb-2">
-                                                                    <div>
-                                                                        <p className="text-[9px] font-black text-slate-600 uppercase">Responsable</p>
-                                                                        <p className="text-[10px] text-slate-300 truncate">{rec.responsable}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-[9px] font-black text-slate-600 uppercase">Zona</p>
-                                                                        <p className="text-[10px] text-slate-300 truncate">{rec.zona}</p>
-                                                                    </div>
-                                                                </div>
-                                                                {rec.description && (
-                                                                    <div className="pt-2 border-t border-slate-800/50">
-                                                                        <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Descripción</p>
-                                                                        <p className="text-[10px] text-slate-400 line-clamp-2">{rec.description}</p>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </Card>
-                                                    ))}
-                                                </div>
-                                            )}
+                                        <div className="grid grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-800/50">
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-600 uppercase">Responsable</p>
+                                                <p className="text-[10px] text-slate-300 truncate">{rec.responsable}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-600 uppercase">Zona</p>
+                                                <p className="text-[10px] text-slate-300 truncate">{rec.zona}</p>
+                                            </div>
                                         </div>
+                                        {rec.description && (
+                                            <div className="pt-2 border-t border-slate-800/50">
+                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Descripción</p>
+                                                <p className="text-[10px] text-slate-400 line-clamp-2">{rec.description}</p>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            })}
+                                </Card>
+                            ))}
                         </div>
                     )}
                 </div>
