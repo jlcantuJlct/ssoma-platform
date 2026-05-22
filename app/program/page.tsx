@@ -1029,14 +1029,15 @@ export default function ProgramPage() {
         // 12. Map Reporte A/C Records (OBJ 04)
         reporteAcRecords.forEach(rac => {
             const m = getMonthFromStr(rac.date);
-            if (m < 0 || m > 11 || !hasEvidence(rac)) return;
+            // Para el caso de actos y condiciones, sumamos todo así no tengan PDF cargado
+            if (m < 0 || m > 11) return;
 
             for (const areaKey in grouped) {
                 let match = null;
                 
                 // En OBJ 04, todos los reportes A/C deben sumar a la actividad principal de reporte
                 if (targetObjId === 'obj4') {
-                    match = findMatch(areaKey, 'Reporte de actos y condiciones');
+                    match = findMatch(areaKey, 'Reporte de actos y condiciones insegura') || findMatch(areaKey, 'Reporte de actos y condiciones') || findMatch(areaKey, 'Reporte');
                 }
 
                 if (!match) {
