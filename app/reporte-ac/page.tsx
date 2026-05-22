@@ -24,6 +24,9 @@ import {
 import { 
     AreaChart, 
     Area, 
+    BarChart,
+    Bar,
+    Cell,
     XAxis, 
     YAxis, 
     CartesianGrid, 
@@ -285,7 +288,28 @@ export default function ReporteACPage() {
         return data;
     };
 
+    const getChartData = () => {
+        const actosCount: Record<string, number> = {};
+        const condicionesCount: Record<string, number> = {};
+
+        records.forEach(r => {
+            if (r.acto) actosCount[r.acto] = (actosCount[r.acto] || 0) + r.cantidad;
+            if (r.condicion) condicionesCount[r.condicion] = (condicionesCount[r.condicion] || 0) + r.cantidad;
+        });
+
+        const actosData = Object.entries(actosCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
+        const condicionesData = Object.entries(condicionesCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
+        return { actosData, condicionesData };
+    };
+
     const monthlyData = getMonthlyData();
+    const { actosData, condicionesData } = getChartData();
     const maxActoValue = Math.max(...monthlyData.map(d => d.actos));
     const maxCondicionValue = Math.max(...monthlyData.map(d => d.condiciones));
 
@@ -370,72 +394,146 @@ export default function ReporteACPage() {
                 </div>
 
                 {/* Analysis Dashboard */}
-                <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-xl font-black text-white flex items-center gap-3">
-                            <TrendingUp size={24} className="text-emerald-500" />
-                            Tendencia de Actos y Condiciones
-                        </h3>
+                <div className="space-y-6">
+                    <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-black text-white flex items-center gap-3">
+                                <TrendingUp size={24} className="text-emerald-500" />
+                                Tendencia de Actos y Condiciones
+                            </h3>
+                        </div>
+                        <div className="h-[400px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={monthlyData} margin={{ top: 30, left: 10, right: 30, bottom: 10 }}>
+                                    <defs>
+                                        <linearGradient id="colorActos" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorCondiciones" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <feGaussianBlur stdDeviation="4" result="blur" />
+                                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                        </filter>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <XAxis 
+                                        dataKey="month" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} 
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#94a3b8', fontSize: 10 }} 
+                                        dx={-10}
+                                    />
+                                    <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                    <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} iconType="circle" />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="condiciones" 
+                                        name="Condiciones Inseguras" 
+                                        stroke="#3b82f6" 
+                                        strokeWidth={4} 
+                                        fillOpacity={1} 
+                                        fill="url(#colorCondiciones)" 
+                                        filter="url(#glow)"
+                                        activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#60a5fa' }}
+                                        label={<CustomizedCondicionLabel />}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="actos" 
+                                        name="Actos Inseguros" 
+                                        stroke="#f97316" 
+                                        strokeWidth={4} 
+                                        fillOpacity={1} 
+                                        fill="url(#colorActos)" 
+                                        filter="url(#glow)"
+                                        activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#fb923c' }}
+                                        label={<CustomizedActoLabel />}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                    <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={monthlyData} margin={{ top: 30, left: 10, right: 30, bottom: 10 }}>
-                                <defs>
-                                    <linearGradient id="colorActos" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
-                                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                                    </linearGradient>
-                                    <linearGradient id="colorCondiciones" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
-                                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                                    </linearGradient>
-                                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                        <feGaussianBlur stdDeviation="4" result="blur" />
-                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                                    </filter>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                <XAxis 
-                                    dataKey="month" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} 
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#94a3b8', fontSize: 10 }} 
-                                    dx={-10}
-                                />
-                                <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} iconType="circle" />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="condiciones" 
-                                    name="Condiciones Inseguras" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={4} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorCondiciones)" 
-                                    filter="url(#glow)"
-                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#60a5fa' }}
-                                    label={<CustomizedCondicionLabel />}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="actos" 
-                                    name="Actos Inseguros" 
-                                    stroke="#f97316" 
-                                    strokeWidth={4} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorActos)" 
-                                    filter="url(#glow)"
-                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#fb923c' }}
-                                    label={<CustomizedActoLabel />}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                    <TrendingUp size={20} className="text-orange-500" />
+                                    Top Actos Inseguros
+                                </h3>
+                            </div>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={actosData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                        <XAxis type="number" hide />
+                                        <YAxis 
+                                            dataKey="name" 
+                                            type="category" 
+                                            width={150} 
+                                            axisLine={false} 
+                                            tickLine={false}
+                                            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                                            tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
+                                        />
+                                        <RechartsTooltip 
+                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
+                                            itemStyle={{ color: '#fb923c', fontWeight: 'bold' }}
+                                        />
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                            {actosData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#ea580c' : '#fb923c'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                    <TrendingUp size={20} className="text-blue-500" />
+                                    Top Condiciones Inseguras
+                                </h3>
+                            </div>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={condicionesData.slice(0, 5)} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                        <XAxis type="number" hide />
+                                        <YAxis 
+                                            dataKey="name" 
+                                            type="category" 
+                                            width={150} 
+                                            axisLine={false} 
+                                            tickLine={false}
+                                            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                                            tickFormatter={(value) => value.length > 25 ? value.substring(0, 25) + '...' : value}
+                                        />
+                                        <RechartsTooltip 
+                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
+                                            itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
+                                        />
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                                            {condicionesData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#3b82f6'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
