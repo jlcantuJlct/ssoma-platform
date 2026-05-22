@@ -65,8 +65,8 @@ export default function ReporteACPage() {
         date: string;
         responsible: string;
         location: string;
-        actos: string[];
-        condiciones: string[];
+        actos: { name: string, cantidad: number }[];
+        condiciones: { name: string, cantidad: number }[];
     }>({
         date: new Date().toISOString().split('T')[0],
         responsible: user?.name || '',
@@ -178,9 +178,9 @@ export default function ReporteACPage() {
                     date: form.date,
                     responsible: form.responsible,
                     location: form.location,
-                    acto: acto,
+                    acto: acto.name,
                     condicion: '',
-                    cantidad: 1,
+                    cantidad: acto.cantidad,
                     pdfUrl: uploadedUrl
                 });
             });
@@ -192,8 +192,8 @@ export default function ReporteACPage() {
                     responsible: form.responsible,
                     location: form.location,
                     acto: '',
-                    condicion: cond,
-                    cantidad: 1,
+                    condicion: cond.name,
+                    cantidad: cond.cantidad,
                     pdfUrl: uploadedUrl
                 });
             });
@@ -418,20 +418,34 @@ export default function ReporteACPage() {
                                         options={ACTOS_LIST}
                                         value=""
                                         onChange={val => {
-                                            if (val && !form.actos.includes(val)) {
-                                                setForm({...form, actos: [...form.actos, val]});
+                                            if (val && !form.actos.find(a => a.name === val)) {
+                                                setForm({...form, actos: [...form.actos, { name: val, cantidad: 1 }]});
                                             }
                                         }}
                                         placeholder="Agregar acto inseguro..."
                                         icon={<AlertTriangle size={16} className="text-orange-500" />}
                                     />
                                     {form.actos.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-2">
+                                        <div className="flex flex-col gap-2 mt-2">
                                             {form.actos.map((a, idx) => (
-                                                <div key={`a-${idx}`} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] px-2 py-1.5 rounded-lg flex items-center gap-2">
-                                                    <span className="truncate max-w-[200px] leading-tight" title={a}>{a}</span>
-                                                    <button type="button" onClick={() => setForm({...form, actos: form.actos.filter((_, i) => i !== idx)})} className="hover:text-red-400">
-                                                        <X size={12} />
+                                                <div key={`a-${idx}`} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-sm">
+                                                    <span className="truncate flex-1 font-medium" title={a.name}>{a.name}</span>
+                                                    <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-md border border-orange-500/20">
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Cant:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            value={a.cantidad} 
+                                                            onChange={(e) => {
+                                                                const newActos = [...form.actos];
+                                                                newActos[idx].cantidad = Math.max(1, parseInt(e.target.value) || 1);
+                                                                setForm({...form, actos: newActos});
+                                                            }}
+                                                            className="w-12 bg-transparent text-center text-xs outline-none font-black text-orange-300"
+                                                        />
+                                                    </div>
+                                                    <button type="button" onClick={() => setForm({...form, actos: form.actos.filter((_, i) => i !== idx)})} className="hover:text-red-400 p-1 bg-red-500/10 rounded-md transition-colors">
+                                                        <X size={14} />
                                                     </button>
                                                 </div>
                                             ))}
@@ -445,20 +459,34 @@ export default function ReporteACPage() {
                                         options={CONDICIONES_LIST}
                                         value=""
                                         onChange={val => {
-                                            if (val && !form.condiciones.includes(val)) {
-                                                setForm({...form, condiciones: [...form.condiciones, val]});
+                                            if (val && !form.condiciones.find(c => c.name === val)) {
+                                                setForm({...form, condiciones: [...form.condiciones, { name: val, cantidad: 1 }]});
                                             }
                                         }}
                                         placeholder="Agregar condición insegura..."
                                         icon={<AlertTriangle size={16} className="text-blue-500" />}
                                     />
                                     {form.condiciones.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-2">
+                                        <div className="flex flex-col gap-2 mt-2">
                                             {form.condiciones.map((c, idx) => (
-                                                <div key={`c-${idx}`} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-2 py-1.5 rounded-lg flex items-center gap-2">
-                                                    <span className="truncate max-w-[200px] leading-tight" title={c}>{c}</span>
-                                                    <button type="button" onClick={() => setForm({...form, condiciones: form.condiciones.filter((_, i) => i !== idx)})} className="hover:text-red-400">
-                                                        <X size={12} />
+                                                <div key={`c-${idx}`} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-sm">
+                                                    <span className="truncate flex-1 font-medium" title={c.name}>{c.name}</span>
+                                                    <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-md border border-blue-500/20">
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Cant:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            value={c.cantidad} 
+                                                            onChange={(e) => {
+                                                                const newConds = [...form.condiciones];
+                                                                newConds[idx].cantidad = Math.max(1, parseInt(e.target.value) || 1);
+                                                                setForm({...form, condiciones: newConds});
+                                                            }}
+                                                            className="w-12 bg-transparent text-center text-xs outline-none font-black text-blue-300"
+                                                        />
+                                                    </div>
+                                                    <button type="button" onClick={() => setForm({...form, condiciones: form.condiciones.filter((_, i) => i !== idx)})} className="hover:text-red-400 p-1 bg-red-500/10 rounded-md transition-colors">
+                                                        <X size={14} />
                                                     </button>
                                                 </div>
                                             ))}
