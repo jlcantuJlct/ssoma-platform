@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { FileText, Plus, Trash2, Calendar, MapPin, Upload, X, Archive, ArrowDownCircle } from 'lucide-react';
+import { FileText, Plus, Trash2, Calendar, MapPin, Upload, X, Archive, ArrowDownCircle, Download, DownloadCloud } from 'lucide-react';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card } from "@/components/ui/card";
-import { getDriveViewerUrl } from "@/lib/utils";
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
 import { uploadEvidence } from '@/lib/uploadClient';
 
 const CERTIFICATE_TYPES = [
@@ -23,6 +23,8 @@ export default function GestionResiduosPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
     // Filters
@@ -304,8 +306,22 @@ export default function GestionResiduosPage() {
                                 <FileText size={18} className="text-emerald-500" />
                                 Registro Documental
                             </h2>
-                            <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
-                                {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation)).length} REGISTROS
+                            <div className="flex items-center gap-2">
+                                <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                                    {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation)).length} REGISTROS
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation));
+                                        setIsDownloading(true);
+                                        handleBulkDownload(filtered, 'Gestion_Residuos.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                                    }}
+                                    disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation)).length === 0}
+                                    className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                                >
+                                    {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
+                                    {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                                </button>
                             </div>
                         </div>
 
@@ -409,12 +425,23 @@ export default function GestionResiduosPage() {
                                                     <button 
                                                         onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
                                                         className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
+                                                        title="Ver Documento"
                                                     >
                                                         <FileText size={14} />
                                                     </button>
+                                                    <a 
+                                                        href={getDriveDownloadUrl(rec.fileUrls && rec.fileUrls[0])}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all flex items-center justify-center"
+                                                        title="Descargar PDF"
+                                                    >
+                                                        <Download size={14} />
+                                                    </a>
                                                     <button 
                                                         onClick={() => handleDelete(rec.id)}
                                                         className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                        title="Eliminar"
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>

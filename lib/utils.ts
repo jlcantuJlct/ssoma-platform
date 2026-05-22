@@ -115,7 +115,78 @@ export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: b
             }
         }
     }
+    }
     return url;
+}
+
+/**
+ * Returns a direct download URL for Google Drive.
+ */
+export function getDriveDownloadUrl(url: string | null | undefined): string {
+    if (!url) return '';
+    if (url.includes('drive.google.com/file/d/')) {
+        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+    }
+    return url;
+}
+
+/**
+ * Triggers a ZIP download of multiple files via the server API.
+ */
+export async function handleBulkDownload(records: any[], zipName: string = 'documentos.zip', onProgress?: (msg: string) => void) {
+    if (!records || records.length === 0) {
+        alert('No hay documentos para descargar.');
+        return;
+    }
+
+    if (onProgress) onProgress('Preparando descarga masiva...');
+
+    const files = records.map((r, i) => {
+        let title = r.documentType || r.certType || r.wasteType || 'Documento';
+        title = title.replace(/[^a-zA-Z0-9]/g, '_');
+        const ext = r.fileUrls?.[0]?.toLowerCase().includes('.pdf') ? 'pdf' : 'pdf'; // Default to pdf or extract from url
+        const filename = `${r.date}_${title}_${i + 1}.${ext}`;
+        return {
+            url: r.fileUrls?.[0],
+            filename
+        };
+    }).filter(f => f.url);
+
+    if (files.length === 0) {
+        alert('No se encontraron archivos válidos.');
+        if (onProgress) onProgress('');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/download-zip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files, zipName })
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al generar el ZIP. Puede que los archivos sean demasiado grandes.');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = zipName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        if (onProgress) onProgress('');
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('Hubo un problema descargando los archivos. Intente con menos registros o individualmente.');
+        if (onProgress) onProgress('');
+    }
 }
 
 /**

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
-import { FileText, Plus, Trash2, Calendar, User, MapPin, Upload, Folder, X, ShieldCheck } from 'lucide-react';
+import { FileText, Plus, Trash2, Calendar, User, MapPin, Upload, Folder, X, ShieldCheck, Download, DownloadCloud } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl } from "@/lib/utils";
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
 
 const MONTHS = [
     "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -22,6 +22,8 @@ export default function InformesPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
     // Form state
@@ -316,10 +318,25 @@ export default function InformesPage() {
 
                 {/* List Section */}
                 <div className="space-y-6">
-                    <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2">
-                        <Folder size={18} className="text-violet-500" />
-                        Informes Subidos
-                    </h2>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-4">
+                        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2">
+                            <Folder size={18} className="text-violet-500" />
+                            Informes Subidos
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    setIsDownloading(true);
+                                    handleBulkDownload(records, 'Informes.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                                }}
+                                disabled={isDownloading || records.length === 0}
+                                className="bg-slate-800 hover:bg-violet-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
+                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Todos'}
+                            </button>
+                        </div>
+                    </div>
 
                     {loading ? (
                         <div className="flex justify-center py-20">
@@ -350,12 +367,23 @@ export default function InformesPage() {
                                                 <button 
                                                     onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
                                                     className="p-1.5 bg-slate-800 hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 rounded-lg transition-all"
+                                                    title="Ver Informe"
                                                 >
                                                     <FileText size={14} />
                                                 </button>
+                                                <a 
+                                                    href={getDriveDownloadUrl(rec.fileUrls && rec.fileUrls[0])}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all flex items-center justify-center"
+                                                    title="Descargar Informe"
+                                                >
+                                                    <Download size={14} />
+                                                </a>
                                                 <button 
                                                     onClick={() => handleDelete(rec.id)}
                                                     className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                    title="Eliminar"
                                                 >
                                                     <Trash2 size={14} />
                                                 </button>
