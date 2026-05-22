@@ -77,6 +77,7 @@ export default function ReporteACPage() {
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // Filters
@@ -496,17 +497,34 @@ export default function ReporteACPage() {
 
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Evidencia (PDF)</label>
-                                    <div className="relative group">
+                                    <div 
+                                        className="relative group"
+                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={(e) => { 
+                                            e.preventDefault(); 
+                                            setIsDragging(false); 
+                                            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                                setPdfFile(e.dataTransfer.files[0]);
+                                            }
+                                        }}
+                                    >
                                         <input 
                                             type="file"
                                             accept=".pdf"
                                             onChange={e => setPdfFile(e.target.files?.[0] || null)}
-                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                                         />
-                                        <div className="bg-slate-950 border-2 border-dashed border-slate-800 rounded-xl p-6 text-center group-hover:border-orange-500/50 transition-all">
-                                            <Upload className={`mx-auto mb-2 ${pdfFile ? 'text-orange-500' : 'text-slate-600'}`} size={24} />
-                                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">
-                                                {pdfFile ? pdfFile.name : 'Subir Archivo PDF'}
+                                        <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                                            isDragging 
+                                                ? 'border-orange-500 bg-orange-500/20 scale-[1.02] shadow-lg shadow-orange-500/20' 
+                                                : pdfFile 
+                                                    ? 'border-orange-500/50 bg-slate-950' 
+                                                    : 'border-slate-800 bg-slate-950 group-hover:border-orange-500/50'
+                                        }`}>
+                                            <Upload className={`mx-auto mb-2 ${isDragging || pdfFile ? 'text-orange-500' : 'text-slate-600'} ${isDragging ? 'animate-bounce' : ''}`} size={24} />
+                                            <p className={`text-xs font-bold uppercase tracking-tighter ${isDragging ? 'text-orange-400' : 'text-slate-500'}`}>
+                                                {isDragging ? '¡SUELTA EL ARCHIVO AQUÍ!' : pdfFile ? pdfFile.name : 'Subir Archivo PDF'}
                                             </p>
                                         </div>
                                     </div>
