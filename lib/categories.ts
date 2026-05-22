@@ -99,8 +99,8 @@ export const PETAR_TYPES = [
 // --- ACTOS Y CONDICIONES (A/C) ---
 export const ACTOS_LIST = [
     'Conducir vehículos y operar equipos móviles sin respetar las reglas de seguridad vial.',
-    'No implementar los controles establecidos para la tarea',
-    'Retirar guardas, barandas u otros dispositivos de seguridad.',
+    'No implemnetar los controles establecidos para la tarea',
+    'Retirar guardas, barandas u otros dispositivos de seguridad .',
     'No Reportar inmediatamente lesiones o accidentes.',
     'Exponerse a la linea de fuego',
     'No aplicar el procedimiento de bloqueo para intervenir fuentes de energia',
@@ -110,13 +110,13 @@ export const ACTOS_LIST = [
     'Ejecutar trabajos de Alto Riesgo sin el PETAR',
     'Ejecutar los trabajos en altura sin usar equipos y dispositivos para prevención de caídas.',
     'No uso de los 3 puntos de apoyo al subir y bajar por escaleras',
-    'Realizar tareas sin evaluar el nivel de Riesgos o es deficiente',
+    'Realaizar tareas sin evaluar el nivel de Riesgos o es deficiente',
     'Realizar tareas múltiples en forma simultánea',
     'Operar equipos moviles sin delimitar el area, usar vigias o advertir el peligro',
     'Usar equipos de izaje y/o equipos móviles fuera de la especificación del fabricante o defectuosos',
     'Conducir vehículos u operar equipos móviles sin autorización o vencidas',
     'Trabajar bajo la influencia del alcohol y drogas',
-    'Ingresar a áreas restringidas sin autorización.',
+    'ingresar a áreas restringidas sin autorización.',
     'Manipular o levantar cargas de forma insegura'
 ];
 
@@ -127,7 +127,7 @@ export const CONDICIONES_LIST = [
     'Condiciones Ambientales Peligrosas o mal manejo de RRSS',
     'Inadecuada iluminación para realizar el trabajo',
     'Caminos, pisos, superficies inadecuadas o inestables',
-    'EPP en mal estado o inexistente',
+    'EPP en mal estado o inexiste',
     'Congestión o Acción Restringida',
     'Equipos de Emergencia inadecuadas o defectuosas',
     'Derrame',
