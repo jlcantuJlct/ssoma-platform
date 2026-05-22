@@ -19,10 +19,11 @@ import {
     Edit2,
     X,
     Filter,
-    RotateCcw
+    RotateCcw,
+    FileText
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { sanitizeRecords, sanitizeValue } from "@/lib/utils";
+import { sanitizeRecords, sanitizeValue, getDriveViewerUrl } from "@/lib/utils";
 import { 
     BarChart as RechartsBarChart, 
     Bar, 
@@ -39,7 +40,7 @@ import {
     Legend
 } from 'recharts';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
-import { useAuth } from "@/lib/auth";
+import { useAuth, USER_LIST } from "@/lib/auth";
 import { uploadEvidence } from "@/lib/uploadClient";
 
 // --- TYPES ---
@@ -71,6 +72,9 @@ const WASTE_CATEGORIES = [
     { id: 'topico', label: 'RESIDUOS DE TOPICO', type: 'Peligroso', color: '#be123c', unit: 'kg' },
     { id: 'raees', label: 'RAEEs', type: 'RAEE', color: '#4d7c0f', unit: 'kg' },
 ];
+
+const CERT_TYPES = ["Certificado de Agua Residual", "Certificado de Residuos Comunes", "Manifiesto de Residuos Peligrosos", "Certificado de Operador (EO-RS)"];
+const FULL_MONTHS = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
 export default function WasteManagementPage() {
     const { user } = useAuth();
@@ -142,14 +146,12 @@ export default function WasteManagementPage() {
     const stats = useMemo(() => {
         const totalWeight = records.reduce((acc, r) => acc + r.weight, 0);
         
-        // Group weights by Month and then by Type for the Line Chart
         const monthsMap: Record<string, any> = {};
         
         records.forEach(r => {
             const month = r.date.substring(0, 7);
             if (!monthsMap[month]) {
                 monthsMap[month] = { name: month };
-                // Initialize all categories with 0 to avoid breaks in the line
                 WASTE_CATEGORIES.forEach(cat => monthsMap[month][cat.label] = 0);
             }
             monthsMap[month][r.wasteType] = (monthsMap[month][r.wasteType] || 0) + r.weight;
@@ -157,7 +159,7 @@ export default function WasteManagementPage() {
 
         const lineData = Object.values(monthsMap)
             .sort((a: any, b: any) => a.name.localeCompare(b.name))
-            .slice(-12); // Show last year
+            .slice(-12);
 
         return { totalWeight, lineData };
     }, [records]);
@@ -229,7 +231,6 @@ export default function WasteManagementPage() {
             alert("Registro actualizado correctamente.");
         } else {
             const newEntries: WasteWeightRecord[] = [];
-            // Filter categories relevant to this panel
             const relevantCategories = WASTE_CATEGORIES.filter(c => 
                 wasteTypeFilter === 'No Peligroso' ? c.type === 'No Peligroso' : c.type !== 'No Peligroso'
             ).map(c => c.label);
@@ -291,7 +292,7 @@ export default function WasteManagementPage() {
                                     Panel de Control de Residuos
                                 </h1>
                                 <p className="text-slate-400 font-bold max-w-2xl">
-                                    Monitoreo acumulado de segregación. Registre los pesos por tipo de residuo y visualice el progreso mensual automáticamente.
+                                    Monitoreo acumulado de segregación y gestión de certificados ambientales.
                                 </p>
                             </div>
                             <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 text-center min-w-[200px]">
@@ -677,7 +678,6 @@ export default function WasteManagementPage() {
                             </div>
                         </div>
 
-                    </div>
                 </div>
             </main>
 

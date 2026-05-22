@@ -37,7 +37,8 @@ import {
     LifeBuoy,
     TrendingDown,
     ClipboardSignature,
-    Calendar
+    Calendar,
+    Archive
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -162,6 +163,7 @@ export default function Sidebar() {
                         </div>
                         <SidebarItem icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
                         <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        <SidebarItem icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
                         <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
                     </div>
 
