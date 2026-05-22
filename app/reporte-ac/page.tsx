@@ -61,13 +61,18 @@ export default function ReporteACPage() {
     const [isLoaded, setIsLoaded] = useState(false);
     
     // Form State
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<{
+        date: string;
+        responsible: string;
+        location: string;
+        actos: string[];
+        condiciones: string[];
+    }>({
         date: new Date().toISOString().split('T')[0],
         responsible: user?.name || '',
-        acto: '',
-        condicion: '',
-        cantidad: 1,
-        location: ''
+        location: '',
+        actos: [],
+        condiciones: []
     });
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -146,8 +151,13 @@ export default function ReporteACPage() {
     };
 
     const handleSave = async () => {
-        if (!form.acto && !form.condicion) {
+        if (form.actos.length === 0 && form.condiciones.length === 0) {
             alert("Debe seleccionar al menos un Acto o Condición.");
+            return;
+        }
+
+        if (!form.responsible || !form.location) {
+            alert("Debe completar Responsable y Lugar.");
             return;
         }
 
@@ -159,21 +169,44 @@ export default function ReporteACPage() {
                 uploadedUrl = await uploadEvidence(pdfFile, filename);
             }
 
-            const newRecord: ReporteACRecord = {
-                id: Date.now(),
-                ...form,
-                pdfUrl: uploadedUrl
-            };
+            const newRecords: ReporteACRecord[] = [];
+            const baseId = Date.now();
 
-            const updated = [newRecord, ...records];
+            form.actos.forEach((acto, i) => {
+                newRecords.push({
+                    id: baseId + i,
+                    date: form.date,
+                    responsible: form.responsible,
+                    location: form.location,
+                    acto: acto,
+                    condicion: '',
+                    cantidad: 1,
+                    pdfUrl: uploadedUrl
+                });
+            });
+
+            form.condiciones.forEach((cond, i) => {
+                newRecords.push({
+                    id: baseId + 1000 + i,
+                    date: form.date,
+                    responsible: form.responsible,
+                    location: form.location,
+                    acto: '',
+                    condicion: cond,
+                    cantidad: 1,
+                    pdfUrl: uploadedUrl
+                });
+            });
+
+            const updated = [...newRecords, ...records];
             setRecords(updated);
             localStorage.setItem('reporte_ac_records', JSON.stringify(updated));
             handleSync(updated);
 
             // Reset
-            setForm({ ...form, acto: '', condicion: '', cantidad: 1 });
+            setForm({ ...form, actos: [], condiciones: [] });
             setPdfFile(null);
-            alert("✅ Reporte de A/C registrado con éxito.");
+            alert(`✅ ${newRecords.length} reporte(s) de A/C registrado(s) con éxito.`);
         } catch (error) {
             console.error("Save error:", error);
             alert("❌ Error al guardar el reporte.");
@@ -380,36 +413,57 @@ export default function ReporteACPage() {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Acto Inseguro</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Actos Inseguros (Múltiple)</label>
                                     <SearchableSelect 
                                         options={ACTOS_LIST}
-                                        value={form.acto}
-                                        onChange={val => setForm({...form, acto: val})}
-                                        placeholder="Seleccionar acto..."
+                                        value=""
+                                        onChange={val => {
+                                            if (val && !form.actos.includes(val)) {
+                                                setForm({...form, actos: [...form.actos, val]});
+                                            }
+                                        }}
+                                        placeholder="Agregar acto inseguro..."
                                         icon={<AlertTriangle size={16} className="text-orange-500" />}
                                     />
+                                    {form.actos.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {form.actos.map((a, idx) => (
+                                                <div key={`a-${idx}`} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] px-2 py-1.5 rounded-lg flex items-center gap-2">
+                                                    <span className="truncate max-w-[200px] leading-tight" title={a}>{a}</span>
+                                                    <button type="button" onClick={() => setForm({...form, actos: form.actos.filter((_, i) => i !== idx)})} className="hover:text-red-400">
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Condición Insegura</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Condiciones Inseguras (Múltiple)</label>
                                     <SearchableSelect 
                                         options={CONDICIONES_LIST}
-                                        value={form.condicion}
-                                        onChange={val => setForm({...form, condicion: val})}
-                                        placeholder="Seleccionar condición..."
+                                        value=""
+                                        onChange={val => {
+                                            if (val && !form.condiciones.includes(val)) {
+                                                setForm({...form, condiciones: [...form.condiciones, val]});
+                                            }
+                                        }}
+                                        placeholder="Agregar condición insegura..."
                                         icon={<AlertTriangle size={16} className="text-blue-500" />}
                                     />
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cantidad</label>
-                                    <input 
-                                        type="number"
-                                        min="1"
-                                        value={form.cantidad}
-                                        onChange={e => setForm({...form, cantidad: Number(e.target.value)})}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-orange-500 outline-none"
-                                    />
+                                    {form.condiciones.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {form.condiciones.map((c, idx) => (
+                                                <div key={`c-${idx}`} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-2 py-1.5 rounded-lg flex items-center gap-2">
+                                                    <span className="truncate max-w-[200px] leading-tight" title={c}>{c}</span>
+                                                    <button type="button" onClick={() => setForm({...form, condiciones: form.condiciones.filter((_, i) => i !== idx)})} className="hover:text-red-400">
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-1">
