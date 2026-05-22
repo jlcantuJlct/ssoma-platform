@@ -160,6 +160,15 @@ export default function ReporteACPage() {
             return;
         }
 
+        const totalCantidad = form.actos.reduce((sum, item) => sum + item.cantidad, 0) + 
+                              form.condiciones.reduce((sum, item) => sum + item.cantidad, 0);
+
+        const confirmMsg = `⚠️ Estás a punto de registrar un total de ${totalCantidad} reporte(s).\n\n¿La cantidad de tarjetas TOP escaneadas en el archivo coincide exactamente con estos ${totalCantidad} registros?`;
+        
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
         setIsUploading(true);
         try {
             let uploadedUrl = "";
