@@ -1026,11 +1026,22 @@ export default function ProgramPage() {
             if (m < 0 || m > 11 || !hasEvidence(rac)) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, rac.acto || rac.condicion || 'A/C');
+                let match = null;
+                
+                // En OBJ 04, todos los reportes A/C deben sumar a la actividad principal de reporte
+                if (targetObjId === 'obj4') {
+                    match = findMatch(areaKey, 'Reporte de actos y condiciones');
+                }
+
+                if (!match) {
+                    match = findMatch(areaKey, rac.acto || rac.condicion || 'A/C');
+                }
+
                 if (match) {
-                    grouped[areaKey][match].executed[m]++;
+                    grouped[areaKey][match].executed[m] += (Number(rac.cantidad) || 1);
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...rac, _type: 'REPORTE_AC' });
+                    break; // Stop searching other areas once matched
                 }
             }
         });
