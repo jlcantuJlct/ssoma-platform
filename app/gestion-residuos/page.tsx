@@ -138,8 +138,9 @@ export default function GestionResiduosPage() {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
+    const handleFileUpload = async (e: any) => {
+        const fileList = e.target?.files || e.dataTransfer?.files || [];
+        const files = Array.from(fileList) as File[];
         if (files.length === 0) return;
 
         setIsUploading(true);
