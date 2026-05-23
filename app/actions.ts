@@ -266,14 +266,14 @@ export async function getInspections() {
                 status: sanitizeValue(r.status),
                 observations: sanitizeValue(r.observations),
                 evidencePdf: r.evidence_pdf || '',
-                evidenceImgs: parsedImgs
+            evidenceImgs: parsedImgs
             };
         });
 
         return { success: true, data: mapped };
-    } catch (e) {
-        console.error("Error loading inspections:", e);
-        return { success: false, data: [] };
+    } catch (e: any) {
+        console.error("getInspections ERROR:", e);
+        return { success: false, error: e.message || String(e) };
     }
 }
 

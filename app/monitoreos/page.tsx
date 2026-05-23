@@ -13,9 +13,11 @@ import {
     Thermometer,
     Wind,
     Zap,
-    Ear
+    Ear,
+    DownloadCloud
 } from "lucide-react";
 import { getDriveViewerUrl } from '@/lib/utils';
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import { uploadEvidence } from "@/lib/uploadClient";
 import { useAuth } from "@/lib/auth";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -42,6 +44,7 @@ export default function MonitoringPage() {
     });
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // Filter State
@@ -63,9 +66,9 @@ export default function MonitoringPage() {
         }
     }, [records, isLoaded]);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any) => {
+        const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
         try {
             setIsUploading(true);
             const uploadedUrls: string[] = [];
@@ -91,13 +94,36 @@ export default function MonitoringPage() {
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
             <main className="flex-1 overflow-auto p-4 md:p-8">
                 <div className="max-w-[1400px] mx-auto space-y-6">
-                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center">
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <Activity size={40} className="text-rose-500" />
                                 14 Monitoreos Ocupacionales SSTMA
                             </h1>
                             <p className="text-slate-400 font-bold max-w-2xl">Gestión de informes de monitoreo de agentes físicos, químicos, biológicos y ergonómicos.</p>
+                        </div>
+                        <div className="mt-4 md:mt-0 flex items-center gap-2 z-10">
+                            <button
+                                onClick={() => {
+                                    const cols = [
+                                        { header: 'Fecha', dataKey: 'date' },
+                                        { header: 'Agente', dataKey: 'agentType' },
+                                        { header: 'Parámetro', dataKey: 'parameter' },
+                                        { header: 'Lugar', dataKey: 'location' }
+                                    ];
+                                    const filtered = records.filter(r => {
+                                        const matchesDate = !filterDate || r.date === filterDate;
+                                        const matchesAgent = !filterAgent || r.agentType === filterAgent;
+                                        const matchesLoc = !filterLocation || r.location.toLowerCase().includes(filterLocation.toLowerCase());
+                                        return matchesDate && matchesAgent && matchesLoc;
+                                    });
+                                    exportTableToPDF('Monitoreos Ocupacionales', cols, filtered, 'Monitoreos.pdf');
+                                }}
+                                className="bg-slate-800 hover:bg-rose-600 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                <FileText size={18} />
+                                Descargar PDF
+                            </button>
                         </div>
                     </div>
 
@@ -274,7 +300,12 @@ export default function MonitoringPage() {
                                                     ))}
                                                 </td>
                                                 <td className="py-4 text-right">
-                                                    <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-slate-600 hover:text-red-400"><Trash2 size={16} /></button>
+                                                    <div className="flex justify-end gap-1">
+                                                        <button onClick={() => exportRecordToPDF('Detalle de Monitoreo', r, `Monitoreo_${r.parameter}.pdf`)} className="p-2 text-slate-600 hover:text-blue-400 transition-colors" title="Descargar Fila">
+                                                            <DownloadCloud size={16} />
+                                                        </button>
+                                                        <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-slate-600 hover:text-red-400"><Trash2 size={16} /></button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

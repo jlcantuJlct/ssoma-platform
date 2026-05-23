@@ -57,6 +57,7 @@ export default function SCTRPage() {
     const [filterMonth, setFilterMonth] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [showForm, setShowForm] = useState(false);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 

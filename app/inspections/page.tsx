@@ -5,6 +5,7 @@ import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
+import { ComplianceGauge } from '@/components/dashboard/ComplianceGauge';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -32,7 +33,7 @@ import {
 } from "lucide-react";
 import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import { generateFilename, getInitials } from '@/lib/utils';
 
 // Tipos de datos
@@ -173,7 +174,7 @@ export default function InspectionsPage() {
             return next;
         });
     }, [RESPONSIBLES]);
-    const [showQuotaSettings, setShowQuotaSettings] = useState(false);
+        const [showQuotaSettings, setShowQuotaSettings] = useState(false);
 
     // Estado para el formulario
     const [formData, setFormData] = useState({
@@ -188,6 +189,7 @@ export default function InspectionsPage() {
     // Estado para evidencias
     const [newEvidence, setNewEvidence] = useState<{ pdf: string, imgs: string[] }>({ pdf: '', imgs: [] });
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isUploadingImgs, setIsUploadingImgs] = useState(false);
 
     // Estado para Edición
@@ -530,7 +532,7 @@ export default function InspectionsPage() {
             alert(`✅ Programa (${importType}) importado correctamente. ${parsedItems.length} registros detectados.`);
         };
         reader.readAsArrayBuffer(file);
-        e.target.value = '';
+        if (e.target && e.target.type === 'file') e.target.value = '';
     };
 
     // Helper para calcular progreso con filtro de Mes
@@ -641,7 +643,7 @@ export default function InspectionsPage() {
     const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) await processPdf(file);
-        e.target.value = '';
+        if (e.target && e.target.type === 'file') e.target.value = '';
     };
 
     const processImages = async (files: FileList | File[]) => {
@@ -688,7 +690,7 @@ export default function InspectionsPage() {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) await processImages(files);
-        e.target.value = '';
+        if (e.target && e.target.type === 'file') e.target.value = '';
     };
 
     // Handlers para Drag & Drop
@@ -731,60 +733,7 @@ export default function InspectionsPage() {
     };
 
     const generateInspectionPDF = (record: InspectionRecord) => {
-        const doc = new jsPDF();
-
-        // Header
-        doc.setFontSize(16);
-        doc.setTextColor(0, 100, 0); // Dark Green
-        doc.text(`REPORTE DE INSPECCIÓN: ${record.zone.toUpperCase()}`, 105, 20, { align: 'center' });
-
-        doc.setFontSize(10);
-        doc.setTextColor(0);
-        doc.text(`Fecha: ${record.date} | Responsable: ${record.responsible}`, 20, 30);
-        doc.text(`Tipo: ${record.inspectionType} | Área: ${record.area}`, 20, 35);
-        doc.text(`Estado: ${record.status}`, 20, 40);
-
-        // Reseña
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Reseña / Observaciones:", 20, 50);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-
-        const splitText = doc.splitTextToSize(record.observations || "Sin observaciones.", 170);
-        doc.text(splitText, 20, 60);
-
-        let y = 60 + (splitText.length * 5) + 10;
-
-        // PDF Attachment Note
-        if (record.evidencePdf) {
-            doc.setTextColor(0, 0, 255);
-            doc.text("[ PDF Adjunto disponible en plataforma ]", 20, y);
-            doc.setTextColor(0);
-            y += 10;
-        }
-
-        // Images
-        if (record.evidenceImgs && record.evidenceImgs.length > 0) {
-            doc.setFont("helvetica", "bold");
-            doc.text("Evidencia Fotográfica:", 20, y);
-            y += 10;
-
-            record.evidenceImgs.forEach((img) => {
-                if (y > 250) {
-                    doc.addPage();
-                    y = 20;
-                }
-                try {
-                    doc.addImage(img, 'JPEG', 20, y, 170, 100);
-                    y += 110;
-                } catch (e) {
-                    // Ignore image errors
-                }
-            });
-        }
-
-        doc.save(`Inspeccion_${record.id}.pdf`);
+        exportRecordToPDF('Detalle de Inspección', record, `Inspeccion_${record.id}.pdf`);
     };
 
     const generateBulkPDF = () => {
@@ -792,54 +741,16 @@ export default function InspectionsPage() {
             alert("No hay registros para exportar.");
             return;
         }
-
-        const doc = new jsPDF();
-
-        filteredInspections.forEach((record, index) => {
-            if (index > 0) doc.addPage();
-
-            // Header
-            doc.setFontSize(16);
-            doc.setTextColor(0, 100, 0);
-            doc.text(`REPORTE DE INSPECCIÓN: ${record.zone.toUpperCase()}`, 105, 20, { align: 'center' });
-
-            doc.setFontSize(10);
-            doc.setTextColor(0);
-            doc.text(`Fecha: ${record.date} | Responsable: ${record.responsible}`, 20, 30);
-            doc.text(`Tipo: ${record.inspectionType} | Área: ${record.area}`, 20, 35);
-
-            // Reseña
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            doc.text("Reseña / Observaciones:", 20, 50);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-
-            const splitText = doc.splitTextToSize(record.observations || "Sin observaciones.", 170);
-            doc.text(splitText, 20, 60);
-
-            let y = 60 + (splitText.length * 5) + 10;
-
-            // Images
-            if (record.evidenceImgs && record.evidenceImgs.length > 0) {
-                doc.setFont("helvetica", "bold");
-                doc.text("Evidencia Fotográfica:", 20, y);
-                y += 10;
-
-                record.evidenceImgs.forEach((img) => {
-                    if (y > 250) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    try {
-                        doc.addImage(img, 'JPEG', 20, y, 170, 100);
-                        y += 110;
-                    } catch (e) { }
-                });
-            }
-        });
-
-        doc.save("Reporte_Inspecciones_Filtrado.pdf");
+        const cols = [
+            { header: 'Fecha', dataKey: 'date' },
+            { header: 'Responsable', dataKey: 'responsible' },
+            { header: 'Área', dataKey: 'area' },
+            { header: 'Tipo', dataKey: 'inspectionType' },
+            { header: 'Lugar', dataKey: 'zone' },
+            { header: 'Estado', dataKey: 'status' },
+            { header: 'Observaciones', dataKey: 'observations' }
+        ];
+        exportTableToPDF('Reporte de Inspecciones', cols, filteredInspections, 'Inspecciones.pdf');
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -1308,11 +1219,12 @@ export default function InspectionsPage() {
 
 
 
-                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+
+                    <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
 
                         {/* FORMULARIO DE REGISTRO (1 Columna) */}
                         {user?.role !== 'manager' && (
-                            <Card className="bg-slate-900 border-slate-800 xl:col-span-1 h-fit shadow-2xl">
+                            <Card className="bg-slate-900 border-slate-800 lg:col-span-1 xl:col-span-1 h-fit shadow-2xl">
                                 <CardHeader className="border-b border-slate-800 pb-4">
                                     <CardTitle className="text-emerald-400 flex flex-wrap items-center gap-2 text-xl">
                                         <FileText size={24} />

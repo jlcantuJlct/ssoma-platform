@@ -42,6 +42,7 @@ export default function SimulacroPage() {
     // STATE
     const [records, setRecords] = useState<SimulacroRecord[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isLoaded, setIsLoaded] = useState(false);
     const [dragActive, setDragActive] = useState(false);
 
@@ -377,7 +378,7 @@ export default function SimulacroPage() {
                                                 </div>
                                                 <div className="text-center">
                                                     <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                        {isUploading ? 'SUBIENDO...' : dragActive ? '¡SUELTA!' : file ? '✅ EVIDENCIA LISTA' : 'ARRASTRA O HAZ CLIC'}
+                                                        {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : dragActive ? '¡SUELTA!' : file ? '✅ EVIDENCIA LISTA' : 'ARRASTRA O HAZ CLIC'}
                                                     </p>
                                                     <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                         {file ? 'Documento cargado correctamente' : 'Soporta PDF e Imágenes'}

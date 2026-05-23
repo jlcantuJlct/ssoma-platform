@@ -21,6 +21,7 @@ import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, sanitizeRec
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 
 // --- TYPES ---
 type ManifestRecord = {
@@ -57,6 +58,7 @@ export default function ManifestPage() {
     const [filterWasteType, setFilterWasteType] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
@@ -83,13 +85,13 @@ export default function ManifestPage() {
     }, []);
 
     // --- HANDLERS ---
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any) => {
+        const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
 
         if (!form.manifestNumber || !form.location) {
             alert("⚠️ Por favor completa el N° de Manifiesto y el lugar antes de subir el archivo.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
@@ -97,8 +99,10 @@ export default function ManifestPage() {
             setIsUploading(true);
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(inputFiles);
+            setUploadProgress({ current: 0, total: filesArray.length });
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const url = await uploadEvidence(
                     file,
                     'PMA',
@@ -118,7 +122,7 @@ export default function ManifestPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
         }
     };
 
@@ -210,6 +214,25 @@ export default function ManifestPage() {
                             >
                                 {isDownloading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={18} />}
                                 {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const cols = [
+                                        { header: 'Fecha', dataKey: 'date' },
+                                        { header: 'N° Manifiesto', dataKey: 'manifestNumber' },
+                                        { header: 'Transportista', dataKey: 'transportCompany' },
+                                        { header: 'Residuo', dataKey: 'wasteType' },
+                                        { header: 'Cantidad', dataKey: 'quantity' },
+                                        { header: 'Unidad', dataKey: 'unit' },
+                                        { header: 'Lugar', dataKey: 'location' }
+                                    ];
+                                    exportTableToPDF('Control de Manifiestos', cols, filteredRecords, 'Manifiestos.pdf');
+                                }}
+                                disabled={filteredRecords.length === 0}
+                                className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                <FileText size={18} />
+                                Descargar PDF
                             </button>
                         </div>
                     </div>
@@ -312,7 +335,7 @@ export default function ManifestPage() {
                                             </div>
                                             <div className="text-center">
                                                 <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                    {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} MANIFIESTOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                    {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} MANIFIESTOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
                                                 </p>
                                                 <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                     Soporta múltiples archivos PDF
@@ -492,9 +515,14 @@ export default function ManifestPage() {
                                                             </div>
                                                         </td>
                                                         <td className="py-4 text-right">
-                                                            <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
-                                                                <Trash2 size={16} />
-                                                            </button>
+                                                            <div className="flex justify-end gap-1">
+                                                                <button onClick={() => exportRecordToPDF('Detalle de Manifiesto', r, `Manifiesto_${r.manifestNumber}.pdf`)} className="p-2 text-slate-600 hover:text-blue-400 transition-colors" title="Descargar Fila">
+                                                                    <DownloadCloud size={16} />
+                                                                </button>
+                                                                <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}

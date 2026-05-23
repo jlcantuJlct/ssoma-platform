@@ -234,11 +234,11 @@ export async function uploadEvidence(
     objective?: string,
     logData?: any // Nuevo: Datos para la bitácora
 ): Promise<string> {
-    // 1. Validation: Max Size (50MB as requested by user)
+    // 1. Validation: Max Size (100MB as requested by user)
     // NOTE: Vercel Free still has a 4.5MB limit. If file is > 4.5MB and not an image, it may fail.
-    const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
     if (file.size > MAX_SIZE) {
-        throw new Error(`El archivo excede el límite de 50MB. Tamaño actual: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        throw new Error(`El archivo excede el límite de 100MB. Tamaño actual: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
     }
 
     // 2. Compresión automática (Cliente) - Se activa si el archivo supera 1MB
@@ -262,11 +262,19 @@ export async function uploadEvidence(
     // --- Compresión de PDFs escaneados (renderizado página por página) ---
     else if (file.type === 'application/pdf' && file.size > COMPRESS_THRESHOLD) {
         try {
-            console.log(`📄 PDF pesado detectado (${(file.size/1024/1024).toFixed(2)}MB). Comprimiendo...`);
-            // Para PDFs muy pesados, usamos menor calidad
-            const scale = file.size > 8 * 1024 * 1024 ? 1.2 : 1.5;
-            const quality = file.size > 8 * 1024 * 1024 ? 0.65 : 0.75;
-            fileToUpload = await compressPdf(file, scale, quality);
+              console.log(`📄 PDF pesado detectado (${(file.size/1024/1024).toFixed(2)}MB). Comprimiendo...`);
+              // Compresión escalonada según tamaño:
+              // > 40MB → máxima compresión (escáner de documentos firmados)
+              // > 20MB → alta compresión
+              // > 8MB  → compresión estándar
+              const scale = file.size > 40 * 1024 * 1024 ? 0.8 
+                          : file.size > 20 * 1024 * 1024 ? 1.0 
+                          : file.size > 8 * 1024 * 1024  ? 1.2 : 1.5;
+              const quality = file.size > 40 * 1024 * 1024 ? 0.45 
+                            : file.size > 20 * 1024 * 1024 ? 0.55 
+                            : file.size > 8 * 1024 * 1024  ? 0.65 : 0.75;
+              console.log(`⚙️ Parámetros compresión: escala=${scale}, calidad=${quality}`);
+              fileToUpload = await compressPdf(file, scale, quality);
         } catch (e) {
             console.warn('⚠️ Error en compresión de PDF:', e);
         }

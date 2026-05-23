@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from '@/lib/utils';
+import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth, USER_LIST } from "@/lib/auth";
@@ -66,6 +67,7 @@ export default function AccidentesPage() {
     const [filterType, setFilterType] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
@@ -92,13 +94,13 @@ export default function AccidentesPage() {
     }, []);
 
     // --- HANDLERS ---
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any) => {
+        const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
 
         if (!form.location || !form.type) {
             alert("⚠️ Por favor completa el lugar y el tipo de evento antes de subir el archivo.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
@@ -106,8 +108,10 @@ export default function AccidentesPage() {
             setIsUploading(true);
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(inputFiles);
+            setUploadProgress({ current: 0, total: filesArray.length });
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const url = await uploadEvidence(
                     file,
                     'REGISTROS',
@@ -127,7 +131,7 @@ export default function AccidentesPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
         }
     };
 
@@ -206,19 +210,25 @@ export default function AccidentesPage() {
                             <button
                                 onClick={() => {
                                     setIsDownloading(true);
-                                    const bulkItems = filteredRecords.map(r => ({
-                                        fileUrls: r.files,
-                                        date: r.date,
-                                        zona: r.location,
-                                        month: r.date.split('-')[1]
-                                    }));
-                                    handleBulkDownload(bulkItems, 'Accidentes_Incidentes.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                                    exportTableToPDF(
+                                        'Reporte de Accidentes e Incidentes',
+                                        [
+                                            { header: 'Fecha', dataKey: 'date' },
+                                            { header: 'Hora', dataKey: 'time' },
+                                            { header: 'Lugar / Sede', dataKey: 'location' },
+                                            { header: 'Tipo', dataKey: 'type' },
+                                            { header: 'Severidad', dataKey: 'severity' },
+                                            { header: 'Detalle', dataKey: 'detail' }
+                                        ],
+                                        filteredRecords,
+                                        `Accidentes_Reporte_${new Date().toISOString().split('T')[0]}.pdf`
+                                    );
+                                    setIsDownloading(false);
                                 }}
                                 disabled={isDownloading || filteredRecords.length === 0}
-                                className="bg-slate-800 hover:bg-red-600 disabled:bg-slate-900 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                                className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
                             >
-                                {isDownloading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={18} />}
-                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                                <DownloadCloud size={18} /> Descargar PDF
                             </button>
                         </div>
                     </div>
@@ -323,7 +333,7 @@ export default function AccidentesPage() {
                                             </div>
                                             <div className="text-center">
                                                 <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                    {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} EVIDENCIAS LISTAS` : 'ARRASTRA O HAZ CLIC'}
+                                                    {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} EVIDENCIAS LISTAS` : 'ARRASTRA O HAZ CLIC'}
                                                 </p>
                                                 <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                     Soporta múltiples archivos PDF o Imágenes
@@ -505,11 +515,24 @@ export default function AccidentesPage() {
                                                                 ))}
                                                             </div>
                                                         </td>
-                                                        <td className="py-4 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    exportRecordToPDF(
+                                                                        'Reporte Individual de Accidente/Incidente',
+                                                                        r,
+                                                                        `Accidente_${r.date}_${r.location.replace(/\s+/g, '_')}.pdf`
+                                                                    );
+                                                                }}
+                                                                className="p-2 text-slate-600 hover:text-emerald-400 transition-colors"
+                                                                title="Descargar Fila en PDF"
+                                                            >
+                                                                <DownloadCloud size={16} />
+                                                            </button>
                                                             <button onClick={() => handleDelete(r.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors">
                                                                 <Trash2 size={16} />
                                                             </button>
-                                                        </td>
+                                                        </div>
                                                     </tr>
                                                 ))}
                                                 {filteredRecords.length === 0 && (

@@ -40,6 +40,7 @@ export default function BrigadistasPage() {
     // STATE
     const [records, setRecords] = useState<BrigadistaRecord[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isLoaded, setIsLoaded] = useState(false);
     const [dragActive, setDragActive] = useState(false);
 
@@ -366,7 +367,7 @@ export default function BrigadistasPage() {
                                                 </div>
                                                 <div className="text-center">
                                                     <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                        {isUploading ? 'SUBIENDO...' : dragActive ? '¡SUELTA!' : uploadedFiles.length > 0 ? `✅ ${uploadedFiles.length} ARCHIVOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                        {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : dragActive ? '¡SUELTA!' : uploadedFiles.length > 0 ? `✅ ${uploadedFiles.length} ARCHIVOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
                                                     </p>
                                                     <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                         Soporta PDF e Imágenes

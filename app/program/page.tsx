@@ -652,7 +652,7 @@ export default function ProgramPage() {
             }
         };
         reader.readAsArrayBuffer(file);
-        e.target.value = '';
+        if (e.target && e.target.type === 'file') e.target.value = '';
     };
 
     const handleClearAll = () => {

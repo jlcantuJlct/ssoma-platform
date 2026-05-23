@@ -29,6 +29,7 @@ export default function SCSSTPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     
     // Form state
@@ -354,7 +355,7 @@ export default function SCSSTPage() {
                                         </div>
                                     </div>
 
-                                    {/* File Previews - ESTILO PREMIUM SEGURO */}
+                                    {/* File Previews */}
                                     {uploadedFiles.length > 0 && (
                                         <div className="space-y-3 pt-4 border-t border-slate-800/50 mt-4">
                                             <div className="flex justify-between items-center px-1">
@@ -516,7 +517,7 @@ export default function SCSSTPage() {
                                 )}
                             </div>
                             <SearchableSelect 
-                                options={filterOptions.zonas}
+                                options={filterOptions.zones}
                                 value={filters.zona}
                                 onChange={(val) => setFilters({...filters, zona: val})}
                                 placeholder="Todas las zonas"
@@ -619,4 +620,3 @@ export default function SCSSTPage() {
         </div>
     );
 }
-

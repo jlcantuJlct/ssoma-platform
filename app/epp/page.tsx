@@ -55,6 +55,7 @@ export default function EPPPage() {
     const [filterMonth, setFilterMonth] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
@@ -77,31 +78,29 @@ export default function EPPPage() {
     }, [records, isLoaded]);
 
     // --- HANDLERS ---
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any, droppedFiles?: FileList | File[]) => {
+        let inputFiles = droppedFiles || e?.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
 
-        if (!form.responsible || !form.location) {
-            alert("⚠️ Por favor selecciona el responsable y el lugar antes de subir el PDF.");
-            e.target.value = '';
-            return;
-        }
+        // Permite subir sin responsable/lugar, usaremos valores por defecto temporales
 
         try {
             setIsUploading(true);
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(inputFiles);
+            setUploadProgress({ current: 0, total: filesArray.length });
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const url = await uploadEvidence(
                     file,
                     'EPP',
-                    `EPP_MENSUAL_${form.month}_${form.responsible.replace(/\s+/g, '_')}`,
+                    `EPP_MENSUAL_${form.month}_${(form.responsible || 'Sin_Asignar').replace(/\s+/g, '_')}`,
                     form.date,
-                    form.responsible,
+                    form.responsible || 'Sin Asignar',
                     'epp',
                     'seguridad',
-                    form.location,
+                    form.location || 'Sin Especificar',
                     'Control Mensual de EPP'
                 );
                 uploadedUrls.push(url);
@@ -112,7 +111,7 @@ export default function EPPPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
         }
     };
 
@@ -176,7 +175,7 @@ export default function EPPPage() {
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4">
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase">Mes del Control</label>
                                                 <input 
@@ -186,10 +185,6 @@ export default function EPPPage() {
                                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none" 
                                                     required 
                                                 />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase">Fecha Registro</label>
-                                                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none" required />
                                             </div>
                                         </div>
 
@@ -224,20 +219,29 @@ export default function EPPPage() {
                                                 onChange={e => setForm({...form, description: e.target.value})} 
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-blue-500 outline-none" 
                                             />
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setForm({...form, description: 'EPP nuevo o recambio'})}
+                                                        className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-blue-600/20 hover:border-blue-500/50 transition-all text-slate-400 hover:text-blue-400"
+                                                    >
+                                                        EPP nuevo/recambio
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setForm({...form, description: 'EPP rutinario'})}
+                                                        className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-slate-400 hover:text-emerald-400"
+                                                    >
+                                                        EPP rutinario
+                                                    </button>
+                                                </div>
                                                 <button 
                                                     type="button"
-                                                    onClick={() => setForm({...form, description: 'EPP nuevo o recambio'})}
-                                                    className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-blue-600/20 hover:border-blue-500/50 transition-all text-slate-400 hover:text-blue-400"
+                                                    onClick={() => setForm({...form, description: 'EPP nuevo o recambio y EPP rutinario'})}
+                                                    className="w-full text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-amber-600/20 hover:border-amber-500/50 transition-all text-slate-400 hover:text-amber-400"
                                                 >
-                                                    EPP nuevo o recambio
-                                                </button>
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => setForm({...form, description: 'EPP rutinario'})}
-                                                    className="flex-1 text-[9px] font-black uppercase py-2 bg-slate-800 border border-slate-700 rounded-lg hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-slate-400 hover:text-emerald-400"
-                                                >
-                                                    EPP rutinario
+                                                    Ambos (Nuevo y Rutinario)
                                                 </button>
                                             </div>
                                         </div>
@@ -251,7 +255,7 @@ export default function EPPPage() {
                                         <div 
                                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                             onDragLeave={() => setIsDragging(false)}
-                                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files.length > 0) { handleFileUpload(null, e.dataTransfer.files); } }}
                                             className={`relative border-2 border-dashed rounded-3xl p-8 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
                                                 isUploading ? 'border-amber-500 bg-amber-500/5 cursor-wait' :
                                                 isDragging ? 'border-blue-500 bg-blue-500/10 scale-[1.01]' : 
@@ -264,7 +268,7 @@ export default function EPPPage() {
                                                 accept=".pdf"
                                                 disabled={isUploading}
                                                 onChange={handleFileUpload}
-                                                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-wait z-50"
                                             />
                                             <div className={`p-4 rounded-2xl transition-all ${
                                                 isUploading ? 'bg-amber-500 text-white animate-pulse' :
@@ -275,7 +279,7 @@ export default function EPPPage() {
                                             </div>
                                             <div className="text-center">
                                                 <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                    {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} CARGOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
+                                                    {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : isDragging ? '¡SUELTA!' : files.length > 0 ? `✅ ${files.length} CARGOS LISTOS` : 'ARRASTRA O HAZ CLIC'}
                                                 </p>
                                                 <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                     Solo archivos PDF firmados

@@ -20,10 +20,12 @@ import {
     Pencil,
     CheckCircle2,
     RotateCcw,
-    X
+    X,
+    DownloadCloud
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { generateFilename, getInitials } from "@/lib/utils";
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 
 // --- TYPES ---
 type PetarRecord = {
@@ -319,9 +321,31 @@ export default function PetarPage() {
                             </h1>
                             <p className="text-slate-400 font-medium">Permisos Escritos de Trabajo de Alto Riesgo</p>
                         </div>
-                        <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
-                            <p className="text-2xl font-black text-white">{records.length}</p>
+                        <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700 flex flex-col gap-2">
+                            <div className="text-center">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
+                                <p className="text-2xl font-black text-white">{records.length}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const cols = [
+                                        { header: 'Fecha', dataKey: 'date' },
+                                        { header: 'Responsable', dataKey: 'responsible' },
+                                        { header: 'Lugar', dataKey: 'location' },
+                                        { header: 'Tipo', dataKey: 'type' }
+                                    ];
+                                    const filtered = records.filter(r => {
+                                        const matchesDate = filterDate === "" || r.date === filterDate;
+                                        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                        return matchesDate && matchesResp && matchesLoc;
+                                    });
+                                    exportTableToPDF('Control de PETAR', cols, filtered, 'Petar.pdf');
+                                }}
+                                className="bg-slate-700 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-600 justify-center"
+                            >
+                                <FileText size={14} /> Descargar PDF
+                            </button>
                         </div>
                     </header>
 
@@ -620,6 +644,13 @@ export default function PetarPage() {
                                                             <div className="flex justify-end gap-1">
                                                                 {(user?.role === 'developer' || user?.role === 'manager' || record.responsible === user?.name) && (
                                                                     <>
+                                                                        <button
+                                                                            onClick={() => exportRecordToPDF('Detalle de PETAR', record, `PETAR_${record.type}.pdf`)}
+                                                                            className="text-slate-500 hover:text-orange-400 p-2 hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                                            title="Descargar PDF"
+                                                                        >
+                                                                            <DownloadCloud size={16} />
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => handleEdit(record)}
                                                                             className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-lg transition-colors"

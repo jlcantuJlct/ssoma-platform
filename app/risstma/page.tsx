@@ -52,6 +52,7 @@ export default function RISSTMAPage() {
         lugar: ''
     });
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDragging, setIsDragging] = useState(false);
 
     // Filter state
@@ -289,7 +290,7 @@ export default function RISSTMAPage() {
                                         </div>
                                         <div className="text-center">
                                             <p className={`text-[10px] font-black uppercase tracking-widest ${isUploading ? 'text-amber-500' : 'text-white'}`}>
-                                                {isUploading ? 'SUBIENDO...' : isDragging ? '¡SUELTA EL CARGO!' : formData.fileUrl ? '✅ CARGO LISTO' : 'ARRASTRA O HAZ CLIC'}
+                                                {isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : isDragging ? '¡SUELTA EL CARGO!' : formData.fileUrl ? '✅ CARGO LISTO' : 'ARRASTRA O HAZ CLIC'}
                                             </p>
                                             <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
                                                 {formData.fileUrl ? 'Documento cargado correctamente' : 'Soporta PDF e Imágenes'}

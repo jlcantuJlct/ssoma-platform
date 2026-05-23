@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { getInitials } from "@/lib/utils";
+import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
+import { DownloadCloud } from "lucide-react";
 
 // --- TYPES ---
 type Acta = {
@@ -53,6 +55,7 @@ export default function ActasSupervisionPage() {
     const [levantamientos, setLevantamientos] = useState<Levantamiento[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
     // Filter State
     const [filterDate, setFilterDate] = useState("");
@@ -101,8 +104,8 @@ export default function ActasSupervisionPage() {
     }, [user]);
 
     // HANDLERS
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'img' | 'pdf') => {
-        const selectedFile = e.target.files?.[0];
+    const handleFileUpload = async (e: any, type: 'img' | 'pdf') => {
+        const selectedFile = ((e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files)?.[0];
         if (!selectedFile) return;
 
         if (type === 'pdf' && selectedFile.type !== 'application/pdf') {
@@ -466,7 +469,7 @@ export default function ActasSupervisionPage() {
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none transition-colors"
                                             />
                                         </div>
-                                        <div className="flex flex-col justify-end h-full">
+                                        <div className="flex flex-col justify-end h-full gap-2">
                                             {(filterDate || filterPlace || filterReport) && (
                                                 <button 
                                                     onClick={() => { setFilterDate(""); setFilterPlace(""); setFilterReport(""); }}
@@ -475,6 +478,35 @@ export default function ActasSupervisionPage() {
                                                     <X size={14} strokeWidth={3} /> Limpiar
                                                 </button>
                                             )}
+                                            <button 
+                                                onClick={() => {
+                                                    const filteredActas = actas.filter(acta => {
+                                                        const matchesDate = !filterDate || acta.date === filterDate;
+                                                        const matchesPlace = !filterPlace || acta.place === filterPlace;
+                                                        const matchesReport = !filterReport || acta.report_number.toLowerCase().includes(filterReport.toLowerCase());
+                                                        const matchesLiftingSearch = levantamientos.some(l => 
+                                                            l.report_number === acta.report_number && 
+                                                            (l.responsible.toLowerCase().includes(filterReport.toLowerCase()) || 
+                                                             l.place.toLowerCase().includes(filterReport.toLowerCase()))
+                                                        );
+                                                        return (matchesDate && matchesPlace && matchesReport) || (matchesDate && matchesPlace && filterReport && matchesLiftingSearch);
+                                                    });
+                                                    
+                                                    exportTableToPDF(
+                                                        'Control de Actas de Supervisión',
+                                                        [
+                                                            { header: 'N° Informe', dataKey: 'report_number' },
+                                                            { header: 'Fecha', dataKey: 'date' },
+                                                            { header: 'Lugar', dataKey: 'place' },
+                                                        ],
+                                                        filteredActas,
+                                                        `Actas_Supervision_${new Date().toISOString().split('T')[0]}.pdf`
+                                                    );
+                                                }}
+                                                className="w-full h-[33px] bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold uppercase transition-colors border border-emerald-500 flex items-center justify-center gap-2 active:scale-95"
+                                            >
+                                                <DownloadCloud size={14} /> PDF Filtrado
+                                            </button>
                                         </div>
                                     </div>
 
@@ -520,12 +552,28 @@ export default function ActasSupervisionPage() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => handleDelete(acta.id, 'acta')}
-                                                            className="p-2 text-slate-600 hover:text-red-400 transition-colors"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
+                                                        <div className="flex gap-1">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const count = levantamientos.filter(l => l.report_number === acta.report_number).length;
+                                                                    exportRecordToPDF(
+                                                                        'Acta de Supervisión',
+                                                                        { ...acta, totalLevantamientos: count },
+                                                                        `Acta_${acta.report_number}.pdf`
+                                                                    );
+                                                                }}
+                                                                className="p-2 text-slate-600 hover:text-emerald-400 transition-colors"
+                                                                title="Descargar PDF"
+                                                            >
+                                                                <DownloadCloud size={18} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDelete(acta.id, 'acta')}
+                                                                className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     {/* Levantamientos for this Acta */}

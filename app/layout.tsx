@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AlertaBanner from "@/components/AlertaBanner";
 import SSOMAAssistant from "@/components/SSOMAAssistant";
+import UserMenu from "@/components/UserMenu";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -35,6 +36,7 @@ export default function RootLayout({
             </main>
             <AlertaBanner />
             <SSOMAAssistant />
+            <UserMenu />
           </ErrorBoundary>
         </Providers>
       </body>

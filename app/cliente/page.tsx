@@ -35,6 +35,7 @@ export default function ClientCommunicationPage() {
     });
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
@@ -63,9 +64,9 @@ export default function ClientCommunicationPage() {
         fetchData();
     }, []);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any) => {
+        const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
         try {
             setIsUploading(true);
             const uploadedUrls: string[] = [];

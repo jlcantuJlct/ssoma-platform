@@ -94,6 +94,7 @@ export default function WasteManagementPage() {
     const [filterWasteType, setFilterWasteType] = useState('');
     const [files, setFiles] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
@@ -164,14 +165,38 @@ export default function WasteManagementPage() {
         return { totalWeight, lineData };
     }, [records]);
 
+    const yearlyMatrix = useMemo(() => {
+        const currentYear = new Date().getFullYear().toString();
+        const matrix = WASTE_CATEGORIES.map(cat => {
+            const row: any = { label: cat.label, type: cat.type, color: cat.color, unit: cat.unit, total: 0 };
+            for(let i=1; i<=12; i++) {
+                row[`m${i}`] = 0;
+            }
+            return row;
+        });
+
+        records.forEach(r => {
+            if (r.date.startsWith(currentYear)) {
+                const month = parseInt(r.date.split('-')[1]);
+                const row = matrix.find(m => m.label === r.wasteType);
+                if (row) {
+                    row[`m${month}`] += r.weight;
+                    row.total += r.weight;
+                }
+            }
+        });
+
+        return { year: currentYear, data: matrix };
+    }, [records]);
+
     // --- HANDLERS ---
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const inputFiles = e.target.files;
-        if (!inputFiles) return;
+    const handleFileUpload = async (e: any) => {
+        const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
 
         if (!entryLocation) {
             alert("⚠️ Por favor selecciona el lugar antes de subir la evidencia.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
@@ -179,8 +204,10 @@ export default function WasteManagementPage() {
             setIsUploading(true);
             const uploadedUrls: string[] = [];
             const filesArray = Array.from(inputFiles);
+            setUploadProgress({ current: 0, total: filesArray.length });
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const url = await uploadEvidence(
                     file,
                     'PMA',
@@ -200,7 +227,7 @@ export default function WasteManagementPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
         }
     };
 
@@ -367,6 +394,72 @@ export default function WasteManagementPage() {
                                 </table>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Yearly Matrix Table */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl overflow-x-auto">
+                        <h3 className="text-white font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                            <Calendar size={18} className="text-blue-500" /> Matriz de Generación Anual ({yearlyMatrix.year})
+                        </h3>
+                        <table className="w-full text-left whitespace-nowrap">
+                            <thead>
+                                <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
+                                    <th className="pb-4 pl-4 sticky left-0 bg-slate-900 z-10">Tipo de Residuo</th>
+                                    <th className="pb-4 text-center">ENE</th>
+                                    <th className="pb-4 text-center">FEB</th>
+                                    <th className="pb-4 text-center">MAR</th>
+                                    <th className="pb-4 text-center">ABR</th>
+                                    <th className="pb-4 text-center">MAY</th>
+                                    <th className="pb-4 text-center">JUN</th>
+                                    <th className="pb-4 text-center">JUL</th>
+                                    <th className="pb-4 text-center">AGO</th>
+                                    <th className="pb-4 text-center">SET</th>
+                                    <th className="pb-4 text-center">OCT</th>
+                                    <th className="pb-4 text-center">NOV</th>
+                                    <th className="pb-4 text-center">DIC</th>
+                                    <th className="pb-4 text-right pr-4 text-blue-400">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                                {yearlyMatrix.data.map((row: any, idx: number) => (
+                                    <tr key={idx} className="group hover:bg-slate-800/30 transition-colors">
+                                        <td className="py-3 pl-4 sticky left-0 bg-slate-900 group-hover:bg-slate-800 transition-colors z-10">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: row.color }} />
+                                                <span className="font-bold text-white text-xs">{row.label}</span>
+                                            </div>
+                                        </td>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                                            <td key={m} className="py-3 text-center">
+                                                <span className={`text-[10px] font-mono font-bold ${row[`m${m}`] > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                                    {row[`m${m}`] > 0 ? row[`m${m}`].toFixed(1) : '-'}
+                                                </span>
+                                            </td>
+                                        ))}
+                                        <td className="py-3 text-right pr-4 bg-blue-500/5">
+                                            <span className="text-sm font-black text-blue-400">{row.total > 0 ? row.total.toFixed(1) : '0.0'} <span className="text-[10px] text-slate-500 font-normal">{row.unit}</span></span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {/* Total Row */}
+                                <tr className="bg-slate-800/50">
+                                    <td className="py-3 pl-4 font-black text-white text-xs sticky left-0 bg-slate-800 z-10">TOTAL GENERAL</td>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => {
+                                        const colTotal = yearlyMatrix.data.reduce((sum: number, r: any) => sum + r[`m${m}`], 0);
+                                        return (
+                                            <td key={m} className="py-3 text-center">
+                                                <span className={`text-[10px] font-mono font-black ${colTotal > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                                    {colTotal > 0 ? colTotal.toFixed(1) : '-'}
+                                                </span>
+                                            </td>
+                                        );
+                                    })}
+                                    <td className="py-3 text-right pr-4 font-black text-emerald-400 text-sm">
+                                        {yearlyMatrix.data.reduce((sum: number, r: any) => sum + r.total, 0).toFixed(1)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
 
                     {/* General Configuration Bar */}

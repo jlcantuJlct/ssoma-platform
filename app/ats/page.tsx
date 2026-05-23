@@ -40,6 +40,7 @@ export default function AtsPage() {
     // STATE
     const [records, setRecords] = useState<AtsRecord[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isLoaded, setIsLoaded] = useState(false);
 
     const [form, setForm] = useState({
@@ -144,7 +145,7 @@ export default function AtsPage() {
 
         if (!form.responsible || !form.location) {
             alert("⚠️ Por favor completa RESPONSABLE y LUGAR antes de subir el archivo.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 

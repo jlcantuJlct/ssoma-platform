@@ -8,6 +8,7 @@ import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 
 const MONTHS = [
     "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -22,6 +23,7 @@ export default function InformesPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -277,7 +279,7 @@ export default function InformesPage() {
                                             {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-black uppercase text-white">{isUploading ? 'SUBIENDO...' : 'ARRASTRA O HAZ CLIC AQUÍ'}</p>
+                                            <p className="text-xs font-black uppercase text-white">{isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : 'ARRASTRA O HAZ CLIC AQUÍ'}</p>
                                         </div>
                                     </div>
 
@@ -342,6 +344,23 @@ export default function InformesPage() {
                             >
                                 {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
                                 {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const filtered = records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation));
+                                    const cols = [
+                                        { header: 'Fecha', dataKey: 'date' },
+                                        { header: 'Mes', dataKey: 'month' },
+                                        { header: 'Responsable', dataKey: 'responsable' },
+                                        { header: 'Zona', dataKey: 'zona' },
+                                        { header: 'Descripción', dataKey: 'description' }
+                                    ];
+                                    exportTableToPDF('Informes SSOMA', cols, filtered, 'Informes.pdf');
+                                }}
+                                disabled={records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length === 0}
+                                className="bg-slate-800 hover:bg-violet-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                <FileText size={14} /> Descargar PDF
                             </button>
                         </div>
                     </div>
@@ -437,10 +456,17 @@ export default function InformesPage() {
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all flex items-center justify-center"
-                                                    title="Descargar Informe"
+                                                    title="Descargar Archivo Adjunto"
                                                 >
                                                     <Download size={14} />
                                                 </a>
+                                                <button 
+                                                    onClick={() => exportRecordToPDF('Detalle de Informe', rec, `Informe_${rec.id}.pdf`)}
+                                                    className="p-1.5 bg-slate-800 hover:bg-orange-500/20 text-slate-400 hover:text-orange-400 rounded-lg transition-all"
+                                                    title="Descargar PDF"
+                                                >
+                                                    <DownloadCloud size={14} />
+                                                </button>
                                                 <button 
                                                     onClick={() => handleDelete(rec.id)}
                                                     className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"

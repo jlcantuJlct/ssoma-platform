@@ -8,6 +8,7 @@ import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
+import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
 
 const DOCUMENT_TYPES = [
     "4.1. PLAN DE SST",
@@ -28,6 +29,7 @@ export default function SSTMADocsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -282,7 +284,7 @@ export default function SSTMADocsPage() {
                                             {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-black uppercase text-white">{isUploading ? 'SUBIENDO...' : 'ARRASTRA O HAZ CLIC AQUÍ'}</p>
+                                            <p className="text-xs font-black uppercase text-white">{isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : 'ARRASTRA O HAZ CLIC AQUÍ'}</p>
                                         </div>
                                     </div>
 
@@ -336,6 +338,29 @@ export default function SSTMADocsPage() {
                             <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                                 {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate)).length} REGISTROS
                             </div>
+                            <button
+                                onClick={() => {
+                                    const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate));
+                                    setIsDownloading(true);
+                                    exportTableToPDF(
+                                        'Documentos de Gestión SSTMA',
+                                        [
+                                            { header: 'Fecha', dataKey: 'date' },
+                                            { header: 'Documento', dataKey: 'documentType' },
+                                            { header: 'Responsable', dataKey: 'responsable' },
+                                            { header: 'Zona', dataKey: 'zona' },
+                                            { header: 'Descripción', dataKey: 'description' }
+                                        ],
+                                        filtered,
+                                        `SSTMA_Docs_${new Date().toISOString().split('T')[0]}.pdf`
+                                    );
+                                    setIsDownloading(false);
+                                }}
+                                disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate)).length === 0}
+                                className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                            >
+                                <DownloadCloud size={14} /> PDF
+                            </button>
                             <button
                                 onClick={() => {
                                     const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate));
@@ -446,6 +471,15 @@ export default function SSTMADocsPage() {
                                                 >
                                                     <Download size={14} />
                                                 </a>
+                                                <button 
+                                                    onClick={() => {
+                                                        exportRecordToPDF('Documento SSTMA', rec, `Doc_${rec.date}_${rec.documentType}.pdf`);
+                                                    }}
+                                                    className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all flex items-center justify-center"
+                                                    title="Descargar Fila en PDF"
+                                                >
+                                                    <DownloadCloud size={14} />
+                                                </button>
                                                 <button 
                                                     onClick={() => handleDelete(rec.id)}
                                                     className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"

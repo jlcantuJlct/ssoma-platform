@@ -583,7 +583,7 @@ export default function SettingsPage() {
                                                 if (!file) return;
 
                                                 if (!confirm("⚠️ ADVERTENCIA: Restaurar un backup SOBREESCRIBIRÁ todos los datos actuales. ¿Estás seguro de continuar?")) {
-                                                    e.target.value = '';
+                                                    if (e.target && e.target.type === 'file') e.target.value = '';
                                                     return;
                                                 }
 

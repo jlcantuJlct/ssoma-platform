@@ -58,6 +58,7 @@ export default function DetourPage() {
     });
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
@@ -132,13 +133,13 @@ export default function DetourPage() {
 
         if (!form.responsible || !form.location || !form.category) {
             alert("⚠️ Por favor completa Responsable, Lugar y Categoría antes de subir archivos.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
         if (images.length + files.length > 9) {
             alert(`Solo puedes cargar hasta 9 archivos por registro.`);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
@@ -152,6 +153,7 @@ export default function DetourPage() {
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const extension = file.name.split('.').pop() || 'jpg';
                 const filename = await Utils.generateFilename(
                     form.description,
@@ -180,7 +182,7 @@ export default function DetourPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = ''; // Reset input
+            if (e.target && e.target.type === 'file') e.target.value = ''; // Reset input
         }
     };
 

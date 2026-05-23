@@ -7,6 +7,7 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card } from "@/components/ui/card";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
 import { uploadEvidence } from '@/lib/uploadClient';
+import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
 
 const CERTIFICATE_TYPES = [
     "Certificados de Baños Portátiles",
@@ -23,6 +24,7 @@ export default function GestionResiduosPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -33,11 +35,11 @@ export default function GestionResiduosPage() {
     const [filterLocation, setFilterLocation] = useState('');
 
     // Form state
+    const [selectedZones, setSelectedZones] = useState<string[]>([]);
     const [formData, setFormData] = useState({
         date: '',
         documentType: '',
         responsable: 'Usuario SSOMA',
-        zona: SSOMA_LOCATIONS[0],
         description: '',
     });
 
@@ -85,7 +87,7 @@ export default function GestionResiduosPage() {
                 certType: formData.documentType, // Keep legacy certType field sync
                 description: formData.description,
                 responsable: formData.responsable,
-                zona: formData.zona,
+                zona: selectedZones.join(', '),
                 fileUrls: uploadedFiles,
             };
 
@@ -104,6 +106,7 @@ export default function GestionResiduosPage() {
                     documentType: '',
                     description: '',
                 });
+                setSelectedZones([]);
                 setUploadedFiles([]);
                 fetchData();
             }
@@ -152,7 +155,7 @@ export default function GestionResiduosPage() {
                     formData.responsable,
                     'RESIDUOS',
                     'MEDIO_AMBIENTE',
-                    formData.zona,
+                    selectedZones.join(', '),
                     'Gestión de Residuos'
                 );
                 newUploadedUrls.push(url);
@@ -162,7 +165,7 @@ export default function GestionResiduosPage() {
             alert(`Error al subir archivo: ${error.message}`);
         } finally {
             setIsUploading(false);
-            if (e.target) e.target.value = '';
+            if (e.target) if (e.target && e.target.type === 'file') e.target.value = '';
         }
     };
 
@@ -232,21 +235,29 @@ export default function GestionResiduosPage() {
                                     </select>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Zona / Proyecto</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select 
-                                            value={formData.zona}
-                                            onChange={(e) => setFormData({...formData, zona: e.target.value})}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none"
-                                        >
-                                            {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                                        </select>
+                                <div className="space-y-1 md:col-span-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Zonas / Proyectos (Selección Múltiple)</label>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {SSOMA_LOCATIONS.map(l => (
+                                            <button
+                                                key={l}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedZones(prev => 
+                                                        prev.includes(l) ? prev.filter(z => z !== l) : [...prev, l]
+                                                    );
+                                                }}
+                                                className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-colors ${
+                                                    selectedZones.includes(l) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-600'
+                                                }`}
+                                            >
+                                                {l}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                <div className="space-y-1 md:col-span-2">
+                                <div className="space-y-1 md:col-span-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Subir Archivos (PDF)</label>
                                     <div 
                                         onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
@@ -312,11 +323,32 @@ export default function GestionResiduosPage() {
                                 </div>
                                 <button
                                     onClick={() => {
-                                        const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation));
+                                        const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation)));
+                                        setIsDownloading(true);
+                                        exportTableToPDF(
+                                            'Gestión de Residuos',
+                                            [
+                                                { header: 'Fecha', dataKey: 'date' },
+                                                { header: 'Documento', dataKey: 'documentType' },
+                                                { header: 'Zona / Proyecto', dataKey: 'zona' },
+                                            ],
+                                            filtered,
+                                            `Gestion_Residuos_${new Date().toISOString().split('T')[0]}.pdf`
+                                        );
+                                        setIsDownloading(false);
+                                    }}
+                                    disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation))).length === 0}
+                                    className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                                >
+                                    <DownloadCloud size={14} /> PDF
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation)));
                                         setIsDownloading(true);
                                         handleBulkDownload(filtered, 'Gestion_Residuos.zip', setDownloadMsg).finally(() => setIsDownloading(false));
                                     }}
-                                    disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation)).length === 0}
+                                    disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation))).length === 0}
                                     className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
                                 >
                                     {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
@@ -400,12 +432,12 @@ export default function GestionResiduosPage() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation)).length === 0 ? (
+                                {records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation))).length === 0 ? (
                                     <div className="col-span-full text-center py-10 text-slate-500 text-xs font-bold uppercase tracking-widest">
                                         No hay documentos registrados
                                     </div>
                                 ) : records
-                                    .filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona === filterLocation))
+                                    .filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate) && (!filterLocation || r.zona?.includes(filterLocation)))
                                     .map(rec => (
                                     <Card key={rec.id} className="bg-slate-950 border-slate-800 hover:border-emerald-500/30 transition-all">
                                         <div className="p-4">
@@ -434,10 +466,17 @@ export default function GestionResiduosPage() {
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all flex items-center justify-center"
-                                                        title="Descargar PDF"
+                                                        title="Descargar ZIP"
                                                     >
                                                         <Download size={14} />
                                                     </a>
+                                                    <button 
+                                                        onClick={() => exportRecordToPDF('Gestión de Residuos', rec, `Gestion_Residuos_${rec.date}.pdf`)}
+                                                        className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all flex items-center justify-center"
+                                                        title="Descargar PDF"
+                                                    >
+                                                        <DownloadCloud size={14} />
+                                                    </button>
                                                     <button 
                                                         onClick={() => handleDelete(rec.id)}
                                                         className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"

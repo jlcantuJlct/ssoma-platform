@@ -19,7 +19,8 @@ import {
     BarChart3,
     TrendingUp,
     Filter,
-    Users
+    Users,
+    DownloadCloud
 } from "lucide-react";
 import { 
     AreaChart, 
@@ -32,6 +33,7 @@ import {
     Legend
 } from 'recharts';
 import { generateFilename, getDriveViewerUrl } from '@/lib/utils';
+import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -74,6 +76,7 @@ export default function ReporteACPage() {
     });
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
@@ -632,6 +635,23 @@ export default function ReporteACPage() {
                                     <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                                         {filteredRecords.length} REGISTROS
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            const cols = [
+                                                { header: 'Fecha', dataKey: 'date' },
+                                                { header: 'Responsable', dataKey: 'responsible' },
+                                                { header: 'Acto', dataKey: 'acto' },
+                                                { header: 'Condición', dataKey: 'condicion' },
+                                                { header: 'Cantidad', dataKey: 'cantidad' },
+                                                { header: 'Lugar', dataKey: 'location' }
+                                            ];
+                                            exportTableToPDF('Reportes de Actos y Condiciones', cols, filteredRecords, 'Reportes_AC.pdf');
+                                        }}
+                                        disabled={filteredRecords.length === 0}
+                                        className="bg-slate-800 hover:bg-orange-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
+                                    >
+                                        <FileText size={14} /> Descargar PDF
+                                    </button>
                                 </div>
 
                                 {/* Month Summary Bar */}
@@ -757,6 +777,13 @@ export default function ReporteACPage() {
                                                                 <Eye size={16} />
                                                             </button>
                                                         )}
+                                                        <button 
+                                                            onClick={() => exportRecordToPDF('Detalle de Reporte A/C', r, `ReporteAC_${r.id}.pdf`)}
+                                                            className="p-2 text-slate-600 hover:text-blue-400 transition-colors" 
+                                                            title="Descargar Fila"
+                                                        >
+                                                            <DownloadCloud size={16} />
+                                                        </button>
                                                         <button 
                                                             onClick={() => handleDelete(r.id)}
                                                             className="p-2 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-lg transition-all opacity-0 group-hover:opacity-100"

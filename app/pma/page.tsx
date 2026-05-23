@@ -88,6 +88,7 @@ export default function PMAPage() {
     });
     const [images, setImages] = useState<string[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -217,14 +218,14 @@ export default function PMAPage() {
         // Validar datos antes de subir
         if (!form.responsible || !form.location || !form.category) {
             alert("⚠️ Por favor completa Responsable, Lugar y Categoría antes de subir archivos.\n\nEsto asegura que los archivos se guarden con el nombre correcto.");
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
         // Validar límite total de 9 archivos
         if (images.length + files.length > 9) {
             alert(`Solo puedes cargar hasta 9 archivos por registro. Actualmente tienes ${images.length} y elegiste ${files.length}.`);
-            e.target.value = '';
+            if (e.target && e.target.type === 'file') e.target.value = '';
             return;
         }
 
@@ -239,6 +240,7 @@ export default function PMAPage() {
             const descWithCat = `${catShort}_${form.location?.replace(/\s+/g, '').substring(0, 12) || 'SinLugar'}`;
 
             for (const file of filesArray) {
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
                 const url = await uploadEvidence(
                     file,
                     'PMA',
@@ -259,7 +261,7 @@ export default function PMAPage() {
             alert(`Error al subir: ${error.message}`);
         } finally {
             setIsUploading(false);
-            e.target.value = ''; // Reset input
+            if (e.target && e.target.type === 'file') e.target.value = ''; // Reset input
         }
     };
 
