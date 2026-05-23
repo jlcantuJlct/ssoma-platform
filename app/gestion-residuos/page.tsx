@@ -266,7 +266,13 @@ export default function GestionResiduosPage() {
                                     <div 
                                         onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
                                         onDragLeave={() => setIsDragging(false)}
-                                        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
+                                        onDrop={(e) => { 
+                                            e.preventDefault(); 
+                                            setIsDragging(false); 
+                                            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                handleFileUpload({ target: { files: e.dataTransfer.files } } as any);
+                                            }
+                                        }}
                                         className={`relative border-2 border-dashed rounded-xl p-4 transition-all flex items-center justify-center gap-3 cursor-pointer group ${
                                             isUploading ? 'border-amber-500 bg-amber-500/5' :
                                             isDragging ? 'border-emerald-500 bg-emerald-500/10' : 
