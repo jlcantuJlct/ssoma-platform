@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         try {
             await db.execute(`
                 CREATE TABLE IF NOT EXISTS residuos_certificados (
-                    id ${isPostgres ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPostgres ? '' : 'AUTOINCREMENT'},
+                    id ${isPostgres ? 'BIGINT' : 'INTEGER'} PRIMARY KEY ${isPostgres ? '' : 'AUTOINCREMENT'},
                     date TEXT,
                     month TEXT,
                     cert_type TEXT,
@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
                     created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP
                 )
             `);
+            if (isPostgres) {
+                await db.execute('ALTER TABLE residuos_certificados ALTER COLUMN id TYPE BIGINT');
+            }
         } catch (e) {}
 
         const records = await db.fetchAll('SELECT * FROM residuos_certificados ORDER BY created_at DESC');
