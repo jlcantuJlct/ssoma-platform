@@ -144,10 +144,13 @@ export default function GestionResiduosPage() {
         if (files.length === 0) return;
 
         setIsUploading(true);
+        setUploadProgress({ current: 0, total: files.length });
         const newUploadedUrls: string[] = [];
 
         try {
-            for (const file of files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                setUploadProgress({ current: i + 1, total: files.length });
                 const url = await uploadEvidence(
                     file,
                     'Certificados_Residuos',
@@ -278,9 +281,14 @@ export default function GestionResiduosPage() {
                                         <div className={`p-2 rounded-lg ${isUploading ? 'bg-amber-500 animate-pulse' : 'bg-slate-800 group-hover:bg-emerald-900/50'}`}>
                                             {isUploading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={20} className="text-slate-400 group-hover:text-emerald-400" />}
                                         </div>
-                                        <p className="text-xs font-black uppercase text-slate-400 group-hover:text-white">
-                                            {isUploading ? 'Subiendo...' : uploadedFiles.length > 0 ? `${uploadedFiles.length} ARCHIVOS LISTOS` : 'Arrastra o haz clic aquí'}
-                                        </p>
+                                        <div className="flex flex-col items-center">
+                                            <p className="text-xs font-black uppercase text-slate-400 group-hover:text-white">
+                                                {isUploading ? `Subiendo... ${uploadProgress.current}/${uploadProgress.total}` : uploadedFiles.length > 0 ? `${uploadedFiles.length} ARCHIVOS LISTOS` : 'Arrastra o haz clic aquí'}
+                                            </p>
+                                        </div>
+                                        {isUploading && uploadProgress.total > 0 && (
+                                            <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all duration-300" style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }} />
+                                        )}
                                     </div>
                                     
                                     {uploadedFiles.length > 0 && (
