@@ -172,29 +172,36 @@ export default function ManifestPage() {
             files: files
         };
 
-        let allRecords;
-        if (editingId) {
-            allRecords = records.map(r => r.id === editingId ? newRecord : r);
-        } else {
-            allRecords = [newRecord, ...records];
-        }
-
         try {
+            const action = editingId ? 'UPDATE' : 'CREATE';
             const res = await fetch('/api/manifiesto-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords })
+                body: JSON.stringify({ action, record: newRecord })
             });
-            if (res.ok) {
-                setRecords(allRecords);
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (action === 'CREATE' && data.id) {
+                    newRecord.id = data.id;
+                    setRecords([newRecord, ...records]);
+                } else if (action === 'UPDATE') {
+                    setRecords(records.map(r => r.id === editingId ? newRecord : r));
+                } else {
+                    fetchData(); // Fallback update
+                }
+
                 setForm(prev => ({ ...prev, manifestNumber: '', transportCompany: '' }));
                 setItems([{ wasteType: '', quantity: '', unit: 'kg' }]);
                 setFiles([]);
                 setEditingId(null);
                 alert(`${documentType} ${editingId ? 'actualizado' : 'registrado'} correctamente.`);
+            } else {
+                throw new Error(data.error || 'Error del servidor al guardar');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving data:', error);
+            alert(`Hubo un error al guardar los datos: ${error.message}`);
         }
     };
 
@@ -229,16 +236,21 @@ export default function ManifestPage() {
 
     const handleDelete = async (id: number) => {
         if (!confirm("¿Eliminar este registro?")) return;
-        const updated = records.filter(r => r.id !== id);
         try {
-            await fetch('/api/manifiesto-records', {
+            const res = await fetch('/api/manifiesto-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updated })
+                body: JSON.stringify({ action: 'DELETE', id })
             });
-            setRecords(updated);
-        } catch (error) {
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setRecords(records.filter(r => r.id !== id));
+            } else {
+                throw new Error(data.error || 'Error del servidor al eliminar');
+            }
+        } catch (error: any) {
             console.error('Error deleting data:', error);
+            alert(`Hubo un error al eliminar los datos: ${error.message}`);
         }
     };
 

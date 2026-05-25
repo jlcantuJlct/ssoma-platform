@@ -57,7 +57,74 @@ export async function POST(req: NextRequest) {
         await ensureTable();
         const body = await req.json();
 
-        // MODO ARRAY (reemplazo masivo por compatibilidad temporal)
+        // 1. MODO ACCION (Delta Sync)
+        if (body.action) {
+            if (body.action === 'CREATE') {
+                const r = body.record;
+                if (!r) throw new Error('Falta el record para CREATE');
+                
+                const legacyWaste = r.wasteType || (r.items && r.items[0]?.wasteType) || '';
+                const legacyQty = r.quantity || (r.items && r.items[0]?.quantity) || '';
+                const legacyUnit = r.unit || (r.items && r.items[0]?.unit) || 'kg';
+
+                const res = await db.execute(
+                    `INSERT INTO manifiesto_records (date, manifest_number, transport_company, waste_type, quantity, unit, location, files, items, document_type)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    [
+                        r.date || '',
+                        r.manifestNumber || '',
+                        r.transportCompany || '',
+                        legacyWaste,
+                        legacyQty,
+                        legacyUnit,
+                        r.location || '',
+                        JSON.stringify(r.files || []),
+                        JSON.stringify(r.items || []),
+                        r.documentType || 'Manifiesto'
+                    ]
+                );
+                const newId = res.rows?.[0]?.id;
+                return NextResponse.json({ success: true, id: newId });
+            }
+            
+            if (body.action === 'UPDATE') {
+                const r = body.record;
+                if (!r || !r.id) throw new Error('Falta el record o su ID para UPDATE');
+
+                const legacyWaste = r.wasteType || (r.items && r.items[0]?.wasteType) || '';
+                const legacyQty = r.quantity || (r.items && r.items[0]?.quantity) || '';
+                const legacyUnit = r.unit || (r.items && r.items[0]?.unit) || 'kg';
+
+                await db.execute(
+                    `UPDATE manifiesto_records 
+                     SET date = ?, manifest_number = ?, transport_company = ?, waste_type = ?, quantity = ?, unit = ?, location = ?, files = ?, items = ?, document_type = ?
+                     WHERE id = ?`,
+                    [
+                        r.date || '',
+                        r.manifestNumber || '',
+                        r.transportCompany || '',
+                        legacyWaste,
+                        legacyQty,
+                        legacyUnit,
+                        r.location || '',
+                        JSON.stringify(r.files || []),
+                        JSON.stringify(r.items || []),
+                        r.documentType || 'Manifiesto',
+                        r.id
+                    ]
+                );
+                return NextResponse.json({ success: true });
+            }
+
+            if (body.action === 'DELETE') {
+                const id = body.id || (body.record && body.record.id);
+                if (!id) throw new Error('Falta el ID para DELETE');
+                await db.execute('DELETE FROM manifiesto_records WHERE id = ?', [id]);
+                return NextResponse.json({ success: true });
+            }
+        }
+
+        // 2. MODO ARRAY (reemplazo masivo por compatibilidad temporal)
         if (body.records && Array.isArray(body.records)) {
             await db.execute('TRUNCATE TABLE manifiesto_records RESTART IDENTITY');
             let count = 0;
