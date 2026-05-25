@@ -14,8 +14,11 @@ import {
     AlertTriangle,
     Download,
     DownloadCloud,
-    RotateCcw
+    RotateCcw,
+    BarChart3,
+    Edit2
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import SearchableSelect from "@/components/SearchableSelect";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, sanitizeRecords } from '@/lib/utils';
 import { uploadEvidence } from "@/lib/uploadClient";
@@ -23,17 +26,38 @@ import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 
+const COMMON_WASTE_TYPES = [
+    "ACEITE LUBRICANTE USADO",
+    "TIERRA CONTAMINADA CON HIDROCARBUROS",
+    "DESECHOS DE ASFALTO",
+    "BALDES CONTAMINADOS CON PINTURA",
+    "TEROKAL VENCIDO",
+    "RESIDUOS CONTAMINADOS CON HIDROCARBURO (TRAPOS INDUSTRIALES Y FILTROS)",
+    "CILINDROS VACIOS CONTAMINADOS CON HIDROCARBUROS"
+];
+
 // --- TYPES ---
+type ManifestItem = {
+    wasteType: string;
+    quantity: string;
+    unit: string;
+};
+
 type ManifestRecord = {
     id: number;
     date: string;
     manifestNumber: string;
     transportCompany: string;
-    wasteType: string;
-    quantity: string;
-    unit: string;
     location: string;
     files: string[];
+    // Legacy support
+    wasteType?: string;
+    quantity?: string;
+    unit?: string;
+    // New multi-item support
+    items?: ManifestItem[];
+    // Document Type support
+    documentType?: string;
 };
 
 export default function ManifestPage() {
@@ -44,15 +68,14 @@ export default function ManifestPage() {
     const [loading, setLoading] = useState(true);
 
     // Form State
+    const [documentType, setDocumentType] = useState('Manifiesto');
     const [form, setForm] = useState({
         date: new Date().toISOString().split('T')[0],
         manifestNumber: '',
         transportCompany: '',
-        wasteType: '',
-        quantity: '',
-        unit: 'kg',
         location: ''
     });
+    const [items, setItems] = useState<ManifestItem[]>([{ wasteType: '', quantity: '', unit: 'kg' }]);
     const [filterLocation, setFilterLocation] = useState('');
     const [filterDate, setFilterDate] = useState('');
     const [filterWasteType, setFilterWasteType] = useState('');
@@ -63,12 +86,16 @@ export default function ManifestPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+
+    const CHART_COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1', '#eab308'];
 
     // --- EFFECT: LOAD ---
     const fetchData = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/manifiesto-records');
+            const res = await fetch('/api/manifiesto-records?t=' + Date.now(), { cache: 'no-store' });
             const data = await res.json();
             if (data.success && Array.isArray(data.records)) {
                 setRecords(data.records);
@@ -129,17 +156,28 @@ export default function ManifestPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (files.length === 0) {
-            alert("Debe subir el archivo PDF del Manifiesto.");
+            alert("Debe subir el archivo PDF del Documento.");
+            return;
+        }
+        if (items.length === 0 || items.some(i => !i.wasteType || !i.quantity)) {
+            alert("Debe ingresar al menos un residuo válido con cantidad.");
             return;
         }
 
         const newRecord: ManifestRecord = {
-            id: Date.now(),
+            id: editingId || Date.now(),
             ...form,
+            documentType,
+            items: [...items],
             files: files
         };
 
-        const allRecords = [newRecord, ...records];
+        let allRecords;
+        if (editingId) {
+            allRecords = records.map(r => r.id === editingId ? newRecord : r);
+        } else {
+            allRecords = [newRecord, ...records];
+        }
 
         try {
             const res = await fetch('/api/manifiesto-records', {
@@ -149,13 +187,44 @@ export default function ManifestPage() {
             });
             if (res.ok) {
                 setRecords(allRecords);
-                setForm(prev => ({ ...prev, manifestNumber: '', transportCompany: '', wasteType: '', quantity: '' }));
+                setForm(prev => ({ ...prev, manifestNumber: '', transportCompany: '' }));
+                setItems([{ wasteType: '', quantity: '', unit: 'kg' }]);
                 setFiles([]);
-                alert("Manifiesto registrado correctamente.");
+                setEditingId(null);
+                alert(`${documentType} ${editingId ? 'actualizado' : 'registrado'} correctamente.`);
             }
         } catch (error) {
             console.error('Error saving data:', error);
         }
+    };
+
+    const handleEdit = (record: ManifestRecord) => {
+        setEditingId(record.id);
+        setDocumentType(record.documentType || 'Manifiesto');
+        setForm({
+            date: record.date || new Date().toISOString().split('T')[0],
+            manifestNumber: record.manifestNumber || '',
+            transportCompany: record.transportCompany || '',
+            location: record.location || ''
+        });
+        
+        if (record.items && record.items.length > 0) {
+            setItems(record.items.map(i => ({...i})));
+        } else if (record.wasteType) {
+            setItems([{ wasteType: record.wasteType, quantity: record.quantity || '', unit: record.unit || 'kg' }]);
+        } else {
+            setItems([{ wasteType: '', quantity: '', unit: 'kg' }]);
+        }
+        
+        setFiles([...record.files]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setForm(prev => ({ ...prev, manifestNumber: '', transportCompany: '' }));
+        setItems([{ wasteType: '', quantity: '', unit: 'kg' }]);
+        setFiles([]);
     };
 
     const handleDelete = async (id: number) => {
@@ -176,9 +245,43 @@ export default function ManifestPage() {
     const filteredRecords = records.filter(r => {
         const matchesLoc = !filterLocation || r.location === filterLocation;
         const matchesDate = !filterDate || r.date === filterDate;
-        const matchesType = !filterWasteType || r.wasteType.toLowerCase().includes(filterWasteType.toLowerCase());
+        
+        const validItems = Array.isArray(r.items) ? r.items.filter(i => i && typeof i.wasteType === 'string' && i.wasteType.trim() !== '') : [];
+        const wasteNames = validItems.length > 0 ? validItems.map(i => i.wasteType).join(' ') : (r.wasteType || '');
+        const matchesType = !filterWasteType || wasteNames.toLowerCase().includes(filterWasteType.toLowerCase());
+        
         return matchesLoc && matchesDate && matchesType;
     });
+
+    // Calcular totales mes a mes
+    const quantitiesPerMonth = new Array(12).fill(0);
+    let totalKg = 0;
+
+    filteredRecords.forEach(r => {
+        if (!r.date) return;
+        const monthIndex = parseInt(r.date.split('-')[1]) - 1;
+        if (monthIndex >= 0 && monthIndex < 12) {
+            let recTotal = 0;
+            const validItems = Array.isArray(r.items) ? r.items.filter(i => i && typeof i.wasteType === 'string' && i.wasteType.trim() !== '') : [];
+            if (validItems.length > 0) {
+                validItems.forEach(i => {
+                    let q = parseFloat(String(i.quantity).replace(/,/g, '')) || 0;
+                    if (i.unit === 'ton') q *= 1000;
+                    if (i.unit === 'gl') q *= 3.785;
+                    recTotal += q;
+                });
+            } else {
+                let q = parseFloat(String(r.quantity || '0').replace(/,/g, '')) || 0;
+                if (r.unit === 'ton') q *= 1000;
+                if (r.unit === 'gl') q *= 3.785;
+                recTotal += q;
+            }
+            quantitiesPerMonth[monthIndex] += recTotal;
+            totalKg += recTotal;
+        }
+    });
+
+    const MONTH_LABELS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'];
 
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
@@ -221,12 +324,19 @@ export default function ManifestPage() {
                                         { header: 'Fecha', dataKey: 'date' },
                                         { header: 'N° Manifiesto', dataKey: 'manifestNumber' },
                                         { header: 'Transportista', dataKey: 'transportCompany' },
-                                        { header: 'Residuo', dataKey: 'wasteType' },
-                                        { header: 'Cantidad', dataKey: 'quantity' },
-                                        { header: 'Unidad', dataKey: 'unit' },
+                                        { header: 'Residuos', dataKey: 'exportWaste' },
+                                        { header: 'Cantidad Total', dataKey: 'exportQuantity' },
                                         { header: 'Lugar', dataKey: 'location' }
                                     ];
-                                    exportTableToPDF('Control de Manifiestos', cols, filteredRecords, 'Manifiestos.pdf');
+                                    const exportData = filteredRecords.map(r => {
+                                        const validItems = r.items ? r.items.filter(i => i.wasteType && i.wasteType.trim() !== '') : [];
+                                        return {
+                                            ...r,
+                                            exportWaste: validItems.length > 0 ? validItems.map(i => i.wasteType).join(' | ') : r.wasteType,
+                                            exportQuantity: validItems.length > 0 ? `${validItems.reduce((acc, i) => acc + (parseFloat(i.quantity) || 0), 0).toFixed(2)} ${validItems[0]?.unit || 'kg'}` : `${r.quantity} ${r.unit}`
+                                        };
+                                    });
+                                    exportTableToPDF('Control de Manifiestos', cols, exportData, 'Manifiestos.pdf');
                                 }}
                                 disabled={filteredRecords.length === 0}
                                 className="bg-slate-800 hover:bg-emerald-600 disabled:bg-slate-900 text-white px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
@@ -242,11 +352,20 @@ export default function ManifestPage() {
                         <div className="xl:col-span-1">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6">
                                 <h3 className="text-emerald-400 font-black uppercase text-sm tracking-widest mb-6 flex items-center gap-2">
-                                    <Save size={18} /> Registrar Nuevo Manifiesto
+                                    <Save size={18} /> {editingId ? 'Editar Registro' : 'Registrar Nuevo Manifiesto'}
                                 </h3>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-2 space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Registro</label>
+                                            <select value={documentType} onChange={e => setDocumentType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold focus:border-emerald-500 outline-none appearance-none cursor-pointer">
+                                                <option value="Manifiesto">Manifiesto</option>
+                                                <option value="Certificado de Transportista">Certificado de Transportista</option>
+                                                <option value="Certificado de Disposición Final">Certificado de Disposición Final</option>
+                                            </select>
+                                        </div>
+
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Fecha de Emisión</label>
                                             <div className="relative">
@@ -256,8 +375,10 @@ export default function ManifestPage() {
                                         </div>
 
                                         <div className="col-span-2 space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">N° de Manifiesto</label>
-                                            <input type="text" placeholder="Ej: MAN-2024-001" value={form.manifestNumber} onChange={e => setForm({...form, manifestNumber: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">
+                                                {documentType === 'Manifiesto' ? 'N° de Manifiesto' : 'N° de Certificado'}
+                                            </label>
+                                            <input type="text" placeholder={`Ej: ${documentType === 'Manifiesto' ? 'MAN-2024-001' : 'CERT-2024-001'}`} value={form.manifestNumber} onChange={e => setForm({...form, manifestNumber: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
                                         </div>
 
                                         <div className="col-span-2 space-y-1">
@@ -268,28 +389,62 @@ export default function ManifestPage() {
                                             </div>
                                         </div>
 
-                                        <div className="col-span-2 space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Residuo</label>
-                                            <div className="relative">
-                                                <AlertTriangle className="absolute left-3 top-2.5 text-amber-500/50" size={16} />
-                                                <input type="text" placeholder="Ej: Aceite usado, Trapos..." value={form.wasteType} onChange={e => setForm({...form, wasteType: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                        <div className="col-span-2 space-y-4 pt-4 border-t border-slate-800 mt-4">
+                                            <div className="flex justify-between items-center">
+                                                    <label className="text-[10px] font-black text-slate-500 uppercase">Detalle de Residuos</label>
+                                                    <button type="button" onClick={() => setItems([...items, {wasteType: '', quantity: '', unit: 'kg'}])} className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-500/20 flex items-center gap-1 transition-colors">
+                                                        ➕ Añadir Residuo
+                                                    </button>
+                                                </div>
+                                                
+                                                <datalist id="waste-list">
+                                                    {COMMON_WASTE_TYPES.map(t => <option key={t} value={t} />)}
+                                                </datalist>
+
+                                                <div className="space-y-3">
+                                                    {items.map((item, idx) => (
+                                                        <div key={idx} className="flex gap-2 items-start bg-slate-950 p-2.5 rounded-xl border border-slate-800 relative group transition-all hover:border-slate-700">
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="relative">
+                                                                    <AlertTriangle className="absolute left-2.5 top-2 text-amber-500/50" size={14} />
+                                                                    <input list="waste-list" placeholder="Seleccione o escriba tipo de residuo..." value={item.wasteType} onChange={e => {
+                                                                        const newItems = [...items];
+                                                                        newItems[idx].wasteType = e.target.value;
+                                                                        setItems(newItems);
+                                                                    }} className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-[11px] font-bold text-white focus:border-emerald-500 outline-none" required />
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <input type="number" step="0.01" placeholder="Cant." value={item.quantity} onChange={e => {
+                                                                        const newItems = [...items];
+                                                                        newItems[idx].quantity = e.target.value;
+                                                                        setItems(newItems);
+                                                                    }} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] font-mono text-white focus:border-emerald-500 outline-none" required />
+                                                                    <select value={item.unit} onChange={e => {
+                                                                        const newItems = [...items];
+                                                                        newItems[idx].unit = e.target.value;
+                                                                        setItems(newItems);
+                                                                    }} className="w-[80px] bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-[11px] font-bold text-white focus:border-emerald-500 outline-none appearance-none text-center">
+                                                                        <option value="kg">kg</option>
+                                                                        <option value="ton">ton</option>
+                                                                        <option value="gl">gl</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            {items.length > 1 && (
+                                                                <button type="button" onClick={() => setItems(items.filter((_, i) => i !== idx))} className="text-slate-600 hover:text-red-400 p-1.5 bg-slate-900 rounded-lg border border-slate-800 mt-1 transition-colors">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-slate-400 font-mono font-bold bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-800 mt-2">
+                                                    <span>TOTAL ESTIMADO:</span>
+                                                    <span className="text-emerald-400 text-sm">
+                                                        {items.reduce((acc, curr) => acc + (parseFloat(curr.quantity) || 0), 0).toFixed(3)}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
-                                            <input type="number" step="0.01" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Unidad</label>
-                                            <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none">
-                                                <option value="kg">Kilogramos (kg)</option>
-                                                <option value="ton">Toneladas (ton)</option>
-                                                <option value="gl">Galones (gl)</option>
-                                                <option value="m3">Metros Cúbicos (m3)</option>
-                                            </select>
-                                        </div>
 
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Lugar de Origen</label>
@@ -306,7 +461,7 @@ export default function ManifestPage() {
                                     {/* DRAG & DROP AREA */}
                                     <div className="space-y-1.5 pt-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">
-                                            Manifiesto Escaneado (PDF)
+                                            Documento Escaneado (PDF)
                                         </label>
                                         <div 
                                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -362,9 +517,16 @@ export default function ManifestPage() {
                                         )}
                                     </div>
 
-                                    <button type="submit" disabled={isUploading || files.length === 0} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                        {isUploading ? "Subiendo..." : <span className="flex items-center gap-2"><Save size={18} /> Guardar Manifiesto</span>}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button type="submit" disabled={isUploading || files.length === 0} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                            {isUploading ? "Subiendo..." : <span className="flex items-center gap-2"><Save size={18} /> {editingId ? 'Actualizar' : 'Guardar'}</span>}
+                                        </button>
+                                        {editingId && (
+                                            <button type="button" onClick={cancelEdit} title="Cancelar Edición" className="px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black uppercase py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center">
+                                                <X size={18} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -450,23 +612,34 @@ export default function ManifestPage() {
                                     </div>
                                 </div>
 
-                                {/* RESUMEN MENSUAL */}
-                                <div className="flex flex-wrap gap-2 mb-6 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
-                                        const count = records.filter(r => {
-                                            const mPart = parseInt(r.date?.split('-')[1] || "0");
-                                            return mPart === (i + 1);
-                                        }).length;
-                                        return (
-                                            <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
-                                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
-                                                <span className="text-[10px] font-black">{count}</span>
+                                {/* SUMMARY PANEL */}
+                                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-6">
+                                    <div className="flex flex-wrap gap-2 items-center mb-3">
+                                        <h4 className="text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                                            <BarChart3 size={14} /> Total de Residuos Dispuestos (kg)
+                                        </h4>
+                                        <div className="flex-1" />
+                                        <button 
+                                            onClick={() => setShowAnalytics(true)}
+                                            className="bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700 shadow-xl"
+                                        >
+                                            <BarChart3 size={14} />
+                                            Ver Gráficos
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-6 md:grid-cols-13 gap-1">
+                                        {MONTH_LABELS.map((m, i) => (
+                                            <div key={m} className={`bg-slate-900 border ${quantitiesPerMonth[i] > 0 ? 'border-emerald-500/30' : 'border-slate-800'} rounded-lg p-2 text-center flex flex-col justify-center gap-1 transition-all`}>
+                                                <span className="text-[9px] font-black text-slate-500">{m}</span>
+                                                <span className={`text-[10px] font-bold ${quantitiesPerMonth[i] > 0 ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                                    {quantitiesPerMonth[i] > 0 ? quantitiesPerMonth[i].toLocaleString('en-US', {maximumFractionDigits: 1}) : '0'}
+                                                </span>
                                             </div>
-                                        );
-                                    })}
-                                    <div className="flex flex-col items-center justify-center min-w-[70px] py-2 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 ml-auto">
-                                        <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
-                                        <span className="text-[10px] font-black">{records.length}</span>
+                                        ))}
+                                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center flex flex-col justify-center gap-1 mt-2 md:mt-0 col-span-full md:col-span-1">
+                                            <span className="text-[9px] font-black text-emerald-500">TOTAL</span>
+                                            <span className="text-xs font-black text-emerald-400">{totalKg.toLocaleString('en-US', {maximumFractionDigits: 1})}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -480,7 +653,7 @@ export default function ManifestPage() {
                                             <thead>
                                                 <tr className="text-[10px] font-black text-slate-500 uppercase border-b border-slate-800">
                                                     <th className="pb-4">Fecha</th>
-                                                    <th className="pb-4">N° Manifiesto</th>
+                                                    <th className="pb-4">N° Documento</th>
                                                     <th className="pb-4">Transportista</th>
                                                     <th className="pb-4">Residuo</th>
                                                     <th className="pb-4 text-right">Cantidad</th>
@@ -492,13 +665,49 @@ export default function ManifestPage() {
                                                 {filteredRecords.map(r => (
                                                     <tr key={r.id} className="group hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-4 text-xs font-mono text-slate-400">{r.date}</td>
-                                                        <td className="py-4 font-black text-white text-xs">{r.manifestNumber}</td>
+                                                        <td className="py-4 font-black text-white text-xs">
+                                                            <div>{r.manifestNumber}</div>
+                                                            {r.documentType && r.documentType !== 'Manifiesto' && (
+                                                                <div className="text-[8px] mt-1 uppercase tracking-widest text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-1 py-0.5 rounded inline-block">
+                                                                    {r.documentType}
+                                                                </div>
+                                                            )}
+                                                        </td>
                                                         <td className="py-4 text-xs text-slate-400">{r.transportCompany}</td>
                                                         <td className="py-4">
-                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">{r.wasteType}</span>
+                                                            <div className="flex flex-col gap-1 items-start">
+                                                                {(() => {
+                                                                    const validItems = Array.isArray(r.items) ? r.items.filter(i => i && typeof i.wasteType === 'string' && i.wasteType.trim() !== '') : [];
+                                                                    if (validItems.length > 0) {
+                                                                        return validItems.map((i, idx) => (
+                                                                            <span key={idx} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 max-w-[200px] truncate" title={`${i.wasteType} (${i.quantity} ${i.unit})`}>
+                                                                                {i.wasteType}
+                                                                            </span>
+                                                                        ));
+                                                                    } else if (r.wasteType && r.wasteType.trim() !== '') {
+                                                                        return (
+                                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 max-w-[200px] truncate" title={r.wasteType}>
+                                                                                {r.wasteType}
+                                                                            </span>
+                                                                        );
+                                                                    } else {
+                                                                        return <span className="text-slate-600 text-xs">-</span>;
+                                                                    }
+                                                                })()}
+                                                            </div>
                                                         </td>
                                                         <td className="py-4 text-right text-sm font-mono font-bold text-white">
-                                                            {r.quantity} <span className="text-[10px] text-slate-500">{r.unit}</span>
+                                                            {(() => {
+                                                                const validItems = Array.isArray(r.items) ? r.items.filter(i => i && typeof i.wasteType === 'string' && i.wasteType.trim() !== '') : [];
+                                                                if (validItems.length > 0) {
+                                                                    const totalQ = validItems.reduce((acc, i) => acc + (parseFloat(String(i.quantity).replace(/,/g, '')) || 0), 0);
+                                                                    return <>{totalQ.toFixed(2)} <span className="text-[10px] text-slate-500">{validItems[0]?.unit || 'kg'}</span></>;
+                                                                } else if (r.quantity && String(r.quantity).trim() !== '') {
+                                                                    return <>{r.quantity} <span className="text-[10px] text-slate-500">{r.unit}</span></>;
+                                                                } else {
+                                                                    return <span className="text-slate-600 text-xs">-</span>;
+                                                                }
+                                                            })()}
                                                         </td>
                                                         <td className="py-4">
                                                             <div className="flex justify-center gap-1">
@@ -516,6 +725,9 @@ export default function ManifestPage() {
                                                         </td>
                                                         <td className="py-4 text-right">
                                                             <div className="flex justify-end gap-1">
+                                                                <button onClick={() => handleEdit(r)} className="p-2 text-slate-600 hover:text-emerald-400 transition-colors" title="Editar Registro">
+                                                                    <Edit2 size={16} />
+                                                                </button>
                                                                 <button onClick={() => exportRecordToPDF('Detalle de Manifiesto', r, `Manifiesto_${r.manifestNumber}.pdf`)} className="p-2 text-slate-600 hover:text-blue-400 transition-colors" title="Descargar Fila">
                                                                     <DownloadCloud size={16} />
                                                                 </button>
@@ -559,6 +771,129 @@ export default function ManifestPage() {
                     </div>
                 </div>
             )}
+
+            {showAnalytics && (() => {
+                const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'];
+                const data = months.map(m => ({ name: m, total: 0 } as any));
+                const tableData: Record<string, number[]> = {};
+                
+                records.forEach(r => {
+                    const monthIndex = parseInt(r.date.split('-')[1] || "1") - 1;
+                    if (monthIndex >= 0 && monthIndex < 12) {
+                        const validItems = r.items ? r.items.filter(i => i.wasteType && i.wasteType.trim() !== '') : [];
+                        if (validItems.length > 0) {
+                            validItems.forEach(i => {
+                                const wt = i.wasteType.toUpperCase();
+                                const qty = parseFloat(i.quantity) || 0;
+                                if (!tableData[wt]) tableData[wt] = new Array(12).fill(0);
+                                tableData[wt][monthIndex] += qty;
+                                data[monthIndex][wt] = (data[monthIndex][wt] || 0) + qty;
+                                data[monthIndex].total += qty;
+                            });
+                        } else if (r.wasteType) {
+                            const wt = r.wasteType.toUpperCase();
+                            const qty = parseFloat(r.quantity || "0") || 0;
+                            if (!tableData[wt]) tableData[wt] = new Array(12).fill(0);
+                            tableData[wt][monthIndex] += qty;
+                            data[monthIndex][wt] = (data[monthIndex][wt] || 0) + qty;
+                            data[monthIndex].total += qty;
+                        }
+                    }
+                });
+
+                const activeWastes = Object.keys(tableData).filter(w => tableData[w].some(v => v > 0));
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm" onClick={() => setShowAnalytics(false)}>
+                        <div className="relative w-full max-w-7xl h-[90vh] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-3xl">
+                                <div>
+                                    <h3 className="text-white text-xl font-black flex items-center gap-3">
+                                        <BarChart3 className="text-emerald-400" size={24} /> 
+                                        Trazabilidad de Residuos
+                                    </h3>
+                                    <p className="text-slate-400 text-xs mt-1">Seguimiento mes a mes de cantidades (kg/ton) por tipo de residuo</p>
+                                </div>
+                                <button onClick={() => setShowAnalytics(false)} className="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-xl transition-colors border border-slate-700">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-auto p-6 space-y-8">
+                                <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs whitespace-nowrap">
+                                            <thead>
+                                                <tr className="bg-slate-900 text-slate-400 border-b border-slate-800 font-black">
+                                                    <th className="p-4 uppercase tracking-widest">Tipo de Residuo</th>
+                                                    {months.map(m => <th key={m} className="p-4 text-center">{m}</th>)}
+                                                    <th className="p-4 text-right text-emerald-400 bg-emerald-500/10">TOTAL</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {activeWastes.map(w => {
+                                                    const rowTotal = tableData[w].reduce((a,b) => a+b, 0);
+                                                    return (
+                                                        <tr key={w} className="hover:bg-slate-800/50 transition-colors">
+                                                            <td className="p-4 text-[10px] font-bold text-white whitespace-normal max-w-[200px]">{w}</td>
+                                                            {tableData[w].map((val, i) => (
+                                                                <td key={i} className={`p-4 text-center font-mono ${val > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                                                    {val > 0 ? val.toFixed(2) : '-'}
+                                                                </td>
+                                                            ))}
+                                                            <td className="p-4 text-right font-mono font-black text-emerald-400 bg-emerald-500/5">
+                                                                {rowTotal.toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                <tr className="bg-slate-900/80 font-black border-t-2 border-slate-700">
+                                                    <td className="p-4 uppercase tracking-widest text-emerald-400">TOTAL GENERAL</td>
+                                                    {months.map((m, i) => (
+                                                        <td key={m} className="p-4 text-center font-mono text-emerald-400">
+                                                            {data[i].total > 0 ? data[i].total.toFixed(2) : '-'}
+                                                        </td>
+                                                    ))}
+                                                    <td className="p-4 text-right font-mono text-emerald-400 bg-emerald-500/10 text-lg">
+                                                        {data.reduce((acc, curr) => acc + curr.total, 0).toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-lg">
+                                    <h4 className="text-white font-black mb-6 flex items-center gap-2 uppercase tracking-widest text-xs text-slate-400">
+                                        Tendencia Anual de Generación (Cantidades)
+                                    </h4>
+                                    <div className="h-[400px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                                <XAxis dataKey="name" stroke="#64748b" tick={{fill: '#64748b', fontSize: 10, fontWeight: 'bold'}} tickMargin={10} axisLine={false} tickLine={false} />
+                                                <YAxis stroke="#64748b" tick={{fill: '#64748b', fontSize: 10, fontWeight: 'bold'}} axisLine={false} tickLine={false} tickFormatter={(val) => val.toString()} />
+                                                <RechartsTooltip 
+                                                    contentStyle={{ backgroundColor: '#020617', borderColor: '#1e293b', borderRadius: '16px', color: '#f8fafc', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.5)' }}
+                                                    itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                                                    labelStyle={{ color: '#10b981', fontWeight: '900', marginBottom: '8px' }}
+                                                />
+                                                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '20px' }} />
+                                                
+                                                <Line type="monotone" dataKey="total" name="TOTAL GENERAL" stroke="#10b981" strokeWidth={4} dot={{r: 4, strokeWidth: 2}} activeDot={{r: 6}} />
+                                                
+                                                {activeWastes.map((w, i) => (
+                                                    <Line key={w} type="monotone" dataKey={w} name={w} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={false} strokeOpacity={0.6} />
+                                                ))}
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }
