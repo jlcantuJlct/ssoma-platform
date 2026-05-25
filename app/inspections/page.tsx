@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
-import { ChevronDown , Download } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { ComplianceGauge } from '@/components/dashboard/ComplianceGauge';
 import { uploadEvidence } from '@/lib/uploadClient';
