@@ -11,5 +11,7 @@ export const SSOMA_LOCATIONS = [
     "Cañete",
     "Peaje Jahuay",
     "Mant. Periodico",
-    "Mant. Rutinario"
+    "Mant. Rutinario",
+    "Red Vial 6",
+    "Longitudinal de sierra centro tramo 4"
 ];

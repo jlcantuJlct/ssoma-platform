@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         try {
             await db.execute(`
                 CREATE TABLE IF NOT EXISTS sstma_docs_records (
-                    id ${isPostgres ? 'SERIAL' : 'INTEGER'} PRIMARY KEY ${isPostgres ? '' : 'AUTOINCREMENT'},
+                    id ${isPostgres ? 'BIGSERIAL' : 'INTEGER'} PRIMARY KEY ${isPostgres ? '' : 'AUTOINCREMENT'},
                     date TEXT,
                     document_type TEXT,
                     description TEXT,
@@ -20,12 +20,16 @@ export async function GET(req: NextRequest) {
                     created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP
                 )
             `);
+            if (isPostgres) {
+                await db.execute('ALTER TABLE sstma_docs_records ALTER COLUMN id TYPE BIGINT');
+            }
         } catch (e) {}
 
         const records = await db.fetchAll('SELECT * FROM sstma_docs_records ORDER BY created_at DESC');
         
         const formattedRecords = records.map((r: any) => ({
             ...r,
+            documentType: r.document_type,
             fileUrls: r.file_urls ? JSON.parse(r.file_urls) : (r.file_url ? [r.file_url] : [])
         }));
 

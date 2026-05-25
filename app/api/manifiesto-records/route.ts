@@ -17,6 +17,13 @@ async function ensureTable() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    try {
+        await db.execute(`ALTER TABLE manifiesto_records ADD COLUMN items JSONB DEFAULT '[]'::jsonb;`);
+    } catch(e) {}
+    try {
+        await db.execute(`ALTER TABLE manifiesto_records ADD COLUMN document_type VARCHAR(100) DEFAULT 'Manifiesto';`);
+    } catch(e) {}
 }
 
 export async function GET() {
@@ -33,7 +40,9 @@ export async function GET() {
             quantity: r.quantity,
             unit: r.unit,
             location: r.location,
-            files: r.files ? (typeof r.files === 'string' ? JSON.parse(r.files) : r.files) : []
+            files: r.files ? (typeof r.files === 'string' ? JSON.parse(r.files) : r.files) : [],
+            items: r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : [],
+            documentType: r.document_type || 'Manifiesto'
         }));
 
         return NextResponse.json({ success: true, records: parsed });
@@ -53,18 +62,25 @@ export async function POST(req: NextRequest) {
             await db.execute('TRUNCATE TABLE manifiesto_records RESTART IDENTITY');
             let count = 0;
             for (const r of body.records) {
+                // Ensure legacy fields have something if they used items
+                const legacyWaste = r.wasteType || (r.items && r.items[0]?.wasteType) || '';
+                const legacyQty = r.quantity || (r.items && r.items[0]?.quantity) || '';
+                const legacyUnit = r.unit || (r.items && r.items[0]?.unit) || 'kg';
+
                 await db.execute(
-                    `INSERT INTO manifiesto_records (date, manifest_number, transport_company, waste_type, quantity, unit, location, files)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO manifiesto_records (date, manifest_number, transport_company, waste_type, quantity, unit, location, files, items, document_type)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         r.date || '',
                         r.manifestNumber || '',
                         r.transportCompany || '',
-                        r.wasteType || '',
-                        r.quantity || '',
-                        r.unit || 'kg',
+                        legacyWaste,
+                        legacyQty,
+                        legacyUnit,
                         r.location || '',
-                        JSON.stringify(r.files || [])
+                        JSON.stringify(r.files || []),
+                        JSON.stringify(r.items || []),
+                        r.documentType || 'Manifiesto'
                     ]
                 );
                 count++;

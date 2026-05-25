@@ -14,19 +14,28 @@ import {
     Settings,
     Tool,
     ShieldCheck,
-    Clock
+    Clock,
+    Upload,
+    X,
+    Folder
 } from 'lucide-react';
+import { uploadEvidence } from '@/lib/uploadClient';
+import { getDriveViewerUrl } from '@/lib/utils';
 
 interface EquipmentCert {
     id: number;
     equipment_name: string;
     plate_id: string;
     cert_type: string;
-    issuing_company: string;
-    issue_date: string;
-    expiry_date: string;
-    file_url: string;
+    cert_type: string;
+    mes_registro: string;
+    fileUrls: string[];
 }
+
+const MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
 
 export default function EquipmentCertsPage() {
     const [records, setRecords] = useState<EquipmentCert[]>([]);
@@ -38,14 +47,17 @@ export default function EquipmentCertsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
     const [form, setForm] = useState({
         equipment_name: '',
         plate_id: '',
-        cert_type: 'Operatividad',
-        issuing_company: '',
-        issue_date: '',
-        expiry_date: '',
-        file_url: ''
+        cert_type: 'Certificado de Operatividad',
+        mes_registro: MESES[new Date().getMonth()],
+        fileUrls: [] as string[]
     });
 
     useEffect(() => {
@@ -64,26 +76,67 @@ export default function EquipmentCertsPage() {
         }
     };
 
+    const handleFileSelect = (e: any) => {
+        const fileList = e.target?.files || e.dataTransfer?.files || [];
+        const files = Array.from(fileList) as File[];
+        if (files.length === 0) return;
+        setPendingFiles(prev => [...prev, ...files]);
+        if (e.target && e.target.type === 'file') e.target.value = '';
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!form.equipment_name.trim()) {
+            alert('Por favor, ingrese el nombre del Equipo / Herramienta.');
+            return;
+        }
+
+        if (pendingFiles.length === 0) {
+            alert('Por favor, adjunte al menos un documento.');
+            return;
+        }
+
         setIsSubmitting(true);
+        setIsUploading(true);
+        setUploadProgress({ current: 0, total: pendingFiles.length });
+        
+        const uploadedUrls: string[] = [];
 
         try {
+            // Subir archivos primero
+            for (let i = 0; i < pendingFiles.length; i++) {
+                const file = pendingFiles[i];
+                setUploadProgress({ current: i + 1, total: pendingFiles.length });
+                const url = await uploadEvidence(
+                    file, 'Equipos', form.cert_type, new Date().toISOString().split('T')[0], 'SSOMA', 'EQUIPMENT', 'EQUIPO', form.plate_id || 'GENERAL', 'CERT'
+                );
+                uploadedUrls.push(url);
+            }
+
+            // Guardar en BD
+            const dataToSave = { ...form, fileUrls: uploadedUrls };
             const res = await fetch('/api/equipment-certs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'create', data: form })
+                body: JSON.stringify({ action: 'create', data: dataToSave })
             });
 
             if (res.ok) {
-                setForm({ equipment_name: '', plate_id: '', cert_type: 'Operatividad', issuing_company: '', issue_date: '', expiry_date: '', file_url: '' });
+                setForm({ equipment_name: '', plate_id: '', cert_type: 'Certificado de Operatividad', mes_registro: MESES[new Date().getMonth()], fileUrls: [] });
+                setPendingFiles([]);
                 setShowForm(false);
                 loadRecords();
+                alert('Certificado registrado y archivos subidos correctamente.');
+            } else {
+                alert('Error al guardar el registro en la base de datos.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating record:", error);
+            alert(`Error durante el proceso: ${error.message}`);
         } finally {
             setIsSubmitting(false);
+            setIsUploading(false);
         }
     };
 
@@ -101,14 +154,11 @@ export default function EquipmentCertsPage() {
         }
     };
 
-    const isExpired = (date: string) => new Date(date) < new Date();
-
     const filteredRecords = records.filter(r => {
         const matchesSearch = !searchTerm || r.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) || r.plate_id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = !filterCertType || r.cert_type === filterCertType;
-        const matchesCompany = !filterCompany || r.issuing_company === filterCompany;
-        const matchesDate = !filterDate || r.issue_date === filterDate;
-        return matchesSearch && matchesType && matchesCompany && matchesDate;
+        const matchesMonth = !filterDate || r.mes_registro === filterDate; // Resurposed filterDate to act as Month filter
+        return matchesSearch && matchesType && matchesMonth;
     });
 
     return (
@@ -146,7 +196,6 @@ export default function EquipmentCertsPage() {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Equipo / Herramienta</label>
                                     <input 
-                                        required
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         placeholder="Ej: Camioneta Hilux, Grúa..."
                                         value={form.equipment_name}
@@ -163,55 +212,80 @@ export default function EquipmentCertsPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Mes de Registro</label>
+                                    <select 
+                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={form.mes_registro}
+                                        onChange={e => setForm({...form, mes_registro: e.target.value})}
+                                    >
+                                        {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Certificado</label>
                                     <select 
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.cert_type}
                                         onChange={e => setForm({...form, cert_type: e.target.value})}
                                     >
-                                        <option value="Operatividad">Operatividad</option>
-                                        <option value="RITE">Inspección Técnica</option>
-                                        <option value="Mantenimiento">Mantenimiento</option>
-                                        <option value="Emisiones">Control de Emisiones</option>
+                                        <option value="Certificado de Operatividad">Certificado de Operatividad</option>
+                                        <option value="Programa de Mantenimiento">Programa de Mantenimiento</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Empresa Certificadora</label>
-                                    <input 
-                                        required
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={form.issuing_company}
-                                        onChange={e => setForm({...form, issuing_company: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Fecha de Emisión</label>
-                                    <input 
-                                        required
-                                        type="date"
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={form.issue_date}
-                                        onChange={e => setForm({...form, issue_date: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Fecha de Vencimiento</label>
-                                    <input 
-                                        required
-                                        type="date"
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={form.expiry_date}
-                                        onChange={e => setForm({...form, expiry_date: e.target.value})}
-                                    />
-                                </div>
-                                <div className="md:col-span-3">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">URL de Evidencia (Drive)</label>
-                                    <input 
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="https://drive.google.com/..."
-                                        value={form.file_url}
-                                        onChange={e => setForm({...form, file_url: e.target.value})}
-                                    />
+                                <div className="md:col-span-3 space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">
+                                        Archivo del Documento (Arrastra PDFs)
+                                    </label>
+                                    <div 
+                                        onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            setIsDragging(false);
+                                            if (!isUploading) {
+                                                handleFileSelect({ target: { files: e.dataTransfer.files } } as any);
+                                            }
+                                        }}
+                                        className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group overflow-hidden ${
+                                            isUploading ? 'border-amber-500 bg-amber-500/5' :
+                                            isDragging ? 'border-blue-500 bg-blue-500/10' : 
+                                            pendingFiles.length > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-slate-800 hover:border-slate-700'
+                                        }`}
+                                    >
+                                        <input 
+                                            type="file" multiple disabled={isUploading}
+                                            onChange={handleFileSelect}
+                                            className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait z-10"
+                                        />
+                                        <div className={`p-4 rounded-2xl ${isUploading ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 group-hover:text-blue-400'}`}>
+                                            {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-xs font-black uppercase text-white">
+                                                {isUploading 
+                                                    ? `SUBIENDO Y REGISTRANDO... ${uploadProgress.current}/${uploadProgress.total}` 
+                                                    : pendingFiles.length > 0 ? `${pendingFiles.length} ARCHIVO(S) SELECCIONADO(S)` : 'ARRASTRA O HAZ CLIC AQUÍ'}
+                                            </p>
+                                        </div>
+                                        {isUploading && uploadProgress.total > 0 && (
+                                            <div className="absolute bottom-0 left-0 h-1.5 bg-amber-500 transition-all duration-300 z-0" style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }} />
+                                        )}
+                                    </div>
+
+                                    {/* Preview files */}
+                                    {pendingFiles.length > 0 && !isUploading && (
+                                        <div className="flex flex-wrap gap-2 pt-4">
+                                            {pendingFiles.map((f, idx) => (
+                                                <div key={idx} className="bg-slate-950 px-3 py-2 rounded-2xl border border-slate-800 flex items-center gap-3">
+                                                    <FileText size={14} className="text-blue-400" />
+                                                    <span className="text-[10px] font-bold text-slate-300 max-w-[150px] truncate" title={f.name}>{f.name}</span>
+                                                    <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== idx))} className="text-slate-600 hover:text-red-400">
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="md:col-span-3">
                                     <button 
@@ -262,27 +336,27 @@ export default function EquipmentCertsPage() {
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"
                         >
                             <option value="">Todos los Tipos...</option>
-                            <option value="Operatividad">Operatividad</option>
-                            <option value="RITE">Inspección Técnica</option>
-                            <option value="Mantenimiento">Mantenimiento</option>
-                            <option value="Emisiones">Control de Emisiones</option>
+                            <option value="Certificado de Operatividad">Certificado de Operatividad</option>
+                            <option value="Programa de Mantenimiento">Programa de Mantenimiento</option>
                         </select>
                     </div>
                     <div className="space-y-1">
                         <div className="flex justify-between items-center px-1">
-                            <label className="text-[9px] font-black text-slate-500 uppercase">Fecha Emisión</label>
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Mes de Registro</label>
                             {filterDate && (
                                 <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
                                     <X size={10} />
                                 </button>
                             )}
                         </div>
-                        <input 
-                            type="date"
+                        <select 
                             value={filterDate}
                             onChange={e => setFilterDate(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none transition-all"
-                        />
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"
+                        >
+                            <option value="">Todos los Meses...</option>
+                            {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
                     </div>
                     <div className="flex flex-col justify-end h-full">
                         {(searchTerm || filterCertType || filterDate || filterCompany) && (
@@ -298,14 +372,11 @@ export default function EquipmentCertsPage() {
 
                 {/* RESUMEN MENSUAL */}
                 <div className="flex flex-wrap gap-2 mb-8 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-                    {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
-                        const count = records.filter(r => {
-                            const mPart = parseInt(r.issue_date?.split('-')[1] || "0");
-                            return mPart === (i + 1);
-                        }).length;
+                    {MESES.map(m => {
+                        const count = records.filter(r => r.mes_registro === m).length;
                         return (
                             <div key={m} className={`flex-1 flex flex-col items-center justify-center min-w-[45px] py-2 rounded-xl border transition-all ${count > 0 ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-slate-950/50 border-slate-800/50 text-slate-600 opacity-40'}`}>
-                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m}</span>
+                                <span className="text-[7px] font-black uppercase tracking-tighter mb-0.5">{m.substring(0,3)}</span>
                                 <span className="text-[10px] font-black">{count}</span>
                             </div>
                         );
@@ -338,30 +409,29 @@ export default function EquipmentCertsPage() {
 
                                     <div className="space-y-3 mb-6">
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-slate-500 uppercase font-bold">Certificadora:</span>
-                                            <span className="text-slate-300 font-bold">{record.issuing_company}</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-slate-500 uppercase font-bold">Emisión:</span>
-                                            <span className="text-slate-300 font-bold">{record.issue_date}</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs pt-2 border-t border-slate-800">
-                                            <span className="text-slate-500 uppercase font-bold">Vencimiento:</span>
-                                            <span className={`font-black ${isExpired(record.expiry_date) ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                {record.expiry_date}
-                                            </span>
+                                            <span className="text-slate-500 uppercase font-bold">Mes de Registro:</span>
+                                            <span className="text-slate-300 font-bold">{record.mes_registro || 'No especificado'}</span>
                                         </div>
                                     </div>
 
-                                    {record.file_url ? (
-                                        <a 
-                                            href={record.file_url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-bold rounded-xl transition-colors border border-blue-600/20"
-                                        >
-                                            <Download size={14} /> Descargar Certificado
-                                        </a>
+                                    {record.fileUrls && record.fileUrls.length > 0 ? (
+                                        <div className="pt-2 mt-2 border-t border-slate-800/50 flex flex-col gap-1">
+                                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Archivos Adjuntos</p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {record.fileUrls.map((url: string, idx: number) => (
+                                                    <a 
+                                                        key={idx} 
+                                                        href={getDriveViewerUrl(url)} 
+                                                        target="_blank" 
+                                                        rel="noreferrer" 
+                                                        className="text-[9px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-slate-900/80 border border-slate-800 px-2 py-1 rounded-md transition-all hover:border-blue-500/50"
+                                                    >
+                                                        <FileText size={10} className="shrink-0" />
+                                                        <span className="truncate max-w-[150px]">{record.cert_type} {record.fileUrls.length > 1 ? idx + 1 : ''}</span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="w-full py-3 bg-slate-800/30 text-slate-600 text-xs font-bold rounded-xl text-center border border-dashed border-slate-700">Evidencia no disponible</div>
                                     )}

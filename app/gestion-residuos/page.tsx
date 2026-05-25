@@ -2,19 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { FileText, Plus, Trash2, Calendar, MapPin, Upload, X, Archive, ArrowDownCircle, Download, DownloadCloud } from 'lucide-react';
+import { FileText, Plus, Trash2, Calendar, MapPin, Upload, X, Archive, ArrowDownCircle, Download, DownloadCloud, Edit2 } from 'lucide-react';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card } from "@/components/ui/card";
 import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
 import { uploadEvidence } from '@/lib/uploadClient';
 import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
 
-const CERTIFICATE_TYPES = [
-    "Certificados de Baños Portátiles",
-    "Certificados de Disposición Final",
-    "Guías de Remisión",
-    "Certificados de Residuos Comunes"
-];
+const CERTIFICATE_GROUPS = {
+    "Disposición Final": [
+        "Certificado de Disposición de RRSS",
+        "Certificado de Disposición de Baños",
+        "Certificado de Disposición de Pozos Sépticos"
+    ],
+    "Transporte": [
+        "Certificado de Transporte de RRSS",
+        "Certificado de Transporte de Baños",
+        "Certificado de Transporte de Pozos Sépticos"
+    ]
+};
 
 export default function GestionResiduosPage() {
     const { user } = useAuth();
@@ -28,6 +34,7 @@ export default function GestionResiduosPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [editingId, setEditingId] = useState<number | null>(null);
     
     // Filters
     const [filterDocType, setFilterDocType] = useState('');
@@ -63,7 +70,8 @@ export default function GestionResiduosPage() {
                     ...r,
                     documentType: r.cert_type || r.certType || r.documentType || 'Desconocido'
                 }));
-                setRecords(normalized);
+                const sorted = normalized.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(sorted);
             }
         } catch (error) {
             console.error('Error fetching records:', error);
@@ -81,7 +89,7 @@ export default function GestionResiduosPage() {
         setIsSaving(true);
         try {
             const newRecord = {
-                id: Date.now(),
+                id: editingId || Date.now(),
                 date: formData.date,
                 documentType: formData.documentType,
                 certType: formData.documentType, // Keep legacy certType field sync
@@ -91,7 +99,12 @@ export default function GestionResiduosPage() {
                 fileUrls: uploadedFiles,
             };
 
-            const allRecords = [...records, newRecord];
+            let allRecords;
+            if (editingId) {
+                allRecords = records.map(r => r.id === editingId ? newRecord : r);
+            } else {
+                allRecords = [newRecord, ...records];
+            }
             
             const res = await fetch('/api/residuos-certificados', {
                 method: 'POST',
@@ -101,6 +114,7 @@ export default function GestionResiduosPage() {
 
             if (res.ok) {
                 setIsAdding(false);
+                setEditingId(null);
                 setFormData({
                     ...formData,
                     documentType: '',
@@ -109,6 +123,7 @@ export default function GestionResiduosPage() {
                 setSelectedZones([]);
                 setUploadedFiles([]);
                 fetchData();
+                alert(`Documento ${editingId ? 'actualizado' : 'registrado'} correctamente.`);
             } else {
                 const data = await res.json();
                 alert(`Error al guardar: ${data.error || 'Error desconocido'}`);
@@ -119,6 +134,33 @@ export default function GestionResiduosPage() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleEdit = (rec: any) => {
+        setIsAdding(true);
+        setEditingId(rec.id);
+        setFormData({
+            date: rec.date || new Date().toISOString().split('T')[0],
+            documentType: rec.documentType || '',
+            description: rec.description || '',
+            responsable: rec.responsable || user?.name || 'Usuario SSOMA'
+        });
+        setSelectedZones(rec.zona ? rec.zona.split(',').map((z: string) => z.trim()) : []);
+        setUploadedFiles(rec.fileUrls || []);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setIsAdding(false);
+        setFormData({
+            date: new Date().toISOString().split('T')[0],
+            documentType: '',
+            description: '',
+            responsable: user?.name || 'Usuario SSOMA'
+        });
+        setSelectedZones([]);
+        setUploadedFiles([]);
     };
 
     const handleDelete = async (id: any) => {
@@ -202,7 +244,7 @@ export default function GestionResiduosPage() {
                             </div>
                             
                             <button 
-                                onClick={() => setIsAdding(!isAdding)}
+                                onClick={isAdding ? cancelEdit : () => setIsAdding(true)}
                                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2"
                             >
                                 {isAdding ? <X size={20} /> : <Plus size={20} />}
@@ -215,7 +257,7 @@ export default function GestionResiduosPage() {
                     {isAdding && (
                         <Card className="bg-slate-900/80 border-slate-800 rounded-3xl p-6 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
                             <h3 className="text-emerald-400 font-black uppercase text-sm tracking-widest mb-6 flex items-center gap-2">
-                                <ArrowDownCircle size={18} /> Registrar Nuevo Documento
+                                <ArrowDownCircle size={18} /> {editingId ? 'Editar Documento' : 'Registrar Nuevo Documento'}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
@@ -236,7 +278,11 @@ export default function GestionResiduosPage() {
                                         className="w-full bg-slate-950 text-slate-300 px-4 py-3 rounded-xl border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-sm appearance-none"
                                     >
                                         <option value="">Seleccione tipo de documento...</option>
-                                        {CERTIFICATE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        {Object.entries(CERTIFICATE_GROUPS).map(([group, types]) => (
+                                            <optgroup key={group} label={group} className="bg-slate-900 text-slate-400 font-bold">
+                                                {types.map(t => <option key={t} value={t} className="text-white font-normal">{t}</option>)}
+                                            </optgroup>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -313,15 +359,24 @@ export default function GestionResiduosPage() {
                                         )}
                                     </div>
 
-                                    <div className="md:col-span-2 flex justify-end pt-4 border-t border-slate-800/50 mt-2">
+                                    <div className="md:col-span-2 flex justify-end gap-2 pt-4 border-t border-slate-800/50 mt-2">
                                         <button
                                             disabled={isSaving || isUploading}
                                             onClick={handleSave}
                                             className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-95 flex items-center gap-2"
                                         >
                                             {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Archive size={16} />}
-                                            {isSaving ? 'Guardando...' : 'Registrar Documento'}
+                                            {isSaving ? 'Guardando...' : (editingId ? 'Actualizar Documento' : 'Registrar Documento')}
                                         </button>
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelEdit}
+                                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2"
+                                            >
+                                                <X size={16} /> Cancelar
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                         </Card>
@@ -407,7 +462,11 @@ export default function GestionResiduosPage() {
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none appearance-none"
                                 >
                                     <option value="">Todos los tipos...</option>
-                                    {CERTIFICATE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                    {Object.entries(CERTIFICATE_GROUPS).map(([group, types]) => (
+                                        <optgroup key={group} label={group} className="bg-slate-900 text-slate-400 font-bold">
+                                            {types.map(t => <option key={t} value={t} className="text-white font-normal">{t}</option>)}
+                                        </optgroup>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-1">
@@ -471,6 +530,13 @@ export default function GestionResiduosPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-1 shrink-0 ml-2">
+                                                    <button 
+                                                        onClick={() => handleEdit(rec)}
+                                                        className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all flex items-center justify-center"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
                                                     <button 
                                                         onClick={() => exportRecordToPDF('Gestión de Residuos', rec, `Gestion_Residuos_${rec.date}.pdf`)}
                                                         className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all flex items-center justify-center"
