@@ -19,10 +19,16 @@ import {
     Image as ImageIcon,
     AlertTriangle,
     Filter,
-    CheckCircle2
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    FileSpreadsheet,
+    FileEdit
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { generateFilename, getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
+import JSZip from 'jszip';
 
 // --- TYPES ---
 type BrigadistaRecord = {
@@ -59,6 +65,10 @@ export default function BrigadistasPage() {
     const [filterLocation, setFilterLocation] = useState("");
 
     const [brigadeTypes, setBrigadeTypes] = useState<string[]>([]);
+    
+    const [viewingFile, setViewingFile] = useState<BrigadistaRecord | null>(null);
+    const [previewIndex, setPreviewIndex] = useState(0);
+    const [isDownloadingBatch, setIsDownloadingBatch] = useState(false);
 
     useEffect(() => {
         const loadTypes = async () => {
@@ -283,6 +293,65 @@ export default function BrigadistasPage() {
         }
     };
 
+    const handleBatchDownload = async () => {
+        const filteredRecords = records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation));
+        if (!filteredRecords || filteredRecords.length === 0) {
+            alert("No hay registros para descargar con los filtros actuales.");
+            return;
+        }
+        
+        setIsDownloadingBatch(true);
+        try {
+            const zip = new JSZip();
+            const folder = zip.folder("Evidencias_Brigadas");
+            
+            let count = 0;
+            for (const record of filteredRecords) {
+                if (!record.fileUrl) continue;
+                const urls = record.fileUrl.split('|').filter(Boolean);
+                
+                for (let i = 0; i < urls.length; i++) {
+                    const url = urls[i];
+                    try {
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        
+                        const isImage = url.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                        const ext = isImage ? 'jpg' : (url.toLowerCase().match(/\.(pdf|doc|docx|xls|xlsx)$/i)?.[1] || 'pdf');
+                        
+                        const baseName = generateFilename(`BRIG_${record.brigadistaType}`, record.date, record.responsible, ext as any, 'evidencia', record.location, 'seguridad');
+                        const finalName = urls.length > 1 ? baseName.replace(`.${ext}`, `_part${i+1}.${ext}`) : baseName;
+                        
+                        folder?.file(finalName, blob);
+                        count++;
+                    } catch (e) {
+                        console.error("Error downloading file for zip:", url, e);
+                    }
+                }
+            }
+            
+            if (count === 0) {
+                alert("No se pudieron descargar los archivos (posible bloqueo de red/CORS). Intente descarga individual.");
+                setIsDownloadingBatch(false);
+                return;
+            }
+            
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `Evidencias_Brigadas_${new Date().toISOString().split('T')[0]}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+        } catch (error) {
+            console.error("Error creating zip:", error);
+            alert("Ocurrió un error al generar el archivo ZIP.");
+        } finally {
+            setIsDownloadingBatch(false);
+        }
+    };
+
     return (
         <div className="flex bg-transparent text-slate-200 font-sans overflow-hidden selection:bg-red-500/30 w-full">
             <main className="flex-1 p-4 md:p-8">
@@ -474,11 +543,23 @@ export default function BrigadistasPage() {
                                         {(filterLocation || filterDate || filterResponsible) && (
                                             <button 
                                                 onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterResponsible(''); }}
-                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                                className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95 mb-2"
                                             >
                                                 <X size={14} strokeWidth={3} /> Limpiar Filtros
                                             </button>
                                         )}
+                                        <button 
+                                            onClick={handleBatchDownload}
+                                            disabled={isDownloadingBatch || records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation)).length === 0}
+                                            className="w-full h-[33px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isDownloadingBatch ? (
+                                                <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <Download size={14} strokeWidth={3} />
+                                            )}
+                                            Descargar Zip
+                                        </button>
                                     </div>
                                 </div>
 
@@ -521,18 +602,35 @@ export default function BrigadistasPage() {
                                                     <td className="py-4">{record.responsible}</td>
                                                     <td className="py-4 text-slate-400 text-xs">{record.location}</td>
                                                     <td className="py-4 text-center">
-                                                        {record.fileUrl && (
-                                                            <div className="flex flex-col items-center gap-1">
-                                                                <div className="flex justify-center gap-1">
-                                                                    {record.fileUrl.split('|').slice(0, 3).map((url, i) => (
-                                                                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className={`p-1 rounded ${url.toLowerCase().endsWith('.pdf') ? 'text-red-400' : 'text-teal-400'}`}>
-                                                                            {url.toLowerCase().endsWith('.pdf') ? <FileText size={12} /> : <ImageIcon size={12} />}
-                                                                        </a>
-                                                                    ))}
+                                                        {record.fileUrl && (() => {
+                                                            const urls = record.fileUrl.split('|').filter(Boolean);
+                                                            if (urls.length === 0) return null;
+                                                            const firstUrl = urls[0];
+                                                            const isImage = firstUrl.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                                                            const isPdf = firstUrl.toLowerCase().match(/\.pdf$/i);
+                                                            
+                                                            return (
+                                                                <div className="relative inline-block">
+                                                                    <div 
+                                                                        className={`w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto cursor-pointer hover:bg-slate-700 transition-all ${isImage ? 'overflow-hidden' : ''}`}
+                                                                        onClick={() => { setViewingFile(record); setPreviewIndex(0); }}
+                                                                        title="Ver Archivo(s)"
+                                                                    >
+                                                                        {isImage ? (
+                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800">
+                                                                                <ImageIcon size={14} className="text-blue-400 mb-0.5" />
+                                                                                <span className="text-[7px]">FOTO</span>
+                                                                            </div>
+                                                                        ) : isPdf ? <FileText size={16} className="text-red-400" /> : <FileText size={16} className="text-slate-500" />}
+                                                                    </div>
+                                                                    {urls.length > 1 && (
+                                                                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-lg ring-2 ring-slate-900">
+                                                                            +{urls.length - 1}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                                {record.fileUrl.split('|').length > 3 && <span className="text-[8px] text-slate-500">+{record.fileUrl.split('|').length - 3}</span>}
-                                                            </div>
-                                                        )}
+                                                            );
+                                                        })()}
                                                     </td>
                                                     <td className="py-4 text-right pr-4">
                                                         <div className="flex justify-end gap-1">
@@ -554,6 +652,101 @@ export default function BrigadistasPage() {
                     </div>
                 </div>
             </main>
+
+            {/* PREVIEW MODAL */}
+            {viewingFile && (() => {
+                const urls = viewingFile.fileUrl ? viewingFile.fileUrl.split('|').filter(Boolean) : [];
+                if (urls.length === 0) return null;
+                const currentUrl = urls[previewIndex] || urls[0];
+                
+                const isImage = currentUrl.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                const isPdf = currentUrl.toLowerCase().match(/\.pdf$/i);
+                const isWord = currentUrl.toLowerCase().match(/\.(doc|docx)$/i);
+                const isExcel = currentUrl.toLowerCase().match(/\.(xls|xlsx)$/i);
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingFile(null)}>
+                        <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-white font-bold flex items-center gap-2">
+                                        {isPdf ? <FileText size={20} className="text-red-400" /> : 
+                                         isWord ? <FileEdit size={20} className="text-blue-400" /> :
+                                         isExcel ? <FileSpreadsheet size={20} className="text-emerald-400" /> :
+                                         <ImageIcon size={20} className="text-blue-400" />}
+                                        Vista Previa {urls.length > 1 && <span className="text-slate-400 text-sm ml-2 font-normal">(Archivo {previewIndex + 1} de {urls.length})</span>}
+                                    </h3>
+                                    {(user?.role === 'developer' || user?.role === 'manager' || user?.name === viewingFile.responsible) && (
+                                        <button 
+                                            onClick={() => {
+                                                handleEdit(viewingFile);
+                                                setViewingFile(null);
+                                            }}
+                                            className="ml-4 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold uppercase transition-colors border border-amber-500/20 flex items-center gap-2"
+                                        >
+                                            <Pencil size={14} /> Cambiar Evidencia
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {urls.length > 1 && (
+                                        <div className="flex items-center gap-1 mr-4 bg-slate-950 rounded-lg p-1 border border-slate-800">
+                                            <button 
+                                                onClick={() => setPreviewIndex(prev => prev > 0 ? prev - 1 : urls.length - 1)}
+                                                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                                            >
+                                                <ChevronLeft size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => setPreviewIndex(prev => prev < urls.length - 1 ? prev + 1 : 0)}
+                                                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                                            >
+                                                <ChevronRight size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <a
+                                        href={currentUrl}
+                                        download
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+                                        title="Descargar este archivo"
+                                    >
+                                        <Download size={18} /> Descargar Individual
+                                    </a>
+                                    <button onClick={() => setViewingFile(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors ml-2">
+                                        <Trash2 size={24} className="rotate-45" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="w-full h-[75vh] flex items-center justify-center p-4 relative group">
+                                {urls.length > 1 && (
+                                    <>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setPreviewIndex(prev => prev > 0 ? prev - 1 : urls.length - 1); }}
+                                            className="absolute left-4 z-10 p-3 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 shadow-xl"
+                                        >
+                                            <ChevronLeft size={24} />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setPreviewIndex(prev => prev < urls.length - 1 ? prev + 1 : 0); }}
+                                            className="absolute right-4 z-10 p-3 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 shadow-xl"
+                                        >
+                                            <ChevronRight size={24} />
+                                        </button>
+                                    </>
+                                )}
+                                <iframe 
+                                    src={getDriveViewerUrl(currentUrl, false)} 
+                                    className="w-full h-full min-h-[60vh] rounded-lg border border-slate-800 shadow-2xl bg-slate-950" 
+                                    title="File Preview">
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

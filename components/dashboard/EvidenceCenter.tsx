@@ -19,13 +19,16 @@ import {
     File,
     FileSpreadsheet,
     FileEdit,
-    X
+    X,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { DashboardData, UploadContext } from "@/lib/types";
 import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
 import { uploadEvidence } from "@/lib/uploadClient";
 import jsPDF from 'jspdf';
+import JSZip from 'jszip';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { Save as SaveIcon } from "lucide-react"; // I noticed SaveIcon was missing or inconsistent
 import { USER_LIST, useAuth } from "@/lib/auth";
@@ -72,11 +75,13 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         location: ''
     });
 
-    const [files, setFiles] = useState<{ url: string, type: 'pdf' | 'image' | 'word' | 'excel' } | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<{ url: string, name: string, type: 'pdf' | 'image' | 'word' | 'excel' }[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [viewingFile, setViewingFile] = useState<EvidenceRecord | null>(null);
+    const [previewIndex, setPreviewIndex] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [emoActivities, setEmoActivities] = useState<string[]>(INITIAL_EMO_ACTIVITIES);
+    const [isDownloadingBatch, setIsDownloadingBatch] = useState(false);
 
     // LOAD DYNAMIC ACTIVITIES FROM ANNUAL PROGRAM (OBJ 05)
     useEffect(() => {
@@ -207,8 +212,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     }, []);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const filesArray = Array.from(e.target.files || []);
+        if (filesArray.length === 0) return;
 
         // Validar datos antes de subir
         if (!form.responsible || !form.activity || !form.location) {
@@ -217,31 +222,28 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             return;
         }
 
-        // CONTROL DE TAMAÑO PARA EVITAR BLOQUEOS
-        const fileSizeMB = file.size / 1024 / 1024;
-        if (fileSizeMB > 50) {
-            alert(`❌ ARCHIVO DEMASIADO PESADO (${fileSizeMB.toFixed(2)}MB).\nEl límite máximo permitido es de 50MB para evitar errores en la red.`);
-            e.target.value = '';
-            return;
-        }
-
-        if (fileSizeMB > 15) {
-            const proceed = confirm(`⚠️ El archivo es pesado (${fileSizeMB.toFixed(2)}MB).\nLa carga puede tardar varios minutos y parecer "atorada". ¿Deseas continuar?`);
-            if (!proceed) {
-                e.target.value = '';
-                return;
+        const validFiles = filesArray.filter(file => {
+            const isImage = file.type.startsWith('image/');
+            const isPdf = file.type === 'application/pdf';
+            const isWord = file.type === 'application/msword' || 
+                           file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            const isExcel = file.type === 'application/vnd.ms-excel' || 
+                            file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            
+            const fileSizeMB = file.size / 1024 / 1024;
+            if (fileSizeMB > 50) {
+                alert(`❌ ARCHIVO DEMASIADO PESADO (${fileSizeMB.toFixed(2)}MB omitido).\nEl límite máximo permitido es de 50MB.`);
+                return false;
             }
+            return isImage || isPdf || isWord || isExcel;
+        });
+
+        if (validFiles.length !== filesArray.length) {
+            alert("⚠️ Algunos archivos fueron omitidos por peso o formato no soportado.");
         }
 
-        const isImage = file.type.startsWith('image/');
-        const isPdf = file.type === 'application/pdf';
-        const isWord = file.type === 'application/msword' || 
-                       file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        const isExcel = file.type === 'application/vnd.ms-excel' || 
-                        file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-        if (!isImage && !isPdf && !isWord && !isExcel) {
-            alert("⚠️ Formato no soportado. Por favor sube Imágenes, PDFs, archivos Word (.docx) o Excel (.xlsx)");
+        if (validFiles.length === 0) {
+            e.target.value = '';
             return;
         }
 
@@ -254,35 +256,45 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         const objectiveObj = TARGET_OBJECTIVES.find(o => o.id === form.objective);
         const objectiveLabel = objectiveObj ? objectiveObj.label : form.objective;
 
-        // Determinar Área para el prefijo (solo para nombre de archivo, ya no para carpeta raiz en este caso)
+        // Determinar Área para el prefijo
         let area: string = 'seguridad';
         if (context === 'PMA') area = 'medio_ambiente';
         else if (form.objective === 'OBJ 01') area = 'seguridad';
 
+        setIsUploading(true);
         try {
-            setIsUploading(true);
-            const url = await uploadEvidence(
-                file,
-                context,
-                form.activity, // Title (Nombre Actividad) if objective is passed
-                form.date,
-                form.responsible,
-                'evidencia', // Tipo
-                area,
-                form.location, // Lugar
-                objectiveLabel // NUEVO PARAMETRO: Nombre del Objetivo para la estructura de carpetas
-            );
+            const newUploads = await Promise.all(validFiles.map(async (file) => {
+                const isImage = file.type.startsWith('image/');
+                const isPdf = file.type === 'application/pdf';
+                const isWord = file.type === 'application/msword' || 
+                               file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-            setFiles({
-                url: url,
-                type: isImage ? 'image' : (isPdf ? 'pdf' : (isWord ? 'word' : 'excel'))
-            } as any);
-            alert("✅ Al momento de cargar se cargó con éxito su archivo o imagen para saber que se registró");
+                const url = await uploadEvidence(
+                    file,
+                    context,
+                    form.activity,
+                    form.date,
+                    form.responsible,
+                    'evidencia',
+                    area,
+                    form.location,
+                    objectiveLabel
+                );
+                
+                return {
+                    url: url,
+                    name: file.name,
+                    type: isImage ? 'image' : (isPdf ? 'pdf' : (isWord ? 'word' : 'excel'))
+                } as any;
+            }));
 
+            setUploadedFiles(prev => [...prev, ...newUploads]);
         } catch (error: any) {
-            alert(`Error al subir: ${error.message}`);
+            console.error(error);
+            alert(`Error al subir algunos archivos: ${error.message}`);
         } finally {
             setIsUploading(false);
+            e.target.value = '';
         }
     };
 
@@ -301,10 +313,14 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         }
 
         // Si es nuevo registro, archivo es obligatorio
-        if (!editingId && !files) {
-            alert("Debes subir un archivo obligatoriamente.");
+        if (!editingId && uploadedFiles.length === 0) {
+            alert("Debes subir al menos un archivo obligatoriamente.");
             return;
         }
+
+        const joinedUrls = uploadedFiles.map(f => f.url).join('|');
+        // Let's store primary fileType as the first one or just 'pdf' if mixed, it's mostly visual.
+        const joinedTypes = uploadedFiles.length > 0 ? uploadedFiles[0].type : 'pdf';
 
         const updatedRecords = editingId 
             ? records.map(r => {
@@ -316,8 +332,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                         objective: form.objective,
                         description: form.activity,
                         location: form.location,
-                        fileType: files ? files.type : r.fileType,
-                        fileUrl: files ? files.url : r.fileUrl
+                        fileType: joinedTypes,
+                        fileUrl: joinedUrls || r.fileUrl
                     };
                 }
                 return r;
@@ -329,8 +345,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                 objective: form.objective,
                 description: form.activity,
                 location: form.location,
-                fileType: files?.type || 'pdf',
-                fileUrl: files?.url || ''
+                fileType: joinedTypes,
+                fileUrl: joinedUrls
             } as EvidenceRecord, ...records];
 
         setRecords(updatedRecords);
@@ -357,7 +373,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         } finally {
             setIsSyncing(false);
             setEditingId(null);
-            setFiles(null);
+            setUploadedFiles([]);
             // @ts-ignore
             setForm(prev => ({ ...prev, activity: '', location: '' }));
         }
@@ -385,7 +401,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             setIsSyncing(false);
             if (editingId === id) {
                 setEditingId(null);
-                setFiles(null);
+                setUploadedFiles([]);
                 // @ts-ignore
                 setForm(f => ({ ...f, activity: '', responsible: '' }));
             }
@@ -401,72 +417,156 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             location: record.location
         });
         setEditingId(record.id);
-        setFiles(null);
+        
+        if (record.fileUrl) {
+            const urls = record.fileUrl.split('|').filter(Boolean);
+            setUploadedFiles(urls.map(url => {
+                const lowerUrl = url.toLowerCase();
+                let type: 'pdf'|'image'|'word'|'excel' = 'image';
+                if (lowerUrl.endsWith('.pdf')) type = 'pdf';
+                else if (lowerUrl.endsWith('.doc') || lowerUrl.endsWith('.docx')) type = 'word';
+                else if (lowerUrl.endsWith('.xls') || lowerUrl.endsWith('.xlsx')) type = 'excel';
+                return { url, name: url.split('/').pop() || 'archivo', type };
+            }));
+        } else {
+            setUploadedFiles([]);
+        }
         // Scroll to form (opcional, simple UX)
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDownload = (record: EvidenceRecord) => {
-        // If it's a PDF, Word or Excel, download it directly
-        if (record.fileType === 'pdf' || record.fileType === 'word' || record.fileType === 'excel') {
-            const link = document.createElement('a');
-            link.href = record.fileUrl;
-            link.download = (() => {
+        const urls = record.fileUrl ? record.fileUrl.split('|').filter(Boolean) : [];
+        if (urls.length === 0) return;
+
+        urls.forEach((url, index) => {
+            const isImage = url.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+            const isPdf = url.toLowerCase().match(/\.pdf$/i);
+            const isWord = url.toLowerCase().match(/\.(doc|docx)$/i);
+            const isExcel = url.toLowerCase().match(/\.(xls|xlsx)$/i);
+            
+            let ext = 'pdf';
+            if (isImage) ext = 'jpg';
+            else if (isWord) ext = 'docx';
+            else if (isExcel) ext = 'xlsx';
+
+            if (isImage) {
+                // If it's an image, convert to PDF
+                const doc = new jsPDF();
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+
+                img.onload = () => {
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const margin = 10;
+                    const maxWidth = pageWidth - (margin * 2);
+                    const maxHeight = pageHeight - (margin * 2);
+
+                    const widthRatio = maxWidth / img.width;
+                    const heightRatio = maxHeight / img.height;
+                    const ratio = Math.min(widthRatio, heightRatio, 1);
+
+                    const finalWidth = img.width * ratio;
+                    const finalHeight = img.height * ratio;
+                    const x = (pageWidth - finalWidth) / 2;
+                    const y = (pageHeight - finalHeight) / 2;
+
+                    doc.addImage(img, 'JPEG', x, y, finalWidth, finalHeight);
+
+                    const context = record.objective === 'OBJ 01' ? 'Formacion' : (record.objective === 'OBJ 10' || record.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
+                    const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
+                    const baseName = generateFilename(record.description, record.date, record.responsible, 'pdf', 'evidencia', undefined, area);
+                    const finalName = urls.length > 1 ? baseName.replace('.pdf', `_part${index+1}.pdf`) : baseName;
+                    
+                    doc.save(finalName);
+                };
+            } else {
+                // Direct download
+                const link = document.createElement('a');
+                link.href = url;
+                
                 const context = record.objective === 'OBJ 01' ? 'Formacion' : (record.objective === 'OBJ 10' || record.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
                 const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
                 
-                let ext = 'pdf';
-                if (record.fileType === 'word') ext = 'docx';
-                else if (record.fileType === 'excel') ext = 'xlsx';
+                const baseName = generateFilename(record.description, record.date, record.responsible, ext as any, 'evidencia', undefined, area);
+                link.download = urls.length > 1 ? baseName.replace(`.${ext}`, `_part${index+1}.${ext}`) : baseName;
+                
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+    };
 
-                return generateFilename(record.description, record.date, record.responsible, ext as any, 'evidencia', undefined, area);
-            })();
+    const handleBatchDownload = async () => {
+        if (!filteredRecords || filteredRecords.length === 0) {
+            alert("No hay registros para descargar con los filtros actuales.");
+            return;
+        }
+        
+        setIsDownloadingBatch(true);
+        try {
+            const zip = new JSZip();
+            const folder = zip.folder("Evidencias_EMO");
+            
+            let count = 0;
+            for (const record of filteredRecords) {
+                if (!record.fileUrl) continue;
+                const urls = record.fileUrl.split('|').filter(Boolean);
+                
+                for (let i = 0; i < urls.length; i++) {
+                    const url = urls[i];
+                    try {
+                        // We use a proxy or direct fetch if CORS allows. For Google Drive it might fail CORS, 
+                        // but if direct links work in fetch:
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        
+                        const isImage = url.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                        const ext = isImage ? 'jpg' : (url.toLowerCase().match(/\.(pdf|doc|docx|xls|xlsx)$/i)?.[1] || 'pdf');
+                        
+                        const context = record.objective === 'OBJ 01' ? 'Formacion' : (record.objective === 'OBJ 10' || record.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
+                        const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
+                        
+                        const baseName = generateFilename(record.description, record.date, record.responsible, ext as any, 'evidencia', undefined, area);
+                        const finalName = urls.length > 1 ? baseName.replace(`.${ext}`, `_part${i+1}.${ext}`) : baseName;
+                        
+                        folder?.file(finalName, blob);
+                        count++;
+                    } catch (e) {
+                        console.error("Error downloading file for zip:", url, e);
+                    }
+                }
+            }
+            
+            if (count === 0) {
+                alert("No se pudieron descargar los archivos (posible bloqueo de red/CORS). Intente descarga individual.");
+                setIsDownloadingBatch(false);
+                return;
+            }
+            
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `Evidencias_EMO_${new Date().toISOString().split('T')[0]}.zip`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            return;
+            
+        } catch (error) {
+            console.error("Error creating zip:", error);
+            alert("Ocurrió un error al generar el archivo ZIP.");
+        } finally {
+            setIsDownloadingBatch(false);
         }
-
-        // If it's an image, convert to PDF
-        const doc = new jsPDF();
-        const img = new Image();
-        img.src = record.fileUrl;
-
-        img.onload = () => {
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            // Margins (e.g., 10mm)
-            const margin = 10;
-            const maxWidth = pageWidth - (margin * 2);
-            const maxHeight = pageHeight - (margin * 2);
-
-            let imgWidth = img.width;
-            let imgHeight = img.height;
-
-            // Calculate ratio to fit
-            const widthRatio = maxWidth / imgWidth;
-            const heightRatio = maxHeight / imgHeight;
-            const ratio = Math.min(widthRatio, heightRatio, 1); // Never scale up, only down (though usually images are large, so 1 is fine limit)
-
-            const finalWidth = imgWidth * ratio;
-            const finalHeight = imgHeight * ratio;
-
-            // Center image
-            const x = (pageWidth - finalWidth) / 2;
-            const y = (pageHeight - finalHeight) / 2; // Center vertically or top margin? User said "dentro del margen". Centering is safe.
-
-            const downloadName = (() => {
-                const context = record.objective === 'OBJ 01' ? 'Formacion' : (record.objective === 'OBJ 10' || record.objective === 'OBJ 11' ? 'PMA' : 'Actividad');
-                const area = context === 'PMA' ? 'medio_ambiente' : 'seguridad';
-                return generateFilename(record.description, record.date, record.responsible, 'pdf', 'evidencia', undefined, area);
-            })();
-            doc.save(downloadName);
-        };
     };
 
     const handleView = (record: EvidenceRecord) => {
         setViewingFile(record);
+        setPreviewIndex(0);
     };
 
     // Obtener actividades dinámicas
@@ -616,32 +716,52 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                 >
                                     <input
                                         type="file"
+                                        multiple
                                         onChange={handleFileUpload}
                                         accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-wait"
+                                        disabled={isUploading}
                                     />
-                                    <div className={`flex flex-col items-center gap-2 transition-colors ${files ? 'text-emerald-400' : (isDragging ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400')}`}>
-                                        {files ? (
+                                    <div className={`flex flex-col items-center gap-2 transition-colors ${uploadedFiles.length > 0 ? 'text-emerald-400' : (isDragging ? 'text-emerald-400' : 'text-slate-400 group-hover:text-emerald-400')}`}>
+                                        {uploadedFiles.length > 0 ? (
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mb-1 shadow-lg shadow-emerald-500/20">
-                                                    {files.type === 'pdf' ? <FileText size={20} /> : 
-                                                     files.type === 'word' ? <FileEdit size={20} /> :
-                                                     files.type === 'excel' ? <FileSpreadsheet size={20} /> :
-                                                     <ImageIcon size={20} />}
+                                                    <Upload size={20} />
                                                 </div>
-                                                <span className="text-[11px] font-black uppercase tracking-tighter">¡1 Archivo Cargado!</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Listo para guardar</span>
+                                                <span className="text-[11px] font-black uppercase tracking-tighter">¡{uploadedFiles.length} ARCHIVO(S) LISTO(S)!</span>
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Añade más o guarda</span>
                                             </div>
                                         ) : (
                                             <>
-                                                <Upload size={24} />
+                                                {isUploading ? <div className="w-6 h-6 border-2 border-slate-400 border-t-emerald-500 rounded-full animate-spin" /> : <Upload size={24} />}
                                                 <span className="text-xs font-medium">
-                                                    {editingId ? "Click para cambiar archivo" : "Arrastra o selecciona archivo"}
+                                                    {isUploading ? "Subiendo..." : "Arrastra o selecciona archivos"}
                                                 </span>
                                             </>
                                         )}
                                     </div>
                                 </div>
+                                
+                                {uploadedFiles.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 pt-3">
+                                        {uploadedFiles.map((f, idx) => (
+                                            <div key={idx} className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2 animate-in zoom-in-95 group">
+                                                {f.type === 'pdf' ? <FileText size={12} className="text-red-400" /> : 
+                                                 f.type === 'word' ? <FileEdit size={12} className="text-blue-400" /> :
+                                                 f.type === 'excel' ? <FileSpreadsheet size={12} className="text-emerald-400" /> :
+                                                 <ImageIcon size={12} className="text-teal-400" />}
+                                                <span className="text-[9px] font-bold text-slate-300 truncate max-w-[100px]">{f.name}</span>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                    className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex gap-2">
@@ -651,7 +771,7 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                         onClick={() => {
                                             setIsSyncing(false);
                                             setIsUploading(false);
-                                            setFiles(null);
+                                            setUploadedFiles([]);
                                             setEditingId(null);
                                             localStorage.removeItem('evidence_center_records');
                                             window.location.reload(); // Recarga total para limpiar memoria
@@ -767,6 +887,20 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                     </button>
                                 )}
                             </div>
+                            <div className="flex flex-col justify-end h-[53px]">
+                                <button 
+                                    onClick={handleBatchDownload}
+                                    disabled={isDownloadingBatch || !filteredRecords || filteredRecords.length === 0}
+                                    className="w-full h-[33px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isDownloadingBatch ? (
+                                        <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Download size={14} strokeWidth={3} />
+                                    )}
+                                    Descargar Zip
+                                </button>
+                            </div>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -805,33 +939,47 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                                                     <td className="py-3 text-slate-300 text-[10px] leading-tight whitespace-normal max-w-[180px]">{r.description}</td>
                                                     <td className="py-3 text-center">
                                                         {(() => {
+                                                            const urls = r.fileUrl ? r.fileUrl.split('|').filter(Boolean) : [];
+                                                            if (urls.length === 0) return <span className="text-slate-600">-</span>;
+                                                            
+                                                            const firstUrl = urls[0];
                                                             const isImage = r.fileType === 'image' ||
-                                                                (r.fileUrl && (r.fileUrl.toLowerCase().includes('.jpg') ||
-                                                                    r.fileUrl.toLowerCase().includes('.jpeg') ||
-                                                                    r.fileUrl.toLowerCase().includes('.png') ||
-                                                                    r.fileUrl.toLowerCase().includes('.webp') ||
-                                                                    r.fileUrl.toLowerCase().includes('.gif')));
-                                                            return isImage && r.fileUrl ? (
-                                                                <div
-                                                                    className="w-10 h-10 rounded-lg overflow-hidden border border-slate-700 cursor-pointer hover:scale-110 hover:border-blue-500 transition-all mx-auto"
-                                                                    onClick={() => handleView(r)}
-                                                                    title="Click para ver"
-                                                                >
-                                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800">
-                                                                        <ImageIcon size={14} className="text-blue-400 mb-0.5" />
-                                                                        <span className="text-[7px]">FOTO</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div 
-                                                                    className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto cursor-pointer hover:bg-slate-700 transition-all"
-                                                                    onClick={() => handleView(r)}
-                                                                    title="Ver Archivo"
-                                                                >
-                                                                    {r.fileType === 'pdf' ? <FileText size={16} className="text-red-400" /> : 
-                                                                     r.fileType === 'word' ? <FileEdit size={16} className="text-blue-400" /> :
-                                                                     r.fileType === 'excel' ? <FileSpreadsheet size={16} className="text-emerald-400" /> :
-                                                                     <File size={16} className="text-slate-500" />}
+                                                                (firstUrl && (firstUrl.toLowerCase().includes('.jpg') ||
+                                                                    firstUrl.toLowerCase().includes('.jpeg') ||
+                                                                    firstUrl.toLowerCase().includes('.png') ||
+                                                                    firstUrl.toLowerCase().includes('.webp') ||
+                                                                    firstUrl.toLowerCase().includes('.gif')));
+                                                            
+                                                            return (
+                                                                <div className="relative inline-block">
+                                                                    {isImage && firstUrl ? (
+                                                                        <div
+                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-700 cursor-pointer hover:scale-110 hover:border-blue-500 transition-all mx-auto"
+                                                                            onClick={() => handleView(r)}
+                                                                            title="Click para ver"
+                                                                        >
+                                                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800">
+                                                                                <ImageIcon size={14} className="text-blue-400 mb-0.5" />
+                                                                                <span className="text-[7px]">FOTO</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div 
+                                                                            className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto cursor-pointer hover:bg-slate-700 transition-all"
+                                                                            onClick={() => handleView(r)}
+                                                                            title="Ver Archivo"
+                                                                        >
+                                                                            {r.fileType === 'pdf' ? <FileText size={16} className="text-red-400" /> : 
+                                                                             r.fileType === 'word' ? <FileEdit size={16} className="text-blue-400" /> :
+                                                                             r.fileType === 'excel' ? <FileSpreadsheet size={16} className="text-emerald-400" /> :
+                                                                             <File size={16} className="text-slate-500" />}
+                                                                        </div>
+                                                                    )}
+                                                                    {urls.length > 1 && (
+                                                                        <div className="absolute -top-2 -right-2 bg-rose-500 text-white text-[8px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-lg ring-2 ring-slate-900">
+                                                                            +{urls.length - 1}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             );
                                                         })()}
@@ -913,43 +1061,99 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             </div>
 
             {/* PREVIEW MODAL */}
-            {viewingFile && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingFile(null)}>
-                    <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
-                            <h3 className="text-white font-bold flex items-center gap-2">
-                                {viewingFile.fileType === 'pdf' ? <FileText size={20} className="text-red-400" /> : 
-                                 viewingFile.fileType === 'word' ? <FileEdit size={20} className="text-blue-400" /> :
-                                 viewingFile.fileType === 'excel' ? <FileSpreadsheet size={20} className="text-emerald-400" /> :
-                                 <ImageIcon size={20} className="text-blue-400" />}
-                                Vista Previa
-                            </h3>
-                            <div className="flex items-center gap-2">
-                                <a
-                                    href={viewingFile.fileUrl}
-                                    download
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
-                                    title="Abrir original"
-                                >
-                                    <Download size={18} />
-                                </a>
-                                <button onClick={() => setViewingFile(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
-                                    <Trash2 size={24} className="rotate-45" />
-                                </button>
+            {viewingFile && (() => {
+                const urls = viewingFile.fileUrl ? viewingFile.fileUrl.split('|').filter(Boolean) : [];
+                if (urls.length === 0) return null;
+                const currentUrl = urls[previewIndex] || urls[0];
+                
+                const isImage = currentUrl.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif)$/i);
+                const isPdf = currentUrl.toLowerCase().match(/\.pdf$/i);
+                const isWord = currentUrl.toLowerCase().match(/\.(doc|docx)$/i);
+                const isExcel = currentUrl.toLowerCase().match(/\.(xls|xlsx)$/i);
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingFile(null)}>
+                        <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-white font-bold flex items-center gap-2">
+                                        {isPdf ? <FileText size={20} className="text-red-400" /> : 
+                                         isWord ? <FileEdit size={20} className="text-blue-400" /> :
+                                         isExcel ? <FileSpreadsheet size={20} className="text-emerald-400" /> :
+                                         <ImageIcon size={20} className="text-blue-400" />}
+                                        Vista Previa {urls.length > 1 && <span className="text-slate-400 text-sm ml-2 font-normal">(Archivo {previewIndex + 1} de {urls.length})</span>}
+                                    </h3>
+                                    {(user?.role === 'developer' || user?.role === 'manager' || user?.name === viewingFile.responsible) && (
+                                        <button 
+                                            onClick={() => {
+                                                handleEdit(viewingFile);
+                                                setViewingFile(null);
+                                            }}
+                                            className="ml-4 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold uppercase transition-colors border border-amber-500/20 flex items-center gap-2"
+                                        >
+                                            <Edit size={14} /> Cambiar Evidencia
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {urls.length > 1 && (
+                                        <div className="flex items-center gap-1 mr-4 bg-slate-950 rounded-lg p-1 border border-slate-800">
+                                            <button 
+                                                onClick={() => setPreviewIndex(prev => prev > 0 ? prev - 1 : urls.length - 1)}
+                                                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                                            >
+                                                <ChevronLeft size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => setPreviewIndex(prev => prev < urls.length - 1 ? prev + 1 : 0)}
+                                                className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                                            >
+                                                <ChevronRight size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <a
+                                        href={currentUrl}
+                                        download
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+                                        title="Descargar este archivo"
+                                    >
+                                        <Download size={18} /> Descargar Individual
+                                    </a>
+                                    <button onClick={() => setViewingFile(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors ml-2">
+                                        <Trash2 size={24} className="rotate-45" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="w-full h-[75vh] flex items-center justify-center p-4 relative group">
+                                {urls.length > 1 && (
+                                    <>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setPreviewIndex(prev => prev > 0 ? prev - 1 : urls.length - 1); }}
+                                            className="absolute left-4 z-10 p-3 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 shadow-xl"
+                                        >
+                                            <ChevronLeft size={24} />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setPreviewIndex(prev => prev < urls.length - 1 ? prev + 1 : 0); }}
+                                            className="absolute right-4 z-10 p-3 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-slate-700 shadow-xl"
+                                        >
+                                            <ChevronRight size={24} />
+                                        </button>
+                                    </>
+                                )}
+                                <iframe 
+                                    src={getDriveViewerUrl(currentUrl, false)} 
+                                    className="w-full h-full min-h-[60vh] rounded-lg border border-slate-800 shadow-2xl bg-slate-950" 
+                                    title="File Preview">
+                                </iframe>
                             </div>
                         </div>
-                        <div className="w-full h-[75vh] flex items-center justify-center p-4">
-                            <iframe 
-                                src={getDriveViewerUrl(viewingFile.fileUrl, false)} 
-                                className="w-full h-full min-h-[60vh] rounded-lg border border-slate-800 shadow-2xl" 
-                                title="File Preview">
-                            </iframe>
-                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
             </div>
         </div>
     );
