@@ -75,6 +75,29 @@ export default function SCSSTPage() {
         }
     };
 
+    // Filtered Records logic - STRICT WHITELIST for SCSST activities
+    const filteredRecords = (records || []).filter(rec => {
+        if (!rec) return false;
+        
+        // Only show records that belong to the 7 official activities
+        const isOfficialActivity = SCSST_ACTIVITIES.includes(rec.activity);
+        if (!isOfficialActivity) return false;
+
+        const matchDate = !filters.date || rec.date === filters.date;
+        const matchActivity = !filters.activity || rec.activity === filters.activity;
+        const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
+        const matchZone = !filters.zona || (rec.zona || rec.location) === filters.zona;
+        return matchDate && matchActivity && matchResp && matchZone;
+    });
+
+    // Derive filter options - ALWAYS show full lists so user can filter easily
+    const filterOptions = {
+        dates: Array.from(new Set((records || []).map(r => r?.date).filter(Boolean))).sort().reverse(),
+        activities: SCSST_ACTIVITIES,
+        responsibles: USER_LIST.map(u => u.name).sort(),
+        zones: SSOMA_LOCATIONS.sort()
+    };
+
     const handleEdit = (rec: any) => {
         setFormData({
             date: rec.date,
