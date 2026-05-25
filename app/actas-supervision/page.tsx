@@ -22,7 +22,7 @@ import {
     FileIcon,
     AlertCircle,
     X
-} from "lucide-react";
+, Download } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { getInitials } from "@/lib/utils";
 import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';

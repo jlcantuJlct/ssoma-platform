@@ -20,7 +20,7 @@ import {
     ChevronRight,
     ExternalLink,
     RotateCcw
-} from "lucide-react";
+, Download } from "lucide-react";
 import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue, handleBulkDownload } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
