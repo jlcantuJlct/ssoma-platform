@@ -64,9 +64,22 @@ export async function GET(req: NextRequest) {
                 }
 
                 if (match) {
+                    let parsedUrls = [];
+                    try {
+                        if (r.file_url && r.file_url.startsWith('[')) {
+                            parsedUrls = JSON.parse(r.file_url);
+                        } else if (r.file_url) {
+                            parsedUrls = r.file_url.split('|').filter(Boolean);
+                        }
+                    } catch (e) {
+                        parsedUrls = [r.file_url];
+                    }
+
                     uniqueRecords.push({
                         ...r,
-                        images: [r.file_url] // Standardize for assistant gallery
+                        fileUrl: parsedUrls[0] || '',
+                        fileUrls: parsedUrls,
+                        images: parsedUrls // Standardize for assistant gallery
                     });
                     seenKeys.add(contentKey);
                 }
@@ -82,11 +95,101 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// POST - Guardar registros de evidencias
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const { records, userName } = await req.json();
+        const body = await req.json();
+
+        // 1. MODO ACCION (Delta Sync)
+        if (body.action) {
+            const actingUser = body.userName || 'Usuario';
+            
+            if (body.action === 'CREATE') {
+                const r = body.record;
+                if (!r) throw new Error('Falta el record para CREATE');
+
+                // Asegurar que file_url contenga todos los enlaces (como JSON si es array, o el string original)
+                let finalFileUrl = r.fileUrl || r.file_url || '';
+                if (Array.isArray(r.fileUrls) && r.fileUrls.length > 0) {
+                    finalFileUrl = JSON.stringify(r.fileUrls);
+                }
+
+                const res = await db.execute(
+                    `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    [
+                        String(r.id || r.record_id || Date.now()),
+                        r.date || '',
+                        r.objective || '',
+                        r.activity || '',
+                        r.description || '',
+                        r.responsable || r.responsible || '',
+                        r.zona || r.location || r.zone || '',
+                        finalFileUrl,
+                        r.fileType || r.file_type || ''
+                    ]
+                );
+                
+                await logActivity(actingUser, `EVIDENCIA CREADA: ${r.activity}`, 'PMA', `Objetivo: ${r.objective}`);
+                const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;
+                return NextResponse.json({ success: true, id: newId });
+            }
+
+            if (body.action === 'UPDATE') {
+                const r = body.record;
+                if (!r || (!r.id && !r.record_id)) throw new Error('Falta el record o su ID para UPDATE');
+
+                let finalFileUrl = r.fileUrl || r.file_url || '';
+                if (Array.isArray(r.fileUrls) && r.fileUrls.length > 0) {
+                    finalFileUrl = JSON.stringify(r.fileUrls);
+                }
+
+                // Intentar actualizar por id (numérico) primero, si no usar record_id
+                let updateQuery = `UPDATE evidence_center_records 
+                                   SET date = ?, objective = ?, activity = ?, description = ?, responsable = ?, zona = ?, file_url = ?, file_type = ?
+                                   WHERE `;
+                const params = [
+                    r.date || '',
+                    r.objective || '',
+                    r.activity || '',
+                    r.description || '',
+                    r.responsable || r.responsible || '',
+                    r.zona || r.location || r.zone || '',
+                    finalFileUrl,
+                    r.fileType || r.file_type || ''
+                ];
+
+                if (r.id) {
+                    updateQuery += `id = ?`;
+                    params.push(r.id);
+                } else {
+                    updateQuery += `record_id = ?`;
+                    params.push(String(r.record_id));
+                }
+
+                await db.execute(updateQuery, params);
+                await logActivity(actingUser, `EVIDENCIA ACTUALIZADA: ${r.activity}`, 'PMA', `Objetivo: ${r.objective}`);
+                return NextResponse.json({ success: true });
+            }
+
+            if (body.action === 'DELETE') {
+                const id = body.id || (body.record && body.record.id);
+                const recordIdStr = body.record_id || (body.record && body.record.record_id);
+                if (!id && !recordIdStr) throw new Error('Falta el ID para DELETE');
+
+                if (id) {
+                    await db.execute('DELETE FROM evidence_center_records WHERE id = ?', [id]);
+                } else {
+                    await db.execute('DELETE FROM evidence_center_records WHERE record_id = ?', [String(recordIdStr)]);
+                }
+                
+                await logActivity(actingUser, `EVIDENCIA ELIMINADA`, 'PMA', `ID: ${id || recordIdStr}`);
+                return NextResponse.json({ success: true });
+            }
+        }
+
+        // 2. MODO ARRAY (reemplazo por objetivo - Compatibilidad temporal)
+        const { records, userName } = body;
         const actingUser = userName || 'Usuario';
 
         if (!Array.isArray(records)) {
@@ -106,12 +209,16 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Solo borramos los objetivos que estamos actualizando
         for (const obj of Array.from(objectivesToClear)) {
             await db.execute('DELETE FROM evidence_center_records WHERE objective = ?', [obj]);
         }
 
         for (const r of uniqueRecords) {
+            let finalFileUrl = r.fileUrl || r.file_url || '';
+            if (Array.isArray(r.fileUrls) && r.fileUrls.length > 0) {
+                finalFileUrl = JSON.stringify(r.fileUrls);
+            }
+
             await db.execute(
                 `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -123,7 +230,7 @@ export async function POST(req: NextRequest) {
                     r.description || '',
                     r.responsable || r.responsible || '',
                     r.zona || r.location || r.zone || '',
-                    r.fileUrl || r.file_url || '',
+                    finalFileUrl,
                     r.fileType || r.file_type || ''
                 ]
             );

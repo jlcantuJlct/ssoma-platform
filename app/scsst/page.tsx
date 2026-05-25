@@ -52,6 +52,8 @@ export default function SCSSTPage() {
         zona: ''
     });
 
+    const [editingId, setEditingId] = useState<number | null>(null);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -59,11 +61,7 @@ export default function SCSSTPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // 1. We NO LONGER overwrite activities with fetched ones. 
-            // We use the 7 standard ones from the image (SCSST_ACTIVITIES).
             setActivities(SCSST_ACTIVITIES);
-
-            // 2. Fetch existing SCSST records (from evidence_center_records with objective OBJ 01)
             const recRes = await fetch('/api/evidence-records');
             const recData = await recRes.json();
             if (recData.success && Array.isArray(recData.records)) {
@@ -77,27 +75,29 @@ export default function SCSSTPage() {
         }
     };
 
-    // Filtered Records logic - STRICT WHITELIST for SCSST activities
-    const filteredRecords = (records || []).filter(rec => {
-        if (!rec) return false;
-        
-        // Only show records that belong to the 7 official activities
-        const isOfficialActivity = SCSST_ACTIVITIES.includes(rec.activity);
-        if (!isOfficialActivity) return false;
+    const handleEdit = (rec: any) => {
+        setFormData({
+            date: rec.date,
+            activity: rec.activity,
+            responsable: rec.responsable || rec.responsible || '',
+            zona: rec.zona || rec.location || '',
+            description: rec.description || ''
+        });
+        setUploadedFiles(rec.fileUrls || (rec.fileUrl ? [rec.fileUrl] : []));
+        setEditingId(rec.id);
+        setIsAdding(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-        const matchDate = !filters.date || rec.date === filters.date;
-        const matchActivity = !filters.activity || rec.activity === filters.activity;
-        const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
-        const matchZone = !filters.zona || (rec.zona || rec.location) === filters.zona;
-        return matchDate && matchActivity && matchResp && matchZone;
-    });
-
-    // Derive filter options - ALWAYS show full lists so user can filter easily
-    const filterOptions = {
-        dates: Array.from(new Set((records || []).map(r => r?.date).filter(Boolean))).sort().reverse(),
-        activities: SCSST_ACTIVITIES,
-        responsibles: USER_LIST.map(u => u.name).sort(),
-        zones: SSOMA_LOCATIONS.sort()
+    const cancelEdit = () => {
+        setIsAdding(false);
+        setEditingId(null);
+        setFormData({
+            ...formData,
+            activity: '',
+            description: '',
+        });
+        setUploadedFiles([]);
     };
 
     const handleSave = async () => {
@@ -109,38 +109,35 @@ export default function SCSSTPage() {
         setIsSaving(true);
         try {
             const newRecord = {
-                id: Date.now(),
+                id: editingId || Date.now(),
                 date: formData.date,
                 objective: 'OBJ 01',
                 activity: formData.activity,
                 description: formData.description,
                 responsable: formData.responsable,
                 zona: formData.zona,
-                fileUrl: uploadedFiles[0], // Keep for backward compatibility
-                fileUrls: uploadedFiles, // Store the array
+                fileUrl: uploadedFiles[0],
+                fileUrls: uploadedFiles,
                 fileType: 'pdf'
             };
 
-            const allRecords = [...records, newRecord];
-            
+            const action = editingId ? 'UPDATE' : 'CREATE';
             const res = await fetch('/api/evidence-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords, userName: user?.name })
+                body: JSON.stringify({ action, record: newRecord, userName: user?.name })
             });
+            const data = await res.json();
 
-            if (res.ok) {
-                setIsAdding(false);
-                setFormData({
-                    ...formData,
-                    activity: '',
-                    description: '',
-                });
-                setUploadedFiles([]);
+            if (res.ok && data.success) {
+                cancelEdit();
                 fetchData();
+            } else {
+                alert(data.error || 'Error al guardar.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving SCSST record:', error);
+            alert(`Error al guardar: ${error.message}`);
         } finally {
             setIsSaving(false);
         }
@@ -150,15 +147,20 @@ export default function SCSSTPage() {
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
         
         try {
-            const updated = records.filter(r => r.id !== id);
-            await fetch('/api/evidence-records', {
+            const res = await fetch('/api/evidence-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updated, userName: user?.name })
+                body: JSON.stringify({ action: 'DELETE', id, userName: user?.name })
             });
-            fetchData();
-        } catch (error) {
+            const data = await res.json();
+            if (res.ok && data.success) {
+                fetchData();
+            } else {
+                alert(data.error || 'Error al eliminar.');
+            }
+        } catch (error: any) {
             console.error('Error deleting record:', error);
+            alert(`Error al eliminar: ${error.message}`);
         }
     };
 
@@ -565,7 +567,10 @@ export default function SCSSTPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredRecords.map((rec) => (
+                            {filteredRecords.map((rec) => {
+                                const fileCount = rec.fileUrls ? rec.fileUrls.length : (rec.fileUrl ? 1 : 0);
+                                const hasFiles = fileCount > 0;
+                                return (
                                 <Card key={rec.id} className="bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden rounded-2xl">
                                     <div className="p-4 space-y-4">
                                         <div className="flex justify-between items-start gap-4">
@@ -580,19 +585,29 @@ export default function SCSSTPage() {
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
-                                                    onClick={() => setViewingFile(rec)}
-                                                    className="p-2 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
+                                                    onClick={() => hasFiles && setViewingFile(rec)}
+                                                    className={`p-2 rounded-lg transition-all ${hasFiles ? 'bg-slate-800 hover:bg-emerald-500/20 text-emerald-500' : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'}`}
+                                                    title={hasFiles ? "Ver/Descargar Archivo(s)" : "Sin Archivo"}
                                                 >
                                                     <FileText size={14} />
                                                 </button>
                                                 {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
-                                                    <button 
-                                                        onClick={() => handleDelete(rec.id)}
-                                                        className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
-                                                        title="Eliminar Registro"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleEdit(rec)}
+                                                            className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all"
+                                                            title="Editar Registro"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(rec.id)}
+                                                            className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                            title="Eliminar Registro"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -614,9 +629,26 @@ export default function SCSSTPage() {
                                                 <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{rec.description}</p>
                                             </div>
                                         )}
+
+                                        {hasFiles && (
+                                            <div className="pt-2">
+                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Archivo Adjunto</p>
+                                                <button 
+                                                    onClick={() => setViewingFile(rec)}
+                                                    className="w-full text-left p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center gap-2"
+                                                >
+                                                    <FileText size={14} className="text-emerald-400" />
+                                                    <span className="text-[10px] text-emerald-400 font-bold truncate">
+                                                        {generateFilename(rec.activity, rec.date, rec.responsable || rec.responsible, 'pdf', 'evidencia', rec.zona || rec.location, 'scsst').replace(/\.[^/.]+$/, "")}
+                                                        {fileCount > 1 ? ` (+${fileCount-1})` : ''}
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </Card>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
