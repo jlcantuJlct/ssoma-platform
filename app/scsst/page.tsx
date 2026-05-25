@@ -7,7 +7,9 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl } from "@/lib/utils";
+import { getDriveViewerUrl, generateFilename } from "@/lib/utils";
+import PreviewCarouselModal from "@/components/PreviewCarouselModal";
+import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 // Activities from Annual Program OBJ 01 (Based on image)
 const SCSST_ACTIVITIES = [
@@ -31,6 +33,7 @@ export default function SCSSTPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [viewingFile, setViewingFile] = useState<any>(null);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -429,8 +432,17 @@ export default function SCSSTPage() {
                             Rastro de Cargas SCSST
                         </h2>
                         <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                        </div>
+                            <BatchDownloadZip 
+                                records={filteredRecords}
+                                getUrls={(r) => r.fileUrls || (r.fileUrl ? r.fileUrl.split('|').filter(Boolean) : [])}
+                                getFilename={(r, i, total) => {
+                                    let ext = 'pdf'; 
+                                    if (r.fileType === 'image' || (r.fileUrls && r.fileUrls[0]?.match(/\.(jpg|jpeg|png)$/i))) ext = 'jpg';
+                                    return generateFilename(r.activity, r.date, r.responsable || r.responsible, ext as any, 'evidencia', r.zona || r.location, 'scsst').replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + `.${ext}`;
+                                }}
+                                zipName={`Evidencias_SCSST_${filters.date || 'Masivas'}.zip`}
+                                className="h-[33px] px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-emerald-500/20 flex items-center justify-center gap-2"
+                            />
                         </div>
                     </div>
 
@@ -568,16 +580,11 @@ export default function SCSSTPage() {
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
-                                                    onClick={() => {
-                                                        const url = rec.fileUrl || rec.file_url || (rec.fileUrls && rec.fileUrls[0]);
-                                                        if (url) {
-                                                            window.open(getDriveViewerUrl(url), '_blank');
-                                                        } else {
-                                                            alert('No hay archivo adjunto para este registro.');
-                                                        }
-                                                    }}
+                                                    onClick={() => setViewingFile(rec)}
                                                     className="p-2 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
                                                 >
+                                                    <FileText size={14} />
+                                                </button>
                                                     <FileText size={14} />
                                                 </button>
                                                 {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
@@ -615,6 +622,15 @@ export default function SCSSTPage() {
                         </div>
                     )}
                 </div>
+
+            {viewingFile && (
+                <PreviewCarouselModal
+                    urls={viewingFile.fileUrls || (viewingFile.fileUrl ? viewingFile.fileUrl.split('|').filter(Boolean) : [])}
+                    onClose={() => setViewingFile(null)}
+                    canEdit={user?.role === 'developer' || user?.role === 'manager' || user?.name === (viewingFile.responsable || viewingFile.responsible)}
+                    filename={generateFilename(viewingFile.activity, viewingFile.date, viewingFile.responsable || viewingFile.responsible, 'pdf', 'evidencia', viewingFile.zona || viewingFile.location, 'scsst')}
+                />
+            )}
 
             </div>
         </div>
