@@ -585,8 +585,6 @@ export default function SCSSTPage() {
                                                 >
                                                     <FileText size={14} />
                                                 </button>
-                                                    <FileText size={14} />
-                                                </button>
                                                 {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
                                                     <button 
                                                         onClick={() => handleDelete(rec.id)}
