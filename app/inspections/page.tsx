@@ -9,6 +9,8 @@ import { ComplianceGauge } from '@/components/dashboard/ComplianceGauge';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import PreviewCarouselModal from "@/components/PreviewCarouselModal";
+import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 import {
     ClipboardCheck,
@@ -1120,6 +1122,21 @@ export default function InspectionsPage() {
                                         <FileText size={20} />
                                         PDF
                                     </button>
+                                    <BatchDownloadZip 
+                                        records={filteredInspections}
+                                        getUrls={(r) => {
+                                            const urls = [];
+                                            if (r.evidencePdf) urls.push(r.evidencePdf);
+                                            if (r.evidenceImgs) urls.push(...r.evidenceImgs);
+                                            return urls;
+                                        }}
+                                        getFilename={(r, i, total) => {
+                                            const ext = (total === 1 && r.evidencePdf) ? 'pdf' : 'jpg';
+                                            return generateFilename(r.inspectionType, r.date, r.responsible, ext, 'inspeccion', r.zone, r.area).replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + `.${ext}`;
+                                        }}
+                                        zipName={`Inspecciones_${filterDate || 'Masivas'}.zip`}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                                    />
                                 </>
                             )}
                         </div>
@@ -1657,16 +1674,9 @@ export default function InspectionsPage() {
                                                                 {/* EVIDENCE BUTTONS */}
                                                                 {item.evidencePdf && (
                                                                     <button
-                                                                        onClick={() => {
-                                                                            const link = document.createElement('a');
-                                                                            link.href = item.evidencePdf!;
-                                                                            link.download = generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area);
-                                                                            document.body.appendChild(link);
-                                                                            link.click();
-                                                                            document.body.removeChild(link);
-                                                                        }}
+                                                                        onClick={() => setViewingEvidence(item)}
                                                                         className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                                                                        title="Descargar PDF Adjunto"
+                                                                        title="Ver PDF Adjunto"
                                                                     >
                                                                         <FileText size={16} />
                                                                     </button>
@@ -1728,57 +1738,18 @@ export default function InspectionsPage() {
             </main >
 
             {/* MODAL DE EVIDENCIA DE INSPECCIÓN */}
-            {
-                viewingEvidence && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingEvidence(null)}>
-                        <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
-                                <div>
-                                    <h3 className="text-white font-bold flex items-center gap-2">
-                                        <ImageIcon size={20} className="text-emerald-400" />
-                                        Evidencia Fotográfica
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        {viewingEvidence.inspectionType} - {viewingEvidence.zone}
-                                    </p>
-                                </div>
-                                <button onClick={() => setViewingEvidence(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
-                                    <X size={24} />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-auto bg-black/50 p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
-                                        <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 h-64">
-                                            <iframe
-                                                src={getDriveViewerUrl(img, false)}
-                                                title={`Evidencia ${idx + 1}`}
-                                                className="w-full h-full border-0"
-                                                allow="autoplay"
-                                            />
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform pointer-events-none">
-                                                <a
-                                                    href={img}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-emerald-400 transition-colors"
-                                                >
-                                                    <Download size={14} /> Descargar Original
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {(!viewingEvidence.evidenceImgs || viewingEvidence.evidenceImgs.length === 0) && (
-                                    <div className="text-center py-20 text-slate-500 italic">
-                                        No hay imágenes adjuntas.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+            {viewingEvidence && (
+                <PreviewCarouselModal
+                    urls={[...(viewingEvidence.evidencePdf ? [viewingEvidence.evidencePdf] : []), ...(viewingEvidence.evidenceImgs || [])]}
+                    onClose={() => setViewingEvidence(null)}
+                    canEdit={user?.role === 'developer' || user?.role === 'manager' || user?.name === viewingEvidence.responsible}
+                    onEdit={() => {
+                        setViewingEvidence(null);
+                        handleEdit(viewingEvidence);
+                    }}
+                    filename={generateFilename(viewingEvidence.inspectionType, viewingEvidence.date, viewingEvidence.responsible, 'pdf', 'inspeccion', viewingEvidence.zone, viewingEvidence.area)}
+                />
+            )}
         </div >
     );
 }
