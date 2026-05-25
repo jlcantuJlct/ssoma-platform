@@ -1079,7 +1079,7 @@ export default function ProgramPage() {
         });
         return totals;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords]);
+    }, [programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords, reporteAcRecords]);
 
     return (
         <div className="relative h-full flex flex-col md:flex-row bg-slate-950 overflow-hidden">
