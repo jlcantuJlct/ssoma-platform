@@ -8,7 +8,9 @@ import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import SearchableSelect from '@/components/SearchableSelect';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl } from "@/lib/utils";
+import { getDriveViewerUrl, generateFilename } from "@/lib/utils";
+import PreviewCarouselModal from "@/components/PreviewCarouselModal";
+import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 // Constants
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -58,6 +60,8 @@ export default function ReportsPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const currentMonthIndex = new Date().getMonth();
+    
+    const [viewingEvidence, setViewingEvidence] = useState<any>(null);
     
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -289,6 +293,16 @@ export default function ReportsPage() {
                     >
                         <Download size={16} /> Exportar Excel
                     </button>
+                    <BatchDownloadZip 
+                        records={docs}
+                        getUrls={(r) => r.fileUrls || []}
+                        getFilename={(r, i, total) => {
+                            const ext = r.fileUrls[i].toLowerCase().includes('pdf') ? 'pdf' : 'jpg';
+                            return generateFilename(r.type || 'Registro', r.date, r.responsable, ext, 'accidente', r.zona, 'SEGURIDAD').replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + `.${ext}`;
+                        }}
+                        zipName={`Registros_Accidentabilidad_${selectedExtYear}.zip`}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg hover:shadow-blue-500/20"
+                    />
                 </div>
             </div>
 
@@ -691,7 +705,7 @@ export default function ReportsPage() {
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
-                                                    onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
+                                                    onClick={() => setViewingEvidence(rec)}
                                                     className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-lg transition-all"
                                                 >
                                                     <FileText size={14} />
@@ -728,6 +742,28 @@ export default function ReportsPage() {
                 </div>
 
             </div>
+            {viewingEvidence && (
+                <PreviewCarouselModal
+                    isOpen={!!viewingEvidence}
+                    onClose={() => setViewingEvidence(null)}
+                    fileUrls={viewingEvidence.fileUrls || []}
+                    title={`Evidencias - ${viewingEvidence.type || 'Registro'}`}
+                    recordId={viewingEvidence.id}
+                    tableName="accidentabilidad-records"
+                    onUpdateUrls={async (newUrls) => {
+                        const updatedDocs = docs.map((d: any) => 
+                            d.id === viewingEvidence.id ? { ...d, fileUrls: newUrls } : d
+                        );
+                        setDocs(updatedDocs);
+                        setViewingEvidence({ ...viewingEvidence, fileUrls: newUrls });
+                        await fetch('/api/accidentabilidad-records', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ records: updatedDocs })
+                        });
+                    }}
+                />
+            )}
         </div>
     );
 }
