@@ -148,19 +148,22 @@ export default function AccidentesPage() {
             files: files
         };
 
-        const allRecords = [newRecord, ...records];
-
         try {
             const res = await fetch('/api/accidentes-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords })
+                body: JSON.stringify({ action: 'CREATE', record: newRecord })
             });
             if (res.ok) {
-                setRecords(allRecords);
-                setForm(prev => ({ ...prev, description: '', involvedPerson: '' }));
-                setFiles([]);
-                alert("Registro guardado correctamente.");
+                const data = await res.json();
+                if (data.success) {
+                    setRecords(prev => [newRecord, ...prev]);
+                    setForm(prev => ({ ...prev, description: '', involvedPerson: '' }));
+                    setFiles([]);
+                    alert("Registro guardado correctamente.");
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
             }
         } catch (error) {
             console.error('Error saving data:', error);
@@ -169,14 +172,18 @@ export default function AccidentesPage() {
 
     const handleDelete = async (id: number) => {
         if (!confirm("¿Eliminar este registro?")) return;
-        const updated = records.filter(r => r.id !== id);
         try {
-            await fetch('/api/accidentes-records', {
+            const res = await fetch('/api/accidentes-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updated })
+                body: JSON.stringify({ action: 'DELETE', id })
             });
-            setRecords(updated);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setRecords(prev => prev.filter(r => r.id !== id));
+                }
+            }
         } catch (error) {
             console.error('Error deleting data:', error);
         }

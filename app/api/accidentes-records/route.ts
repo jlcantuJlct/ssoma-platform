@@ -47,6 +47,59 @@ export async function POST(req: NextRequest) {
         await ensureTable();
         const body = await req.json();
 
+        // 1. MODO ACCION (Delta Sync)
+        if (body.action) {
+            if (body.action === 'CREATE') {
+                const r = body.record;
+                if (!r) throw new Error('Falta el record para CREATE');
+
+                const res = await db.execute(
+                    `INSERT INTO accidentes_records (date, time, location, type, description, involved_person, files)
+                     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    [
+                        r.date || '',
+                        r.time || '',
+                        r.location || '',
+                        r.type || '',
+                        r.description || '',
+                        r.involvedPerson || r.involved_person || '',
+                        JSON.stringify(r.files || [])
+                    ]
+                );
+                const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;
+                return NextResponse.json({ success: true, id: newId });
+            }
+
+            if (body.action === 'UPDATE') {
+                const r = body.record;
+                if (!r || !r.id) throw new Error('Falta el record o su ID para UPDATE');
+
+                await db.execute(
+                    `UPDATE accidentes_records 
+                     SET date = ?, time = ?, location = ?, type = ?, description = ?, involved_person = ?, files = ?
+                     WHERE id = ?`,
+                    [
+                        r.date || '',
+                        r.time || '',
+                        r.location || '',
+                        r.type || '',
+                        r.description || '',
+                        r.involvedPerson || r.involved_person || '',
+                        JSON.stringify(r.files || []),
+                        r.id
+                    ]
+                );
+                return NextResponse.json({ success: true });
+            }
+
+            if (body.action === 'DELETE') {
+                const id = body.id || (body.record && body.record.id);
+                if (!id) throw new Error('Falta el ID para DELETE');
+                await db.execute('DELETE FROM accidentes_records WHERE id = ?', [id]);
+                return NextResponse.json({ success: true });
+            }
+        }
+
         // MODO ARRAY (para guardado rápido / compatibilidad)
         if (body.records && Array.isArray(body.records)) {
             await db.execute('TRUNCATE TABLE accidentes_records RESTART IDENTITY');
