@@ -294,7 +294,7 @@ export default function BrigadistasPage() {
     };
 
     const handleBatchDownload = async () => {
-        const filteredRecords = records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation));
+        const filteredRecords = records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || (r.responsible || "").toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation));
         if (!filteredRecords || filteredRecords.length === 0) {
             alert("No hay registros para descargar con los filtros actuales.");
             return;
@@ -480,7 +480,7 @@ export default function BrigadistasPage() {
                                     <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                                         {records.filter(r => {
                                             const matchesLoc = !filterLocation || r.location === filterLocation;
-                                            const matchesResp = !filterResponsible || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase());
+                                            const matchesResp = !filterResponsible || (r.responsible || "").toLowerCase().includes(filterResponsible.toLowerCase());
                                             const matchesDate = !filterDate || r.date === filterDate;
                                             return matchesLoc && matchesResp && matchesDate;
                                         }).length} REGISTROS
@@ -550,7 +550,7 @@ export default function BrigadistasPage() {
                                         )}
                                         <button 
                                             onClick={handleBatchDownload}
-                                            disabled={isDownloadingBatch || records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation)).length === 0}
+                                            disabled={isDownloadingBatch || records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || (r.responsible || "").toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation)).length === 0}
                                             className="w-full h-[33px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isDownloadingBatch ? (
@@ -595,7 +595,7 @@ export default function BrigadistasPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800/50 text-sm">
-                                            {records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || r.responsible.toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation)).map((record) => (
+                                            {records.filter(r => (filterDate === "" || r.date === filterDate) && (filterResponsible === "" || (r.responsible || "").toLowerCase().includes(filterResponsible.toLowerCase())) && (filterLocation === "" || r.location === filterLocation)).map((record) => (
                                                 <tr key={record.id} className="hover:bg-slate-800/30 transition-colors">
                                                     <td className="py-4 pl-4 font-mono">{record.date}</td>
                                                     <td className="py-4"><span className="px-2 py-1 rounded bg-red-500/10 text-red-400 text-[10px] font-bold uppercase">{record.brigadistaType}</span></td>
