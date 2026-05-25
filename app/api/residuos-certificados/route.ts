@@ -42,6 +42,63 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
+
+        // 1. MODO ACCION (Delta Sync)
+        if (body.action) {
+            if (body.action === 'CREATE') {
+                const r = body.record;
+                if (!r) throw new Error('Falta el record para CREATE');
+
+                const res = await db.execute(
+                    `INSERT INTO residuos_certificados (date, month, cert_type, description, responsable, zona, file_url, file_urls)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    [
+                        r.date || '',
+                        r.month || '',
+                        r.certType || r.cert_type || '',
+                        r.description || '',
+                        r.responsable || r.responsible || '',
+                        r.zona || r.location || '',
+                        r.fileUrl || (r.fileUrls?.[0] || ''),
+                        JSON.stringify(r.fileUrls || [])
+                    ]
+                );
+                const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;
+                return NextResponse.json({ success: true, id: newId });
+            }
+
+            if (body.action === 'UPDATE') {
+                const r = body.record;
+                if (!r || !r.id) throw new Error('Falta el record o su ID para UPDATE');
+
+                await db.execute(
+                    `UPDATE residuos_certificados 
+                     SET date = ?, month = ?, cert_type = ?, description = ?, responsable = ?, zona = ?, file_url = ?, file_urls = ?
+                     WHERE id = ?`,
+                    [
+                        r.date || '',
+                        r.month || '',
+                        r.certType || r.cert_type || '',
+                        r.description || '',
+                        r.responsable || r.responsible || '',
+                        r.zona || r.location || '',
+                        r.fileUrl || (r.fileUrls?.[0] || ''),
+                        JSON.stringify(r.fileUrls || []),
+                        r.id
+                    ]
+                );
+                return NextResponse.json({ success: true });
+            }
+
+            if (body.action === 'DELETE') {
+                const id = body.id || (body.record && body.record.id);
+                if (!id) throw new Error('Falta el ID para DELETE');
+                await db.execute('DELETE FROM residuos_certificados WHERE id = ?', [id]);
+                return NextResponse.json({ success: true });
+            }
+        }
+
+        // 2. MODO ARRAY (Compatibilidad temporal)
         const records = Array.isArray(body) ? body : body.records;
         if (!records) return NextResponse.json({ success: false, error: 'No records provided' });
 

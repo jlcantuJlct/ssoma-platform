@@ -99,34 +99,33 @@ export default function GestionResiduosPage() {
                 fileUrls: uploadedFiles,
             };
 
-            let allRecords;
-            if (editingId) {
-                allRecords = records.map(r => r.id === editingId ? newRecord : r);
-            } else {
-                allRecords = [newRecord, ...records];
-            }
+            const action = editingId ? 'UPDATE' : 'CREATE';
             
             const res = await fetch('/api/residuos-certificados', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords })
+                body: JSON.stringify({ action, record: newRecord })
             });
 
             if (res.ok) {
-                setIsAdding(false);
-                setEditingId(null);
-                setFormData({
-                    ...formData,
-                    documentType: '',
-                    description: '',
-                });
-                setSelectedZones([]);
-                setUploadedFiles([]);
-                fetchData();
-                alert(`Documento ${editingId ? 'actualizado' : 'registrado'} correctamente.`);
-            } else {
                 const data = await res.json();
-                alert(`Error al guardar: ${data.error || 'Error desconocido'}`);
+                if (data.success) {
+                    setIsAdding(false);
+                    setEditingId(null);
+                    setFormData({
+                        ...formData,
+                        documentType: '',
+                        description: '',
+                    });
+                    setSelectedZones([]);
+                    setUploadedFiles([]);
+                    fetchData();
+                    alert(`Documento ${editingId ? 'actualizado' : 'registrado'} correctamente.`);
+                } else {
+                    alert(`Error al guardar: ${data.error || 'Error desconocido'}`);
+                }
+            } else {
+                alert(`Error al comunicar con el servidor.`);
             }
         } catch (error: any) {
             alert(`Error al guardar registro: ${error.message}`);
@@ -169,15 +168,17 @@ export default function GestionResiduosPage() {
         }
 
         try {
-            const updatedRecords = records.filter(r => r.id !== id);
             const res = await fetch('/api/residuos-certificados', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updatedRecords })
+                body: JSON.stringify({ action: 'DELETE', id })
             });
+            const data = await res.json();
 
-            if (res.ok) {
-                setRecords(updatedRecords);
+            if (res.ok && data.success) {
+                setRecords(prev => prev.filter(r => r.id !== id));
+            } else {
+                alert(`Error al eliminar: ${data.error || 'Error desconocido'}`);
             }
         } catch (error) {
             console.error('Error deleting record:', error);
