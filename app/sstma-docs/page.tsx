@@ -146,20 +146,18 @@ export default function SSTMADocsPage() {
                 fileUrls: uploadedFiles,
             };
 
-            let allRecords;
-            if (editingId) {
-                allRecords = records.map(r => r.id === editingId ? newRecord : r);
-            } else {
-                allRecords = [newRecord, ...records];
-            }
-            
+            const action = editingId ? 'UPDATE' : 'CREATE';
             const res = await fetch('/api/sstma-docs-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: allRecords })
+                body: JSON.stringify({ action, record: newRecord })
             });
+            const data = await res.json();
 
-            if (res.ok) {
+            if (res.ok && data.success) {
+                if (action === 'CREATE' && data.id) {
+                    newRecord.id = data.id;
+                }
                 setIsAdding(false);
                 setEditingId(null);
                 setFormData({
@@ -171,10 +169,11 @@ export default function SSTMADocsPage() {
                 fetchData();
                 alert('Documento registrado correctamente.');
             } else {
-                alert('Error al guardar el documento.');
+                alert(data.error || 'Error al guardar el documento.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving record:', error);
+            alert(`Hubo un error al guardar: ${error.message}`);
         } finally {
             setIsSaving(false);
         }
@@ -184,15 +183,21 @@ export default function SSTMADocsPage() {
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
         
         try {
-            const updated = records.filter(r => r.id !== id);
-            await fetch('/api/sstma-docs-records', {
+            const res = await fetch('/api/sstma-docs-records', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: updated })
+                body: JSON.stringify({ action: 'DELETE', id })
             });
-            fetchData();
-        } catch (error) {
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                fetchData();
+            } else {
+                alert(data.error || 'Error al eliminar el documento.');
+            }
+        } catch (error: any) {
             console.error('Error deleting record:', error);
+            alert(`Hubo un error al eliminar: ${error.message}`);
         }
     };
 
