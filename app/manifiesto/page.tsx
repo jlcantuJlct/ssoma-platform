@@ -259,6 +259,9 @@ export default function ManifestPage() {
 
     filteredRecords.forEach(r => {
         if (!r.date) return;
+        // Solo sumar si es Certificado de Disposición Final para evitar duplicar con Manifiestos/Transportista
+        if (r.documentType !== 'Certificado de Disposición Final') return;
+        
         const monthIndex = parseInt(r.date.split('-')[1]) - 1;
         if (monthIndex >= 0 && monthIndex < 12) {
             let recTotal = 0;
