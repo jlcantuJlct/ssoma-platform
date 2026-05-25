@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
-import { FileText, Plus, Trash2, Calendar, User, MapPin, Upload, Folder, X, ShieldCheck, Download, DownloadCloud } from 'lucide-react';
+import { FileText, Plus, Trash2, Calendar, User, MapPin, Upload, Folder, X, ShieldCheck, Download, DownloadCloud, Edit2 } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, generateFilename } from "@/lib/utils";
 import { exportTableToPDF, exportRecordToPDF } from '@/lib/pdfExport';
+import PreviewCarouselModal from "@/components/PreviewCarouselModal";
+import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 const DOCUMENT_TYPES = [
     "4.1. PLAN DE SST",
@@ -26,6 +28,7 @@ export default function SSTMADocsPage() {
     const [records, setRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -33,6 +36,7 @@ export default function SSTMADocsPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [viewingFile, setViewingFile] = useState<any>(null);
     
     // Filters
     const [filterDocType, setFilterDocType] = useState('');
@@ -62,13 +66,66 @@ export default function SSTMADocsPage() {
             const recRes = await fetch('/api/sstma-docs-records');
             const recData = await recRes.json();
             if (recData.success && Array.isArray(recData.records)) {
-                setRecords(recData.records);
+                const sorted = recData.records.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(sorted);
             }
         } catch (error) {
             console.error('Error fetching SSTMA Docs data:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleFileUpload = async (e: any) => {
+        const fileList = e.target?.files || e.dataTransfer?.files || [];
+        const files = Array.from(fileList) as File[];
+        if (files.length === 0) return;
+
+        setIsUploading(true);
+        setUploadProgress({ current: 0, total: files.length });
+        const newUploadedUrls: string[] = [];
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                setUploadProgress({ current: i + 1, total: files.length });
+                const url = await uploadEvidence(
+                    file, 'DocsGestión', formData.documentType || 'DOC_SSTMA', formData.date, formData.responsable, 'SSTMA_DOCS', 'SEGURIDAD', formData.zona, 'DOCS'
+                );
+                newUploadedUrls.push(url);
+            }
+            setUploadedFiles(prev => [...prev, ...newUploadedUrls]);
+        } catch (error: any) {
+            alert(`Error al subir archivo: ${error.message}`);
+        } finally {
+            setIsUploading(false);
+            if (e.target && e.target.type === 'file') e.target.value = '';
+        }
+    };
+
+    const handleEdit = (rec: any) => {
+        setFormData({
+            date: rec.date || new Date().toISOString().split('T')[0],
+            documentType: rec.documentType || '',
+            responsable: rec.responsable || user?.name || 'Usuario SSOMA',
+            zona: rec.zona || SSOMA_LOCATIONS[0],
+            description: rec.description || ''
+        });
+        setUploadedFiles(rec.fileUrls || []);
+        setEditingId(rec.id);
+        setIsAdding(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setIsAdding(false);
+        setEditingId(null);
+        setFormData({
+            ...formData,
+            documentType: '',
+            description: '',
+        });
+        setUploadedFiles([]);
     };
 
     const handleSave = async () => {
@@ -80,7 +137,7 @@ export default function SSTMADocsPage() {
         setIsSaving(true);
         try {
             const newRecord = {
-                id: Date.now(),
+                id: editingId || Date.now(),
                 date: formData.date,
                 documentType: formData.documentType,
                 description: formData.description,
@@ -89,7 +146,12 @@ export default function SSTMADocsPage() {
                 fileUrls: uploadedFiles,
             };
 
-            const allRecords = [...records, newRecord];
+            let allRecords;
+            if (editingId) {
+                allRecords = records.map(r => r.id === editingId ? newRecord : r);
+            } else {
+                allRecords = [newRecord, ...records];
+            }
             
             const res = await fetch('/api/sstma-docs-records', {
                 method: 'POST',
@@ -99,6 +161,7 @@ export default function SSTMADocsPage() {
 
             if (res.ok) {
                 setIsAdding(false);
+                setEditingId(null);
                 setFormData({
                     ...formData,
                     documentType: '',
@@ -106,6 +169,9 @@ export default function SSTMADocsPage() {
                 });
                 setUploadedFiles([]);
                 fetchData();
+                alert('Documento registrado correctamente.');
+            } else {
+                alert('Error al guardar el documento.');
             }
         } catch (error) {
             console.error('Error saving record:', error);
@@ -150,7 +216,7 @@ export default function SSTMADocsPage() {
                         </div>
                     </div>
                     <button 
-                        onClick={() => setIsAdding(!isAdding)}
+                        onClick={() => isAdding ? cancelEdit() : setIsAdding(true)}
                         className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-cyan-600/20 active:scale-95"
                     >
                         {isAdding ? <X size={20} /> : <Plus size={20} />}
@@ -230,29 +296,14 @@ export default function SSTMADocsPage() {
                                     <div 
                                         onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
                                         onDragLeave={() => setIsDragging(false)}
-                                        onDrop={async (e) => {
+                                        onDrop={(e) => {
                                             e.preventDefault();
                                             setIsDragging(false);
-                                            if (isUploading) return;
-                                            
-                                            const files = Array.from(e.dataTransfer.files);
-                                            if (files.length === 0) return;
-
-                                            setIsUploading(true);
-                                            try {
-                                                for (const file of files) {
-                                                    const url = await uploadEvidence(
-                                                        file, 'DocsGestión', formData.documentType || 'DOC_SSTMA', formData.date, formData.responsable, 'SSTMA_DOCS', 'SEGURIDAD', formData.zona, 'DOCS'
-                                                    );
-                                                    setUploadedFiles(prev => [...prev, url]);
-                                                }
-                                            } catch (err: any) {
-                                                alert(`Error al subir: ${err.message}`);
-                                            } finally {
-                                                setIsUploading(false);
+                                            if (!isUploading) {
+                                                handleFileUpload({ target: { files: e.dataTransfer.files } } as any);
                                             }
                                         }}
-                                        className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group ${
+                                        className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group overflow-hidden ${
                                             isUploading ? 'border-amber-500 bg-amber-500/5' :
                                             isDragging ? 'border-cyan-500 bg-cyan-500/10' : 
                                             uploadedFiles.length > 0 ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-slate-800 hover:border-slate-700'
@@ -260,32 +311,22 @@ export default function SSTMADocsPage() {
                                     >
                                         <input 
                                             type="file" multiple disabled={isUploading}
-                                            onChange={async (e) => {
-                                                const files = Array.from(e.target.files || []);
-                                                if (files.length === 0) return;
-                                                
-                                                setIsUploading(true);
-                                                try {
-                                                    for (const file of files) {
-                                                        const url = await uploadEvidence(
-                                                            file, 'DocsGestión', formData.documentType || 'DOC_SSTMA', formData.date, formData.responsable, 'SSTMA_DOCS', 'SEGURIDAD', formData.zona, 'DOCS'
-                                                        );
-                                                        setUploadedFiles(prev => [...prev, url]);
-                                                    }
-                                                } catch (err: any) {
-                                                    alert(`Error al subir: ${err.message}`);
-                                                } finally {
-                                                    setIsUploading(false);
-                                                }
-                                            }}
-                                            className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
+                                            onChange={handleFileUpload}
+                                            className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait z-10"
                                         />
                                         <div className={`p-4 rounded-2xl ${isUploading ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 group-hover:text-cyan-400'}`}>
                                             {isUploading ? <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Upload size={32} />}
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-xs font-black uppercase text-white">{isUploading ? `SUBIENDO... ${uploadProgress.total > 1 ? `(${uploadProgress.current}/${uploadProgress.total})` : ''}` : 'ARRASTRA O HAZ CLIC AQUÍ'}</p>
+                                            <p className="text-xs font-black uppercase text-white">
+                                                {isUploading 
+                                                    ? `SUBIENDO... ${uploadProgress.current}/${uploadProgress.total}` 
+                                                    : uploadedFiles.length > 0 ? `${uploadedFiles.length} ARCHIVOS LISTOS` : 'ARRASTRA O HAZ CLIC AQUÍ'}
+                                            </p>
                                         </div>
+                                        {isUploading && uploadProgress.total > 0 && (
+                                            <div className="absolute bottom-0 left-0 h-1.5 bg-amber-500 transition-all duration-300 z-0" style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }} />
+                                        )}
                                     </div>
 
                                     {/* Preview files */}
@@ -319,7 +360,7 @@ export default function SSTMADocsPage() {
                                         onClick={handleSave}
                                         className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 text-white px-10 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
                                     >
-                                        {isSaving ? 'Guardando...' : 'Registrar Documento'}
+                                        {isSaving ? 'Guardando...' : editingId ? 'Actualizar Documento' : 'Registrar Documento'}
                                     </button>
                                 </div>
                             </div>
@@ -361,18 +402,15 @@ export default function SSTMADocsPage() {
                             >
                                 <DownloadCloud size={14} /> PDF
                             </button>
-                            <button
-                                onClick={() => {
-                                    const filtered = records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate));
-                                    setIsDownloading(true);
-                                    handleBulkDownload(filtered, 'Docs_SSTMA.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                            <BatchDownloadZip 
+                                records={records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate))}
+                                getUrls={(r) => r.fileUrls || []}
+                                getFilename={(r, i, total) => {
+                                    return generateFilename(r.documentType, r.date, r.responsable, 'pdf', 'documento', r.zona, 'sstma').replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + '.pdf';
                                 }}
-                                disabled={isDownloading || records.filter(r => (!filterDocType || r.documentType === filterDocType) && (!filterDate || r.date === filterDate)).length === 0}
-                                className="bg-slate-800 hover:bg-cyan-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
-                            >
-                                {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
-                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
-                            </button>
+                                zipName={`Docs_SSTMA_${filterDate || 'Masivos'}.zip`}
+                                className="bg-slate-800 hover:bg-cyan-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700 h-[33px]"
+                            />
                         </div>
                     </div>
 
@@ -451,12 +489,15 @@ export default function SSTMADocsPage() {
                                                     <h3 className="font-bold text-white text-xs leading-tight line-clamp-2" title={rec.documentType}>{rec.documentType}</h3>
                                                     <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                                                         <Calendar size={10} /> {rec.date}
+                                                        <span className="mx-1 opacity-30">|</span>
+                                                        <FileText size={10} className="text-cyan-500/70" /> 
+                                                        <span className="text-cyan-400 font-medium">{rec.fileUrls?.length || 0}</span> Archivo(s)
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="flex gap-1 shrink-0 ml-2">
                                                 <button 
-                                                    onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
+                                                    onClick={() => setViewingFile(rec)}
                                                     className="p-1.5 bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-lg transition-all"
                                                     title="Ver Documento"
                                                 >
@@ -471,6 +512,13 @@ export default function SSTMADocsPage() {
                                                 >
                                                     <Download size={14} />
                                                 </a>
+                                                <button 
+                                                    onClick={() => handleEdit(rec)}
+                                                    className="p-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 rounded-lg transition-all flex items-center justify-center"
+                                                    title="Editar"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
                                                 <button 
                                                     onClick={() => {
                                                         exportRecordToPDF('Documento SSTMA', rec, `Doc_${rec.date}_${rec.documentType}.pdf`);
@@ -505,6 +553,25 @@ export default function SSTMADocsPage() {
                                                 <p className="text-[10px] text-slate-400 line-clamp-2">{rec.description}</p>
                                             </div>
                                         )}
+                                        {rec.fileUrls && rec.fileUrls.length > 0 && (
+                                            <div className="pt-2 mt-2 border-t border-slate-800/50 flex flex-col gap-1">
+                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Archivos Adjuntos</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {rec.fileUrls.map((url: string, idx: number) => (
+                                                        <button 
+                                                            key={idx} 
+                                                            onClick={() => {
+                                                                setViewingFile(rec);
+                                                            }}
+                                                            className="text-[9px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 bg-slate-900/80 border border-slate-800 px-2 py-1 rounded-md transition-all hover:border-cyan-500/50"
+                                                        >
+                                                            <FileText size={10} className="shrink-0" />
+                                                            <span className="truncate max-w-[150px]">{rec.documentType || 'Documento'} {rec.fileUrls.length > 1 ? idx + 1 : ''}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </Card>
                             ))}
@@ -512,6 +579,15 @@ export default function SSTMADocsPage() {
                     )}
                 </div>
 
+            {viewingFile && (
+                <PreviewCarouselModal
+                    urls={viewingFile.fileUrls || []}
+                    onClose={() => setViewingFile(null)}
+                    canEdit={user?.role === 'developer' || user?.role === 'manager' || user?.name === viewingFile.responsable}
+                    onEdit={() => handleEdit(viewingFile)}
+                    filename={generateFilename(viewingFile.documentType, viewingFile.date, viewingFile.responsable, 'pdf', 'documento', viewingFile.zona, 'sstma')}
+                />
+            )}
             </div>
         </div>
     );
