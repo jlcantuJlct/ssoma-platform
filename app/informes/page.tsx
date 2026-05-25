@@ -7,8 +7,10 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from "@/lib/utils";
+import { getDriveViewerUrl, getDriveDownloadUrl, generateFilename } from "@/lib/utils";
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
+import PreviewCarouselModal from "@/components/PreviewCarouselModal";
+import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 const MONTHS = [
     "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -27,6 +29,7 @@ export default function InformesPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [viewingEvidence, setViewingEvidence] = useState<any>(null);
     
     // Filters
     const [filterMonth, setFilterMonth] = useState('');
@@ -333,18 +336,16 @@ export default function InformesPage() {
                             <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
                                 {records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length} REGISTROS
                             </div>
-                            <button
-                                onClick={() => {
-                                    const filtered = records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation));
-                                    setIsDownloading(true);
-                                    handleBulkDownload(filtered, 'Informes.zip', setDownloadMsg).finally(() => setIsDownloading(false));
+                            <BatchDownloadZip 
+                                records={records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation))}
+                                getUrls={(r) => r.fileUrls || []}
+                                getFilename={(r, i, total) => {
+                                    const ext = r.fileUrls[i].toLowerCase().includes('pdf') ? 'pdf' : 'jpg';
+                                    return generateFilename('Informe', r.date, r.responsable, ext, 'informes', r.zona, 'SEGURIDAD').replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + `.${ext}`;
                                 }}
-                                disabled={isDownloading || records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation)).length === 0}
+                                zipName={`Informes_${filterMonth || 'Todos'}.zip`}
                                 className="bg-slate-800 hover:bg-violet-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
-                            >
-                                {isDownloading ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <DownloadCloud size={14} />}
-                                {isDownloading ? (downloadMsg || 'Comprimiendo...') : 'Descargar Visibles'}
-                            </button>
+                            />
                             <button
                                 onClick={() => {
                                     const filtered = records.filter(r => (!filterMonth || r.month === filterMonth) && (!filterLocation || r.zona === filterLocation));
@@ -445,21 +446,12 @@ export default function InformesPage() {
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
-                                                    onClick={() => window.open(getDriveViewerUrl(rec.fileUrls && rec.fileUrls[0]), '_blank')}
+                                                    onClick={() => setViewingEvidence(rec)}
                                                     className="p-1.5 bg-slate-800 hover:bg-violet-500/20 text-slate-400 hover:text-violet-400 rounded-lg transition-all"
                                                     title="Ver Informe"
                                                 >
                                                     <FileText size={14} />
                                                 </button>
-                                                <a 
-                                                    href={getDriveDownloadUrl(rec.fileUrls && rec.fileUrls[0])}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="p-1.5 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all flex items-center justify-center"
-                                                    title="Descargar Archivo Adjunto"
-                                                >
-                                                    <Download size={14} />
-                                                </a>
                                                 <button 
                                                     onClick={() => exportRecordToPDF('Detalle de Informe', rec, `Informe_${rec.id}.pdf`)}
                                                     className="p-1.5 bg-slate-800 hover:bg-orange-500/20 text-slate-400 hover:text-orange-400 rounded-lg transition-all"
@@ -500,6 +492,28 @@ export default function InformesPage() {
                 </div>
 
             </div>
+            {viewingEvidence && (
+                <PreviewCarouselModal
+                    isOpen={!!viewingEvidence}
+                    onClose={() => setViewingEvidence(null)}
+                    fileUrls={viewingEvidence.fileUrls || []}
+                    title={`Evidencias - Informe de ${viewingEvidence.month}`}
+                    recordId={viewingEvidence.id}
+                    tableName="informes-records"
+                    onUpdateUrls={async (newUrls) => {
+                        const updatedRecords = records.map(r => 
+                            r.id === viewingEvidence.id ? { ...r, fileUrls: newUrls } : r
+                        );
+                        setRecords(updatedRecords);
+                        setViewingEvidence({ ...viewingEvidence, fileUrls: newUrls });
+                        await fetch('/api/informes-records', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ records: updatedRecords })
+                        });
+                    }}
+                />
+            )}
         </div>
     );
 }
