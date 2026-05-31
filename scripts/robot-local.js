@@ -173,7 +173,7 @@ const OSITRAN_MAP = {
     "ANEXO 0. INFORME SIMULACRO": ["simulacro-records"],
     "ANEXO 1. CERTIFICADO EORS": ["residuos-certificados"],
     "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD": ["equipment-certs"],
-    "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES": null,
+    "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES": ["auxiliar-auths"],
     "ANEXO 4. FLUJOGRAMA": null,
     "ANEXO 5. CÓDIGO DE CONDUCTA": ["sstma-docs-records"],
     "ANEXO 6. COMPRAS LOCALES": null,
@@ -183,7 +183,7 @@ const OSITRAN_MAP = {
     "ANEXO 10. CHARLA DIARIA": ["hhc-records"],
     "ANEXO 11. EMOS": null,
     "ANEXO 12. ENTREGA DE EPPS": ["epp-records"],
-    "ANEXO 13. SUB COMITÉ": ["actas-supervision"],
+    "ANEXO 13. SUB COMITÉ": ["evidence-records"],
     "ANEXO 14. SCTR": ["sctr-records"],
     "ANEXO 15. ATS Y PETAR": ["ats-records", "petar-records"],
     "ANEXO 16. PLAN DE CONTINGENCIA": ["sstma-docs-records"],
@@ -229,7 +229,7 @@ async function processRequest(request) {
                         const filtered = records.filter(r => {
                             const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar || r.place));
                             const monthMatch = matchesMonth(r.month || r.date, month);
-                            if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
+                            if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
                             return locMatch && monthMatch;
                         });
 
@@ -324,7 +324,13 @@ async function processRequest(request) {
                             const filtered = records.filter(r => {
                                 const locMatch = normalizeLocation(r.zona || r.location || r.lugar || r.place || currentLoc).includes(normalizeLocation(currentLoc));
                                 const monthMatch = matchesMonth(r.month || r.date, month);
-                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
+                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
+                                
+                                // Filtrar específicamente las reuniones del SCSST para el Anexo 13
+                                if (annexFolderName === "ANEXO 13. SUB COMITÉ" && endpoint === "evidence-records") {
+                                    if (!r.activity || !r.activity.toLowerCase().includes("reunión ordinaria")) return false;
+                                }
+                                
                                 return locMatch && monthMatch;
                             });
 

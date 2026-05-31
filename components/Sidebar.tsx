@@ -77,7 +77,7 @@ export default function Sidebar() {
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
-                className="md:hidden fixed top-4 right-4 z-[60] p-2 bg-slate-800 text-slate-200 rounded-lg border border-slate-700 shadow-lg"
+                className="md:hidden fixed top-3 left-3 z-[60] p-2 bg-slate-900 text-emerald-400 rounded-lg border border-emerald-500/30 shadow-lg hover:bg-slate-800 transition-colors"
             >
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -166,6 +166,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
                         <SidebarItem icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
                         <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                        <SidebarItem icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Autorizaciones Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
                     </div>
 
                     {/* INFORMES Y OTROS */}
