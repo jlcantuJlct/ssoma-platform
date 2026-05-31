@@ -60,6 +60,22 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
+        if (action === 'update') {
+            if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
+            await db.execute(
+                `UPDATE auxiliar_auths SET date=?, auth_type=?, location=?, files=? WHERE id=?`,
+                [
+                    data.date || '',
+                    data.authType || '',
+                    data.location || '',
+                    JSON.stringify(data.files || []),
+                    id
+                ]
+            );
+            await logActivity(actingUser, `ACTUALIZACIÓN DE AUTORIZACIÓN: ${data.authType}`, 'Medio Ambiente', `ID: ${id}`);
+            return NextResponse.json({ success: true });
+        }
+
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required for delete' }, { status: 400 });
             await db.execute('DELETE FROM auxiliar_auths WHERE id=?', [id]);

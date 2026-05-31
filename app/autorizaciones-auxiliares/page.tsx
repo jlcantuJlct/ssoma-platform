@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { Upload, Trash2, DownloadCloud, CheckCircle2, Leaf, Calendar, MapPin, Search } from 'lucide-react';
+import { Upload, Trash2, DownloadCloud, CheckCircle2, Leaf, Calendar, MapPin, Search, Edit2, X } from 'lucide-react';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { getInitials } from '@/lib/utils';
 
@@ -33,6 +33,8 @@ export default function AutorizacionesAuxiliaresPage() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [existingFiles, setExistingFiles] = useState<string[]>([]);
     
     // Filtros
     const [filterDate, setFilterDate] = useState("");
@@ -95,10 +97,33 @@ export default function AutorizacionesAuxiliaresPage() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    const removeExistingFile = (index: number) => {
+        setExistingFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleEdit = (rec: AuthRecord) => {
+        setEditingId(rec.id);
+        setForm({
+            date: rec.date,
+            authType: rec.authType,
+            location: rec.location
+        });
+        setExistingFiles(rec.files || []);
+        setFiles([]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setForm({ date: new Date().toISOString().split('T')[0], authType: '', location: '' });
+        setFiles([]);
+        setExistingFiles([]);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.authType) return alert("Seleccione el tipo de autorización.");
-        if (files.length === 0) return alert("Debe adjuntar al menos un archivo.");
+        if (files.length === 0 && existingFiles.length === 0) return alert("Debe adjuntar al menos un archivo.");
 
         try {
             setIsUploading(true);
@@ -129,13 +154,14 @@ export default function AutorizacionesAuxiliaresPage() {
             clearInterval(progressInterval);
             setUploadProgress(100);
 
-            const newRecordData = { ...form, files: uploadedUrls };
+            const newRecordData = { ...form, files: [...existingFiles, ...uploadedUrls] };
             
             const res = await fetch('/api/auxiliar-auths', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'create',
+                    action: editingId ? 'update' : 'create',
+                    id: editingId,
                     data: newRecordData,
                     userName: user?.name
                 })
@@ -143,11 +169,15 @@ export default function AutorizacionesAuxiliaresPage() {
             const result = await res.json();
 
             if (result.success) {
-                const newRecord: AuthRecord = { id: result.id, ...newRecordData };
-                setRecords(prev => [newRecord, ...prev]);
-                setForm(prev => ({ ...prev, authType: '', location: '' }));
-                setFiles([]);
-                alert("Autorización guardada correctamente.");
+                if (editingId) {
+                    setRecords(prev => prev.map(r => r.id === editingId ? { ...r, ...newRecordData } : r));
+                    alert("Autorización actualizada correctamente.");
+                } else {
+                    const newRecord: AuthRecord = { id: result.id, ...newRecordData };
+                    setRecords(prev => [newRecord, ...prev]);
+                    alert("Autorización guardada correctamente.");
+                }
+                cancelEdit();
             } else {
                 alert("Error al guardar: " + result.error);
             }
@@ -205,9 +235,16 @@ export default function AutorizacionesAuxiliaresPage() {
                 
                 {/* FORMULARIO DE CARGA */}
                 <div className="bg-slate-900 border border-emerald-500/20 rounded-xl overflow-hidden shadow-lg">
-                    <div className="p-4 bg-slate-800/50 border-b border-slate-700/50 flex items-center gap-3">
-                        <Upload className="text-emerald-400" size={20} />
-                        <h2 className="text-lg font-bold text-slate-100">Registrar Nueva Autorización</h2>
+                    <div className="p-4 bg-slate-800/50 border-b border-slate-700/50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {editingId ? <Edit2 className="text-amber-400" size={20} /> : <Upload className="text-emerald-400" size={20} />}
+                            <h2 className="text-lg font-bold text-slate-100">{editingId ? 'Editar Autorización' : 'Registrar Nueva Autorización'}</h2>
+                        </div>
+                        {editingId && (
+                            <button onClick={cancelEdit} className="text-sm flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors">
+                                <X size={16} /> Cancelar Edición
+                            </button>
+                        )}
                     </div>
                     
                     <form onSubmit={handleSubmit} className="p-6">
@@ -298,6 +335,25 @@ export default function AutorizacionesAuxiliaresPage() {
                                 </div>
                             )}
 
+                            {existingFiles.length > 0 && (
+                                <div className="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">Archivos Actuales (Ya subidos)</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {existingFiles.map((fileUrl, i) => (
+                                            <div key={`exist-${i}`} className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-sm">
+                                                <DownloadCloud size={14} className="text-blue-400" />
+                                                <a href={fileUrl} target="_blank" rel="noreferrer" className="truncate max-w-[120px] hover:text-blue-400 transition-colors text-slate-300">
+                                                    Archivo {i+1}
+                                                </a>
+                                                <button type="button" onClick={() => removeExistingFile(i)} className="text-slate-400 hover:text-red-400 ml-1">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {files.length > 0 && (
                                 <div className="flex flex-wrap gap-3 mt-4">
                                     {files.map((file, i) => (
@@ -313,13 +369,28 @@ export default function AutorizacionesAuxiliaresPage() {
                             )}
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-3">
+                            {editingId && (
+                                <button
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    disabled={isUploading}
+                                    className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg border border-slate-700 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                            )}
                             <button
                                 type="submit"
                                 disabled={isUploading}
-                                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`px-6 py-2.5 font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                                    ${editingId 
+                                        ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
+                                        : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                                    }
+                                `}
                             >
-                                {isUploading ? 'Subiendo y Guardando...' : 'Guardar Autorización'}
+                                {isUploading ? 'Subiendo y Guardando...' : (editingId ? 'Actualizar Autorización' : 'Guardar Autorización')}
                             </button>
                         </div>
                     </form>
@@ -387,6 +458,9 @@ export default function AutorizacionesAuxiliaresPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <button onClick={() => handleEdit(r)} className="p-1.5 text-slate-500 hover:text-amber-400 transition-colors" title="Editar registro">
+                                                        <Edit2 size={16} />
+                                                    </button>
                                                     <button onClick={() => exportRecordToPDF('Autorización de Área Auxiliar', r, `Auth_${r.id}.pdf`)} className="p-1.5 text-slate-500 hover:text-blue-400 transition-colors" title="Descargar como PDF">
                                                         <DownloadCloud size={16} />
                                                     </button>
