@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { Upload, Trash2, DownloadCloud, CheckCircle2, Leaf, Calendar, MapPin, Search } from 'lucide-react';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { getInitials } from '@/lib/utils';
-import Header from '@/components/dashboard/Header';
+
 import { exportRecordToPDF } from '@/lib/pdfExport';
 
 type AuthRecord = {
@@ -164,7 +164,17 @@ export default function AutorizacionesAuxiliaresPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-300 pb-20">
-            <Header title="Autorizaciones de las Áreas Auxiliares" subtitle="Gestión Medio Ambiental y OSITRAN (Anexo 3)" icon={<Leaf className="text-emerald-500" />} />
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-6 mx-6 mt-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
+                <div>
+                    <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
+                        <Leaf className="text-emerald-500" size={32} />
+                        Autorizaciones de Áreas Auxiliares
+                    </h1>
+                    <p className="text-slate-400 font-medium tracking-wide">
+                        Gestión Medio Ambiental y OSITRAN (Anexo 3)
+                    </p>
+                </div>
+            </header>
             
             <div className="p-6 max-w-7xl mx-auto space-y-6">
                 
