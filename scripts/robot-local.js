@@ -227,7 +227,7 @@ async function processRequest(request) {
                         const records = await fetchRecords(endpoint);
                         
                         const filtered = records.filter(r => {
-                            const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar));
+                            const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar || r.place));
                             const monthMatch = matchesMonth(r.month || r.date, month);
                             if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
                             return locMatch && monthMatch;
@@ -322,7 +322,7 @@ async function processRequest(request) {
                             const records = await fetchRecords(endpoint);
                             
                             const filtered = records.filter(r => {
-                                const locMatch = normalizeLocation(r.zona || r.location || r.lugar || currentLoc).includes(normalizeLocation(currentLoc));
+                                const locMatch = normalizeLocation(r.zona || r.location || r.lugar || r.place || currentLoc).includes(normalizeLocation(currentLoc));
                                 const monthMatch = matchesMonth(r.month || r.date, month);
                                 if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
                                 return locMatch && monthMatch;

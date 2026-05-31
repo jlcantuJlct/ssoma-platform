@@ -44,7 +44,8 @@ export async function GET() {
         return NextResponse.json({ 
             success: true, 
             actas, 
-            levantamientos 
+            levantamientos,
+            records: levantamientos // Alias para compatibilidad con el Robot (descarga de evidencias)
         });
     } catch (error: any) {
         console.error('Error fetching Actas records:', error);
