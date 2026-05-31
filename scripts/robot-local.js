@@ -174,8 +174,8 @@ const OSITRAN_MAP = {
     "ANEXO 1. CERTIFICADO EORS": ["residuos-certificados"],
     "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD": ["equipment-certs"],
     "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES": ["auxiliar-auths"],
-    "ANEXO 4. FLUJOGRAMA": null,
-    "ANEXO 5. CÓDIGO DE CONDUCTA": ["sstma-docs-records"],
+    "ANEXO 4. FLUJOGRAMA": ["sstma-docs-records"],
+    "ANEXO 5. CÓDIGO DE CONDUCTA": ["hhc-records"],
     "ANEXO 6. COMPRAS LOCALES": null,
     "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN": ["hhc-records"],
     "ANEXO 8. POLÍTICA Y PLAN": ["sstma-docs-records"],
@@ -229,7 +229,9 @@ async function processRequest(request) {
                         const filtered = records.filter(r => {
                             const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar || r.place));
                             const monthMatch = matchesMonth(r.month || r.date, month);
+                            // Bypass de fechas/lugares para endpoints permanentes
                             if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
+
                             return locMatch && monthMatch;
                         });
 
@@ -324,12 +326,24 @@ async function processRequest(request) {
                             const filtered = records.filter(r => {
                                 const locMatch = normalizeLocation(r.zona || r.location || r.lugar || r.place || currentLoc).includes(normalizeLocation(currentLoc));
                                 const monthMatch = matchesMonth(r.month || r.date, month);
-                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
                                 
                                 // Filtrar específicamente las reuniones del SCSST para el Anexo 13
                                 if (annexFolderName === "ANEXO 13. SUB COMITÉ" && endpoint === "evidence-records") {
                                     if (!r.activity || !r.activity.toLowerCase().includes("reunión ordinaria")) return false;
                                 }
+
+                                // Filtrar específicamente el flujograma para el Anexo 4
+                                if (annexFolderName === "ANEXO 4. FLUJOGRAMA" && endpoint === "sstma-docs-records") {
+                                    if (!r.documentType || !r.documentType.toLowerCase().includes("flujograma")) return false;
+                                }
+
+                                // Filtrar específicamente el código de conducta para el Anexo 5
+                                if (annexFolderName === "ANEXO 5. CÓDIGO DE CONDUCTA" && endpoint === "hhc-records") {
+                                    if (!r.tema || !r.tema.toLowerCase().includes("conducta")) return false;
+                                }
+
+                                // Bypass de fechas/lugares para endpoints permanentes
+                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
                                 
                                 return locMatch && monthMatch;
                             });
