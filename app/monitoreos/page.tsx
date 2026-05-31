@@ -52,19 +52,52 @@ export default function MonitoringPage() {
     const [filterAgent, setFilterAgent] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
 
-    useEffect(() => {
-        const stored = localStorage.getItem('monitoring_records_v1');
-        if (stored) {
-            try { setRecords(JSON.parse(stored)); } catch (e) { }
+    const fetchRecords = async () => {
+        try {
+            const res = await fetch('/api/monitoreos');
+            const data = await res.json();
+            if (data.success) {
+                setRecords(data.records);
+            }
+        } catch (e) {
+            console.error('Error fetching Monitoreo records:', e);
+        } finally {
+            setIsLoaded(true);
         }
-        setIsLoaded(true);
-    }, []);
+    };
 
     useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('monitoring_records_v1', JSON.stringify(records));
+        const performMigrationAndLoad = async () => {
+            const stored = localStorage.getItem('monitoring_records_v1');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        await fetch('/api/monitoreos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'bulk-create',
+                                data: parsed,
+                                userName: user?.name
+                            })
+                        });
+                        localStorage.removeItem('monitoring_records_v1');
+                        alert("¡Excelente! Tus registros locales antiguos han sido sincronizados a la nube.");
+                    }
+                } catch(e) {
+                    console.error("Migration error", e);
+                }
+            }
+            await fetchRecords();
+        };
+
+        if (user) {
+            performMigrationAndLoad();
+        } else {
+            performMigrationAndLoad();
         }
-    }, [records, isLoaded]);
+    }, [user]);
 
     const handleFileUpload = async (e: any) => {
         const inputFiles = (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) ? e.dataTransfer.files : e.target?.files;
@@ -81,13 +114,59 @@ export default function MonitoringPage() {
         finally { setIsUploading(false); }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (files.length === 0) return alert("Subir el informe de monitoreo (PDF).");
-        const newRecord: MonitoringRecord = { id: Date.now(), ...form, files };
-        setRecords(prev => [newRecord, ...prev]);
-        setForm(prev => ({ ...prev, parameter: '', location: '' }));
-        setFiles([]);
+
+        try {
+            setIsUploading(true);
+            const newRecordData = { ...form, files };
+            
+            const res = await fetch('/api/monitoreos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'create',
+                    data: newRecordData,
+                    userName: user?.name
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                const newRecord: MonitoringRecord = { id: result.id, ...newRecordData };
+                setRecords(prev => [newRecord, ...prev]);
+                setForm(prev => ({ ...prev, parameter: '', location: '' }));
+                setFiles([]);
+                alert("Informe de monitoreo guardado correctamente.");
+            } else {
+                alert("Error al guardar en la nube: " + result.error);
+            }
+        } catch (error: any) {
+            alert("Error de conexión: " + error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (confirm("¿Eliminar este registro de monitoreo?")) {
+            try {
+                const res = await fetch('/api/monitoreos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id, userName: user?.name })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    setRecords(prev => prev.filter(r => r.id !== id));
+                } else {
+                    alert("Error al eliminar: " + result.error);
+                }
+            } catch (e) {
+                alert("Error de red");
+            }
+        }
     };
 
     return (
@@ -304,7 +383,7 @@ export default function MonitoringPage() {
                                                         <button onClick={() => exportRecordToPDF('Detalle de Monitoreo', r, `Monitoreo_${r.parameter}.pdf`)} className="p-2 text-slate-600 hover:text-blue-400 transition-colors" title="Descargar Fila">
                                                             <DownloadCloud size={16} />
                                                         </button>
-                                                        <button onClick={() => setRecords(records.filter(x => x.id !== r.id))} className="text-slate-600 hover:text-red-400"><Trash2 size={16} /></button>
+                                                        <button onClick={() => handleDelete(r.id)} className="text-slate-600 hover:text-red-400"><Trash2 size={16} /></button>
                                                     </div>
                                                 </td>
                                             </tr>

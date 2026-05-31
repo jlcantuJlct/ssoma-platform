@@ -60,22 +60,53 @@ export default function EPPPage() {
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
     // --- EFFECT: LOAD/SAVE ---
-    useEffect(() => {
-        const stored = localStorage.getItem('epp_records_v2');
-        if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                    setRecords(sanitizeRecords(parsed, ['responsible', 'location', 'description', 'date', 'month']));
-                }
+    const fetchRecords = async () => {
+        try {
+            const res = await fetch('/api/epp-records');
+            const data = await res.json();
+            if (data.success) {
+                setRecords(data.records);
+            }
+        } catch (e) {
+            console.error('Error fetching EPP records:', e);
+        } finally {
+            setIsLoaded(true);
         }
-        setIsLoaded(true);
-    }, []);
+    };
 
     useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('epp_records_v2', JSON.stringify(records));
+        const performMigrationAndLoad = async () => {
+            const stored = localStorage.getItem('epp_records_v2');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        await fetch('/api/epp-records', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'bulk-create',
+                                data: sanitizeRecords(parsed, ['responsible', 'location', 'description', 'date', 'month']),
+                                userName: user?.name
+                            })
+                        });
+                        localStorage.removeItem('epp_records_v2');
+                        alert("¡Excelente! Tus registros locales antiguos han sido sincronizados a la nube.");
+                    }
+                } catch(e) {
+                    console.error("Migration error", e);
+                }
+            }
+            await fetchRecords();
+        };
+
+        if (user) {
+            performMigrationAndLoad();
+        } else {
+            // Aún si no hay user cargado al instante, lo intentamos
+            performMigrationAndLoad();
         }
-    }, [records, isLoaded]);
+    }, [user]);
 
     // --- HANDLERS ---
     const handleFileUpload = async (e: any, droppedFiles?: FileList | File[]) => {
@@ -115,28 +146,61 @@ export default function EPPPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (files.length === 0) {
             alert("Debe subir al menos un PDF de Cargo de Entrega.");
             return;
         }
 
-        const newRecord: EPPRecord = {
-            id: Date.now(),
-            ...form,
-            files: files
-        };
+        try {
+            setIsUploading(true);
+            const newRecordData = { ...form, files };
+            
+            const res = await fetch('/api/epp-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'create',
+                    data: newRecordData,
+                    userName: user?.name
+                })
+            });
+            const result = await res.json();
 
-        setRecords(prev => [newRecord, ...prev]);
-        setForm(prev => ({ ...prev, description: '' }));
-        setFiles([]);
-        alert("Registro mensual de EPP guardado correctamente.");
+            if (result.success) {
+                const newRecord = { id: result.id, ...newRecordData };
+                setRecords(prev => [newRecord as EPPRecord, ...prev]);
+                setForm(prev => ({ ...prev, description: '' }));
+                setFiles([]);
+                alert("Registro mensual de EPP guardado correctamente.");
+            } else {
+                alert("Error al guardar en la nube: " + result.error);
+            }
+        } catch (error: any) {
+            alert("Error de conexión: " + error.message);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (confirm("¿Eliminar este registro mensual?")) {
-            setRecords(prev => prev.filter(r => r.id !== id));
+            try {
+                const res = await fetch('/api/epp-records', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id, userName: user?.name })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    setRecords(prev => prev.filter(r => r.id !== id));
+                } else {
+                    alert("Error al eliminar: " + result.error);
+                }
+            } catch (e) {
+                alert("Error de red");
+            }
         }
     };
 

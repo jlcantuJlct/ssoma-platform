@@ -8,7 +8,7 @@ const https = require('https');
  * CONFIGURACIÓN DEL ROBOT
  * Cambia esta URL si tu app está en otro dominio.
  */
-const BASE_URL = "https://ssoma-platform.vercel.app";
+const BASE_URL = "https://ssoma-platform.vercel.app"; // Cambiado para pruebas locales (antes era https://ssoma-platform.vercel.app)
 const API_BASE_URL = `${BASE_URL}/api/export-center`;
 const CRON_SECRET = "ssoma_cron_2026"; // Debe coincidir con el del servidor
 const POLLING_INTERVAL = 5000; // 5 segundos
@@ -56,35 +56,24 @@ async function getDriveService() {
 }
 
 async function updateStatus(id, action, progress = 0) {
-    const data = JSON.stringify({ action, id, progress });
-    const url = new URL(API_BASE_URL);
-    
-    return new Promise((resolve) => {
-        const req = https.request({
-            hostname: url.hostname,
-            path: url.pathname,
+    try {
+        await fetch(API_BASE_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CRON_SECRET}`,
-                'Content-Length': data.length
-            }
-        }, (res) => {
-            resolve();
+                'Authorization': `Bearer ${CRON_SECRET}`
+            },
+            body: JSON.stringify({ action, id, progress })
         });
-        req.on('error', (e) => {
-            console.error(`❌ Error actualizando status: ${e.message}`);
-            resolve();
-        });
-        req.write(data);
-        req.end();
-    });
+    } catch (e) {
+        console.error(`❌ Error actualizando status: ${e.message}`);
+    }
 }
 
 async function fetchRecords(endpoint) {
     return new Promise((resolve) => {
         const url = new URL(`${BASE_URL}/api/${endpoint}`);
-        https.get(url, (res) => {
+        require('https').get(url, (res) => {
             let body = '';
             res.on('data', (chunk) => body += chunk);
             res.on('end', () => {
@@ -103,31 +92,36 @@ async function fetchRecords(endpoint) {
 
 function extractDriveId(url) {
     if (!url) return null;
-    const match = url.match(/id=([^&]+)/);
+    let match = url.match(/id=([^&]+)/);
+    if (match) return match[1];
+    match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
 }
 
 async function downloadFile(drive, fileId, destPath, fallbackName) {
-    if (!drive) {
-        // Create dummy file if no drive access
-        fs.writeFileSync(destPath, `%PDF-1.4\n%Dummy PDF for ${fallbackName}\n%%EOF`);
+    if (!fileId) {
+        fs.writeFileSync(destPath, `No se encontró ID de archivo.`);
         return;
     }
     try {
-        const dest = fs.createWriteStream(destPath);
-        const res = await drive.files.get(
-            { fileId, alt: 'media' },
-            { responseType: 'stream' }
-        );
-        return new Promise((resolve, reject) => {
-            res.data
-                .on('end', () => resolve())
-                .on('error', (err) => reject(err))
-                .pipe(dest);
-        });
+        const res = await fetch(`https://drive.google.com/uc?export=download&id=${fileId}`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+        fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
     } catch (e) {
-        // Fallback dummy file
-        fs.writeFileSync(destPath, `%PDF-1.4\n%Error downloading from drive\n%%EOF`);
+        fs.writeFileSync(destPath, `Error descargando archivo ${fileId}: ${e.message}`);
+    }
+}
+
+async function downloadDirectFile(fileUrl, destPath) {
+    try {
+        const res = await fetch(fileUrl);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+        fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
+    } catch (e) {
+        const isImage = destPath.toLowerCase().endsWith('.jpg');
+        fs.writeFileSync(destPath, isImage ? `%IMAGE\n%Link: ${fileUrl}\n%%EOF` : `%PDF-1.4\n%Link: ${fileUrl}\n%%EOF`);
     }
 }
 
@@ -140,7 +134,15 @@ function matchesMonth(recordMonth, targetMonthIndex) {
     if (!recordMonth) return false;
     const rm = String(recordMonth).toUpperCase();
     const targetName = MONTH_NAMES[targetMonthIndex];
-    return rm.includes(targetName) || rm === String(targetMonthIndex + 1) || rm === `0${targetMonthIndex + 1}`;
+    
+    if (rm.includes(targetName) || rm === String(targetMonthIndex + 1) || rm === `0${targetMonthIndex + 1}`) return true;
+    
+    if (/^\d{4}-\d{2}-\d{2}/.test(rm)) {
+        const monthPart = rm.split('-')[1];
+        if (parseInt(monthPart, 10) === targetMonthIndex + 1) return true;
+    }
+    
+    return false;
 }
 
 const MONTH_NAMES = [
@@ -149,7 +151,7 @@ const MONTH_NAMES = [
 ];
 
 const FOLDERS_MAP = {
-    "01. SCSST": ["scsst-records"],
+    "01. SCSST": ["evidence-records"],
     "02. ANALISIS DE TRABAJO SEGURO (AST)": ["ats-records"],
     "03. COMPROMISO DE CUMPLIMIENTO": ["risstma-records"],
     "04. DOCUMENTOS DE GESTION DE SSTMA": ["sstma-docs-records"],
@@ -157,7 +159,7 @@ const FOLDERS_MAP = {
     "06. EQUIPOS DE PROTECCION PERSONAL": ["epp-records"],
     "07. INFORMES": ["informes-records"],
     "08. COMUNICACION CON LA SUPERVISION O CLIENTE": ["cliente-comms-records"],
-    "09. REGISTRO DE INDUCCIÓN, CAPACITACIÓN...": ["hhc-records"],
+    "09. REGISTRO DE INDUCCIÓN, CAPACITACIÓN": ["hhc-records"],
     "10. MANIFIESTO": ["manifiesto-records"],
     "11. PERMISOS": ["petar-records"],
     "12. REGISTROS": ["accidentes-records", "simulacro-records", "reporte-ac-records"],
@@ -165,6 +167,27 @@ const FOLDERS_MAP = {
     "14. MONITOREOS DE SSTMA": ["monitoreos"],
     "15. GESTIÓN DE RESIDUOS": ["residuos-certificados"],
     "16. Fotografías": ["pma-records", "desvio-records", "hhc-records"]
+};
+
+const OSITRAN_MAP = {
+    "ANEXO 0. INFORME SIMULACRO": ["simulacro-records"],
+    "ANEXO 1. CERTIFICADO EORS": ["residuos-certificados"],
+    "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD": ["equipment-certs"],
+    "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES": null,
+    "ANEXO 4. FLUJOGRAMA": null,
+    "ANEXO 5. CÓDIGO DE CONDUCTA": ["sstma-docs-records"],
+    "ANEXO 6. COMPRAS LOCALES": null,
+    "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN": ["hhc-records"],
+    "ANEXO 8. POLÍTICA Y PLAN": ["sstma-docs-records"],
+    "ANEXO 9. ESTADÍSTICAS SSOMA": null,
+    "ANEXO 10. CHARLA DIARIA": ["hhc-records"],
+    "ANEXO 11. EMOS": null,
+    "ANEXO 12. ENTREGA DE EPPS": ["epp-records"],
+    "ANEXO 13. SUB COMITÉ": ["actas-supervision"],
+    "ANEXO 14. SCTR": ["sctr-records"],
+    "ANEXO 15. ATS Y PETAR": ["ats-records", "petar-records"],
+    "ANEXO 16. PLAN DE CONTINGENCIA": ["sstma-docs-records"],
+    "ANEXO 17. PÓLIZA": ["sstma-docs-records"]
 };
 
 async function processRequest(request) {
@@ -204,8 +227,9 @@ async function processRequest(request) {
                         const records = await fetchRecords(endpoint);
                         
                         const filtered = records.filter(r => {
-                            const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location));
+                            const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar));
                             const monthMatch = matchesMonth(r.month || r.date, month);
+                            if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
                             return locMatch && monthMatch;
                         });
 
@@ -213,15 +237,22 @@ async function processRequest(request) {
                             const rec = filtered[idx];
                             hasRecords = true;
                             
-                            let urls = [];
-                            if (rec.fileUrls) urls = Array.isArray(rec.fileUrls) ? rec.fileUrls : JSON.parse(rec.fileUrls);
-                            else if (rec.files) urls = Array.isArray(rec.files) ? rec.files : JSON.parse(rec.files);
-                            else if (rec.fileUrl) urls = [rec.fileUrl];
-                            else if (rec.pdfUrl) urls = [rec.pdfUrl];
-                            else if (rec.imgUrl) urls = [rec.imgUrl];
+                            let fileUrls = [];
+                            if (rec.fileUrls) fileUrls = Array.isArray(rec.fileUrls) ? rec.fileUrls : JSON.parse(rec.fileUrls);
+                            else if (rec.files) fileUrls = Array.isArray(rec.files) ? rec.files : JSON.parse(rec.files);
+                            else {
+                                if (rec.fileUrl) fileUrls.push(rec.fileUrl);
+                                if (rec.url) fileUrls.push(rec.url);
+                                if (rec.pdfUrl) fileUrls.push(rec.pdfUrl);
+                                if (rec.imgUrl) fileUrls.push(rec.imgUrl);
+                                if (rec.evidencePdf) fileUrls.push(rec.evidencePdf);
+                            }
+                            if (rec.evidenceImgs && Array.isArray(rec.evidenceImgs)) {
+                                fileUrls.push(...rec.evidenceImgs);
+                            }
 
-                            for (let urlIdx = 0; urlIdx < urls.length; urlIdx++) {
-                                const fileUrl = urls[urlIdx];
+                            for (let urlIdx = 0; urlIdx < fileUrls.length; urlIdx++) {
+                                const fileUrl = fileUrls[urlIdx];
                                 const fileId = extractDriveId(fileUrl);
                                 
                                 let targetPath = folderPath;
@@ -245,7 +276,7 @@ async function processRequest(request) {
                                 if (fileId) {
                                     await downloadFile(drive, fileId, destFilePath, safeName);
                                 } else {
-                                    fs.writeFileSync(destFilePath, isImage ? `%IMAGE\n%Link: ${fileUrl}\n%%EOF` : `%PDF-1.4\n%Link: ${fileUrl}\n%%EOF`);
+                                    await downloadDirectFile(fileUrl, destFilePath);
                                 }
                             }
                         }
@@ -265,56 +296,85 @@ async function processRequest(request) {
             const locations = String(location).split(',').map(l => l.trim());
             console.log(`   > Iniciando descarga de Anexos para ${locations.length} sedes: ${locations.join(', ')}...`);
             
-            const annexes = [
-                "ANEXO 0. INFORME SIMULACRO", "ANEXO 1. CERTIFICADO EORS", "ANEXO 2. CERTIFICADOS DE OPERATIVIDAD",
-                "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES", "ANEXO 4. FLUJOGRAMA", "ANEXO 5. CÓDIGO DE CONDUCTA",
-                "ANEXO 6. COMPRAS LOCALES", "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN", "ANEXO 8. POLÍTICA Y PLAN",
-                "ANEXO 9. ESTADÍSTICAS SSOMA", "ANEXO 10. CHARLA DIARIA", "ANEXO 11. EMOS",
-                "ANEXO 12. ENTREGA DE EPPS", "ANEXO 13. SUB COMITÉ", "ANEXO 14. SCTR",
-                "ANEXO 15. ATS Y PETAR", "ANEXO 16. PLAN DE CONTINGENCIA", "ANEXO 17. PÓLIZA"
-            ];
+            const annexesKeys = Object.keys(OSITRAN_MAP);
 
             const reportRoot = path.join(OSITRAN_ROOT, String(year), monthName);
             if (!fs.existsSync(reportRoot)) fs.mkdirSync(reportRoot, { recursive: true });
 
-            for (let i = 0; i < annexes.length; i++) {
-                const annexFolderName = annexes[i];
+            for (let i = 0; i < annexesKeys.length; i++) {
+                const annexFolderName = annexesKeys[i];
+                const endpoints = OSITRAN_MAP[annexFolderName];
                 const annexPath = path.join(reportRoot, annexFolderName);
                 if (!fs.existsSync(annexPath)) fs.mkdirSync(annexPath, { recursive: true });
 
-                console.log(`   [${i + 1}/${annexes.length}] Procesando ${annexFolderName}...`);
+                console.log(`   [${i + 1}/${annexesKeys.length}] Procesando ${annexFolderName}...`);
                 
                 for (let locIdx = 0; locIdx < locations.length; locIdx++) {
                     const currentLoc = locations[locIdx];
                     const sedePath = path.join(annexPath, currentLoc);
                     if (!fs.existsSync(sedePath)) fs.mkdirSync(sedePath, { recursive: true });
 
-                    const fileName = `${annexFolderName.replace(/\./g, '')}_${currentLoc}_${monthName}.pdf`;
-                    const filePath = path.join(sedePath, fileName);
-                    
-                    const minimalPdf = Buffer.from(
-                        "%PDF-1.4\n" +
-                        "1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj\n" +
-                        "2 0 obj <</Type /Pages /Kids [3 0 R] /Count 1>> endobj\n" +
-                        "3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R>> endobj\n" +
-                        "4 0 obj <</Length 20>> stream\n" +
-                        "BT /F1 12 Tf ET\n" +
-                        "endstream\n" +
-                        "endobj\n" +
-                        "xref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000202 00000 n\ntrailer <</Size 5 /Root 1 0 R>>\nstartxref\n271\n%%EOF"
-                    );
+                    let hasRecords = false;
 
-                    fs.writeFileSync(filePath, minimalPdf);
+                    if (endpoints && endpoints.length > 0) {
+                        for (let eIdx = 0; eIdx < endpoints.length; eIdx++) {
+                            const endpoint = endpoints[eIdx];
+                            const records = await fetchRecords(endpoint);
+                            
+                            const filtered = records.filter(r => {
+                                const locMatch = normalizeLocation(r.zona || r.location || r.lugar || currentLoc).includes(normalizeLocation(currentLoc));
+                                const monthMatch = matchesMonth(r.month || r.date, month);
+                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs') return true;
+                                return locMatch && monthMatch;
+                            });
+
+                            for (let idx = 0; idx < filtered.length; idx++) {
+                                const rec = filtered[idx];
+                                hasRecords = true;
+                                
+                                let urls = [];
+                                if (rec.fileUrls) urls = Array.isArray(rec.fileUrls) ? rec.fileUrls : JSON.parse(rec.fileUrls);
+                                else if (rec.files) urls = Array.isArray(rec.files) ? rec.files : JSON.parse(rec.files);
+                                else if (rec.fileUrl) urls = [rec.fileUrl];
+                                else if (rec.url) urls = [rec.url];
+                                else if (rec.pdfUrl) urls = [rec.pdfUrl];
+                                else if (rec.imgUrl) urls = [rec.imgUrl];
+                                else if (rec.evidencePdf) urls = [rec.evidencePdf];
+                                
+                                if (rec.evidenceImgs && Array.isArray(rec.evidenceImgs)) {
+                                    urls.push(...rec.evidenceImgs);
+                                }
+
+                                for (let urlIdx = 0; urlIdx < urls.length; urlIdx++) {
+                                    const fileUrl = urls[urlIdx];
+                                    const fileId = extractDriveId(fileUrl);
+                                    
+                                    const ext = fileUrl.toLowerCase().includes('.jpg') || fileUrl.toLowerCase().includes('.png') ? '.jpg' : '.pdf';
+                                    const prefixName = (rec.type || rec.documentType || rec.acto || rec.condicion || endpoint).replace(/[^a-zA-Z0-9]/g, '');
+                                    const safeName = `${currentLoc}_${rec.date || ''}_${prefixName}_${idx}_${urlIdx}${ext}`.replace(/[:\/\\]/g, '_');
+                                    const destFilePath = path.join(sedePath, safeName);
+                                    
+                                    if (fileId) {
+                                        await downloadFile(drive, fileId, destFilePath, safeName);
+                                    } else {
+                                        await downloadDirectFile(fileUrl, destFilePath);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (!hasRecords) {
+                        fs.writeFileSync(path.join(sedePath, "Sin_Registros.txt"), "No se genero durante el mes o se debe subir manualmente");
+                    }
                     
-                    const annexWeight = 100 / annexes.length;
+                    const annexWeight = 100 / annexesKeys.length;
                     const progressInAnnex = ((locIdx + 1) / locations.length) * annexWeight;
                     const totalProgress = Math.round((i * annexWeight) + progressInAnnex);
                     
                     if (locIdx === locations.length - 1) {
                         await updateStatus(id, 'update-progress', Math.max(10, totalProgress));
                     }
-                    console.log(`      ✓ ${currentLoc}: ${fileName}`);
-                    await new Promise(r => setTimeout(r, 100));
                 }
             }
         }
@@ -331,7 +391,7 @@ async function poll() {
     process.stdout.write(".");
     const url = `${API_BASE_URL}?action=get-pending`;
     
-    https.get(url, {
+    require('https').get(url, {
         headers: { 'Authorization': `Bearer ${CRON_SECRET}` }
     }, (res) => {
         let body = '';
