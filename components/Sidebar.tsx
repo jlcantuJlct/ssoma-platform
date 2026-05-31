@@ -166,7 +166,7 @@ export default function Sidebar() {
                         <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
                         <SidebarItem icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
                         <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
-                        <SidebarItem icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Autorizaciones Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
+                        <SidebarItem icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Aut. Áreas Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
                     </div>
 
                     {/* INFORMES Y OTROS */}
