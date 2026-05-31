@@ -176,12 +176,12 @@ const OSITRAN_MAP = {
     "ANEXO 3. AUTORIZACIONES DE LAS ÁREAS AUXILIARES": ["auxiliar-auths"],
     "ANEXO 4. FLUJOGRAMA": ["sstma-docs-records"],
     "ANEXO 5. CÓDIGO DE CONDUCTA": ["hhc-records"],
-    "ANEXO 6. COMPRAS LOCALES": null,
+    "ANEXO 6. COMPRAS LOCALES": ["compras-locales"],
     "ANEXO 7. CAPACITACIÓN OBRA PREVENCIÓN": ["hhc-records"],
     "ANEXO 8. POLÍTICA Y PLAN": ["sstma-docs-records"],
-    "ANEXO 9. ESTADÍSTICAS SSOMA": null,
+    "ANEXO 9. ESTADÍSTICAS SSOMA": ["accidentabilidad-records"],
     "ANEXO 10. CHARLA DIARIA": ["hhc-records"],
-    "ANEXO 11. EMOS": null,
+    "ANEXO 11. EMOS": ["evidence-records"],
     "ANEXO 12. ENTREGA DE EPPS": ["epp-records"],
     "ANEXO 13. SUB COMITÉ": ["evidence-records"],
     "ANEXO 14. SCTR": ["sctr-records"],
@@ -229,8 +229,9 @@ async function processRequest(request) {
                         const filtered = records.filter(r => {
                             const locMatch = targetLocations.length === 0 || targetLocations.includes(normalizeLocation(r.zona || r.location || r.lugar || r.place));
                             const monthMatch = matchesMonth(r.month || r.date, month);
-                            // Bypass de fechas/lugares para endpoints permanentes
-                            if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
+                            // Bypass de fechas/lugares para endpoints estándar
+                            if (endpoint === 'sstma-docs-records' || endpoint === 'auxiliar-auths') return true;
+                            if (endpoint === 'equipment-certs' || endpoint === 'sctr-records' || endpoint === 'accidentabilidad-records') return monthMatch;
 
                             return locMatch && monthMatch;
                         });
@@ -332,9 +333,19 @@ async function processRequest(request) {
                                     if (!r.activity || !r.activity.toLowerCase().includes("reunión ordinaria")) return false;
                                 }
 
+                                // Filtrar EMOs para excluir reuniones ordinarias para el Anexo 11
+                                if (annexFolderName === "ANEXO 11. EMOS" && endpoint === "evidence-records") {
+                                    if (r.activity && r.activity.toLowerCase().includes("reunión ordinaria")) return false;
+                                }
+
                                 // Filtrar específicamente el flujograma para el Anexo 4
                                 if (annexFolderName === "ANEXO 4. FLUJOGRAMA" && endpoint === "sstma-docs-records") {
                                     if (!r.documentType || !r.documentType.toLowerCase().includes("flujograma")) return false;
+                                }
+
+                                // Filtrar específicamente la póliza para el Anexo 17
+                                if (annexFolderName === "ANEXO 17. PÓLIZA" && endpoint === "sstma-docs-records") {
+                                    if (!r.documentType || !r.documentType.toLowerCase().includes("póliza")) return false;
                                 }
 
                                 // Filtrar específicamente el código de conducta para el Anexo 5
@@ -342,8 +353,9 @@ async function processRequest(request) {
                                     if (!r.tema || !r.tema.toLowerCase().includes("conducta")) return false;
                                 }
 
-                                // Bypass de fechas/lugares para endpoints permanentes
-                                if (endpoint === 'sstma-docs-records' || endpoint === 'sctr-records' || endpoint === 'equipment-certs' || endpoint === 'auxiliar-auths') return true;
+                                // Bypass de fechas/lugares para endpoints
+                                if (endpoint === 'sstma-docs-records' || endpoint === 'auxiliar-auths') return true;
+                                if (endpoint === 'equipment-certs' || endpoint === 'sctr-records' || endpoint === 'accidentabilidad-records') return monthMatch;
                                 
                                 return locMatch && monthMatch;
                             });
