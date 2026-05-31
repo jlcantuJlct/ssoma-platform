@@ -56,14 +56,14 @@ export async function POST(req: NextRequest) {
                     JSON.stringify(data.files || [])
                 ]
             );
-            await logActivity(actingUser, \`NUEVA AUTORIZACIÓN: \${data.authType}\`, 'Medio Ambiente', \`Lugar: \${data.location}\`);
+            await logActivity(actingUser, `NUEVA AUTORIZACIÓN: ${data.authType}`, 'Medio Ambiente', `Lugar: ${data.location}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required for delete' }, { status: 400 });
             await db.execute('DELETE FROM auxiliar_auths WHERE id=?', [id]);
-            await logActivity(actingUser, \`ELIMINACIÓN DE AUTORIZACIÓN\`, 'Medio Ambiente', \`ID: \${id}\`);
+            await logActivity(actingUser, `ELIMINACIÓN DE AUTORIZACIÓN`, 'Medio Ambiente', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 

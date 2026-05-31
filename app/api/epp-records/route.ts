@@ -65,14 +65,14 @@ export async function POST(req: NextRequest) {
                     JSON.stringify(data.files || [])
                 ]
             );
-            await logActivity(actingUser, \`NUEVO REGISTRO EPP: \${data.location}\`, 'EPP', \`Mes: \${data.month}\`);
+            await logActivity(actingUser, `NUEVO REGISTRO EPP: ${data.location}`, 'EPP', `Mes: ${data.month}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required for delete' }, { status: 400 });
             await db.execute('DELETE FROM epp_records WHERE id=?', [id]);
-            await logActivity(actingUser, \`ELIMINACIÓN EPP\`, 'EPP', \`ID: \${id}\`);
+            await logActivity(actingUser, `ELIMINACIÓN DE REGISTRO EPP`, 'EPP', `ID: ${id}`);
             return NextResponse.json({ success: true });
         }
 
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
                 count++;
             }
             if (count > 0) {
-                await logActivity(actingUser, \`MIGRACIÓN EPP COMPLETADA\`, 'EPP', \`\${count} registros\`);
+                await logActivity(actingUser, `MIGRACIÓN EPP COMPLETADA`, 'EPP', `${count} registros`);
             }
             return NextResponse.json({ success: true, count });
         }

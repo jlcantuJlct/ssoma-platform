@@ -6,7 +6,7 @@ import { Upload, Trash2, DownloadCloud, CheckCircle2, Leaf, Calendar, MapPin, Se
 import { uploadEvidence } from '@/lib/uploadClient';
 import { getInitials } from '@/lib/utils';
 import Header from '@/components/dashboard/Header';
-import { exportRecordToPDF } from '@/lib/program-utils';
+import { exportRecordToPDF } from '@/lib/pdfExport';
 
 type AuthRecord = {
     id: number;
@@ -324,7 +324,7 @@ export default function AutorizacionesAuxiliaresPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={() => exportRecordToPDF('Autorización de Área Auxiliar', r, \`Auth_\${r.id}.pdf\`)} className="p-1.5 text-slate-500 hover:text-blue-400 transition-colors" title="Descargar como PDF">
+                                                    <button onClick={() => exportRecordToPDF('Autorización de Área Auxiliar', r, `Auth_${r.id}.pdf`)} className="p-1.5 text-slate-500 hover:text-blue-400 transition-colors" title="Descargar como PDF">
                                                         <DownloadCloud size={16} />
                                                     </button>
                                                     <button onClick={() => handleDelete(r.id)} className="p-1.5 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar registro">
