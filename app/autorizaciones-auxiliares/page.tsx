@@ -30,6 +30,8 @@ export default function AutorizacionesAuxiliaresPage() {
     const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], authType: '', location: '' });
     const [files, setFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     
     // Filtros
@@ -73,7 +75,20 @@ export default function AutorizacionesAuxiliaresPage() {
             }
         }
         setFiles(prev => [...prev, ...validFiles]);
+        setIsDragging(false);
         if (e.target) e.target.value = '';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
     };
 
     const removeFile = (index: number) => {
@@ -87,6 +102,12 @@ export default function AutorizacionesAuxiliaresPage() {
 
         try {
             setIsUploading(true);
+            setUploadProgress(10);
+            
+            // Simular barra de progreso
+            const progressInterval = setInterval(() => {
+                setUploadProgress(prev => prev >= 90 ? 90 : prev + 10);
+            }, 500);
             
             // Subir archivos a Storage
             const uploadedUrls = [];
@@ -94,7 +115,7 @@ export default function AutorizacionesAuxiliaresPage() {
                 const url = await uploadEvidence(
                     files[i],
                     'Medio Ambiente',
-                    `AUTH_${form.authType.replace(/\\s+/g, '_')}`,
+                    `AUTH_${form.authType.replace(/\s+/g, '_')}`,
                     form.date,
                     user?.name || 'Admin',
                     'auth',
@@ -104,6 +125,9 @@ export default function AutorizacionesAuxiliaresPage() {
                 );
                 uploadedUrls.push(url);
             }
+
+            clearInterval(progressInterval);
+            setUploadProgress(100);
 
             const newRecordData = { ...form, files: uploadedUrls };
             
@@ -131,6 +155,7 @@ export default function AutorizacionesAuxiliaresPage() {
             alert("Error de conexión: " + error.message);
         } finally {
             setIsUploading(false);
+            setTimeout(() => setUploadProgress(0), 1000);
         }
     };
 
@@ -234,16 +259,44 @@ export default function AutorizacionesAuxiliaresPage() {
                             <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Documento Adjunto (PDF o Imagen)</label>
                             
                             <div 
-                                className="border-2 border-dashed border-slate-700 rounded-xl p-8 text-center hover:border-emerald-500/50 hover:bg-slate-800/30 transition-all cursor-pointer group"
-                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleFileUpload(e); }}
+                                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer group
+                                    ${isDragging 
+                                        ? 'border-emerald-400 bg-emerald-500/10 scale-[1.02]' 
+                                        : 'border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800/30'
+                                    }
+                                `}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => { handleDragLeave(e); handleFileUpload(e); }}
                                 onClick={() => document.getElementById('authFile')?.click()}
                             >
                                 <input type="file" id="authFile" className="hidden" accept=".pdf,image/*" multiple onChange={handleFileUpload} />
-                                <Upload className="mx-auto text-slate-500 group-hover:text-emerald-400 mb-3 transition-colors" size={32} />
-                                <p className="text-sm font-medium text-slate-300">Arrastra archivos aquí o haz clic para subir</p>
-                                <p className="text-xs text-slate-500 mt-1">Soporta PDF, JPG, PNG (Máx 3 archivos)</p>
+                                <Upload className={`mx-auto mb-3 transition-colors ${isDragging ? 'text-emerald-400 scale-110' : 'text-slate-500 group-hover:text-emerald-400'}`} size={32} />
+                                
+                                {isDragging ? (
+                                    <p className="text-lg font-bold text-emerald-400">¡Suelta los archivos aquí!</p>
+                                ) : (
+                                    <>
+                                        <p className="text-sm font-medium text-slate-300">Arrastra archivos aquí o haz clic para subir</p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Soporta PDF, JPG, PNG <span className="font-bold text-emerald-500/70">({files.length} / 3 archivos seleccionados)</span>
+                                        </p>
+                                    </>
+                                )}
                             </div>
+
+                            {/* Barra de progreso de subida */}
+                            {isUploading && (
+                                <div className="w-full bg-slate-800 rounded-full h-2 mt-4 overflow-hidden border border-slate-700">
+                                    <div 
+                                        className="bg-emerald-500 h-2 rounded-full transition-all duration-300 relative"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    >
+                                        <div className="absolute top-0 right-0 bottom-0 left-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_25%,rgba(255,255,255,0.2)_50%,transparent_50%,transparent_75%,rgba(255,255,255,0.2)_75%,rgba(255,255,255,0.2)_100%)] bg-[length:1rem_1rem] animate-[stripes_1s_linear_infinite]" />
+                                    </div>
+                                    <p className="text-center text-[10px] text-emerald-400 mt-1 uppercase tracking-wider font-bold">Subiendo... {uploadProgress}%</p>
+                                </div>
+                            )}
 
                             {files.length > 0 && (
                                 <div className="flex flex-wrap gap-3 mt-4">
