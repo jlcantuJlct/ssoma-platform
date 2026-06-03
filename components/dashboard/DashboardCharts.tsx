@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Rectangle, ComposedChart, Area, AreaChart, LabelList, ReferenceLine } from 'recharts';
 import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PlusCircle, PieChart as PieChartIcon, CheckCircle2 } from 'lucide-react';
 import { categorizeActivitiesByObjective, OBJECTIVES_CONFIG } from "@/lib/objective-categorization";
+import { calculateObjectiveMonthlyStats } from '@/lib/program-utils';
 import { USER_LIST, useAuth } from "@/lib/auth";
 import { useState, useEffect, useMemo } from "react";
 import * as XLSX from 'xlsx';
@@ -45,6 +46,7 @@ export function DashboardCharts({
 
     // --- DATA LOADING FOR ANNUAL PROGRAM ---
     const [programData, setProgramData] = useState<Record<string, any[]>>({});
+    const [annualTotals, setAnnualTotals] = useState<Record<string, { p: number, e: number }>>({});
     const [executedInspections, setExecutedInspections] = useState<any[]>([]);
     const [hhcRecords, setHhcRecords] = useState<any[]>([]);
     const [evidenceRecords, setEvidenceRecords] = useState<any[]>([]);
@@ -78,6 +80,9 @@ export function DashboardCharts({
     const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as const, tipo: 'capacitacion' as const });
     const [isDraggingHhcPdf, setIsDraggingHhcPdf] = useState(false);
     const [isDraggingHhcImgs, setIsDraggingHhcImgs] = useState(false);
+    const [isPdfExporting, setIsPdfExporting] = useState(false);
+    const [pdfProgress, setPdfProgress] = useState(0);
+    const [pdfExportStatus, setPdfExportStatus] = useState('Iniciando descarga...');
 
     // --- ACCIDENTABILITY STATS ---
     const [accidentabilityStats, setAccidentabilityStats] = useState({ IF: 0, IS: 0, IA: 0, TasaInc: 0, FreqPrePat: 0, totalHHT: 0 });
@@ -192,6 +197,8 @@ export function DashboardCharts({
                     if (mStored) setManifiestoRecords(JSON.parse(mStored));
                     const rStored = localStorage.getItem('waste_weight_records_v1');
                     if (rStored) setResiduosRecords(JSON.parse(rStored));
+                    const totalsStored = localStorage.getItem('annual_program_totals');
+                    if (totalsStored) setAnnualTotals(JSON.parse(totalsStored));
                 } catch (e) { console.error('Error loading localStorage records', e); }
                 
                 setIsLoaded(true);
@@ -338,62 +345,30 @@ export function DashboardCharts({
             });
         }
 
-        // ── EJECUTADO (E) via fuzzy matching ──────────────────────────────────
-        // addFuzzyE: count records where the search string fuzzy-matches any programmed description
-        const addFuzzyE = (matcher: (s: string) => boolean, records: any[], searchFn: (r: any) => string) => {
-            records.forEach(r => {
-                const m = getMonthFromDateStr(r.date);
-                if (m < 0 || m > 11) return;
-                // Only count if it matches the objective AND has evidence
-                if (matcher(searchFn(r)) && hasEvidence(r)) monthlyData[m].E++;
-            });
-        };
-
+        // ── EJECUTADO (E) via shared logic mirroring app/program/page.tsx ──
         const objsToProcess = normalizedId
             ? [normalizedId]
             : ['obj1','obj2','obj3','obj4','obj5','obj6','obj7','obj8','obj9','obj10','obj11'];
 
         objsToProcess.forEach(id => {
-            const match = buildMatcher(id);
-            switch (id) {
-                case 'obj1': // SCSST → evidenceRecords
-                    addFuzzyE(match, evidenceRecords, r => r.description || r.activity || r.type || '');
-                    break;
-                case 'obj2': // Capacitación → HHC (match by tema)
-                    addFuzzyE(match, hhcRecords, r => r.tema || '');
-                    break;
-                case 'obj3': // Inspecciones Seguridad → inspections + risstma
-                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
-                    addFuzzyE(match, risstmaRecords, r => r.documentType || 'RISSTMA');
-                    break;
-                case 'obj4': // A/C Inseguras → reporte_ac + desvíos + ATS + PETAR
-                    addFuzzyE(match, reporteAcRecords, r => r.acto || r.condicion || 'A/C');
-                    addFuzzyE(match, detourRecords, r => r.category || 'Desvío');
-                    addFuzzyE(match, atsRecords, r => 'ATS');
-                    addFuzzyE(match, petarRecords, r => r.type || 'PETAR');
-                    break;
-                case 'obj5': // EMO → evidenceRecords
-                    addFuzzyE(match, evidenceRecords, r => r.description || r.type || r.category || '');
-                    break;
-                case 'obj6': // SEG01: Inspecciones Salud → inspections (fuzzy vs obj6 descriptions)
-                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
-                    break;
-                case 'obj7': // SEG02: Formaciones Salud → HHC
-                    addFuzzyE(match, hhcRecords, r => r.tema || '');
-                    break;
-                case 'obj8': // SEG03: Inspecciones Ambiente → inspections + PMA
-                    addFuzzyE(match, executedInspections, r => r.inspectionType || '');
-                    addFuzzyE(match, pmaRecords, r => r.category || r.description || '');
-                    break;
-                case 'obj9': // SEG04: Formaciones Ambiente → HHC
-                    addFuzzyE(match, hhcRecords, r => r.tema || '');
-                    break;
-                case 'obj10': // SEG05: Simulacros
-                    addFuzzyE(match, simulacroRecords, r => r.drillType || 'Simulacro');
-                    break;
-                case 'obj11': // SEG06: Brigadistas
-                    addFuzzyE(match, brigadistaRecords, r => r.brigadistaType || 'Brigadista');
-                    break;
+            const rawMonthly = calculateObjectiveMonthlyStats(
+                id,
+                programData,
+                OBJECTIVES_LIST,
+                executedInspections,
+                hhcRecords,
+                evidenceRecords,
+                pmaRecords,
+                atsRecords,
+                petarRecords,
+                detourRecords,
+                simulacroRecords,
+                brigadistaRecords,
+                risstmaRecords,
+                reporteAcRecords
+            );
+            for (let i = 0; i < 12; i++) {
+                monthlyData[i].E += rawMonthly[i].E;
             }
         });
 
@@ -402,6 +377,11 @@ export function DashboardCharts({
 
 
     const calculateTrainingIndex = () => {
+        if (currentMonth === -1 && annualTotals['obj2']) {
+            const totalP = annualTotals['obj2'].p;
+            const totalE = annualTotals['obj2'].e;
+            return totalP === 0 ? 0 : Math.round((totalE / totalP) * 100);
+        }
 
         const stats = getObjectiveMonthlyStats('obj2');
         const totalP = stats.reduce((acc, curr) => acc + curr.P, 0);
@@ -672,8 +652,19 @@ export function DashboardCharts({
         let e = 0;
 
         if (currentMonth === -1) {
-            p = stats.reduce((acc, curr) => acc + curr.P, 0);
-            e = stats.reduce((acc, curr) => acc + curr.E, 0);
+            if (activeManagement === 'todos' && annualTotals['obj2'] && annualTotals['obj7'] && annualTotals['obj9']) {
+                p = annualTotals['obj2'].p + annualTotals['obj7'].p + annualTotals['obj9'].p;
+                e = annualTotals['obj2'].e + annualTotals['obj7'].e + annualTotals['obj9'].e;
+            } else if (activeManagement === 'health' && annualTotals['obj7']) {
+                p = annualTotals['obj7'].p; e = annualTotals['obj7'].e;
+            } else if (activeManagement === 'environment' && annualTotals['obj9']) {
+                p = annualTotals['obj9'].p; e = annualTotals['obj9'].e;
+            } else if (activeManagement === 'safety' && annualTotals['obj2']) {
+                p = annualTotals['obj2'].p; e = annualTotals['obj2'].e;
+            } else {
+                p = stats.reduce((acc, curr) => acc + curr.P, 0);
+                e = stats.reduce((acc, curr) => acc + curr.E, 0);
+            }
         } else {
             p = stats[currentMonth]?.P || 0;
             e = stats[currentMonth]?.E || 0;
@@ -753,6 +744,10 @@ export function DashboardCharts({
         const doc = new jsPDF();
         let y = 20;
 
+        setIsPdfExporting(true);
+        setPdfProgress(5);
+        setPdfExportStatus('Generando reporte diario...');
+
         // Encabezado de Fecha
         doc.setFillColor(30, 64, 175);
         doc.rect(20, y, 170, 12, 'F');
@@ -798,12 +793,19 @@ export function DashboardCharts({
         doc.text("Evidencia Fotográfica:", 20, y);
         y += 10;
 
+        setPdfProgress(30);
+        setPdfExportStatus('Cargando evidencias fotográficas...');
+
+        const totalImgs = dailyRecords.reduce((acc, r) => acc + (r.evidenceImgs?.length || 0), 0);
+        let imgLoaded = 0;
         for (const record of dailyRecords) {
             if (record.evidenceImgs && record.evidenceImgs.length > 0) {
                 for (const imgUrl of record.evidenceImgs) {
                     const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                     const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
                     const buffer = await fetchProxiedFile(fetchUrl);
+                    imgLoaded++;
+                    if (totalImgs > 0) setPdfProgress(30 + Math.round((imgLoaded / totalImgs) * 30));
                     
                     if (buffer) {
                         try {
@@ -817,6 +819,9 @@ export function DashboardCharts({
             }
         }
 
+        setPdfProgress(65);
+        setPdfExportStatus('Unificando documentos PDF...');
+
         // Convertir JS-PDF a PDF-Lib y añadir
         const pagePdfBytes = doc.output('arraybuffer');
         const pagePdfDoc = await PDFDocument.load(pagePdfBytes);
@@ -824,7 +829,11 @@ export function DashboardCharts({
         copiedPages.forEach(p => finalPdfDoc.addPage(p));
 
         // Anexar PDFs de evidencia del día
-        for (const record of dailyRecords) {
+        const evidencePdfs = dailyRecords.filter(r => r.evidencePdf);
+        for (let i = 0; i < evidencePdfs.length; i++) {
+            const record = evidencePdfs[i];
+            setPdfProgress(65 + Math.round(((i + 1) / Math.max(evidencePdfs.length, 1)) * 20));
+            setPdfExportStatus(`Adjuntando evidencia PDF ${i + 1} de ${evidencePdfs.length}...`);
             if (record.evidencePdf) {
                 const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                 const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
@@ -839,6 +848,9 @@ export function DashboardCharts({
             }
         }
 
+        setPdfProgress(90);
+        setPdfExportStatus('Guardando PDF...');
+
         const mergedPdfBytes = await finalPdfDoc.save();
         const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -846,6 +858,13 @@ export function DashboardCharts({
         link.href = url;
         link.download = `Reporte_Diario_HHC_${targetRecord.date || 'S_F'}.pdf`;
         link.click();
+
+        setPdfProgress(100);
+        setPdfExportStatus('¡Descarga completada!');
+        setTimeout(() => {
+            setIsPdfExporting(false);
+            setPdfProgress(0);
+        }, 1800);
     };
 
     const generateBulkHHCPDF = async () => {
@@ -861,11 +880,20 @@ export function DashboardCharts({
             return;
         }
 
+        setIsPdfExporting(true);
+        setPdfProgress(5);
+        setPdfExportStatus(`Preparando ${recordsWithPdf.length} documento(s)...`);
+
         // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
         const finalPdfDoc = await PDFDocument.create();
 
         // Anexar todos los PDFs de evidencia
-        for (const record of recordsWithPdf) {
+        for (let i = 0; i < recordsWithPdf.length; i++) {
+            const record = recordsWithPdf[i];
+            const progressPct = 5 + Math.round(((i + 1) / recordsWithPdf.length) * 80);
+            setPdfProgress(progressPct);
+            setPdfExportStatus(`Procesando evidencia ${i + 1} de ${recordsWithPdf.length}...`);
+
             const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
             const evidenceBuffer = await fetchProxiedFile(fetchUrl);
@@ -878,6 +906,9 @@ export function DashboardCharts({
             }
         }
 
+        setPdfProgress(90);
+        setPdfExportStatus('Guardando PDF final...');
+
         const filename = (filters.startDate || filters.endDate) 
             ? `Evidencias_HHC_Filtradas_${filters.startDate || ''}_${filters.endDate || ''}.pdf`
             : "Evidencias_HHC_Completas.pdf";
@@ -889,6 +920,13 @@ export function DashboardCharts({
         link.href = url;
         link.download = filename;
         link.click();
+
+        setPdfProgress(100);
+        setPdfExportStatus('¡Descarga completada!');
+        setTimeout(() => {
+            setIsPdfExporting(false);
+            setPdfProgress(0);
+        }, 1800);
     };
 
 
@@ -1681,8 +1719,13 @@ export function DashboardCharts({
         let totalExec = 0;
 
         if (currentMonth === -1) {
-            totalPlan = stats.reduce((acc, curr) => acc + curr.P, 0);
-            totalExec = stats.reduce((acc, curr) => acc + curr.E, 0);
+            if (annualTotals[obj.id]) {
+                totalPlan = annualTotals[obj.id].p;
+                totalExec = annualTotals[obj.id].e;
+            } else {
+                totalPlan = stats.reduce((acc, curr) => acc + curr.P, 0);
+                totalExec = stats.reduce((acc, curr) => acc + curr.E, 0);
+            }
         } else {
             if (stats[currentMonth]) {
                 totalPlan = stats[currentMonth].P;
@@ -1809,89 +1852,51 @@ export function DashboardCharts({
     // ─── SALUD:     OBJ05(obj5) + SEG01(obj6) + SEG02(obj7)
     // ─── AMBIENTE:  SEG03(obj8) + SEG04(obj9)
     const calculateOverallAchievement = () => {
-        // Months to add for fixed-plan tools (RISSTMA, Desvío = 1 P per month)
-        const fixedMonths = currentMonth === -1 ? 12 : 1;
+        // Read the exact totals from the Annual Program so that the gauges match exactly the Resumen por Área
+        let programTotals: Record<string, { p: number, e: number }> = {};
+        try {
+            if (typeof window !== 'undefined') {
+                const stored = localStorage.getItem('annual_program_totals');
+                if (stored) {
+                    programTotals = JSON.parse(stored);
+                }
+            }
+        } catch (e) {
+            console.warn("Could not read annual_program_totals", e);
+        }
 
-        // ── SEGURIDAD ────────────────────────────────────────────────────────
-        const safetyP =
-            countProgramItems(['obj1', 'obj2', 'obj3', 'obj4', 'obj10', 'obj11'])
-            + fixedMonths   // RISSTMA: 1 P por mes
-            + fixedMonths;  // Desvío:  1 P por mes
+        const sumTotals = (ids: string[]) => {
+            return ids.reduce((acc, id) => {
+                const t = programTotals[id] || { p: 0, e: 0 };
+                return { p: acc.p + t.p, e: acc.e + t.e };
+            }, { p: 0, e: 0 });
+        };
 
-        const safetyE =
-            // OBJ01: evidenceRecords SCSST
-            countRecords(evidenceRecords, r => (r.objective || '').toLowerCase().includes('scsst') || (r.objective || '').includes('01'))
-            // OBJ02: Capacitación → HHC
-            + countRecords(hhcRecords)
-            // OBJ03: Inspecciones Seguridad
-            + countRecords(executedInspections, r => {
-                const t = (r.inspectionType || '').toLowerCase();
-                return !t.includes('salud') && !t.includes('ambiente') && !t.includes('health') && !t.includes('enviro');
-            })
-            // OBJ04: ya contado en detourRecords abajo (no duplicar con desvio)
-            // SEG05: Simulacros
-            + countRecords(simulacroRecords)
-            // SEG06: Brigadistas
-            + countRecords(brigadistaRecords)
-            // RISSTMA: cada archivo subido = 1 E
-            + countRecords(risstmaRecords)
-            // Desvío: cada registro = 1 E
-            + countRecords(detourRecords);
-
-        // ── SALUD ────────────────────────────────────────────────────────────
-        const healthP = countProgramItems(['obj5', 'obj6', 'obj7']);
-        const healthE =
-            // OBJ05: EMO → evidenceRecords EMO
-            countRecords(evidenceRecords, r => (r.type || r.category || '').toLowerCase().includes('emo'))
-            // SEG01: Inspecciones Salud
-            + countRecords(executedInspections, r => {
-                const t = (r.inspectionType || '').toLowerCase();
-                return t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health');
-            })
-            // SEG02: Formaciones Salud → HHC area=salud
-            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('salud'));
-
-        // ── MEDIO AMBIENTE ───────────────────────────────────────────────────
-        const envP =
-            countProgramItems(['obj8', 'obj9'])
-            + fixedMonths   // Manifiesto de Residuos: 1 P por mes
-            + fixedMonths;  // Pesaje de Residuos:     1 P por mes
-
-        const envE =
-            // SEG03: Inspecciones Ambiente + PMA
-            countRecords(executedInspections, r => {
-                const t = (r.inspectionType || '').toLowerCase();
-                return t.includes('ambiente') || t.includes('environment') || t.includes('ambiental');
-            })
-            + countRecords(pmaRecords)
-            // SEG04: Formaciones Ambiente → HHC area=ambiente
-            + countRecords(hhcRecords, r => (r.area || '').toLowerCase().includes('ambiente'))
-            // Manifiesto de Residuos: cada registro guardado = 1 E
-            + countRecords(manifiestoRecords)
-            // Pesaje de Residuos: cada registro guardado = 1 E
-            + countRecords(residuosRecords);
+        const safety = sumTotals(['obj1', 'obj2', 'obj3', 'obj4', 'obj10', 'obj11']);
+        const health = sumTotals(['obj5', 'obj6', 'obj7']);
+        const env = sumTotals(['obj8', 'obj9']);
 
         return [
             {
                 name: 'Seguridad',
-                value: safetyP > 0 ? Math.min(100, Math.round((safetyE / safetyP) * 100)) : (safetyE > 0 ? 100 : 0),
+                value: safety.p > 0 ? Math.min(100, Math.round((safety.e / safety.p) * 100)) : (safety.e > 0 ? 100 : 0),
                 color: '#10b981',
-                plan: safetyP,
-                exec: safetyE
+                plan: safety.p,
+                exec: safety.e
             },
             {
                 name: 'Salud',
-                value: healthP > 0 ? Math.min(100, Math.round((healthE / healthP) * 100)) : (healthE > 0 ? 100 : 0),
+                value: health.p > 0 ? Math.min(100, Math.round((health.e / health.p) * 100)) : (health.e > 0 ? 100 : 0),
                 color: '#ec4899',
-                plan: healthP,
-                exec: healthE
+                plan: health.p,
+                exec: health.e
             },
             {
                 name: 'Medio Ambiente',
-                value: envP > 0 ? Math.min(100, Math.round((envE / envP) * 100)) : (envE > 0 ? 100 : 0),
+                value: env.p > 0 ? Math.min(100, Math.round((env.e / env.p) * 100)) : (env.e > 0 ? 100 : 0),
                 color: '#3b82f6',
-                plan: envP,
-                exec: envE
+                plan: env.p,
+                exec: env.e
             }
         ];
     };
@@ -2001,26 +2006,93 @@ export function DashboardCharts({
         }));
     };
 
-    const currentInspStats = getInspStatsForArea(activeManagement);
-    const totalInspP = currentInspStats.reduce((a, b) => a + (b.P || 0), 0);
-    const totalInspE = currentInspStats.reduce((a, b) => a + (b.E || 0), 0);
-    const inspectionIndex = totalInspP > 0 ? Math.round((totalInspE / totalInspP) * 100) : 0;
+    const totalGlobalP = overallAchievement.reduce((acc, curr) => acc + curr.plan, 0);
+    const totalGlobalE = overallAchievement.reduce((acc, curr) => acc + curr.exec, 0);
+    const globalIndex = totalGlobalP > 0 ? Math.round((totalGlobalE / totalGlobalP) * 100) : 0;
 
     // --- ACCIDENTABILITY STATS LOGIC ---
 
     return (
         <div className="space-y-8 p-2 md:p-6" >
 
+            {/* PDF EXPORT PROGRESS TOAST */}
+            {isPdfExporting && (
+                <div className="fixed bottom-6 right-6 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <div className={`relative bg-slate-900/95 backdrop-blur-xl border rounded-2xl shadow-2xl p-5 min-w-[320px] max-w-[380px] overflow-hidden ${pdfProgress === 100 ? 'border-emerald-500/60' : 'border-red-500/40'}`}>
+                        {/* Glow background */}
+                        <div className={`absolute inset-0 rounded-2xl opacity-10 ${pdfProgress === 100 ? 'bg-emerald-500' : 'bg-red-600'}`} />
+
+                        {/* Header */}
+                        <div className="relative flex items-center gap-3 mb-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${pdfProgress === 100 ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                                {pdfProgress === 100 ? (
+                                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5 text-red-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-[11px] font-black uppercase tracking-widest ${pdfProgress === 100 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {pdfProgress === 100 ? 'PDF Exportado' : 'Exportando PDF'}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{pdfExportStatus}</p>
+                            </div>
+                            <span className={`text-xs font-black tabular-nums ${pdfProgress === 100 ? 'text-emerald-400' : 'text-white'}`}>{pdfProgress}%</span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="relative w-full h-2 bg-slate-700/80 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                                    pdfProgress === 100
+                                        ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                        : 'bg-gradient-to-r from-red-600 via-orange-500 to-red-500'
+                                }`}
+                                style={{ width: `${pdfProgress}%` }}
+                            />
+                            {pdfProgress < 100 && (
+                                <div
+                                    className="absolute inset-0 rounded-full opacity-60"
+                                    style={{
+                                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                                        backgroundSize: '200% 100%',
+                                        animation: 'shimmer 1.5s linear infinite',
+                                        width: `${pdfProgress}%`
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* Step dots */}
+                        <div className="relative flex items-center justify-between mt-2 px-0.5">
+                            {[20, 40, 60, 80, 100].map(step => (
+                                <div
+                                    key={step}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
+                                        pdfProgress >= step
+                                            ? (pdfProgress === 100 ? 'bg-emerald-400 scale-125' : 'bg-red-400')
+                                            : 'bg-slate-600'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {mode === 'general' && (
                 <div className="flex flex-col gap-6 animate-in fade-in zoom-in duration-500">
                     {/* 1. TOP ROW: GAUGES + OVERALL SUMMARY */}
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                        {/* KPI VELOCÍMETRO - INSPECCIONES (ENLARGED) */}
+                        {/* KPI VELOCÍMETRO - PROGRAMA ANUAL (ENLARGED) */}
                         <div className="xl:col-span-2 h-full min-h-[300px] bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-slate-700/50 p-6 shadow-2xl">
                             <ComplianceGauge
-                                value={inspectionIndex}
-                                title="AVANCE GLOBAL DE INSPECCIONES"
+                                value={globalIndex}
+                                title="AVANCE GLOBAL DEL PROGRAMA ANUAL"
                                 height={240}
                             />
                         </div>
@@ -2241,8 +2313,8 @@ export function DashboardCharts({
                                             const isYearMatch = itemYear === currentYear || itemYear === 2025;
                                             if (isYearMatch && (currentMonth === -1 || itemMonth === currentMonth)) {
                                                 monthsWithPlanned.add(itemMonth);
-                                                if ((item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) &&
-                                                    isUserMatch(item.responsible, item.responsable)) {
+                                                // La ejecución la tomamos sólo si hay match (aunque luego se sobrescribe)
+                                                if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
                                                     monthsWithExecuted.add(itemMonth);
                                                 }
                                             }
@@ -2267,14 +2339,10 @@ export function DashboardCharts({
                                         const isYearMatch = itemYear === currentYear || itemYear === 2025;
                                         
                                         if (isYearMatch && (currentMonth === -1 || d.getMonth() === currentMonth)) {
-                                            // Everyone in the group shares the same "Planned" total for their objectives
+                                            // P is the team total for their assigned objectives
                                             planned++;
-
-                                            // Execution from program: only if explicitly assigned to this user
                                             if (item.status === 'Realizado' || (Number(item.compliance) || 0) > 0) {
-                                                if (isUserMatch(item.responsible, item.responsable)) {
-                                                    executed++;
-                                                }
+                                                executed++;
                                             }
                                         }
                                     });
@@ -2293,24 +2361,20 @@ export function DashboardCharts({
                                     // Exclude RAC Implementation from OBJ 04
                                     if (descLower.includes('implementación') && descLower.includes('rac')) return false;
 
+                                    // MUST have an attached file/evidence to count as executed
+                                    if (!hasEvidence(r)) return false;
+
                                     return isUserMatch(r.responsible, r.responsable) && 
                                            (d.getFullYear() === currentYear || d.getFullYear() === 2025) && 
                                            (currentMonth === -1 || d.getMonth() === currentMonth);
                                 });
 
-                                // Gather ALL relevant records for this user
+                                // Gather ONLY relevant program-related records for this user (exclude daily operational forms like ATS, PETAR, etc.)
                                 const allMyRecords = [
                                     ...getMyRecords(hhcRecords).map(r => ({...r, recType: 'HHC', desc: r.tema, isHealth: String(r.area || '').toLowerCase().includes('salud')})),
                                     ...getMyRecords(executedInspections).map(r => ({...r, recType: 'INSP', desc: r.inspectionType, isHealth: (t => t.includes('salud') || t.includes('medico') || t.includes('médico') || t.includes('health'))(String(r.inspectionType || '').toLowerCase())})),
-                                    ...getMyRecords(detourRecords).map(r => ({...r, recType: 'DESVIO', desc: r.category || 'Desvío'})),
                                     ...getMyRecords(simulacroRecords).map(r => ({...r, recType: 'SIMULACRO', desc: r.drillType || 'Simulacro'})),
                                     ...getMyRecords(brigadistaRecords).map(r => ({...r, recType: 'BRIGADISTA', desc: r.brigadistaType || 'Brigadista'})),
-                                    ...getMyRecords(pmaRecords).map(r => ({...r, recType: 'PMA', desc: r.category || r.description})),
-                                    ...getMyRecords(manifiestoRecords).map(r => ({...r, recType: 'MANIFIESTO', desc: 'Manifiesto de Residuos'})),
-                                    ...getMyRecords(residuosRecords).map(r => ({...r, recType: 'PESAJE', desc: 'Pesaje de Residuos'})),
-                                    ...getMyRecords(atsRecords).map(r => ({...r, recType: 'ATS', desc: 'Análisis de Trabajo Seguro (ATS)'})),
-                                    ...getMyRecords(petarRecords).map(r => ({...r, recType: 'PETAR', desc: r.type || 'Permiso de Trabajo (PETAR)'})),
-                                    ...getMyRecords(risstmaRecords).map(r => ({...r, recType: 'RISSTMA', desc: r.documentType || 'Entrega de RISSTMA'})),
                                     ...getMyRecords(evidenceRecords).map(r => ({...r, recType: 'EVIDENCIA', desc: r.description || r.activity, isHealth: (d => d.includes('salud') || d.includes('médico') || d.includes('emo'))((r.description || r.activity || '').toLowerCase())}))
                                 ];
 
@@ -2327,6 +2391,7 @@ export function DashboardCharts({
                                 const getProgramLists = () => {
                                     const allPending: any[] = [];
                                     const allExecuted: any[] = [];
+                                    const uniquePendingKeys = new Set<string>();
                                     const usedRecordIndices = new Set<number>();
 
                                     // A. Process Programmed items and link with real records
@@ -2346,13 +2411,21 @@ export function DashboardCharts({
                                                 const formattedItem = { ...item, objectiveName: obj.title, description: item.description || item.tema };
                                                 const isDoneInProgram = item.status === 'Realizado' || (Number(item.compliance) || 0) > 0;
                                                 
-                                                // Fuzzy Match
+                                                // Fuzzy Match with Month Constraint
                                                 const sn = normStr(item.description || item.tema || '');
                                                 const sw = getWords(sn);
                                                 let matchIdx = -1;
                                                 if (sw.length > 0) {
                                                     matchIdx = filteredMyRecords.findIndex((r, idx) => {
                                                         if (usedRecordIndices.has(idx)) return false;
+
+                                                        // Enforce same month and year
+                                                        const rDate = new Date(r.date.includes('T') ? r.date : r.date + 'T12:00:00');
+                                                        const pDate = new Date(item.date);
+                                                        if (rDate.getMonth() !== pDate.getMonth() || rDate.getFullYear() !== pDate.getFullYear()) {
+                                                            return false;
+                                                        }
+
                                                         const rn = normStr(r.desc || '');
                                                         const rw = getWords(rn);
                                                         
@@ -2366,28 +2439,23 @@ export function DashboardCharts({
                                                     });
                                                 }
 
-                                                if ((isDoneInProgram && isUserMatch(item.responsible, item.responsable)) || matchIdx !== -1) {
-                                                    allExecuted.push(formattedItem);
-                                                    if (matchIdx !== -1) usedRecordIndices.add(matchIdx);
+                                                // Solamente tomamos como ejecutado si ELLOS subieron el archivo (matchIdx !== -1)
+                                                if (matchIdx !== -1) {
+                                                    allExecuted.push({ ...formattedItem, realRecord: filteredMyRecords[matchIdx] });
+                                                    usedRecordIndices.add(matchIdx);
                                                 } else {
-                                                    allPending.push(formattedItem);
+                                                    const key = `${formattedItem.objectiveName}-${formattedItem.description}`.toLowerCase();
+                                                    if (!uniquePendingKeys.has(key)) {
+                                                        uniquePendingKeys.add(key);
+                                                        allPending.push(formattedItem);
+                                                    }
                                                 }
                                             }
                                         });
                                     });
 
-                                    // B. Add all remaining real records as extra activities
-                                    filteredMyRecords.forEach((r, idx) => {
-                                        if (!usedRecordIndices.has(idx)) {
-                                            allExecuted.push({
-                                                objectiveName: `ACTIVIDAD: ${r.recType}`,
-                                                description: r.desc || 'Actividad no programada',
-                                                date: r.date,
-                                                status: 'Realizado',
-                                                isExtra: true
-                                            });
-                                        }
-                                    });
+                                    // Removed "B. Add all remaining real records as extra activities"
+                                    // To strictly calculate Execution Efficiency based ONLY on the Annual Program.
 
                                     return { allPending, allExecuted };
                                 };
@@ -2466,15 +2534,19 @@ export function DashboardCharts({
                                                     pendingItems: modalData.allPending 
                                                 });
                                             }}
-                                            className={`w-full grid grid-cols-2 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
+                                            className={`w-full grid grid-cols-3 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
                                         >
                                             <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors">
+                                                <span className="text-[8px] text-blue-500/70 font-black uppercase tracking-tighter group-hover/footer:text-blue-400 transition-colors">Programado</span>
+                                                <span className="text-sm font-black text-blue-400 tabular-nums">{planned}</span>
+                                            </div>
+                                            <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors border-l border-slate-800/50">
                                                 <span className="text-[8px] text-emerald-500/70 font-black uppercase tracking-tighter group-hover/footer:text-emerald-400 transition-colors">Ejecutado</span>
                                                 <span className="text-sm font-black text-emerald-400 tabular-nums">{executed}</span>
                                             </div>
                                             <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors border-l border-slate-800/50">
                                                 <span className="text-[8px] text-amber-500/70 font-black uppercase tracking-tighter group-hover/footer:text-amber-400 transition-colors">Pendiente</span>
-                                                <span className="text-sm font-black text-amber-400 tabular-nums">{modalData.allPending.length}</span>
+                                                <span className="text-sm font-black text-amber-400 tabular-nums">{Math.max(0, planned - executed)}</span>
                                             </div>
                                         </div>
 
@@ -3060,9 +3132,21 @@ export function DashboardCharts({
                                             )}
                                             <button
                                                 onClick={generateBulkHHCPDF}
-                                                className="bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-red-900/30 w-full sm:w-auto uppercase tracking-widest"
+                                                disabled={isPdfExporting}
+                                                className={`text-white text-[10px] font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl w-full sm:w-auto uppercase tracking-widest ${
+                                                    isPdfExporting
+                                                        ? 'bg-red-800/70 cursor-wait opacity-80 shadow-red-900/20'
+                                                        : 'bg-red-600 hover:bg-red-500 shadow-red-900/30'
+                                                }`}
                                             >
-                                                <Download size={14} /> Exportar PDF
+                                                {isPdfExporting ? (
+                                                    <>
+                                                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        Generando...
+                                                    </>
+                                                ) : (
+                                                    <><Download size={14} /> Exportar PDF</>
+                                                )}
                                             </button>
                                         </div>
 
@@ -3493,56 +3577,97 @@ export function DashboardCharts({
                             </button>
                         </div>
 
-                        {/* Dual Column Content */}
-                        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-                            {/* Column 1: Executed (Left) */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4 border-r border-slate-800 scrollbar-thin scrollbar-thumb-slate-700">
+                        {/* Three Column Content */}
+                        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                            {/* Column 1: Programmed (Left) */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 border-b lg:border-b-0 lg:border-r border-slate-800 bg-slate-950/40 scrollbar-thin scrollbar-thumb-slate-700">
+                                <div className="flex items-center gap-2 mb-4 px-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                    <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Programadas ({performanceDetail.pendingItems.length + performanceDetail.executedItems.filter((i:any) => !i.isExtra).length})</h4>
+                                </div>
+                                {(() => {
+                                    const programmedItems = [...performanceDetail.pendingItems, ...performanceDetail.executedItems.filter((i:any) => !i.isExtra)].sort((a:any, b:any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+                                    return programmedItems.length === 0 ? (
+                                        <div className="py-10 text-center text-slate-600 border border-dashed border-slate-800 rounded-2xl">
+                                            <p className="text-[10px] font-bold">Sin actividades programadas</p>
+                                        </div>
+                                    ) : (
+                                        programmedItems.map((item:any, idx:number) => (
+                                            <div key={idx} className="bg-slate-950/60 border border-slate-800/50 rounded-xl p-3 hover:border-blue-500/30 transition-all">
+                                                <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                                <h5 className="text-[10px] font-bold text-white line-clamp-2">{item.description}</h5>
+                                                <div className="flex items-center justify-between mt-2">
+                                                    <span className="text-[8px] text-slate-500 flex items-center gap-1 font-bold">
+                                                        <Calendar size={10} /> {item.date}
+                                                    </span>
+                                                    <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full uppercase">Programado</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Column 2: Executed (Middle) */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 border-b lg:border-b-0 lg:border-r border-slate-800 scrollbar-thin scrollbar-thumb-slate-700">
                                 <div className="flex items-center gap-2 mb-4 px-2">
                                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                                    <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest">Actividades Realizadas ({performanceDetail.executedItems.length})</h4>
+                                    <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Realizadas ({performanceDetail.executedItems.length})</h4>
                                 </div>
                                 
                                 {performanceDetail.executedItems.length === 0 ? (
                                     <div className="py-10 text-center text-slate-600 border border-dashed border-slate-800 rounded-2xl">
-                                        <p className="text-xs font-bold">Sin registros ejecutados aún</p>
+                                        <p className="text-[10px] font-bold">Sin registros ejecutados</p>
                                     </div>
                                 ) : (
-                                    performanceDetail.executedItems.map((item, idx) => (
-                                        <div key={idx} className="bg-slate-950/40 border border-slate-800/50 rounded-xl p-4 hover:border-emerald-500/30 transition-all">
-                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
-                                            <h5 className="text-[11px] font-bold text-white line-clamp-2">{item.description}</h5>
-                                            <div className="flex items-center justify-between mt-3">
-                                                <span className="text-[9px] text-slate-500 flex items-center gap-1 font-bold">
-                                                    <Calendar size={10} /> {item.date}
-                                                </span>
-                                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Completado</span>
+                                    [...performanceDetail.executedItems].sort((a:any, b:any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((item:any, idx:number) => {
+                                        const r = item.realRecord || {};
+                                        const fileLink = r.pdfUrl || r.evidenceUrl || r.fileUrl || r.evidencePdf || (r.images && r.images[0]) || (r.evidenceImgs && r.evidenceImgs[0]) || (r.fileUrls && r.fileUrls[0]) || null;
+                                        
+                                        return (
+                                            <div key={idx} className="bg-slate-950/40 border border-slate-800/50 rounded-xl p-3 hover:border-emerald-500/30 transition-all">
+                                                <div className="flex items-start justify-between">
+                                                    <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                                    {fileLink && (
+                                                        <a href={fileLink} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-full transition-colors border border-emerald-500/20" title="Ver archivo adjunto">
+                                                            🔗 Evidencia
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <h5 className="text-[10px] font-bold text-white line-clamp-2 mt-1">{item.description}</h5>
+                                                <div className="flex items-center justify-between mt-2">
+                                                    <span className="text-[8px] text-slate-500 flex items-center gap-1 font-bold">
+                                                        <Calendar size={10} /> {item.date}
+                                                    </span>
+                                                    <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Completado</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
 
-                            {/* Column 2: Pending (Right) */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/20 scrollbar-thin scrollbar-thumb-slate-700">
+                            {/* Column 3: Pending (Right) */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/20 scrollbar-thin scrollbar-thumb-slate-700">
                                 <div className="flex items-center gap-2 mb-4 px-2">
                                     <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                                    <h4 className="text-xs font-black text-amber-500 uppercase tracking-widest">Pendientes por Ejecutar ({performanceDetail.pendingItems.length})</h4>
+                                    <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Pendientes ({performanceDetail.pendingItems.length})</h4>
                                 </div>
 
                                 {performanceDetail.pendingItems.length === 0 ? (
                                     <div className="py-10 text-center text-slate-600 border border-dashed border-slate-800 rounded-2xl">
-                                        <p className="text-xs font-bold">¡Todo al día!</p>
+                                        <p className="text-[10px] font-bold">¡Todo al día!</p>
                                     </div>
                                 ) : (
-                                    performanceDetail.pendingItems.map((item, idx) => (
-                                        <div key={idx} className="bg-slate-950/60 border border-slate-800/50 rounded-xl p-4 hover:border-amber-500/30 transition-all">
-                                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
-                                            <h5 className="text-[11px] font-bold text-white line-clamp-2">{item.description}</h5>
-                                            <div className="flex items-center justify-between mt-3">
-                                                <span className="text-[9px] text-slate-500 flex items-center gap-1 font-bold">
+                                    [...performanceDetail.pendingItems].sort((a:any, b:any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((item:any, idx:number) => (
+                                        <div key={idx} className="bg-slate-950/60 border border-slate-800/50 rounded-xl p-3 hover:border-amber-500/30 transition-all">
+                                            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">{item.objectiveName}</p>
+                                            <h5 className="text-[10px] font-bold text-white line-clamp-2">{item.description}</h5>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className="text-[8px] text-slate-500 flex items-center gap-1 font-bold">
                                                     <Calendar size={10} /> {item.date}
                                                 </span>
-                                                <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase">Pendiente</span>
+                                                <span className="text-[8px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase">Pendiente</span>
                                             </div>
                                         </div>
                                     ))
@@ -3552,11 +3677,17 @@ export function DashboardCharts({
                         
                         {/* Footer Summary */}
                         <div className="p-5 bg-slate-950/80 border-t border-slate-800 flex justify-between items-center px-8">
-                            <div className="flex gap-6">
-                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                    Total: {performanceDetail.executedItems.length + performanceDetail.pendingItems.length}
+                            <div className="flex gap-4 md:gap-6 flex-wrap">
+                                <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">
+                                    Programadas: {performanceDetail.executedItems.length + performanceDetail.pendingItems.length}
                                 </span>
-                                <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">
+                                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
+                                    Ejecutadas: {performanceDetail.executedItems.length}
+                                </span>
+                                <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">
+                                    Pendientes: {performanceDetail.pendingItems.length}
+                                </span>
+                                <span className="text-[10px] text-white bg-indigo-500/20 px-2 py-0.5 rounded-md font-black uppercase tracking-widest ml-2">
                                     Eficacia: {Math.round((performanceDetail.executedItems.length / (performanceDetail.executedItems.length + performanceDetail.pendingItems.length || 1)) * 100)}%
                                 </span>
                             </div>
