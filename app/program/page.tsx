@@ -632,10 +632,10 @@ export default function ProgramPage() {
                 if (newRecords.length > 0) {
                     setProgramData(prev => {
                         if (autoReplace) {
-                            return { ...prev, [selectedObjId]: newRecords.sort((a, b) => a.date.localeCompare(b.date)) };
+                            return { ...prev, [selectedObjId]: newRecords };
                         } else {
                             const current = prev[selectedObjId] || [];
-                            return { ...prev, [selectedObjId]: [...current, ...newRecords].sort((a, b) => a.date.localeCompare(b.date)) };
+                            return { ...prev, [selectedObjId]: [...current, ...newRecords] };
                         }
                     });
                     const count = newRecords.length;
@@ -694,7 +694,7 @@ export default function ProgramPage() {
         }
         setProgramData(prev => ({
             ...prev,
-            [selectedObjId]: [...others, ...newItems].sort((a, b) => a.date.localeCompare(b.date))
+            [selectedObjId]: [...others, ...newItems]
         }));
         setEditingCell(null);
     };
@@ -702,7 +702,7 @@ export default function ProgramPage() {
     const handleManualAdd = () => {
         if (!newItem.date || !newItem.description) return;
         const record = { id: Date.now(), ...newItem, compliance: 0 };
-        setProgramData(prev => ({ ...prev, [selectedObjId]: [...(prev[selectedObjId] || []), record].sort((a, b) => a.date.localeCompare(b.date)) }));
+        setProgramData(prev => ({ ...prev, [selectedObjId]: [...(prev[selectedObjId] || []), record] }));
         setNewItem({ ...newItem, description: '' });
     };
     const handleDelete = (id: number) => setProgramData(prev => ({ ...prev, [selectedObjId]: prev[selectedObjId].filter(i => i.id !== id) }));
@@ -717,7 +717,7 @@ export default function ProgramPage() {
         const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
 
         // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
-        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
         const getWords = (s: string) => s.split(/\s+/).filter(w => w.length > 2);
         const isSubset = (subset: string[], superset: string[]) => {
             return subset.every(subWord => {
@@ -829,15 +829,19 @@ export default function ProgramPage() {
             const tWords = getWords(tNorm);
             if (tWords.length === 0) return null;
 
-            return Object.keys(grouped[areaKey]).find(desc => {
-                const cache = descCache[desc];
-                if (!cache) return false;
-                
-                // 1. Coincidencia Directa
-                if (cache.norm === tNorm) return true;
+            const keys = Object.keys(grouped[areaKey]);
 
-                // 2. Coincidencia por Palabras (Bidirectional Subset logic)
-                if (cache.words.length === 0) return false;
+            // 1. Pass 1: Coincidencia Directa (Exact Match)
+            const exactMatch = keys.find(desc => {
+                const cache = descCache[desc];
+                return cache && cache.norm === tNorm;
+            });
+            if (exactMatch) return exactMatch;
+
+            // 2. Pass 2: Coincidencia por Palabras (Bidirectional Subset logic)
+            return keys.find(desc => {
+                const cache = descCache[desc];
+                if (!cache || cache.words.length === 0) return false;
                 return isSubset(cache.words, tWords) || isSubset(tWords, cache.words);
             });
         };
@@ -924,6 +928,12 @@ export default function ProgramPage() {
             }
         });
 
+        // Helper to check if an activity is a training
+        const isTrainingActivity = (name: string) => {
+            const n = name.toUpperCase();
+            return n.includes('CAP.') || n.includes('CAPACITACI') || n.includes('INDUCCI') || n.includes('ENTRENAMIENTO') || n.includes('FORMACION');
+        };
+
         // 6. Map ATS Records
         atsRecords.forEach(ats => {
             if (targetObjId === 'obj2') return; // ATS are not Trainings
@@ -933,7 +943,7 @@ export default function ProgramPage() {
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, 'ATS' || ats.location);
-                if (match) {
+                if (match && !isTrainingActivity(match)) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...ats, _type: 'ATS' });
@@ -950,7 +960,7 @@ export default function ProgramPage() {
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, petar.type || 'PETAR');
-                if (match) {
+                if (match && !isTrainingActivity(match)) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...petar, _type: 'PETAR' });
@@ -967,7 +977,7 @@ export default function ProgramPage() {
 
             for (const areaKey in grouped) {
                 const match = findMatch(areaKey, det.category || 'Desvío');
-                if (match) {
+                if (match && !isTrainingActivity(match)) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...det, _type: 'DETOUR' });
@@ -1077,9 +1087,32 @@ export default function ProgramPage() {
             });
             totals[obj.id] = { p: pTotal, e: eTotal };
         });
+        
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('annual_program_totals', JSON.stringify(totals));
+            }
+        } catch (e) {
+            console.error('Failed to save annual_program_totals to localStorage', e);
+        }
+
         return totals;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords, reporteAcRecords]);
+
+    const summaryTotals = useMemo(() => {
+        const sum = (ids: string[]) => {
+            return ids.reduce((acc, id) => {
+                const t = sidebarTotals[id] || { p: 0, e: 0 };
+                return { p: acc.p + t.p, e: acc.e + t.e };
+            }, { p: 0, e: 0 });
+        };
+        return {
+            seguridad: sum(['obj1', 'obj2', 'obj3', 'obj4', 'obj10', 'obj11']),
+            salud: sum(['obj5', 'obj6', 'obj7']),
+            ambiente: sum(['obj8', 'obj9'])
+        };
+    }, [sidebarTotals]);
 
     return (
         <div className="relative h-full flex flex-col md:flex-row bg-slate-950 overflow-hidden">
@@ -1129,6 +1162,37 @@ export default function ProgramPage() {
                             </button>
                         );
                     })}
+                </div>
+                
+                {/* Summary Panel */}
+                <div className="p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm z-10">
+                    <h4 className="text-[10px] font-black text-slate-500 mb-3 uppercase tracking-widest text-center">Resumen por Área</h4>
+                    <div className="space-y-2">
+                        {/* Seguridad */}
+                        <div className="flex justify-between text-[10px] items-center bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/50 hover:border-slate-700 transition-colors">
+                            <span className="font-bold text-slate-300">SEGURIDAD</span>
+                            <div className="flex gap-2 font-mono">
+                                <span className="text-emerald-500 bg-emerald-500/10 px-1.5 rounded">P:{summaryTotals.seguridad.p}</span>
+                                <span className="text-blue-500 bg-blue-500/10 px-1.5 rounded">E:{summaryTotals.seguridad.e}</span>
+                            </div>
+                        </div>
+                        {/* Salud */}
+                        <div className="flex justify-between text-[10px] items-center bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/50 hover:border-slate-700 transition-colors">
+                            <span className="font-bold text-slate-300">SALUD</span>
+                            <div className="flex gap-2 font-mono">
+                                <span className="text-emerald-500 bg-emerald-500/10 px-1.5 rounded">P:{summaryTotals.salud.p}</span>
+                                <span className="text-blue-500 bg-blue-500/10 px-1.5 rounded">E:{summaryTotals.salud.e}</span>
+                            </div>
+                        </div>
+                        {/* M. Ambiente */}
+                        <div className="flex justify-between text-[10px] items-center bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/50 hover:border-slate-700 transition-colors">
+                            <span className="font-bold text-slate-300">M. AMBIENTE</span>
+                            <div className="flex gap-2 font-mono">
+                                <span className="text-emerald-500 bg-emerald-500/10 px-1.5 rounded">P:{summaryTotals.ambiente.p}</span>
+                                <span className="text-blue-500 bg-blue-500/10 px-1.5 rounded">E:{summaryTotals.ambiente.e}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

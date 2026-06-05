@@ -1,4 +1,5 @@
 "use client";
+import { canDeleteRecord } from '@/lib/utils';
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -221,6 +222,11 @@ export default function SCTRPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este registro de la bitácora?")) return;
         try {
             await fetch('/api/sctr-records', {
@@ -245,19 +251,42 @@ export default function SCTRPage() {
         
         if (targetWords.length === 0) return [];
 
-        const lines = record.personnel_list.split('\n');
+        // ── SMART SPLIT ──────────────────────────────────────────────────────
+        // Si el texto no tiene saltos de línea (PDF mal extraído, todo en una línea),
+        // lo dividimos por el patrón típico SCTR: número de fila seguido de DNI o nombre.
+        // Ejemplos: "1 DNI 12345678 APELLIDO NOMBRE 2 DNI 87654321 ..."
+        //           "59 DNI 22196407 CANCINO TUEROS JOSE LUIS 60 DNI ..."
+        let rawLines = record.personnel_list.split('\n');
+        
+        // Detectar si hay muy pocas líneas en relación al contenido (= probablemente sin \n)
+        const avgLen = record.personnel_list.length / rawLines.length;
+        if (avgLen > 200) {
+            // Dividir por patrón: número seguido de DNI/N° al inicio de cada entrada
+            // Ej: "1 DNI" o "1 22196407" o justo antes de cada número correlativo
+            const splitByNumber = record.personnel_list
+                .replace(/\s+(\d{1,3})\s+(DNI|N°|Nro\.?|CIP|RUC|\d{7,9})/gi, '\n$1 $2')
+                .split('\n');
+            
+            if (splitByNumber.length > rawLines.length) {
+                rawLines = splitByNumber;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         const matches: string[] = [];
 
-        for (const line of lines) {
+        for (const line of rawLines) {
             const normalizedLine = normalize(line);
             if (!normalizedLine.trim()) continue;
 
             if (/^\d+$/.test(target)) {
+                // Búsqueda por DNI exacto
                 const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
                 if (dniRegex.test(normalizedLine)) {
                     matches.push(line.trim());
                 }
             } else {
+                // Búsqueda por nombre: todas las palabras deben estar presentes
                 if (targetWords.every(word => normalizedLine.includes(word))) {
                     matches.push(line.trim());
                 }

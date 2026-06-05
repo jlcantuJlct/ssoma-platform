@@ -385,43 +385,60 @@ export async function updateDashboardActivity(activityId: string, month: number,
 // Initial Sync / Bulk Import from Client LocalStorage
 export async function syncInitialData(activities: any[]) {
     try {
-        await db.transaction(async () => {
-            for (const act of activities) {
-                // Ensure ID and required fields exist
-                const existingAct = await db.fetchOne('SELECT id FROM activities WHERE id = ?', [act.id || '']);
-                if (!existingAct) {
-                    await db.execute('INSERT INTO activities (id, objective_id, name, responsible, frequency, public_target, area) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-                        act.id || `act-${Date.now()}`,
-                        act.objectiveId || 'obj-general',
-                        act.name,
-                        act.responsible || 'Sin Asignar',
-                        act.frequency || 'Mensual',
-                        act.target || '100%',
-                        act.managementArea || 'safety'
-                    ]);
-                }
+        console.log(`Starting sync for ${activities.length} activities...`);
+        // Do not use transaction for huge loops to avoid timeout lockups, just process in parallel batches
+        const batchSize = 10;
+        for (let i = 0; i < activities.length; i += batchSize) {
+            const batch = activities.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (act) => {
+                try {
+                    // Ensure ID and required fields exist
+                    const actId = act.id || `act-${crypto.randomUUID()}`;
+                    const existingAct = await db.fetchOne('SELECT id FROM activities WHERE id = ?', [actId]);
+                    if (!existingAct) {
+                        await db.execute('INSERT INTO activities (id, objective_id, name, responsible, frequency, public_target, area) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                            actId,
+                            act.objectiveId || 'obj-general',
+                            act.name,
+                            act.responsible || 'Sin Asignar',
+                            act.frequency || 'Mensual',
+                            act.target || '100%',
+                            act.managementArea || 'safety'
+                        ]);
+                    }
 
-                // Progress
-                if (act.data) {
-                    for (let m = 0; m < 12; m++) {
-                        const val = act.data.plan[m];
-                        const execRaw = act.data.executed[m];
-                        if (val > 0 || execRaw > 0) {
-                            const existingProg = await db.fetchOne('SELECT id FROM progress WHERE activity_id = ? AND month = ?', [act.id, m]);
-                            if (!existingProg) {
-                                await db.execute('INSERT INTO progress (id, activity_id, month, plan_value, executed_value) VALUES (?, ?, ?, ?, ?)', [
-                                    crypto.randomUUID(),
-                                    act.id,
-                                    m,
-                                    val,
-                                    execRaw
-                                ]);
+                    // Progress
+                    if (act.data) {
+                        const progressPromises = [];
+                        for (let m = 0; m < 12; m++) {
+                            const val = act.data.plan[m] || 0;
+                            const execRaw = act.data.executed[m] || 0;
+                            if (val > 0 || execRaw > 0) {
+                                progressPromises.push((async () => {
+                                    const existingProg = await db.fetchOne('SELECT id FROM progress WHERE activity_id = ? AND month = ?', [actId, m]);
+                                    if (!existingProg) {
+                                        await db.execute('INSERT INTO progress (id, activity_id, month, plan_value, executed_value) VALUES (?, ?, ?, ?, ?)', [
+                                            crypto.randomUUID(),
+                                            actId,
+                                            m,
+                                            val,
+                                            execRaw
+                                        ]);
+                                    } else {
+                                        await db.execute('UPDATE progress SET plan_value = ?, executed_value = ? WHERE activity_id = ? AND month = ?', [
+                                            val, execRaw, actId, m
+                                        ]);
+                                    }
+                                })());
                             }
                         }
+                        await Promise.all(progressPromises);
                     }
+                } catch (err) {
+                    console.error("Error syncing activity:", act.id, err);
                 }
-            }
-        });
+            }));
+        }
 
         return { success: true };
     } catch (e) {

@@ -51,7 +51,7 @@ export const ComplianceGauge = ({ value, max = 100, title, width = 300, height =
 
             {/* Title & Badge */}
             <div className="relative z-10 text-center mb-2 flex flex-col items-center">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center truncate max-w-[120px]" title={title}>
+                <h3 className="text-[10px] md:text-xs font-black text-slate-300 uppercase tracking-widest text-center px-4" title={title}>
                     {title}
                 </h3>
                 <div
@@ -75,18 +75,11 @@ export const ComplianceGauge = ({ value, max = 100, title, width = 300, height =
                 <svg width="100%" height="100%" viewBox="0 0 200 110" className="overflow-visible drop-shadow-2xl">
                     <defs>
 
-                        {/* Executive Gradients */}
-                        <linearGradient id="gradRed" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#ef4444" />
-                            <stop offset="100%" stopColor="#7f1d1d" />
-                        </linearGradient>
-                        <linearGradient id="gradYellow" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#fbbf24" />
-                            <stop offset="100%" stopColor="#b45309" />
-                        </linearGradient>
-                        <linearGradient id="gradGreen" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#22d3ee" /> {/* Cyan */}
-                            <stop offset="100%" stopColor="#0ea5e9" /> {/* Sky Blue */}
+                        {/* Modern Continuous Gradient - SUPER NEON */}
+                        <linearGradient id="gradModern" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#ff0055" />   {/* Neon Pink/Red */}
+                            <stop offset="50%" stopColor="#ffea00" />  {/* Neon Yellow/Amber */}
+                            <stop offset="100%" stopColor="#00ffcc" /> {/* Neon Cyan/Green */}
                         </linearGradient>
                         {/* Metallic / Glass Gradients for Scale */}
                     </defs>
@@ -132,44 +125,18 @@ export const ComplianceGauge = ({ value, max = 100, title, width = 300, height =
                             filter="drop-shadow(0 0 8px rgba(0,0,0,0.5))"
                         />
                     ) : (
-                        /* MULTI ZONE MODE */
-                        <>
-                            {/* RED ZONE (0-70%) */}
-                            <path
-                                d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-                                fill="none"
-                                stroke="url(#gradRed)"
-                                strokeWidth={strokeWidth}
-                                strokeDasharray={`${redStroke - gap} ${semiCircumference}`}
-                                strokeDashoffset={0}
-                                strokeLinecap="round"
-                                className="opacity-90"
-                            />
-
-                            {/* YELLOW ZONE (70-90%) */}
-                            <path
-                                d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-                                fill="none"
-                                stroke="url(#gradYellow)"
-                                strokeWidth={strokeWidth}
-                                strokeDasharray={`${yellowStroke - gap} ${semiCircumference}`}
-                                strokeDashoffset={-redStroke}
-                                strokeLinecap="round"
-                                className="opacity-90"
-                            />
-
-                            {/* GREEN ZONE (90-100%) */}
-                            <path
-                                d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-                                fill="none"
-                                stroke="url(#gradGreen)"
-                                strokeWidth={strokeWidth}
-                                strokeDasharray={`${greenStroke} ${semiCircumference}`}
-                                strokeDashoffset={-(redStroke + yellowStroke)}
-                                strokeLinecap="round"
-                                className="opacity-90"
-                            />
-                        </>
+                        /* MODERN MULTI ZONE MODE (CONTINUOUS GRADIENT) */
+                        <path
+                            d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+                            fill="none"
+                            stroke="url(#gradModern)"
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={`${currentStroke} ${semiCircumference}`}
+                            strokeDashoffset={0}
+                            strokeLinecap="round"
+                            className="transition-all duration-1000 ease-out"
+                            filter={`drop-shadow(0 0 12px ${percentage >= 90 ? 'rgba(0,255,204,0.9)' : percentage >= 70 ? 'rgba(255,234,0,0.9)' : 'rgba(255,0,85,0.9)'})`}
+                        />
                     )}
 
                     {/* Ticks for scale */}
@@ -186,25 +153,25 @@ export const ComplianceGauge = ({ value, max = 100, title, width = 300, height =
                 {/* DOM-based Needle */}
                 <div className="absolute top-[90%] left-1/2 -translate-x-1/2 -translate-y-full w-full max-w-[200px] aspect-[2/1] pointer-events-none">
                     <div
-                        className="absolute bottom-0 left-1/2 w-1.5 h-[95%] origin-bottom transition-transform duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1)"
+                        className="absolute bottom-0 left-1/2 w-1 h-[95%] origin-bottom transition-transform duration-1000 cubic-bezier(0.34, 1.56, 0.64, 1)"
                         style={{ transform: `rotate(${rotation}deg)` }}
                     >
                         {/* Needle Body - Enhanced 3D */}
                         <div
                             className={`w-full h-full rounded-t-full shadow-2xl transition-colors duration-500`}
                             style={{
-                                background: `linear-gradient(to right, ${customColor || '#ef4444'}, #ffffff, ${customColor || '#ef4444'})`,
-                                boxShadow: `0 0 15px ${customColor || (percentage >= 90 ? 'rgba(34,211,238,0.8)' : percentage >= 70 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)')}`
+                                background: `linear-gradient(to top, transparent, ${customColor || '#ffffff'})`,
+                                boxShadow: `0 0 15px ${customColor || 'rgba(255,255,255,0.5)'}`
                             }}
                         ></div>
                     </div>
                     {/* Needle Pivot - Metallic look */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 bg-slate-800 rounded-full border-[3px] border-slate-600 shadow-[0_5px_15px_rgba(0,0,0,0.8),inset_0_2px_5px_rgba(255,255,255,0.2)] flex items-center justify-center z-20">
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 bg-slate-900 rounded-full border-2 border-slate-700 shadow-[0_5px_15px_rgba(0,0,0,0.8)] flex items-center justify-center z-20">
                         <div
-                            className={`w-3 h-3 rounded-full animate-pulse transition-colors duration-500 border border-black/50`}
+                            className={`w-2 h-2 rounded-full transition-colors duration-500`}
                             style={{
-                                backgroundColor: customColor || (percentage >= 90 ? '#22d3ee' : percentage >= 70 ? '#f59e0b' : '#dc2626'),
-                                boxShadow: `0 0 10px ${customColor || (percentage >= 90 ? 'rgba(34,211,238,1)' : percentage >= 70 ? 'rgba(245,158,11,1)' : 'rgba(220,38,38,1)')}`
+                                backgroundColor: customColor || '#ffffff',
+                                boxShadow: `0 0 10px ${customColor || '#ffffff'}`
                             }}
                         ></div>
                     </div>

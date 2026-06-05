@@ -205,6 +205,45 @@ export function sanitizeValue(val: any): string {
 }
 
 /**
+ * Verifica si un registro puede ser eliminado según la regla de 24 horas.
+ * - developer y manager siempre pueden eliminar.
+ * - user solo puede eliminar si el registro tiene menos de 24 horas de ingresado.
+ *
+ * @param recordId   El ID del registro (preferiblemente un timestamp Date.now())
+ * @param userRole   El rol del usuario actual ('developer' | 'manager' | 'user')
+ * @param recordDate Fecha del documento (YYYY-MM-DD) como fallback si el ID no es timestamp
+ * @returns true si se puede eliminar, false si ya pasaron las 24 horas
+ */
+export function canDeleteRecord(
+    recordId: number | string,
+    userRole: string,
+    recordDate?: string
+): boolean {
+    // developer y manager siempre pueden eliminar
+    if (userRole === 'developer' || userRole === 'manager') return true;
+
+    const HOURS_24 = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    // Intentar usar el ID como timestamp (Date.now() genera IDs de 13 dígitos)
+    const numId = Number(recordId);
+    const isTimestampId = numId > 1_000_000_000_000; // > año 2001 en ms
+
+    if (isTimestampId) {
+        return (now - numId) <= HOURS_24;
+    }
+
+    // Fallback: usar la fecha del documento (considerar creado al inicio del día)
+    if (recordDate) {
+        const createdAt = new Date(recordDate + 'T00:00:00').getTime();
+        return (now - createdAt) <= HOURS_24;
+    }
+
+    // Si no hay manera de determinar la fecha, denegar por seguridad
+    return false;
+}
+
+/**
  * Sanitizes an array of objects by ensuring common fields are strings.
  */
 export function sanitizeRecords<T extends Record<string, any>>(records: T[], fields: (keyof T)[]): T[] {

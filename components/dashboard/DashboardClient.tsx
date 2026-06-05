@@ -120,23 +120,33 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     // DB "merged" result returns a flat list of activities with 'managementArea' and 'objectiveId'.
                     // We need to redistribute them to sections.
 
-                    newData.sections.forEach((sec: Section) => {
-                        // Find activities belonging to this section (by area or id match?)
-                        // The original code grouped by 'scsst', 'health', etc. 
-                        // Our DB 'area' maps to managementArea.
-                        // But unique sections logic in frontend is slightly complex.
+                    let missingActivities: any[] = [];
 
-                        // FALLBACK: Load values into existing structure
+                    newData.sections.forEach((sec: Section) => {
                         sec.activities.forEach((act: Activity) => {
-                            const dbAct = dbActivities.find((d: any) => d.id === act.id || d.name === act.name); // Name fallback
+                            const dbAct = dbActivities.find((d: any) => d.id === act.id || d.name === act.name);
                             if (dbAct) {
                                 act.data = dbAct.data;
                                 act.evidence = dbAct.evidence;
-                                // Update ID if needed to match DB UUID
                                 if (dbAct.id !== act.id) act.id = dbAct.id;
+                            } else {
+                                // Missing in DB! We must push this activity and its progress to the DB
+                                missingActivities.push({
+                                    ...act,
+                                    managementArea: sec.id === 'scsst' ? 'safety' : sec.id
+                                });
                             }
                         });
                     });
+
+                    // If we found activities locally that aren't in the DB, sync them up so others can see them
+                    if (missingActivities.length > 0) {
+                        console.log(`Syncing ${missingActivities.length} missing activities to DB...`);
+                        syncInitialData(missingActivities).then(r => {
+                            if (r.success) console.log("Missing Sync to DB Complete");
+                        });
+                    }
+
                     return newData;
                 });
 
@@ -614,7 +624,6 @@ function DashboardContent({ initialData }: DashboardClientProps) {
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-950 text-slate-200">
-            <Header />
             
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
                 {/* Header Actions */}
@@ -687,7 +696,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
 
                     {/* Filtro de Objetivos */}
                     {!showAnalytics && (
-                        <div className="hidden md:block">
+                        <div className="w-full md:w-auto mt-2 md:mt-0">
                             <FilterControl
                                 label="Objetivo Específico"
                                 value={selectedObjectiveId}
@@ -744,7 +753,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                             router.push(`?${params.toString()}`);
                             setShowAnalytics(newShow);
                         }}
-                        className={`hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${showAnalytics
+                        className={`flex w-full md:w-auto justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${showAnalytics
                             ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
                             : 'bg-white text-slate-700 hover:bg-slate-50'
                             }`}
@@ -801,23 +810,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
             {/* Content Area */}
             {showAnalytics ? (
                 <>
-                    {/* MOBILE ANALYTICS NOTICE */}
-                    <div className="md:hidden flex flex-col items-center justify-center py-20 bg-slate-100 rounded-3xl mx-4 border border-slate-200">
-                        <ActivityIcon size={48} className="text-slate-300 mb-4" />
-                        <h3 className="text-lg font-bold text-slate-600 text-center">Gráficos no disponibles en móvil</h3>
-                        <p className="text-xs text-slate-400 text-center px-6 mt-2">
-                            Para ver el análisis gráfico completo y detallado, por favor ingrese desde una computadora de escritorio.
-                        </p>
-                        <button
-                            onClick={() => setShowAnalytics(false)}
-                            className="mt-6 px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold"
-                        >
-                            Volver al Programa
-                        </button>
-                    </div>
-
-                    {/* DESKTOP ANALYTICS */}
-                    <div className="hidden md:block mt-6" id="analytics-container">
+                    {/* RESPONSIVE ANALYTICS */}
+                    <div className="mt-6" id="analytics-container">
                         <DashboardCharts
                             activities={
                                 (selectedObjectiveId === 'todos'

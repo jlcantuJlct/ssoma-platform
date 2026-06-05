@@ -31,8 +31,8 @@ export default function RootLayout({
         <Providers>
           <ErrorBoundary>
             <Sidebar />
-            <main className="flex-1 overflow-y-auto h-screen relative bg-slate-950">
-            {children}
+            <main className="flex-1 overflow-y-auto h-screen relative bg-slate-950 pt-16 md:pt-0">
+                {children}
             </main>
             <AlertaBanner />
             <SSOMAAssistant />

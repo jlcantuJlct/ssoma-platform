@@ -32,8 +32,9 @@ if (process.env.POSTGRES_URL) {
     const { Pool } = require('pg');
 
     const pool = new Pool({
-        connectionString: process.env.POSTGRES_URL,
-        ssl: { rejectUnauthorized: false }
+        connectionString: process.env.POSTGRES_URL.replace('5432', '6543'),
+        ssl: { rejectUnauthorized: false },
+        max: 5, // Vercel edge functions might spawn many containers, keep max pool size low per container
     });
 
     client = {
