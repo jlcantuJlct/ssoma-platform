@@ -35,7 +35,7 @@ export async function GET() {
         return NextResponse.json({ success: true, records: parsed });
     } catch (error: any) {
         console.error('Error fetching pesaje records:', error);
-        return NextResponse.json({ success: true, records: [] });
+        return NextResponse.json({ success: false, error: error.message, records: [] }, { status: 500 });
     }
 }
 
