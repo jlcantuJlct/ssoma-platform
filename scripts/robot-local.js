@@ -104,8 +104,24 @@ async function downloadFile(drive, fileId, destPath, fallbackName) {
         return;
     }
     try {
-        const res = await fetch(`https://drive.google.com/uc?export=download&id=${fileId}`);
+        if (drive) {
+            try {
+                const response = await drive.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'stream' });
+                await new Promise((resolve, reject) => {
+                    const dest = fs.createWriteStream(destPath);
+                    response.data.pipe(dest)
+                        .on('finish', resolve)
+                        .on('error', reject);
+                });
+                return;
+            } catch (e) {
+                console.warn(`Drive API failed for ${fileId}, falling back to fetch:`, e.message);
+            }
+        }
+        const res = await fetch(`https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`);
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) throw new Error('Received HTML (virus scan or auth wall)');
         const arrayBuffer = await res.arrayBuffer();
         fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
     } catch (e) {
@@ -117,11 +133,15 @@ async function downloadDirectFile(fileUrl, destPath) {
     try {
         const res = await fetch(fileUrl);
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) throw new Error('Received HTML (virus scan or auth wall)');
         const arrayBuffer = await res.arrayBuffer();
         fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
     } catch (e) {
         const isImage = destPath.toLowerCase().endsWith('.jpg');
-        fs.writeFileSync(destPath, isImage ? `%IMAGE\n%Link: ${fileUrl}\n%%EOF` : `%PDF-1.4\n%Link: ${fileUrl}\n%%EOF`);
+        // Do not write a fake PDF that corrupts viewers. Write an error text file instead.
+        const errorPath = destPath + '_ERROR.txt';
+        fs.writeFileSync(errorPath, `No se pudo descargar el archivo.\nURL: ${fileUrl}\nError: ${e.message}`);
     }
 }
 

@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import JSZip from 'jszip';
 
-// Extract the Drive file ID from standard drive URLs
 function getDriveFileId(url: string): string | null {
     if (!url) return null;
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
 }
 
@@ -26,11 +25,17 @@ export async function POST(req: Request) {
                 if (!fileId) return;
 
                 // Create a direct download URL
-                const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
 
                 const response = await fetch(downloadUrl);
                 if (!response.ok) {
                     console.warn(`Could not download ${file.filename}`);
+                    return;
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/html')) {
+                    console.warn(`Skipping ${file.filename}: received HTML (virus warning)`);
                     return;
                 }
 

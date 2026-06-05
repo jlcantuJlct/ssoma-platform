@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         if (url.includes('drive.google.com/file/d/') && !url.includes('export=')) {
             const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (match && match[1]) {
-                fetchUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                fetchUrl = `https://drive.google.com/uc?export=download&id=${match[1]}&confirm=t`;
             }
         }
 
