@@ -23,7 +23,7 @@ import {
     FileText
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { sanitizeRecords, sanitizeValue, getDriveViewerUrl } from "@/lib/utils";
+import { sanitizeRecords, sanitizeValue, getDriveViewerUrl, canDeleteRecord} from "@/lib/utils";
 import { 
     BarChart as RechartsBarChart, 
     Bar, 
@@ -98,25 +98,21 @@ export default function WasteManagementPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
 
-    // --- EFFECT: LOAD/SAVE ---
+    // --- DATA LOAD ---
     useEffect(() => {
-        const stored = localStorage.getItem('waste_weight_records_v2');
-        if (stored) {
+        const fetchRecords = async () => {
             try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                    setRecords(sanitizeRecords(parsed, ['wasteType', 'location', 'date']));
+                const res = await fetch('/api/pesaje-records');
+                const data = await res.json();
+                if (data.records && Array.isArray(data.records)) {
+                    setRecords(data.records);
                 }
-            } catch (e) { console.error(e); }
-        }
-        setIsLoaded(true);
+            } catch (err) {
+                console.error("Error fetching waste records:", err);
+            }
+        };
+        fetchRecords();
     }, []);
-
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('waste_weight_records_v2', JSON.stringify(records));
-        }
-    }, [records, isLoaded]);
 
     // --- ANALYTICS & ACCUMULATION ---
     const accumulationData = useMemo(() => {
@@ -243,16 +239,25 @@ export default function WasteManagementPage() {
             const label = Object.keys(multiWeights)[0];
             const weight = multiWeights[label];
             const cat = WASTE_CATEGORIES.find(c => c.label === label);
+            const oldRecord = records.find(r => r.id === editingId) || {} as WasteWeightRecord;
 
-            setRecords(prev => prev.map(r => r.id === editingId ? {
-                ...r,
+            const updatedRecord = {
+                ...oldRecord,
                 date: entryDate,
                 wasteType: label,
                 weight: Number(weight),
                 location: entryLocation,
                 category: (cat?.type as any) || 'No Peligroso',
                 files: files.length > 0 ? files : r.files
-            } : r));
+            };
+
+            setRecords(prev => prev.map(rec => rec.id === editingId ? updatedRecord : rec));
+            
+            // Sync UPDATE to DB
+            fetch('/api/pesaje-records', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'UPDATE', record: updatedRecord })
+            });
 
             setEditingId(null);
             alert("Registro actualizado correctamente.");
@@ -283,6 +288,19 @@ export default function WasteManagementPage() {
             }
 
             setRecords(prev => [...newEntries, ...prev]);
+
+            // Sync CREATE to DB in background
+            newEntries.forEach(rec => {
+                fetch('/api/pesaje-records', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'CREATE', record: rec })
+                }).then(res => res.json()).then(data => {
+                    if (data.success && data.id) {
+                        setRecords(curr => curr.map(r => r.id === rec.id ? { ...r, id: data.id } : r));
+                    }
+                });
+            });
+
             alert("Pesajes registrados correctamente.");
         }
 
@@ -298,9 +316,19 @@ export default function WasteManagementPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('\u23f1\ufe0f No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acci\u00f3n.');
+            return;
+        }
         if (confirm("¿Eliminar este pesaje?")) {
             setRecords(prev => prev.filter(r => r.id !== id));
+            // Sync DELETE
+            await fetch('/api/pesaje-records', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'DELETE', id })
+            });
         }
     };
 
