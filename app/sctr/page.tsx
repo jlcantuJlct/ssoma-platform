@@ -252,23 +252,39 @@ export default function SCTRPage() {
         if (targetWords.length === 0) return [];
 
         // ── SMART SPLIT ──────────────────────────────────────────────────────
-        // Si el texto no tiene saltos de línea (PDF mal extraído, todo en una línea),
-        // lo dividimos por el patrón típico SCTR: número de fila seguido de DNI o nombre.
-        // Ejemplos: "1 DNI 12345678 APELLIDO NOMBRE 2 DNI 87654321 ..."
-        //           "59 DNI 22196407 CANCINO TUEROS JOSE LUIS 60 DNI ..."
+        // El PDF de SCTR puede tener dos formatos distintos según el mes:
+        //
+        // FORMATO A (ej. Mayo):  "59 DNI 22196407 CANCINO TUEROS JOSE LUIS 60 DNI..."
+        //   → número correlativo ANTES del DNI
+        //
+        // FORMATO B (ej. Junio): "BERROCAL RAMOS 42567685 DNI 42 BLANCO ROSAS..."
+        //   → número correlativo DESPUÉS del DNI, seguido del siguiente nombre
+        //
         let rawLines = record.personnel_list.split('\n');
-        
-        // Detectar si hay muy pocas líneas en relación al contenido (= probablemente sin \n)
-        const avgLen = record.personnel_list.length / rawLines.length;
+
+        const avgLen = record.personnel_list.length / Math.max(rawLines.length, 1);
+
         if (avgLen > 200) {
-            // Dividir por patrón: número seguido de DNI/N° al inicio de cada entrada
-            // Ej: "1 DNI" o "1 22196407" o justo antes de cada número correlativo
-            const splitByNumber = record.personnel_list
+            // ── Intento A: número + DNI al inicio de cada persona ──
+            const attemptA = record.personnel_list
                 .replace(/\s+(\d{1,3})\s+(DNI|N°|Nro\.?|CIP|RUC|\d{7,9})/gi, '\n$1 $2')
-                .split('\n');
-            
-            if (splitByNumber.length > rawLines.length) {
-                rawLines = splitByNumber;
+                .split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 2);
+
+            // ── Intento B: DNI + número correlativo + nombre siguiente ──
+            // Ej: "42567685 DNI 42 BLANCO" → split después de "DNI 42"
+            const attemptB = record.personnel_list
+                .replace(/(DNI\s+\d{1,3})\s+(?=[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúña-z])/g, '$1\n')
+                .split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 2);
+
+            // Elegir el intento que logró más divisiones
+            const best = attemptA.length >= attemptB.length ? attemptA : attemptB;
+
+            if (best.length > rawLines.length) {
+                rawLines = best;
             }
         }
         // ─────────────────────────────────────────────────────────────────────
