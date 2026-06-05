@@ -2,6 +2,11 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+// URL del Puente Apps Script (el mismo que usa el resto de la plataforma)
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
+const BACKUP_FOLDER = "BACKUPS/Pesaje de Residuos";
+const BACKUP_FILE   = "pesaje_records_backup.csv";
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS pesaje_records (
@@ -16,6 +21,59 @@ async function ensureTable() {
         )
     `);
 }
+
+// ── BACKUP AUTOMÁTICO A GOOGLE DRIVE ────────────────────────────────────────
+// Genera un CSV con TODOS los registros y lo sube a Drive.
+// Se llama en background después de cada CREATE / UPDATE / DELETE.
+async function backupToDrive() {
+    try {
+        // 1. Leer todos los registros actuales
+        const rows = await db.fetchAll(
+            'SELECT id, date, waste_type, weight, location, category, created_at FROM pesaje_records ORDER BY date DESC, id DESC'
+        );
+
+        // 2. Construir CSV
+        const header = 'ID,Fecha,Tipo de Residuo,Peso,Ubicacion,Categoria,Creado\n';
+        const csvBody = rows.map((r: any) =>
+            `${r.id},"${r.date}","${r.waste_type}",${r.weight},"${r.location}","${r.category}","${r.created_at || ''}"`
+        ).join('\n');
+        const csv = header + csvBody;
+
+        // 3. Convertir a Base64
+        const base64 = Buffer.from(csv, 'utf-8').toString('base64');
+
+        // 4. Subir a Drive vía Apps Script Bridge
+        const payload = {
+            filename:   BACKUP_FILE,
+            mimetype:   'text/csv',
+            fileBase64: base64,
+            folderId:   '1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5',  // Raíz del Drive SIG CASA
+            folderPath: BACKUP_FOLDER,
+            folderName: BACKUP_FOLDER,
+            overwrite:  true   // Sobreescribir el mismo archivo para no acumular versiones
+        };
+
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            redirect: 'follow'
+        });
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+
+        if (data.result === 'success') {
+            console.log(`✅ Backup Pesaje → Drive: ${data.viewLink || data.url}`);
+        } else {
+            console.error('⚠️ Backup Drive falló (no crítico):', data.error);
+        }
+    } catch (e: any) {
+        // El backup NO debe detener la operación principal
+        console.error('⚠️ Error en backup Drive (no crítico):', e.message);
+    }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 export async function GET() {
     try {
@@ -63,6 +121,10 @@ export async function POST(req: NextRequest) {
                     ]
                 );
                 const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;
+
+                // Backup en background (no bloquea la respuesta)
+                backupToDrive();
+
                 return NextResponse.json({ success: true, id: newId });
             }
 
@@ -84,6 +146,10 @@ export async function POST(req: NextRequest) {
                         r.id
                     ]
                 );
+
+                // Backup en background
+                backupToDrive();
+
                 return NextResponse.json({ success: true });
             }
 
@@ -91,6 +157,10 @@ export async function POST(req: NextRequest) {
                 const id = body.id || (body.record && body.record.id);
                 if (!id) throw new Error('Falta el ID para DELETE');
                 await db.execute('DELETE FROM pesaje_records WHERE id = ?', [id]);
+
+                // Backup en background
+                backupToDrive();
+
                 return NextResponse.json({ success: true });
             }
         }
@@ -99,9 +169,6 @@ export async function POST(req: NextRequest) {
         if (body.records && Array.isArray(body.records)) {
             let count = 0;
             for (const r of body.records) {
-                // To avoid duplicate bulk inserts, we could clear or just append. 
-                // We'll just append for now, or you can uncomment TRUNCATE if it's meant to replace.
-                // await db.execute('TRUNCATE TABLE pesaje_records RESTART IDENTITY');
                 await db.execute(
                     `INSERT INTO pesaje_records (date, waste_type, weight, location, category, files)
                      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -116,6 +183,10 @@ export async function POST(req: NextRequest) {
                 );
                 count++;
             }
+
+            // Backup tras carga masiva
+            backupToDrive();
+
             return NextResponse.json({ success: true, count });
         }
 
