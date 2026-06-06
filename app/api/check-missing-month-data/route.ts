@@ -46,7 +46,7 @@ export async function GET() {
         const insp = await countQuery('inspection_records', 'date LIKE ?', [monthLike]);
         
         const scsst = await countQuery('evidence_center_records', 'date LIKE ?', [monthLike]); // evidence
-        const sctr = await countQuery('sctr_monthly_records', '(month = ? OR month = ?) AND year = ?', [sctrMonth, monthPrefix, year]);
+        const sctr = await countQuery('sctr_monthly_records', 'month LIKE ? AND year = ?', [`%${pmaMonth}%`, year]);
         
         const risstma = await countQuery('risstma_records', 'date LIKE ?', [monthLike]);
         const sim = await countQuery('simulacro_records', 'date LIKE ?', [monthLike]);
