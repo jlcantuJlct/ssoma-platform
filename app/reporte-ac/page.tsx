@@ -20,7 +20,9 @@ import {
     TrendingUp,
     Filter,
     Users,
-    DownloadCloud
+    DownloadCloud,
+    Edit2,
+    FileX
 } from "lucide-react";
 import { 
     AreaChart, 
@@ -32,7 +34,7 @@ import {
     ResponsiveContainer,
     Legend
 } from 'recharts';
-import { generateFilename, getDriveViewerUrl } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, canDeleteRecord} from '@/lib/utils';
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
@@ -80,6 +82,10 @@ export default function ReporteACPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+
+    // Edit State
+    const [editingRecord, setEditingRecord] = useState<ReporteACRecord | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     // Filters
     const [filterDate, setFilterDate] = useState("");
@@ -235,11 +241,42 @@ export default function ReporteACPage() {
     };
 
     const handleDelete = (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este registro?")) return;
         const updated = records.filter(r => r.id !== id);
         setRecords(updated);
         localStorage.setItem('reporte_ac_records', JSON.stringify(updated));
         handleSync(updated);
+    };
+
+    const handleUpdate = async () => {
+        if (!editingRecord) return;
+        setIsUpdating(true);
+        try {
+            const res = await fetch('/api/reporte-ac-records', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...editingRecord, userName: user?.name })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const updated = records.map(r => r.id === editingRecord.id ? editingRecord : r);
+                setRecords(updated);
+                localStorage.setItem('reporte_ac_records', JSON.stringify(updated));
+                setEditingRecord(null);
+                alert('✅ Registro actualizado con éxito');
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        } catch (e) {
+            alert('❌ Error al actualizar');
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     const filteredRecords = (records || []).filter(r => {
@@ -769,13 +806,21 @@ export default function ReporteACPage() {
                                                 <td className="px-6 py-4 text-[10px] text-slate-400 font-medium uppercase">{r.location}</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        {r.pdfUrl && (
+                                                        {r.pdfUrl ? (
                                                             <button 
                                                                 onClick={() => setPreviewFile({ url: r.pdfUrl, type: 'pdf' })}
-                                                                className="p-2 hover:bg-orange-500/20 text-slate-400 hover:text-orange-400 rounded-lg transition-all"
+                                                                className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-500/20"
+                                                                title="Ver Archivo"
                                                             >
                                                                 <Eye size={16} />
                                                             </button>
+                                                        ) : (
+                                                            <div 
+                                                                className="p-2 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20 cursor-help"
+                                                                title="Archivo no cargado"
+                                                            >
+                                                                <FileX size={16} />
+                                                            </div>
                                                         )}
                                                         <button 
                                                             onClick={() => exportRecordToPDF('Detalle de Reporte A/C', r, `ReporteAC_${r.id}.pdf`)}
@@ -783,6 +828,13 @@ export default function ReporteACPage() {
                                                             title="Descargar Fila"
                                                         >
                                                             <DownloadCloud size={16} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setEditingRecord(r)}
+                                                            className="p-2 text-slate-600 hover:text-amber-400 transition-colors" 
+                                                            title="Editar Registro"
+                                                        >
+                                                            <Edit2 size={16} />
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(r.id)}
@@ -834,6 +886,106 @@ export default function ReporteACPage() {
                             >
                                 <Download size={18} /> Descargar Original
                             </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT MODAL */}
+            {editingRecord && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                            <h3 className="text-xl font-black text-white flex items-center gap-3">
+                                <Edit2 className="text-amber-500" />
+                                Editar Registro
+                            </h3>
+                            <button 
+                                onClick={() => setEditingRecord(null)}
+                                className="p-2 text-slate-400 hover:text-white transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
+                                    <input 
+                                        type="date"
+                                        value={editingRecord.date}
+                                        onChange={e => setEditingRecord({...editingRecord, date: e.target.value})}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-amber-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase">Responsable</label>
+                                    <SearchableSelect 
+                                        options={RESPONSIBLES}
+                                        value={editingRecord.responsible}
+                                        onChange={val => setEditingRecord({...editingRecord, responsible: val})}
+                                        placeholder="Seleccionar..."
+                                        icon={<Users size={16} />}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase">Lugar</label>
+                                    <SearchableSelect 
+                                        options={SSOMA_LOCATIONS}
+                                        value={editingRecord.location}
+                                        onChange={val => setEditingRecord({...editingRecord, location: val})}
+                                        placeholder="Seleccionar..."
+                                        icon={<MapPin size={16} />}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
+                                    <input 
+                                        type="number"
+                                        value={editingRecord.cantidad}
+                                        onChange={e => setEditingRecord({...editingRecord, cantidad: Number(e.target.value)})}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-amber-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-500 uppercase">Acto</label>
+                                <SearchableSelect 
+                                    options={ACTOS_LIST}
+                                    value={editingRecord.acto}
+                                    onChange={val => setEditingRecord({...editingRecord, acto: val})}
+                                    placeholder="Seleccionar..."
+                                    icon={<AlertTriangle size={16} className="text-orange-500" />}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-500 uppercase">Condición</label>
+                                <SearchableSelect 
+                                    options={CONDICIONES_LIST}
+                                    value={editingRecord.condicion}
+                                    onChange={val => setEditingRecord({...editingRecord, condicion: val})}
+                                    placeholder="Seleccionar..."
+                                    icon={<AlertTriangle size={16} className="text-blue-500" />}
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+                            <button 
+                                onClick={() => setEditingRecord(null)}
+                                className="px-6 py-2 rounded-xl text-slate-400 font-bold hover:bg-slate-800 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleUpdate}
+                                disabled={isUpdating}
+                                className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-black font-black rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isUpdating ? <Activity className="animate-spin" size={16} /> : <Save size={16} />}
+                                Guardar Cambios
+                            </button>
                         </div>
                     </div>
                 </div>

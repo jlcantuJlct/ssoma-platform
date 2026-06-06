@@ -41,33 +41,75 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
         }
 
-        // We use record_id for deduplication or overwrite all
-        await db.execute('DELETE FROM reporte_ac_records');
+        let inserted = 0;
 
         for (const r of records) {
-            await db.execute(
-                `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    String(r.id),
-                    r.date || '',
-                    r.responsible || '',
-                    r.acto || '',
-                    r.condicion || '',
-                    Number(r.cantidad) || 0,
-                    r.location || '',
-                    r.pdfUrl || ''
-                ]
-            );
+            const rid = String(r.id);
+            const existing = await db.fetchAll('SELECT id FROM reporte_ac_records WHERE record_id = ?', [rid]);
+            
+            if (existing.length === 0) {
+                await db.execute(
+                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        rid,
+                        r.date || '',
+                        r.responsible || '',
+                        r.acto || '',
+                        r.condicion || '',
+                        Number(r.cantidad) || 0,
+                        r.location || '',
+                        r.pdfUrl || ''
+                    ]
+                );
+                inserted++;
+            }
         }
 
-        if (records.length > 0) {
-            await logActivity(actingUser, `SINCRONIZACIÓN REPORTE A/C: ${records.length} items`, 'Reporte A/C', `Última carga`);
+        if (inserted > 0) {
+            await logActivity(actingUser, `SINCRONIZACIÓN REPORTE A/C: ${inserted} nuevos items`, 'Reporte A/C', `Última carga`);
         }
 
-        return NextResponse.json({ success: true, count: records.length });
+        return NextResponse.json({ success: true, count: inserted });
     } catch (error: any) {
         console.error('Error saving Reporte A/C records:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+}
+
+export async function PUT(req: NextRequest) {
+    try {
+        await ensureTable();
+        const data = await req.json();
+        
+        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl } = data;
+        
+        if (!id && !record_id) {
+            return NextResponse.json({ success: false, error: 'Se requiere ID o record_id' }, { status: 400 });
+        }
+
+        const targetId = record_id || String(id);
+
+        await db.execute(
+            `UPDATE reporte_ac_records 
+             SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?
+             WHERE record_id = ? OR id = ?`,
+            [
+                date || '',
+                responsible || '',
+                acto || '',
+                condicion || '',
+                Number(cantidad) || 0,
+                location || '',
+                pdfUrl || '',
+                targetId,
+                Number(targetId) || 0
+            ]
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Error updating Reporte A/C record:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
