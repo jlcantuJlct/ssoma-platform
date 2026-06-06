@@ -39,7 +39,8 @@ import {
     TrendingDown,
     ClipboardSignature,
     Calendar,
-    Archive
+    Archive,
+    ThumbsDown
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -57,9 +58,19 @@ export default function Sidebar() {
     });
 
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [alerts, setAlerts] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         setIsMobileOpen(false);
+        // Only fetch alerts once on load/navigation
+        if (pathname !== '/login') {
+            fetch('/api/check-missing-month-data')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.alerts) setAlerts(data.alerts);
+                })
+                .catch(err => console.error("Error fetching alerts", err));
+        }
     }, [pathname, searchParams]);
 
     // Ocultar Sidebar en login (Check posterior a hooks)
@@ -130,18 +141,18 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Seguridad</span>
                         </div>
-                        <SidebarItem icon={<GraduationCap size={16} className="text-yellow-500 group-hover:text-yellow-300 transition-colors" />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
-                        <SidebarItem icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
-                        <SidebarItem icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
-                        <SidebarItem icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
-                        <SidebarItem icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
-                        <SidebarItem icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Control de Tarjeta TOP" href="/reporte-ac" active={pathname === '/reporte-ac'} />
-                        <SidebarItem icon={<Siren size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de Accidentes" href="/accidentes" active={pathname === '/accidentes'} />
-                        <SidebarItem icon={<ShieldCheck size={16} className="text-emerald-500" />} label="Control de SCTR" href="/sctr" active={pathname === '/sctr'} />
-                        <SidebarItem icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
-                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
-                        <SidebarItem icon={<Siren size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
-                        <SidebarItem icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                        <SidebarItem hasAlert={alerts['/analytics']} icon={<GraduationCap size={16} className="text-yellow-500 group-hover:text-yellow-300 transition-colors" />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
+                        <SidebarItem hasAlert={alerts['/inspections']} icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
+                        <SidebarItem hasAlert={alerts['/ats']} icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
+                        <SidebarItem hasAlert={alerts['/petar']} icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
+                        <SidebarItem hasAlert={alerts['/epp']} icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
+                        <SidebarItem hasAlert={alerts['/reporte-ac']} icon={<AlertTriangle size={16} className="text-orange-500 group-hover:text-orange-300 transition-colors" />} label="Control de Tarjeta TOP" href="/reporte-ac" active={pathname === '/reporte-ac'} />
+                        <SidebarItem hasAlert={alerts['/accidentes']} icon={<Siren size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de Accidentes" href="/accidentes" active={pathname === '/accidentes'} />
+                        <SidebarItem hasAlert={alerts['/sctr']} icon={<ShieldCheck size={16} className="text-emerald-500" />} label="Control de SCTR" href="/sctr" active={pathname === '/sctr'} />
+                        <SidebarItem hasAlert={alerts['/scsst']} icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
+                        <SidebarItem hasAlert={alerts['/risstma']} icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
+                        <SidebarItem hasAlert={alerts['/simulacro']} icon={<Siren size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
+                        <SidebarItem hasAlert={alerts['/desvio']} icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
                     </div>
 
                     {/* SALUD */}
@@ -149,9 +160,9 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Salud</span>
                         </div>
-                        <SidebarItem icon={<Stethoscope size={16} className="text-rose-500 group-hover:text-rose-300 transition-colors" />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
-                        <SidebarItem icon={<ActivityIcon size={16} className="text-rose-400" />} label="Monitoreo Ocupacional" href="/monitoreos" active={pathname === '/monitoreos'} />
-                        <SidebarItem icon={<LifeBuoy size={16} className="text-sky-500 group-hover:text-sky-300 transition-colors" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
+                        <SidebarItem hasAlert={alerts['/evidence']} icon={<Stethoscope size={16} className="text-rose-500 group-hover:text-rose-300 transition-colors" />} label="Control de EMO" href="/evidence" active={pathname === '/evidence'} />
+                        <SidebarItem hasAlert={alerts['/monitoreos']} icon={<ActivityIcon size={16} className="text-rose-400" />} label="Monitoreo Ocupacional" href="/monitoreos" active={pathname === '/monitoreos'} />
+                        <SidebarItem hasAlert={alerts['/brigadistas']} icon={<LifeBuoy size={16} className="text-sky-500 group-hover:text-sky-300 transition-colors" />} label="Control de Brigadistas" href="/brigadistas" active={pathname === '/brigadistas'} />
                     </div>
 
                     {/* MEDIO AMBIENTE */}
@@ -159,11 +170,11 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Medio Ambiente</span>
                         </div>
-                        <SidebarItem icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
-                        <SidebarItem icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
-                        <SidebarItem icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
-                        <SidebarItem icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
-                        <SidebarItem icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Aut. Áreas Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
+                        <SidebarItem hasAlert={alerts['/pma']} icon={<Leaf size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Control de Fotos PMA" href="/pma" active={pathname === '/pma'} />
+                        <SidebarItem hasAlert={alerts['/residuos']} icon={<Scale size={16} className="text-teal-500 group-hover:text-teal-300 transition-colors" />} label="Pesaje de Residuos" href="/residuos" active={pathname === '/residuos'} />
+                        <SidebarItem hasAlert={alerts['/gestion-residuos']} icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
+                        <SidebarItem hasAlert={alerts['/manifiesto']} icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
+                        <SidebarItem hasAlert={alerts['/autorizaciones-auxiliares']} icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Aut. Áreas Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
                     </div>
 
                     {/* INFORMES Y OTROS */}
@@ -171,13 +182,13 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Informes y Gestión</span>
                         </div>
-                        <SidebarItem icon={<ClipboardCheck size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Doc. Gestión SSTMA" href="/sstma-docs" active={pathname === '/sstma-docs'} />
-                        <SidebarItem icon={<ShoppingCart size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Compras Locales" href="/compras-locales" active={pathname === '/compras-locales'} />
-                        <SidebarItem icon={<FileText size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Informes" href="/informes" active={pathname === '/informes'} />
-                        <SidebarItem icon={<TrendingDown size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
-                        <SidebarItem icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
-                        <SidebarItem icon={<Truck size={16} className="text-blue-500" />} label="Certificados de Equipo" href="/equipment-certs" active={pathname === '/equipment-certs'} />
-                        <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Comunicación con Cliente" href="/cliente" active={pathname === '/cliente'} />
+                        <SidebarItem hasAlert={alerts['/sstma-docs']} icon={<ClipboardCheck size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Doc. Gestión SSTMA" href="/sstma-docs" active={pathname === '/sstma-docs'} />
+                        <SidebarItem hasAlert={alerts['/compras-locales']} icon={<ShoppingCart size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Compras Locales" href="/compras-locales" active={pathname === '/compras-locales'} />
+                        <SidebarItem hasAlert={alerts['/informes']} icon={<FileText size={16} className="text-violet-500 group-hover:text-violet-300 transition-colors" />} label="Control de Informes" href="/informes" active={pathname === '/informes'} />
+                        <SidebarItem hasAlert={alerts['/reports']} icon={<TrendingDown size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Accidentabilidad" href="/reports" active={pathname === '/reports'} />
+                        <SidebarItem hasAlert={alerts['/actas-supervision']} icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
+                        <SidebarItem hasAlert={alerts['/equipment-certs']} icon={<Truck size={16} className="text-blue-500" />} label="Certificados de Equipo" href="/equipment-certs" active={pathname === '/equipment-certs'} />
+                        <SidebarItem hasAlert={alerts['/cliente']} icon={<ExternalLink size={16} className="text-cyan-500" />} label="Comunicación con Cliente" href="/cliente" active={pathname === '/cliente'} />
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
                                 <SidebarItem icon={<FileText size={16} className="text-emerald-500" />} label="Generar Informe Word" href="/monthly-report" active={pathname === '/monthly-report'} />
@@ -212,7 +223,7 @@ export default function Sidebar() {
     );
 }
 
-function SidebarItem({ icon, label, href, active }: { icon: React.ReactNode, label: string, href: string, active?: boolean }) {
+function SidebarItem({ icon, label, href, active, hasAlert }: { icon: React.ReactNode, label: string, href: string, active?: boolean, hasAlert?: boolean }) {
     return (
         <Link
             href={href}
@@ -228,7 +239,12 @@ function SidebarItem({ icon, label, href, active }: { icon: React.ReactNode, lab
                 {icon}
             </div>
             {label}
-            {active && (
+            {hasAlert && (
+                <div className="ml-auto flex items-center justify-center w-6 h-6 bg-red-500/20 border border-red-500/50 rounded-full animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.6)]" title="Falta información de este mes">
+                    <ThumbsDown size={12} className="text-red-500" strokeWidth={3} />
+                </div>
+            )}
+            {active && !hasAlert && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] animate-pulse" />
             )}
         </Link>
