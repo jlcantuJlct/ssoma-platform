@@ -1498,7 +1498,7 @@ export default function InspectionsPage() {
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] uppercase font-bold text-slate-500">Área Responsable</label>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {["Equipos", "Almacén", "Mantenimiento Rutinario", "Mantenimiento Periódico", "PAD San Clemente", "Chancadora", "DME", "SSTMA", "Prevención SSOMA", "Señalización", "Otros"].map(area => (
+                                                            {["Equipos", "Almacén", "Mantenimiento Rutinario", "Mantenimiento Periódico", "Señalización", "Movimiento de Tierras", "Obras de Arte", "Administración", "SSTMA", "Otros"].map(area => (
                                                                 <button
                                                                     key={area}
                                                                     type="button"
