@@ -164,7 +164,7 @@ export default function InspectionsPage() {
     const [isUploading, setIsUploading] = useState(false);
 
     const [hasObservations, setHasObservations] = useState(false);
-    const [observedArea, setObservedArea] = useState('');
+    const [observedAreas, setObservedAreas] = useState<string[]>([]);
     const [otherObservedArea, setOtherObservedArea] = useState('');
 
     // Estado para Edición
@@ -871,7 +871,7 @@ export default function InspectionsPage() {
                     });
                     setNewEvidence({ pdf: '', imgs: [] });
                     setHasObservations(false);
-                    setObservedArea('');
+                    setObservedAreas([]);
                     setOtherObservedArea('');
                 } else {
                     alert("Error al actualizar: " + res.error);
@@ -907,7 +907,7 @@ export default function InspectionsPage() {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                area: observedArea,
+                                areas: observedAreas,
                                 areaText: otherObservedArea,
                                 inspectionLink: newEvidence.pdf || 'https://ssoma-platform.vercel.app/inspections'
                             })
@@ -979,7 +979,7 @@ export default function InspectionsPage() {
             }));
             setNewEvidence({ pdf: '', imgs: [] });
                     setHasObservations(false);
-                    setObservedArea('');
+                    setObservedAreas([]);
                     setOtherObservedArea('');
 
             alert("Inspección registrada correctamente");
@@ -1016,7 +1016,7 @@ export default function InspectionsPage() {
         });
         setNewEvidence({ pdf: '', imgs: [] });
                     setHasObservations(false);
-                    setObservedArea('');
+                    setObservedAreas([]);
                     setOtherObservedArea('');
     };
 
@@ -1497,25 +1497,27 @@ export default function InspectionsPage() {
                                                 <div className="pl-6 space-y-3 border-l-2 border-slate-800 ml-2 mt-2">
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] uppercase font-bold text-slate-500">Área Responsable</label>
-                                                        <select 
-                                                            value={observedArea} 
-                                                            onChange={e => setObservedArea(e.target.value)}
-                                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white focus:border-emerald-500 appearance-none text-sm"
-                                                            required={hasObservations}
-                                                        >
-                                                            <option value="">Seleccionar Área...</option>
-                                                            <option value="Equipos">Equipos</option>
-                                                            <option value="Almacén">Almacén</option>
-                                                            <option value="Mantenimiento Rutinario">Mantenimiento Rutinario</option>
-                                                            <option value="Mantenimiento Periódico">Mantenimiento Periódico</option>
-                                                            <option value="PAD San Clemente">PAD San Clemente</option>
-                                                            <option value="Chancadora">Chancadora</option>
-                                                            <option value="DME">DME</option>
-                                                            <option value="Otros">Otros (Escribir)</option>
-                                                        </select>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {["Equipos", "Almacén", "Mantenimiento Rutinario", "Mantenimiento Periódico", "PAD San Clemente", "Chancadora", "DME", "SSTMA", "Prevención SSOMA", "Señalización", "Otros"].map(area => (
+                                                                <button
+                                                                    key={area}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (observedAreas.includes(area)) {
+                                                                            setObservedAreas(observedAreas.filter(a => a !== area));
+                                                                        } else {
+                                                                            setObservedAreas([...observedAreas, area]);
+                                                                        }
+                                                                    }}
+                                                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${observedAreas.includes(area) ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-700'}`}
+                                                                >
+                                                                    {area}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
 
-                                                    {observedArea === 'Otros' && (
+                                                    {observedAreas.includes('Otros') && (
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] uppercase font-bold text-slate-500">Especificar Área / Correo</label>
                                                             <input 
@@ -1524,7 +1526,7 @@ export default function InspectionsPage() {
                                                                 onChange={e => setOtherObservedArea(e.target.value)}
                                                                 className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white focus:border-emerald-500 text-sm"
                                                                 placeholder="Ej: Contratista externo, etc."
-                                                                required={observedArea === 'Otros'}
+                                                                required={observedAreas.includes('Otros')}
                                                             />
                                                         </div>
                                                     )}
