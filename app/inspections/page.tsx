@@ -911,7 +911,20 @@ export default function InspectionsPage() {
                                 areaText: otherObservedArea,
                                 inspectionLink: newEvidence.pdf || 'https://ssoma-platform.vercel.app/inspections'
                             })
-                        }).catch(e => console.error("Error sending alert", e));
+                        }).then(async (res) => {
+                            if(res.ok) alert("Correo de alerta enviado a los responsables seleccionados");
+                            else {
+                                try {
+                                    const err = await res.json();
+                                    alert("Error interno enviando correo: " + (err.error || err.message || "Desconocido"));
+                                } catch(e) {
+                                    alert("Error interno enviando correo: Fallo desconocido");
+                                }
+                            }
+                        }).catch(e => {
+                            console.error("Error sending alert", e);
+                            alert("Fallo de conexión al intentar enviar el correo");
+                        });
                     }
                 }
             });
