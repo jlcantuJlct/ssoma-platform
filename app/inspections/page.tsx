@@ -1,17 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
-import { ComplianceGauge } from '@/components/dashboard/ComplianceGauge';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import PreviewCarouselModal from "@/components/PreviewCarouselModal";
-import BatchDownloadZip from "@/components/BatchDownloadZip";
-
+import { ComplianceGauge } from "@/components/dashboard/ComplianceGauge";
 import {
     ClipboardCheck,
     Calendar,
@@ -29,13 +26,11 @@ import {
     Settings,
     X,
     Image as ImageIcon,
-    Pencil,
-    CheckCircle2,
-    RotateCcw
+    Pencil
 } from "lucide-react";
 import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
-import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
+import jsPDF from 'jspdf';
 import { generateFilename, getInitials } from '@/lib/utils';
 
 // Tipos de datos
@@ -66,11 +61,54 @@ import { SSOMA_LOCATIONS } from '@/lib/locations';
 const INITIAL_ZONES = SSOMA_LOCATIONS;
 
 // Lista de Tipos de Inspección
-// REMOVED STATIC TYPES - Now fetched from Annual Program SEG 03 / OBJ 03
-const INITIAL_TYPES_BY_AREA: Record<string, string[]> = {
-    "Seguridad": [],
-    "Salud": [],
-    "Medioambiente": []
+// Lista de Tipos de Inspección por Área
+const INSPECTION_TYPES_BY_AREA = {
+    "Seguridad": [
+        "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
+        "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehiculos",
+        "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia",
+        "Inspección de Herramientas manuales y eléctricas (F-OP-019) Verificación de Herramientas Manuales, Eléctricas y Equipos Portátiles",
+        "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01",
+        "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03",
+        "Inspección de Señalización Vial (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de vías de acceso y bermas de seguridad plataformas de descarga de material (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Señalización de Obra (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09",
+        "Inspección del almacén de productos químicos F-SIG-028 Inspeccion Almacén V09",
+        "Inspección de orden y limpieza de áreas de trabajo (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO",
+        "Inspeccion de planta de asfalto LISTA DE CHEQUEO DE PLANTA DE ASFALTO",
+        "Inspeccion de planta de concreto LISTA DE CHEQUEO DE PLANTA DE CONCRETO",
+        "Inspeccion de planta de Chancado LISTA DE CHEQUEO DE PLANTA DE AGREGADOS",
+        "Inspección de taller de soldadura/ mecanico F-SIG-079 Inspección de Talleres V02",
+        "Inspección de escalera o andamios F-OP-001 CHECK LIST DE ANDAMIOS F-OP-018 INSPECCIÓN DE ESCALERAS",
+        "Inspección de Equipo contra caídas (arnés, línea de vida, etc.) F-OP-017 INSPECCIÓN DE EQUIPOS CONTRA CAIDA"
+    ],
+    "Salud": [
+        "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN",
+        "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS",
+        "Inspección de puntos de hidratacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección punto de proteccion solar (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de lavaderos de SSHH y mano (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR",
+        "Inspección de EPP Inspección de EPP Seguimiento de observacion medica F-SIG-044 Inspección de EPP V03",
+        "Inspección de Topico (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Alcotest (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de señalización de salud (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de EPP Ligado a Enf. Ocupacionales F-SIG-044 Inspección de EPP V03"
+    ],
+    "Medioambiente": [
+        "Inspecciones de estaciones de residuos por colores (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspecciones de almacén de acopio temporal de residuos solidos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspecciones de la segregacion (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de controles de polucion. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de controles de ruido. (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME",
+        "Inspección de Señalización Medio ambiental (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de trampas de grasa de talleres (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de almacén de acopio temporal de residuos peligrosos (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente",
+        "Inspección de limpieza de accesos y vías (F-SIG-073) Inspección Interna Seguridad, Salud en el trabajo y Medio Ambiente"
+    ]
 };
 
 export default function InspectionsPage() {
@@ -81,82 +119,14 @@ export default function InspectionsPage() {
     const [RESPONSIBLES, setRESPONSIBLES] = useState<string[]>(INITIAL_RESPONSIBLES);
     const [ZONES, setZONES] = useState<string[]>(INITIAL_ZONES);
 
-    const [inspectionTypesByArea, setInspectionTypesByArea] = useState<Record<string, string[]>>(INITIAL_TYPES_BY_AREA);
-
     useEffect(() => {
         // Load Master Data updates
         if (typeof window !== 'undefined') {
-            const sanitize = (data: any[]): string[] => {
-                return (data || []).map(item => {
-                    if (typeof item === 'string') return item;
-                    if (item && typeof item === 'object') return item.label || item.id || JSON.stringify(item);
-                    return String(item);
-                });
-            };
-
             const storedR = localStorage.getItem('ssoma_responsibles');
             const storedZ = localStorage.getItem('ssoma_zones');
-            if (storedR) {
-                try {
-                    const parsed = JSON.parse(storedR);
-                    setRESPONSIBLES(sanitize(parsed));
-                } catch (e) { console.error(e); }
-            }
-            if (storedZ) {
-                try {
-                    const parsed = JSON.parse(storedZ);
-                    setZONES(sanitize(parsed));
-                } catch (e) { console.error(e); }
-            }
+            if (storedR) setRESPONSIBLES(JSON.parse(storedR));
+            if (storedZ) setZONES(JSON.parse(storedZ));
         }
-    }, []);
-
-    // LOAD DYNAMIC TYPES FROM ANNUAL PROGRAM (OBJ 03, OBJ 06, OBJ 08)
-    useEffect(() => {
-        const loadTypes = async () => {
-            try {
-                const res = await fetch('/api/annual-program');
-                const data = await res.json();
-                if (data.success) {
-                    const newMapping: Record<string, string[]> = {
-                        "Seguridad": [],
-                        "Salud": [],
-                        "Medioambiente": []
-                    };
-                    const sanitizeArray = (items: any[]): string[] => {
-                        return Array.from(new Set(items.map(i => {
-                            const d = i.description;
-                            if (!d) return '';
-                            if (typeof d === 'string') return d;
-                            if (typeof d === 'object') return d.label || d.id || JSON.stringify(d);
-                            return String(d);
-                        }).filter(Boolean))) as string[];
-                    };
-
-                    // OBJ 03 -> Seguridad
-                    if (data.programData['obj3']) {
-                        newMapping["Seguridad"] = sanitizeArray(data.programData['obj3']);
-                    }
-                    // OBJ 06 (SEG 01) -> Salud
-                    if (data.programData['obj6']) {
-                        newMapping["Salud"] = sanitizeArray(data.programData['obj6']);
-                    }
-                    // OBJ 08 (SEG 03) -> Medioambiente
-                    if (data.programData['obj8']) {
-                        newMapping["Medioambiente"] = sanitizeArray(data.programData['obj8']);
-                    }
-
-
-                    // Update state if we found anything
-                    if (newMapping["Seguridad"].length > 0 || newMapping["Salud"].length > 0 || newMapping["Medioambiente"].length > 0) {
-                        setInspectionTypesByArea(newMapping);
-                    }
-                }
-            } catch (e) {
-                console.error("Error fetching annual program for inspections:", e);
-            }
-        };
-        loadTypes();
     }, []);
 
     // Estado de Cuotas por Usuario (Inicializado en 4)
@@ -176,7 +146,8 @@ export default function InspectionsPage() {
             return next;
         });
     }, [RESPONSIBLES]);
-        const [showQuotaSettings, setShowQuotaSettings] = useState(false);
+    const [showGoals, setShowGoals] = useState(true);
+    const [showQuotaSettings, setShowQuotaSettings] = useState(false);
 
     // Estado para el formulario
     const [formData, setFormData] = useState({
@@ -191,8 +162,10 @@ export default function InspectionsPage() {
     // Estado para evidencias
     const [newEvidence, setNewEvidence] = useState<{ pdf: string, imgs: string[] }>({ pdf: '', imgs: [] });
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
-    const [isUploadingImgs, setIsUploadingImgs] = useState(false);
+
+    const [hasObservations, setHasObservations] = useState(false);
+    const [observedArea, setObservedArea] = useState('');
+    const [otherObservedArea, setOtherObservedArea] = useState('');
 
     // Estado para Edición
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -534,7 +507,7 @@ export default function InspectionsPage() {
             alert(`✅ Programa (${importType}) importado correctamente. ${parsedItems.length} registros detectados.`);
         };
         reader.readAsArrayBuffer(file);
-        if (e.target && e.target.type === 'file') e.target.value = '';
+        e.target.value = '';
     };
 
     // Helper para calcular progreso con filtro de Mes
@@ -550,13 +523,12 @@ export default function InspectionsPage() {
         }).length;
 
         // 2. PROGRAMADO: Filtrar del programa importado
-        const programItems = (monthlyProgram || []).filter(p => {
+        const programItems = monthlyProgram.filter(p => {
             // Match de Nombre (Flexible: Primer nombre o contiene)
-            const pResp = (p.responsible || "").toString().toLowerCase();
-            const rName = (responsibleName || "").toString().toLowerCase();
-            const firstName = rName.split(' ')[0];
-
-            const nameMatch = pResp.includes(rName) || rName.includes(pResp.split(' ')[0]) || pResp.includes(firstName);
+            const nameMatch = p.responsible && (
+                p.responsible.toLowerCase().includes(responsibleName.toLowerCase()) ||
+                responsibleName.toLowerCase().includes(p.responsible.toLowerCase().split(' ')[0])
+            );
             return nameMatch;
         });
 
@@ -645,7 +617,7 @@ export default function InspectionsPage() {
     const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) await processPdf(file);
-        if (e.target && e.target.type === 'file') e.target.value = '';
+        e.target.value = '';
     };
 
     const processImages = async (files: FileList | File[]) => {
@@ -692,7 +664,7 @@ export default function InspectionsPage() {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) await processImages(files);
-        if (e.target && e.target.type === 'file') e.target.value = '';
+        e.target.value = '';
     };
 
     // Handlers para Drag & Drop
@@ -720,11 +692,11 @@ export default function InspectionsPage() {
         if (!files || files.length === 0) return;
 
         if (type === 'pdf') {
-            const pdfFile = Array.from(files).find(f => (f as File)?.type === 'application/pdf');
+            const pdfFile = Array.from(files).find(f => f.type === 'application/pdf');
             if (pdfFile) await processPdf(pdfFile);
             else alert("⚠️ Por favor suelta un archivo PDF válido.");
         } else {
-            const imageFiles = Array.from(files).filter(f => (f as File)?.type?.startsWith('image/'));
+            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
             if (imageFiles.length > 0) await processImages(imageFiles);
             else alert("⚠️ Por favor suelta archivos de imagen válidos.");
         }
@@ -735,7 +707,60 @@ export default function InspectionsPage() {
     };
 
     const generateInspectionPDF = (record: InspectionRecord) => {
-        exportRecordToPDF('Detalle de Inspección', record, `Inspeccion_${record.id}.pdf`);
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(16);
+        doc.setTextColor(0, 100, 0); // Dark Green
+        doc.text(`REPORTE DE INSPECCIÓN: ${record.zone.toUpperCase()}`, 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.text(`Fecha: ${record.date} | Responsable: ${record.responsible}`, 20, 30);
+        doc.text(`Tipo: ${record.inspectionType} | Área: ${record.area}`, 20, 35);
+        doc.text(`Estado: ${record.status}`, 20, 40);
+
+        // Reseña
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Reseña / Observaciones:", 20, 50);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+
+        const splitText = doc.splitTextToSize(record.observations || "Sin observaciones.", 170);
+        doc.text(splitText, 20, 60);
+
+        let y = 60 + (splitText.length * 5) + 10;
+
+        // PDF Attachment Note
+        if (record.evidencePdf) {
+            doc.setTextColor(0, 0, 255);
+            doc.text("[ PDF Adjunto disponible en plataforma ]", 20, y);
+            doc.setTextColor(0);
+            y += 10;
+        }
+
+        // Images
+        if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Evidencia Fotográfica:", 20, y);
+            y += 10;
+
+            record.evidenceImgs.forEach((img) => {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                try {
+                    doc.addImage(img, 'JPEG', 20, y, 170, 100);
+                    y += 110;
+                } catch (e) {
+                    // Ignore image errors
+                }
+            });
+        }
+
+        doc.save(`Inspeccion_${record.id}.pdf`);
     };
 
     const generateBulkPDF = () => {
@@ -743,16 +768,54 @@ export default function InspectionsPage() {
             alert("No hay registros para exportar.");
             return;
         }
-        const cols = [
-            { header: 'Fecha', dataKey: 'date' },
-            { header: 'Responsable', dataKey: 'responsible' },
-            { header: 'Área', dataKey: 'area' },
-            { header: 'Tipo', dataKey: 'inspectionType' },
-            { header: 'Lugar', dataKey: 'zone' },
-            { header: 'Estado', dataKey: 'status' },
-            { header: 'Observaciones', dataKey: 'observations' }
-        ];
-        exportTableToPDF('Reporte de Inspecciones', cols, filteredInspections, 'Inspecciones.pdf');
+
+        const doc = new jsPDF();
+
+        filteredInspections.forEach((record, index) => {
+            if (index > 0) doc.addPage();
+
+            // Header
+            doc.setFontSize(16);
+            doc.setTextColor(0, 100, 0);
+            doc.text(`REPORTE DE INSPECCIÓN: ${record.zone.toUpperCase()}`, 105, 20, { align: 'center' });
+
+            doc.setFontSize(10);
+            doc.setTextColor(0);
+            doc.text(`Fecha: ${record.date} | Responsable: ${record.responsible}`, 20, 30);
+            doc.text(`Tipo: ${record.inspectionType} | Área: ${record.area}`, 20, 35);
+
+            // Reseña
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Reseña / Observaciones:", 20, 50);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+
+            const splitText = doc.splitTextToSize(record.observations || "Sin observaciones.", 170);
+            doc.text(splitText, 20, 60);
+
+            let y = 60 + (splitText.length * 5) + 10;
+
+            // Images
+            if (record.evidenceImgs && record.evidenceImgs.length > 0) {
+                doc.setFont("helvetica", "bold");
+                doc.text("Evidencia Fotográfica:", 20, y);
+                y += 10;
+
+                record.evidenceImgs.forEach((img) => {
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    try {
+                        doc.addImage(img, 'JPEG', 20, y, 170, 100);
+                        y += 110;
+                    } catch (e) { }
+                });
+            }
+        });
+
+        doc.save("Reporte_Inspecciones_Filtrado.pdf");
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -807,6 +870,9 @@ export default function InspectionsPage() {
                         observations: ''
                     });
                     setNewEvidence({ pdf: '', imgs: [] });
+                    setHasObservations(false);
+                    setObservedArea('');
+                    setOtherObservedArea('');
                 } else {
                     alert("Error al actualizar: " + res.error);
                 }
@@ -834,7 +900,19 @@ export default function InspectionsPage() {
             saveInspection(newInspection).then(res => {
                 if (!res.success) {
                     console.error("Save error:", res.error);
-                    alert(`Error al guardar en servidor: ${res.error || "Error desconocido"}`);
+                    alert("Error al guardar en servidor: " + (res.error || "Error desconocido"));
+                } else {
+                    if (hasObservations) {
+                        fetch('/api/send-alert', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                area: observedArea,
+                                areaText: otherObservedArea,
+                                inspectionLink: newEvidence.pdf || 'https://ssoma-platform.vercel.app/inspections'
+                            })
+                        }).catch(e => console.error("Error sending alert", e));
+                    }
                 }
             });
             // ... Logic for Auto-Pilot & Dashboard Sync (Only on Create) ...
@@ -845,14 +923,10 @@ export default function InspectionsPage() {
 
                 const recordMonth = new Date(newInspection.date).getMonth();
                 let foundIndex = obj3Activities.findIndex((act: any) => {
-                    if (!act || !act.description || !newInspection.inspectionType) return false;
                     const actDate = new Date(act.date);
-                    const actDesc = act.description.toString().toLowerCase();
-                    const insType = newInspection.inspectionType.toString().toLowerCase();
-
                     return actDate.getMonth() === recordMonth && (
-                        actDesc.includes(insType) ||
-                        insType.includes(actDesc)
+                        act.description.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
+                        newInspection.inspectionType.toLowerCase().includes(act.description.toLowerCase())
                     );
                 });
 
@@ -876,11 +950,8 @@ export default function InspectionsPage() {
                     dashboardData.sections.forEach((section: any) => {
                         if (section.id === 'inspections' || section.activities) {
                             section.activities.forEach((act: any) => {
-                                const actName = (act.name || "").toString().toLowerCase();
-                                const insType = (newInspection.inspectionType || "").toString().toLowerCase();
-
-                                const isMatch = actName.includes(insType) ||
-                                    insType.includes(actName);
+                                const isMatch = act.name.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
+                                    newInspection.inspectionType.toLowerCase().includes(act.name.toLowerCase());
 
                                 if (isMatch) {
                                     const monthIdx = new Date(newInspection.date).getMonth();
@@ -907,6 +978,9 @@ export default function InspectionsPage() {
                 observations: ''
             }));
             setNewEvidence({ pdf: '', imgs: [] });
+                    setHasObservations(false);
+                    setObservedArea('');
+                    setOtherObservedArea('');
 
             alert("Inspección registrada correctamente");
         }
@@ -941,6 +1015,9 @@ export default function InspectionsPage() {
             observations: ''
         });
         setNewEvidence({ pdf: '', imgs: [] });
+                    setHasObservations(false);
+                    setObservedArea('');
+                    setOtherObservedArea('');
     };
 
     const exportToExcel = () => {
@@ -1095,7 +1172,7 @@ export default function InspectionsPage() {
                             {/* Botón Configurar Metas (Manual) */}
                             {user?.role === 'developer' && (
                                 <button
-                                    onClick={() => { setShowQuotaSettings(!showQuotaSettings); }}
+                                    onClick={() => { setShowQuotaSettings(!showQuotaSettings); setShowGoals(true); }}
                                     className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${showQuotaSettings ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
                                 >
                                     <Settings size={20} className={showQuotaSettings ? "animate-spin-slow" : ""} />
@@ -1103,7 +1180,13 @@ export default function InspectionsPage() {
                                 </button>
                             )}
 
-
+                            <button
+                                onClick={() => setShowGoals(!showGoals)}
+                                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-3 rounded-xl font-bold transition-all border border-slate-700"
+                            >
+                                <ActivityIcon size={20} className={showGoals ? "text-emerald-500" : ""} />
+                                {showGoals ? 'Ocultar' : 'Ver Avance'}
+                            </button>
 
                             {/* Exportar - SOLO NO MANAGERS (Según requerimiento: "No podra descargar") */}
                             {user?.role !== 'manager' && (
@@ -1122,21 +1205,6 @@ export default function InspectionsPage() {
                                         <FileText size={20} />
                                         PDF
                                     </button>
-                                    <BatchDownloadZip 
-                                        records={filteredInspections}
-                                        getUrls={(r) => {
-                                            const urls = [];
-                                            if (r.evidencePdf) urls.push(r.evidencePdf);
-                                            if (r.evidenceImgs) urls.push(...r.evidenceImgs);
-                                            return urls;
-                                        }}
-                                        getFilename={(r, i, total) => {
-                                            const ext = (total === 1 && r.evidencePdf) ? 'pdf' : 'jpg';
-                                            return generateFilename(r.inspectionType, r.date, r.responsible, ext, 'inspeccion', r.zone, r.area).replace(/\.[^/.]+$/, "") + (total > 1 ? `_parte${i+1}` : "") + `.${ext}`;
-                                        }}
-                                        zipName={`Inspecciones_${filterDate || 'Masivas'}.zip`}
-                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
-                                    />
                                 </>
                             )}
                         </div>
@@ -1208,7 +1276,7 @@ export default function InspectionsPage() {
                                 Configuración Manual de Metas (Fallback)
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {RESPONSIBLES.filter(r => r && typeof r === 'string' && r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
+                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
                                     <div key={resp} className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
                                         <span className="text-sm text-slate-300 font-medium">{resp}</span>
                                         <div className="flex items-center gap-2">
@@ -1236,12 +1304,11 @@ export default function InspectionsPage() {
 
 
 
-
-                    <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
 
                         {/* FORMULARIO DE REGISTRO (1 Columna) */}
                         {user?.role !== 'manager' && (
-                            <Card className="bg-slate-900 border-slate-800 lg:col-span-1 xl:col-span-1 h-fit shadow-2xl">
+                            <Card className="bg-slate-900 border-slate-800 xl:col-span-1 h-fit shadow-2xl">
                                 <CardHeader className="border-b border-slate-800 pb-4">
                                     <CardTitle className="text-emerald-400 flex flex-wrap items-center gap-2 text-xl">
                                         <FileText size={24} />
@@ -1332,7 +1399,7 @@ export default function InspectionsPage() {
                                         </div>
 
                                         <SearchableSelect
-                                            options={inspectionTypesByArea[formData.area] || inspectionTypesByArea['Seguridad']}
+                                            options={INSPECTION_TYPES_BY_AREA[formData.area as keyof typeof INSPECTION_TYPES_BY_AREA] || INSPECTION_TYPES_BY_AREA['Seguridad']}
                                             value={formData.inspectionType}
                                             onChange={(val) => setFormData({ ...formData, inspectionType: val })}
                                             placeholder="Seleccionar Tipo de Inspección..."
@@ -1368,12 +1435,7 @@ export default function InspectionsPage() {
                                                         />
                                                         {isDraggingPdf && <span className="text-[9px] text-emerald-400 font-bold animate-bounce text-center">¡Suelta el PDF aquí!</span>}
                                                     </div>
-                                                    {newEvidence.pdf && (
-                                                        <div className="absolute right-2 top-2 flex items-center gap-1 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 animate-in zoom-in duration-300">
-                                                            <CheckCircle2 size={10} className="text-emerald-400" />
-                                                            <span className="text-[8px] text-emerald-400 font-black">CARGADO</span>
-                                                        </div>
-                                                    )}
+                                                    {newEvidence.pdf && <span className="absolute right-2 top-2 text-[10px] text-emerald-500 font-bold">✅</span>}
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
@@ -1395,12 +1457,6 @@ export default function InspectionsPage() {
                                                         />
                                                         {isDraggingImgs && <span className="text-[9px] text-blue-400 font-bold animate-bounce text-center">¡Suelta imágenes aquí!</span>}
                                                     </div>
-                                                    {newEvidence.imgs.length > 0 && (
-                                                        <div className="absolute right-2 top-2 flex items-center gap-1 bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-500/30 animate-in zoom-in duration-300">
-                                                            <CheckCircle2 size={10} className="text-blue-400" />
-                                                            <span className="text-[8px] text-blue-400 font-black">{newEvidence.imgs.length} FOTOS</span>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1422,6 +1478,59 @@ export default function InspectionsPage() {
                                                 ))}
                                             </div>
                                         )}
+
+                                        
+                                        {/* CONTROLES DE OBSERVACIONES */}
+                                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="hasObs"
+                                                    checked={hasObservations}
+                                                    onChange={e => setHasObservations(e.target.checked)}
+                                                    className="w-4 h-4 text-emerald-500 rounded border-slate-700 bg-slate-950 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                                                />
+                                                <label htmlFor="hasObs" className="text-sm font-bold text-slate-300">¿Contiene observaciones?</label>
+                                            </div>
+                                            
+                                            {hasObservations && (
+                                                <div className="pl-6 space-y-3 border-l-2 border-slate-800 ml-2 mt-2">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] uppercase font-bold text-slate-500">Área Responsable</label>
+                                                        <select 
+                                                            value={observedArea} 
+                                                            onChange={e => setObservedArea(e.target.value)}
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white focus:border-emerald-500 appearance-none text-sm"
+                                                            required={hasObservations}
+                                                        >
+                                                            <option value="">Seleccionar Área...</option>
+                                                            <option value="Equipos">Equipos</option>
+                                                            <option value="Almacén">Almacén</option>
+                                                            <option value="Mantenimiento Rutinario">Mantenimiento Rutinario</option>
+                                                            <option value="Mantenimiento Periódico">Mantenimiento Periódico</option>
+                                                            <option value="PAD San Clemente">PAD San Clemente</option>
+                                                            <option value="Chancadora">Chancadora</option>
+                                                            <option value="DME">DME</option>
+                                                            <option value="Otros">Otros (Escribir)</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {observedArea === 'Otros' && (
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] uppercase font-bold text-slate-500">Especificar Área / Correo</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={otherObservedArea}
+                                                                onChange={e => setOtherObservedArea(e.target.value)}
+                                                                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white focus:border-emerald-500 text-sm"
+                                                                placeholder="Ej: Contratista externo, etc."
+                                                                required={observedArea === 'Otros'}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
 
                                         <button
                                             type="submit"
@@ -1450,155 +1559,82 @@ export default function InspectionsPage() {
 
                             {/* Panel Superior de Filtros */}
                             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
-                                <div className="flex flex-col gap-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 
-                                        {/* Filtro Fecha */}
-                                        <div className="space-y-1.5">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
-                                                {filterDate && (
-                                                    <button onClick={() => setFilterDate('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-3 top-2.5 text-emerald-500/50" size={14} />
-                                                <input 
-                                                    type="date"
-                                                    value={filterDate}
-                                                    onChange={(e) => setFilterDate(e.target.value)}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-emerald-500 outline-none transition-all"
-                                                />
-                                            </div>
-                                        </div>
+                                    {/* Filtro Responsable */}
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select
+                                            value={filterResponsible}
+                                            onChange={(e) => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                        >
+                                            <option value="">Todo Responsable</option>
+                                            {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                        </select>
+                                    </div>
 
-                                        {/* Filtro Responsable */}
-                                        <div className="space-y-1.5">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
-                                                {filterResponsible && (
-                                                    <button onClick={() => setFilterResponsible('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <SearchableSelect 
-                                                options={RESPONSIBLES.map(r => ({ id: r, label: r }))}
-                                                value={filterResponsible}
-                                                onChange={(val) => setFilterResponsible(val)}
-                                                placeholder="Todo Responsable"
-                                                icon={<User size={14} />}
-                                            />
-                                        </div>
+                                    {/* Filtro Zona */}
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select
+                                            value={filterZone}
+                                            onChange={(e) => setFilterZone(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
+                                        >
+                                            <option value="">Toda Zona</option>
+                                            {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+                                        </select>
+                                    </div>
 
-                                        {/* Filtro Zona */}
-                                        <div className="space-y-1.5">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Zona</label>
-                                                {filterZone && (
-                                                    <button onClick={() => setFilterZone('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <SearchableSelect 
-                                                options={ZONES.map(z => ({ id: z, label: z }))}
-                                                value={filterZone}
-                                                onChange={(val) => setFilterZone(val)}
-                                                placeholder="Toda Zona"
-                                                icon={<MapPin size={14} />}
-                                            />
-                                        </div>
+                                    {/* Filtro Tipo */}
+                                    <div className="relative">
+                                        <SearchableSelect
+                                            options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
+                                            value={filterType || "Todo Tipo"}
+                                            onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
+                                            placeholder="Todo Tipo"
+                                            icon={<AlertCircle className="text-slate-500" size={16} />}
+                                            className="h-[42px]"
+                                        />
+                                    </div>
 
-                                        {/* Filtro Area */}
-                                        <div className="space-y-1.5">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Área</label>
-                                                {filterArea !== 'Todas' && (
-                                                    <button onClick={() => setFilterArea('Todas')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <SearchableSelect 
-                                                options={AREAS.map(a => ({ id: a, label: a }))}
-                                                value={filterArea === 'Todas' ? '' : filterArea}
-                                                onChange={(val) => setFilterArea(val || 'Todas')}
-                                                placeholder="Todas las Áreas"
-                                                icon={<Filter size={14} />}
-                                            />
-                                        </div>
+                                    {/* Filtro Fecha */}
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <input
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={(e) => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
+                                        />
+                                    </div>
 
-                                        {/* Filtro Tipo */}
-                                        <div className="space-y-1.5 lg:col-span-2">
-                                            <div className="flex justify-between items-center px-1">
-                                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tipo de Inspección</label>
-                                                {filterType && (
-                                                    <button onClick={() => setFilterType('')} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <SearchableSelect
-                                                options={Object.values(inspectionTypesByArea).flat().sort().map(t => ({ id: t, label: t }))}
-                                                value={filterType}
-                                                onChange={(val) => setFilterType(val)}
-                                                placeholder="Todo Tipo"
-                                                icon={<AlertCircle size={14} />}
-                                            />
-                                        </div>
-
-                                        <div className="lg:col-span-2 flex flex-col justify-end">
-                                            <button 
-                                                onClick={() => { setFilterResponsible(''); setFilterZone(''); setFilterType(''); setFilterDate(''); setFilterArea('Todas'); }}
-                                                className={`w-full h-[42px] rounded-xl font-bold text-[10px] uppercase border transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                                                    (filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas')
-                                                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20 shadow-lg shadow-red-950/20'
-                                                    : 'bg-slate-800/50 text-slate-500 border-slate-800 cursor-not-allowed opacity-50'
-                                                }`}
-                                                disabled={!(filterResponsible || filterZone || filterType || filterDate || filterArea !== 'Todas')}
-                                            >
-                                                <RotateCcw size={14} strokeWidth={3} /> Limpiar Filtros
-                                            </button>
-                                        </div>
+                                    {/* Filtro Area (reset button if needed or just Area select) */}
+                                    <div className="relative">
+                                        <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select
+                                            value={filterArea}
+                                            onChange={(e) => setFilterArea(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                        >
+                                            <option value="Todas">Todas las Áreas</option>
+                                            {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                                        </select>
                                     </div>
                                 </div>
                             </div>
 
                             {/* PANEL DE HISTORIAL (Tabla) */}
                             <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-280px)]">
-                                <div className="p-4 border-b border-slate-800 bg-slate-900/50">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="font-bold text-lg text-white flex items-center gap-2">
-                                            <ClipboardCheck className="text-emerald-500" />
-                                            Rastro de Registros
-                                        </h2>
-                                        <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
-                                            Total: {inspections.length}
-                                        </span>
-                                    </div>
-
-                                    {/* RESUMEN MENSUAL */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'].map((m, i) => {
-                                            const count = inspections.filter(r => {
-                                                const d = new Date(r.date + 'T00:00:00');
-                                                return d.getMonth() === i;
-                                            }).length;
-                                            return (
-                                                <div key={m} className={`flex flex-col items-center justify-center min-w-[42px] py-1.5 rounded-xl border ${count > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50'}`}>
-                                                    <span className="text-[7px] font-black uppercase tracking-tighter">{m}</span>
-                                                    <span className="text-[9px] font-black">{count}</span>
-                                                </div>
-                                            );
-                                        })}
-                                        <div className="flex flex-col items-center justify-center min-w-[60px] py-1.5 rounded-xl border bg-blue-500/10 border-blue-500/30 text-blue-400 ml-auto">
-                                            <span className="text-[7px] font-black uppercase tracking-tighter">TOTAL</span>
-                                            <span className="text-[9px] font-black">{inspections.length}</span>
-                                        </div>
-                                    </div>
+                                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                                    <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                                        <ClipboardCheck className="text-emerald-500" />
+                                        Rastro de Registros
+                                    </h2>
+                                    <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                                        Total: {filteredInspections.length}
+                                    </span>
                                 </div>
 
                                 <div className="overflow-auto flex-1">
@@ -1674,9 +1710,16 @@ export default function InspectionsPage() {
                                                                 {/* EVIDENCE BUTTONS */}
                                                                 {item.evidencePdf && (
                                                                     <button
-                                                                        onClick={() => setViewingEvidence(item)}
+                                                                        onClick={() => {
+                                                                            const link = document.createElement('a');
+                                                                            link.href = item.evidencePdf!;
+                                                                            link.download = generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area);
+                                                                            document.body.appendChild(link);
+                                                                            link.click();
+                                                                            document.body.removeChild(link);
+                                                                        }}
                                                                         className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                                                                        title="Ver PDF Adjunto"
+                                                                        title="Descargar PDF Adjunto"
                                                                     >
                                                                         <FileText size={16} />
                                                                     </button>
@@ -1733,23 +1776,109 @@ export default function InspectionsPage() {
                         </div>
                     </div>
 
+                    {/* SECTION: METAS Y AVANCE (3D Gauges) - REPOSICIONADO */}
+                    {showGoals && (
+                        <div className="animate-in slide-in-from-top-4 duration-500 hidden md:block">
+                            <div className="flex items-center justify-between mb-4 px-2">
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp className="text-emerald-500" />
+                                    Avance Mensual (Objetivo 3)
+                                </h3>
+                            </div>
 
+                            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
+                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => {
+                                    const stats = getProgressStats(resp);
+
+                                    // Determinar Color NEON según reglas de usuario:
+                                    // 0% - 80%  -> Rojo Neon (#ef4444)
+                                    // 81% - 95% -> Naranja Neon (#f97316)
+                                    // 96% - 100%-> Verde Neon (#22c55e)
+                                    let gaugeColor = '#ef4444';
+                                    if (stats.percent >= 96) {
+                                        gaugeColor = '#22c55e';
+                                    } else if (stats.percent >= 81) {
+                                        gaugeColor = '#f97316';
+                                    }
+
+                                    return (
+                                        <div key={resp} className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-[2rem] p-4 border border-slate-700/50 shadow-2xl flex flex-col items-center justify-between group hover:scale-105 transition-transform duration-300 relative overflow-hidden">
+                                            {/* Spotlight Effect */}
+                                            <div className="absolute top-0 left-0 w-full h-1/2 bg-white/5 blur-xl pointer-events-none"></div>
+
+                                            <ComplianceGauge
+                                                title={resp}
+                                                value={stats.executed}
+                                                max={stats.planned}
+                                                width={130}
+                                                height={90}
+                                                color={gaugeColor}
+                                            />
+                                            <div className="mt-3 w-full flex justify-between px-2 text-[10px] font-mono font-bold text-slate-500 border-t border-slate-800/50 pt-2">
+                                                <span className="flex items-center gap-1">E: <span style={{ color: gaugeColor }} className="text-xs drop-shadow-md">{stats.executed}</span></span>
+                                                <span className="flex items-center gap-1">P: <span className="text-slate-300 text-xs">{stats.planned}</span></span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main >
 
             {/* MODAL DE EVIDENCIA DE INSPECCIÓN */}
-            {viewingEvidence && (
-                <PreviewCarouselModal
-                    urls={[...(viewingEvidence.evidencePdf ? [viewingEvidence.evidencePdf] : []), ...(viewingEvidence.evidenceImgs || [])]}
-                    onClose={() => setViewingEvidence(null)}
-                    canEdit={user?.role === 'developer' || user?.role === 'manager' || user?.name === viewingEvidence.responsible}
-                    onEdit={() => {
-                        setViewingEvidence(null);
-                        handleEdit(viewingEvidence);
-                    }}
-                    filename={generateFilename(viewingEvidence.inspectionType, viewingEvidence.date, viewingEvidence.responsible, 'pdf', 'inspeccion', viewingEvidence.zone, viewingEvidence.area)}
-                />
-            )}
+            {
+                viewingEvidence && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingEvidence(null)}>
+                        <div className="relative bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-800/50">
+                                <div>
+                                    <h3 className="text-white font-bold flex items-center gap-2">
+                                        <ImageIcon size={20} className="text-emerald-400" />
+                                        Evidencia Fotográfica
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        {viewingEvidence.inspectionType} - {viewingEvidence.zone}
+                                    </p>
+                                </div>
+                                <button onClick={() => setViewingEvidence(null)} className="p-2 hover:bg-red-900/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-auto bg-black/50 p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {(viewingEvidence.evidenceImgs || []).map((img, idx) => (
+                                        <div key={idx} className="group relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950 h-64">
+                                            <iframe
+                                                src={getDriveViewerUrl(img, false)}
+                                                title={`Evidencia ${idx + 1}`}
+                                                className="w-full h-full border-0"
+                                                allow="autoplay"
+                                            />
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform pointer-events-none">
+                                                <a
+                                                    href={img}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-emerald-400 transition-colors"
+                                                >
+                                                    <Download size={14} /> Descargar Original
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {(!viewingEvidence.evidenceImgs || viewingEvidence.evidenceImgs.length === 0) && (
+                                    <div className="text-center py-20 text-slate-500 italic">
+                                        No hay imágenes adjuntas.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
         </div >
     );
 }
