@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ShieldCheck,
     Upload,
@@ -16,15 +16,58 @@ import {
     CheckCircle2,
     RotateCcw
 } from "lucide-react";
-import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue, canDeleteRecord} from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth, USER_LIST } from "@/lib/auth";
 import * as Categories from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+
+const EPP_CATALOG = [
+    { label: 'Guantes de Badana - Color: Amarillo - Marca: Vulkan', unit: 'PAR' },
+    { label: 'Buzo Descartable - Modelo: Safeguard - Talla: L', unit: 'UNIDAD' },
+    { label: 'Buzo Descartable - Modelo: Safeguard - Talla: XL', unit: 'UNIDAD' },
+    { label: 'Filtro 2091 - Modelo: P100 (Partículas) - Marca: 3M', unit: 'PAR' },
+    { label: 'Tapón de Oído con Estuche - Mod: Elite Verde - Marca: Clute', unit: 'UNIDAD' },
+    { label: 'Cortavientos - Modelo 1 Cara - Tela: Drill Naranja', unit: 'UNIDAD' },
+    { label: 'Guantes de Jebe Calibre 35 - Modelo: Protec - Clute - Talla: 9', unit: 'PAR' },
+    { label: 'Suspensión de Cinta Nylon Rachet Acolchada - Marca: Spro', unit: 'UNIDAD' },
+    { label: 'Botas P. de Acero PVC - Marca: Segusa - Mod: Xtreme - T.43', unit: 'PAR' },
+    { label: 'Botas P. de Acero PVC - Marca: Segusa - Mod: Xtreme - T.44', unit: 'PAR' },
+    { label: 'Chaleco de Drill - Mod. Capataz - Color: Naranja - Talla: M', unit: 'UNIDAD' },
+    { label: 'Chaleco de Drill - Mod. Capataz - Color: Naranja - Talla: L', unit: 'UNIDAD' },
+    { label: 'Chaleco de Drill - Mod. Capataz - Color: Naranja - Talla: XL', unit: 'UNIDAD' },
+    { label: 'Filtro 2097 - Modelo: P100 (Partículas y V/Orgánicos) - 3M', unit: 'PAR' },
+    { label: 'Guantes Anticorte - R. P. Nitrilo - Cut 5 - Marca: Vulkan', unit: 'PAR' },
+    { label: 'Anteojos Modelo: Spider HC - Marca: Spro - Lunas: Claras', unit: 'UNIDAD' },
+    { label: 'Anteojos Modelo: Spider HC - Marca: Spro - Lunas: Oscuras', unit: 'UNIDAD' },
+    { label: 'Respirador Media Cara - Modelo: 7502 - Marca: 3M', unit: 'UNIDAD' },
+    { label: 'Filtro 2096 - Modelo: P100 (Gases Ácidos) - Marca: 3M', unit: 'PAR' },
+    { label: 'Respirador N95 - Modelo: 8210 - Marca: 3M (20 Unidades)', unit: 'CAJA' },
+    { label: 'Guante de Neoprene Corrugado 14" - Marca: Galaxy', unit: 'PAR' },
+    { label: 'Guantes de Nitrilo con Puño Tejido - Mod.: Nitro - Marca: Spro', unit: 'PAR' },
+    { label: 'Guantes de Nitrilo 13" - Mod. Tychem NT480 - Marca: Dupont', unit: 'PAR' },
+    { label: 'Guante de Nitrilo Descartable Touch N Tuff 92-600 - Ansell E.', unit: 'CAJA' }
+];
+
 
 // --- TYPES ---
+type EPPInventoryRecord = {
+    id: number;
+    type: 'IN' | 'OUT';
+    item_name: string;
+    unit: string;
+    quantity: number;
+    date: string;
+    month: string;
+    responsible: string;
+    location: string;
+    description: string;
+    files: string[];
+};
+
 type EPPRecord = {
     id: number;
     month: string; // YYYY-MM
@@ -40,6 +83,21 @@ export default function EPPPage() {
 
     // --- STATE ---
     const [records, setRecords] = useState<EPPRecord[]>([]);
+    const [invRecords, setInvRecords] = useState<EPPInventoryRecord[]>([]);
+    const [invForm, setInvForm] = useState({
+        type: 'OUT' as 'IN' | 'OUT',
+        item_name: '',
+        unit: 'UNIDAD',
+        quantity: 1,
+        date: new Date().toISOString().split('T')[0],
+        month: new Date().toISOString().substring(0, 7),
+        responsible: '',
+        location: '',
+        description: ''
+    });
+    const [invFiles, setInvFiles] = useState<string[]>([]);
+    const [isInvUploading, setIsInvUploading] = useState(false);
+
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Form State
@@ -67,6 +125,12 @@ export default function EPPPage() {
             if (data.success) {
                 setRecords(data.records);
             }
+        try {
+            const resInv = await fetch('/api/epp-inventory');
+            const dataInv = await resInv.json();
+            if (dataInv.success) setInvRecords(dataInv.records);
+        } catch(e) { console.error(e); }
+
         } catch (e) {
             console.error('Error fetching EPP records:', e);
         } finally {
@@ -109,6 +173,87 @@ export default function EPPPage() {
     }, [user]);
 
     // --- HANDLERS ---
+
+    const handleInvFileUpload = async (e: any) => {
+        let inputFiles = e?.target?.files;
+        if (!inputFiles || inputFiles.length === 0) return;
+        try {
+            setIsInvUploading(true);
+            const uploadedUrls: string[] = [];
+            const filesArray = Array.from(inputFiles) as File[];
+            for (const file of filesArray) {
+                const url = await uploadEvidence(
+                    file,
+                    'EPP_INV',
+                    `INV_${invForm.type}_${invForm.month}`,
+                    invForm.date,
+                    invForm.responsible || user?.name || 'Sin Asignar',
+                    'epp',
+                    'seguridad',
+                    invForm.location || 'Sin Especificar',
+                    'Inventario EPP'
+                );
+                uploadedUrls.push(url);
+            }
+            setInvFiles(prev => [...prev, ...uploadedUrls]);
+        } catch (error: any) {
+            alert(`Error al subir: ${error.message}`);
+        } finally {
+            setIsInvUploading(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
+    const handleInvSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!invForm.item_name || invForm.quantity <= 0) {
+            alert("Debe seleccionar un EPP y cantidad válida.");
+            return;
+        }
+        try {
+            setIsInvUploading(true);
+            const newRecordData = { ...invForm, files: invFiles };
+            const res = await fetch('/api/epp-inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'create', data: newRecordData, userName: user?.name })
+            });
+            const result = await res.json();
+            if (result.success) {
+                const newRecord = { id: result.id, ...newRecordData };
+                setInvRecords(prev => [newRecord as EPPInventoryRecord, ...prev]);
+                setInvForm(prev => ({ ...prev, quantity: 1, item_name: '' }));
+                setInvFiles([]);
+                alert("Registro de EPP guardado correctamente.");
+            } else {
+                alert("Error: " + result.error);
+            }
+        } catch (error: any) {
+            alert("Error: " + error.message);
+        } finally {
+            setIsInvUploading(false);
+        }
+    };
+
+    const handleInvItemSelect = (val: string) => {
+        const item = EPP_CATALOG.find(i => i.label === val);
+        setInvForm({ ...invForm, item_name: val, unit: item ? item.unit : 'UNIDAD' });
+    };
+    
+    // Calcula la data para el gráfico (top EPP consumidos en el mes actual o seleccionado)
+    const chartData = React.useMemo(() => {
+        const outRecords = invRecords.filter(r => r.type === 'OUT' && r.month === form.month);
+        const map: Record<string, number> = {};
+        outRecords.forEach(r => {
+            map[r.item_name] = (map[r.item_name] || 0) + r.quantity;
+        });
+        return Object.entries(map)
+            .map(([name, count]) => ({ name: name.split(' - ')[0], fullName: name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // top 5
+    }, [invRecords, form.month]);
+
+
     const handleFileUpload = async (e: any, droppedFiles?: FileList | File[]) => {
         let inputFiles = droppedFiles || e?.target?.files;
         if (!inputFiles || inputFiles.length === 0) return;
@@ -185,6 +330,11 @@ export default function EPPPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('\u23f1\ufe0f No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acci\u00f3n.');
+            return;
+        }
         if (confirm("¿Eliminar este registro mensual?")) {
             try {
                 const res = await fetch('/api/epp-records', {
@@ -229,7 +379,121 @@ export default function EPPPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+                        {/* INVENTORY PANEL */}
+                        <div className="xl:col-span-1">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6 flex flex-col gap-6">
+                                <div>
+                                    <h3 className="text-emerald-400 font-black uppercase text-sm tracking-widest mb-4 flex items-center gap-2">
+                                        <Package size={18} /> Inventario y Entregas
+                                    </h3>
+                                    
+                                    <form onSubmit={handleInvSubmit} className="space-y-4">
+                                        <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setInvForm({...invForm, type: 'IN'})}
+                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'IN' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-white'}`}
+                                            >Ingreso (Stock)</button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setInvForm({...invForm, type: 'OUT'})}
+                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'OUT' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-500 hover:text-white'}`}
+                                            >Salida (Entrega)</button>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Artículo EPP</label>
+                                            <SearchableSelect
+                                                options={EPP_CATALOG.map(c => ({ id: c.label, label: c.label }))}
+                                                value={invForm.item_name}
+                                                onChange={handleInvItemSelect}
+                                                placeholder="Buscar artículo..."
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
+                                                <input 
+                                                    type="number" min="1" 
+                                                    value={invForm.quantity} 
+                                                    onChange={e => setInvForm({...invForm, quantity: parseInt(e.target.value)||0})}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" 
+                                                    required 
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase">Unidad</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={invForm.unit} 
+                                                    disabled
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-500 cursor-not-allowed" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Responsable (Opcional)</label>
+                                            <SearchableSelect
+                                                options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
+                                                value={invForm.responsible}
+                                                onChange={(val) => setInvForm({ ...invForm, responsible: val })}
+                                                placeholder="Seleccionar..."
+                                            />
+                                        </div>
+                                        
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Opcional)</label>
+                                            <div className="flex gap-2">
+                                                <label className="flex-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 cursor-pointer rounded-xl py-2 flex items-center justify-center gap-2 transition-colors">
+                                                    <Upload size={14} className="text-slate-400" />
+                                                    <span className="text-[10px] font-bold text-slate-300">SUBIR FOTO/PDF</span>
+                                                    <input type="file" multiple onChange={handleInvFileUpload} disabled={isInvUploading} className="hidden" />
+                                                </label>
+                                            </div>
+                                            {invFiles.length > 0 && (
+                                                <div className="text-[9px] font-bold text-emerald-400 mt-1">✓ {invFiles.length} archivos adjuntos</div>
+                                            )}
+                                        </div>
+
+                                        <button type="submit" disabled={isInvUploading} className={`w-full font-black uppercase py-3 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 ${invForm.type === 'IN' ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
+                                            {isInvUploading ? "Guardando..." : <><Save size={16} /> Guardar {invForm.type === 'IN' ? 'Ingreso' : 'Entrega'}</>}
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div className="border-t border-slate-800 pt-6">
+                                    <h3 className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
+                                        Top Consumo: {form.month}
+                                    </h3>
+                                    {chartData.length > 0 ? (
+                                        <div className="h-48 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                                    <XAxis type="number" hide />
+                                                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} width={80} />
+                                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '10px', color: '#fff'}} />
+                                                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                                                        {chartData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div className="h-24 flex items-center justify-center text-slate-600 text-[10px] font-bold italic border border-dashed border-slate-800 rounded-xl bg-slate-950/50">
+                                            Sin entregas este mes
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Form */}
                         <div className="xl:col-span-1">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6">
