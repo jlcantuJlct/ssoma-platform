@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -818,6 +818,18 @@ export default function EPPPage() {
                                         </div>
 
                                         <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Lugar / Sede (Opcional)</label>
+                                            <select 
+                                                value={invForm.location}
+                                                onChange={e => setInvForm({...invForm, location: e.target.value})}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Seleccionar Sede...</option>
+                                                {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Responsable (Opcional)</label>
                                             <SearchableSelect
                                                 options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
@@ -937,6 +949,7 @@ export default function EPPPage() {
                                                     <tr className="text-[9px] font-black text-slate-500 uppercase border-b border-slate-800">
                                                         <th className="pb-2">Fecha</th>
                                                         <th className="pb-2">Tipo</th>
+                                                        <th className="pb-2">Sede</th>
                                                         <th className="pb-2">Responsable</th>
                                                         <th className="pb-2">Artículo</th>
                                                         <th className="pb-2 text-center">Cant.</th>
@@ -953,6 +966,7 @@ export default function EPPPage() {
                                                                     {r.type === 'IN' ? 'Ingreso' : 'Salida'}
                                                                 </span>
                                                             </td>
+                                                            <td className="py-2 text-[10px] text-slate-300 max-w-[80px] truncate" title={r.location}>{r.location || '-'}</td>
                                                             <td className="py-2 text-[10px] font-bold text-white max-w-[100px] truncate" title={r.responsible}>{r.responsible || '-'}</td>
                                                             <td className="py-2 text-[10px] text-slate-300 max-w-[150px] truncate" title={r.item_name}>{r.item_name}</td>
                                                             <td className="py-2 text-[11px] font-black text-center text-slate-200">{r.quantity}</td>
