@@ -96,6 +96,9 @@ export default function EPPPage() {
         description: ''
     });
     const [invFiles, setInvFiles] = useState<string[]>([]);
+    const [activeTab, setActiveTab] = useState<'docs' | 'inventory'>('docs');
+    const [invFilterMonth, setInvFilterMonth] = useState('');
+
     const [isInvUploading, setIsInvUploading] = useState(false);
 
     const [isLoaded, setIsLoaded] = useState(false);
@@ -241,6 +244,47 @@ export default function EPPPage() {
     };
     
     // Calcula la data para el gráfico (top EPP consumidos en el mes actual o seleccionado)
+    
+    const stockMap = React.useMemo(() => {
+        const map: Record<string, { in: number, out: number, unit: string }> = {};
+        EPP_CATALOG.forEach(item => {
+            map[item.label] = { in: 0, out: 0, unit: item.unit };
+        });
+        invRecords.forEach(r => {
+            if (!map[r.item_name]) {
+                map[r.item_name] = { in: 0, out: 0, unit: r.unit };
+            }
+            if (r.type === 'IN') map[r.item_name].in += r.quantity;
+            if (r.type === 'OUT') map[r.item_name].out += r.quantity;
+        });
+        return Object.entries(map).map(([name, data]) => ({
+            name,
+            unit: data.unit,
+            in: data.in,
+            out: data.out,
+            saldo: data.in - data.out
+        })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [invRecords]);
+
+    const handleInvDelete = async (id: number) => {
+        if (!confirm("¿Eliminar este registro de inventario/entrega?")) return;
+        try {
+            const res = await fetch('/api/epp-inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete', id, userName: user?.name })
+            });
+            const result = await res.json();
+            if (result.success) {
+                setInvRecords(prev => prev.filter(r => r.id !== id));
+            } else {
+                alert("Error al eliminar: " + result.error);
+            }
+        } catch (e) {
+            alert("Error de red");
+        }
+    };
+
     const chartData = React.useMemo(() => {
         const outRecords = invRecords.filter(r => r.type === 'OUT' && r.month === form.month);
         const map: Record<string, number> = {};
@@ -379,123 +423,27 @@ export default function EPPPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                    
+                    {/* TABS */}
+                    <div className="flex gap-4 border-b border-slate-800 pb-2">
+                        <button 
+                            onClick={() => setActiveTab('docs')}
+                            className={`px-6 py-3 font-black uppercase text-sm rounded-t-2xl transition-all flex items-center gap-2 ${activeTab === 'docs' ? 'bg-blue-600 text-white shadow-[0_-5px_15px_-5px_rgba(37,99,235,0.5)] border-t border-x border-blue-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'}`}
+                        >
+                            <FileText size={18} /> Gestión de Documentos (PDF)
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('inventory')}
+                            className={`px-6 py-3 font-black uppercase text-sm rounded-t-2xl transition-all flex items-center gap-2 ${activeTab === 'inventory' ? 'bg-emerald-600 text-white shadow-[0_-5px_15px_-5px_rgba(16,185,129,0.5)] border-t border-x border-emerald-500' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'}`}
+                        >
+                            <Package size={18} /> Inventario y Entregas (Stock)
+                        </button>
+                    </div>
 
-                        {/* INVENTORY PANEL */}
-                        <div className="xl:col-span-1">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6 flex flex-col gap-6">
-                                <div>
-                                    <h3 className="text-emerald-400 font-black uppercase text-sm tracking-widest mb-4 flex items-center gap-2">
-                                        <Package size={18} /> Inventario y Entregas
-                                    </h3>
-                                    
-                                    <form onSubmit={handleInvSubmit} className="space-y-4">
-                                        <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setInvForm({...invForm, type: 'IN'})}
-                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'IN' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-white'}`}
-                                            >Ingreso (Stock)</button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setInvForm({...invForm, type: 'OUT'})}
-                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'OUT' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-500 hover:text-white'}`}
-                                            >Salida (Entrega)</button>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Artículo EPP</label>
-                                            <SearchableSelect
-                                                options={EPP_CATALOG.map(c => ({ id: c.label, label: c.label }))}
-                                                value={invForm.item_name}
-                                                onChange={handleInvItemSelect}
-                                                placeholder="Buscar artículo..."
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
-                                                <input 
-                                                    type="number" min="1" 
-                                                    value={invForm.quantity} 
-                                                    onChange={e => setInvForm({...invForm, quantity: parseInt(e.target.value)||0})}
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" 
-                                                    required 
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase">Unidad</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={invForm.unit} 
-                                                    disabled
-                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-500 cursor-not-allowed" 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Responsable (Opcional)</label>
-                                            <SearchableSelect
-                                                options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
-                                                value={invForm.responsible}
-                                                onChange={(val) => setInvForm({ ...invForm, responsible: val })}
-                                                placeholder="Seleccionar..."
-                                            />
-                                        </div>
-                                        
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Opcional)</label>
-                                            <div className="flex gap-2">
-                                                <label className="flex-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 cursor-pointer rounded-xl py-2 flex items-center justify-center gap-2 transition-colors">
-                                                    <Upload size={14} className="text-slate-400" />
-                                                    <span className="text-[10px] font-bold text-slate-300">SUBIR FOTO/PDF</span>
-                                                    <input type="file" multiple onChange={handleInvFileUpload} disabled={isInvUploading} className="hidden" />
-                                                </label>
-                                            </div>
-                                            {invFiles.length > 0 && (
-                                                <div className="text-[9px] font-bold text-emerald-400 mt-1">✓ {invFiles.length} archivos adjuntos</div>
-                                            )}
-                                        </div>
-
-                                        <button type="submit" disabled={isInvUploading} className={`w-full font-black uppercase py-3 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 ${invForm.type === 'IN' ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
-                                            {isInvUploading ? "Guardando..." : <><Save size={16} /> Guardar {invForm.type === 'IN' ? 'Ingreso' : 'Entrega'}</>}
-                                        </button>
-                                    </form>
-                                </div>
-                                
-                                <div className="border-t border-slate-800 pt-6">
-                                    <h3 className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
-                                        Top Consumo: {form.month}
-                                    </h3>
-                                    {chartData.length > 0 ? (
-                                        <div className="h-48 w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
-                                                    <XAxis type="number" hide />
-                                                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} width={80} />
-                                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '10px', color: '#fff'}} />
-                                                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                                                        {chartData.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
-                                                        ))}
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    ) : (
-                                        <div className="h-24 flex items-center justify-center text-slate-600 text-[10px] font-bold italic border border-dashed border-slate-800 rounded-xl bg-slate-950/50">
-                                            Sin entregas este mes
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Form */}
-                        <div className="xl:col-span-1">
+                    <div className="mt-6">
+                        {activeTab === 'docs' ? (
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                <div className="xl:col-span-1">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6">
                                 <h3 className="text-blue-400 font-black uppercase text-sm tracking-widest mb-6 flex items-center gap-2">
                                     <Save size={18} /> Nuevo Documento Mensual
@@ -811,8 +759,230 @@ export default function EPPPage() {
                             </div>
                         </div>
                     </div>
+                        ) : (
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                
+
+                        {/* INVENTORY PANEL */}
+                        <div className="xl:col-span-1">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl sticky top-6 flex flex-col gap-6">
+                                <div>
+                                    <h3 className="text-emerald-400 font-black uppercase text-sm tracking-widest mb-4 flex items-center gap-2">
+                                        <Package size={18} /> Inventario y Entregas
+                                    </h3>
+                                    
+                                    <form onSubmit={handleInvSubmit} className="space-y-4">
+                                        <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 mb-4">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setInvForm({...invForm, type: 'IN'})}
+                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'IN' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-500 hover:text-white'}`}
+                                            >Ingreso (Stock)</button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setInvForm({...invForm, type: 'OUT'})}
+                                                className={`flex-1 text-[10px] font-black uppercase py-2 rounded-lg transition-all ${invForm.type === 'OUT' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-500 hover:text-white'}`}
+                                            >Salida (Entrega)</button>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Artículo EPP</label>
+                                            <SearchableSelect
+                                                options={EPP_CATALOG.map(c => ({ id: c.label, label: c.label }))}
+                                                value={invForm.item_name}
+                                                onChange={handleInvItemSelect}
+                                                placeholder="Buscar artículo..."
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
+                                                <input 
+                                                    type="number" min="1" 
+                                                    value={invForm.quantity} 
+                                                    onChange={e => setInvForm({...invForm, quantity: parseInt(e.target.value)||0})}
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" 
+                                                    required 
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase">Unidad</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={invForm.unit} 
+                                                    disabled
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-500 cursor-not-allowed" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Responsable (Opcional)</label>
+                                            <SearchableSelect
+                                                options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
+                                                value={invForm.responsible}
+                                                onChange={(val) => setInvForm({ ...invForm, responsible: val })}
+                                                placeholder="Seleccionar..."
+                                            />
+                                        </div>
+                                        
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase">Evidencia (Opcional)</label>
+                                            <div className="flex gap-2">
+                                                <label className="flex-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 cursor-pointer rounded-xl py-2 flex items-center justify-center gap-2 transition-colors">
+                                                    <Upload size={14} className="text-slate-400" />
+                                                    <span className="text-[10px] font-bold text-slate-300">SUBIR FOTO/PDF</span>
+                                                    <input type="file" multiple onChange={handleInvFileUpload} disabled={isInvUploading} className="hidden" />
+                                                </label>
+                                            </div>
+                                            {invFiles.length > 0 && (
+                                                <div className="text-[9px] font-bold text-emerald-400 mt-1">✓ {invFiles.length} archivos adjuntos</div>
+                                            )}
+                                        </div>
+
+                                        <button type="submit" disabled={isInvUploading} className={`w-full font-black uppercase py-3 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 ${invForm.type === 'IN' ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
+                                            {isInvUploading ? "Guardando..." : <><Save size={16} /> Guardar {invForm.type === 'IN' ? 'Ingreso' : 'Entrega'}</>}
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <div className="border-t border-slate-800 pt-6">
+                                    <h3 className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
+                                        Top Consumo: {form.month}
+                                    </h3>
+                                    {chartData.length > 0 ? (
+                                        <div className="h-48 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                                    <XAxis type="number" hide />
+                                                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} width={80} />
+                                                    <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '10px', color: '#fff'}} />
+                                                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                                                        {chartData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div className="h-24 flex items-center justify-center text-slate-600 text-[10px] font-bold italic border border-dashed border-slate-800 rounded-xl bg-slate-950/50">
+                                            Sin entregas este mes
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Form */}
+                        
+                                
+                                {/* INVENTORY RIGHT SIDE */}
+                                <div className="xl:col-span-2 flex flex-col gap-6">
+                                    {/* STOCK SALDO */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                                        <h3 className="text-white font-black text-lg flex items-center gap-2 mb-4">
+                                            <Package size={20} className="text-emerald-500" /> Saldo de Stock Actual
+                                        </h3>
+                                        <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-2">
+                                            <table className="w-full text-left">
+                                                <thead className="sticky top-0 bg-slate-900 z-10">
+                                                    <tr className="text-[9px] font-black text-slate-500 uppercase border-b border-slate-800">
+                                                        <th className="pb-2">Artículo de EPP</th>
+                                                        <th className="pb-2 text-center">Unidad</th>
+                                                        <th className="pb-2 text-center text-blue-400">Ingresos</th>
+                                                        <th className="pb-2 text-center text-amber-400">Salidas</th>
+                                                        <th className="pb-2 text-center text-emerald-400">Saldo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/50">
+                                                    {stockMap.map(s => (
+                                                        <tr key={s.name} className="hover:bg-slate-800/20 transition-colors">
+                                                            <td className="py-2 text-[10px] font-bold text-slate-300 max-w-[200px] truncate" title={s.name}>{s.name}</td>
+                                                            <td className="py-2 text-[9px] text-center text-slate-500">{s.unit}</td>
+                                                            <td className="py-2 text-[11px] font-black text-center text-blue-400">{s.in}</td>
+                                                            <td className="py-2 text-[11px] font-black text-center text-amber-400">{s.out}</td>
+                                                            <td className="py-2 text-center">
+                                                                <span className={`px-2 py-0.5 rounded-md text-[11px] font-black ${s.saldo <= 10 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-emerald-400'}`}>
+                                                                    {s.saldo}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* HISTORIAL */}
+                                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex-1">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-white font-black text-lg flex items-center gap-2">
+                                                <FileText size={20} className="text-slate-500" /> Historial de Movimientos
+                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="month"
+                                                    value={invFilterMonth}
+                                                    onChange={e => setInvFilterMonth(e.target.value)}
+                                                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1 text-[10px] text-white focus:border-emerald-500 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-2">
+                                            <table className="w-full text-left">
+                                                <thead className="sticky top-0 bg-slate-900 z-10">
+                                                    <tr className="text-[9px] font-black text-slate-500 uppercase border-b border-slate-800">
+                                                        <th className="pb-2">Fecha</th>
+                                                        <th className="pb-2">Tipo</th>
+                                                        <th className="pb-2">Responsable</th>
+                                                        <th className="pb-2">Artículo</th>
+                                                        <th className="pb-2 text-center">Cant.</th>
+                                                        <th className="pb-2 text-center">Docs</th>
+                                                        <th className="pb-2 text-right">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/50">
+                                                    {invRecords.filter(r => !invFilterMonth || r.month === invFilterMonth).map(r => (
+                                                        <tr key={r.id} className="hover:bg-slate-800/20 transition-colors">
+                                                            <td className="py-2 text-[10px] text-slate-400">{r.date}</td>
+                                                            <td className="py-2">
+                                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${r.type === 'IN' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                                                    {r.type === 'IN' ? 'Ingreso' : 'Salida'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-2 text-[10px] font-bold text-white max-w-[100px] truncate" title={r.responsible}>{r.responsible || '-'}</td>
+                                                            <td className="py-2 text-[10px] text-slate-300 max-w-[150px] truncate" title={r.item_name}>{r.item_name}</td>
+                                                            <td className="py-2 text-[11px] font-black text-center text-slate-200">{r.quantity}</td>
+                                                            <td className="py-2 text-center">
+                                                                {r.files?.length > 0 ? (
+                                                                    <button onClick={() => setPreviewFile({url: r.files[0], type: 'pdf'})} className="text-[9px] px-2 py-1 bg-slate-800 rounded text-slate-400 hover:text-emerald-400">Ver</button>
+                                                                ) : <span className="text-[9px] text-slate-600">-</span>}
+                                                            </td>
+                                                            <td className="py-2 text-right">
+                                                                <button onClick={() => handleInvDelete(r.id)} className="p-1 text-slate-600 hover:text-red-400 transition-colors">
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {invRecords.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={7} className="py-8 text-center text-slate-600 font-bold uppercase text-xs">Sin registros de inventario</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </main>
+</main>
 
             {/* Preview Modal */}
             {previewFile && (
