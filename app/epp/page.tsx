@@ -254,8 +254,8 @@ export default function EPPPage() {
             if (!map[r.item_name]) {
                 map[r.item_name] = { in: 0, out: 0, unit: r.unit };
             }
-            if (r.type === 'IN') map[r.item_name].in += r.quantity;
-            if (r.type === 'OUT') map[r.item_name].out += r.quantity;
+            if (r.type === 'IN') map[r.item_name].in += Number(r.quantity) || 0;
+            if (r.type === 'OUT') map[r.item_name].out += Number(r.quantity) || 0;
         });
         return Object.entries(map).map(([name, data]) => ({
             name,
@@ -286,10 +286,10 @@ export default function EPPPage() {
     };
 
     const chartData = React.useMemo(() => {
-        const outRecords = invRecords.filter(r => r.type === 'OUT' && r.month === form.month);
+        const outRecords = invRecords.filter(r => r.type === 'OUT' && r.month === invFilterMonth);
         const map: Record<string, number> = {};
         outRecords.forEach(r => {
-            map[r.item_name] = (map[r.item_name] || 0) + r.quantity;
+            map[r.item_name] = (map[r.item_name] || 0) + (Number(r.quantity) || 0);
         });
         return Object.entries(map)
             .map(([name, count]) => ({ name: name.split(' - ')[0], fullName: name, count }))
