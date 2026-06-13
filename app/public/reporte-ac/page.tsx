@@ -14,6 +14,7 @@ import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { ACTOS_LIST, CONDICIONES_LIST } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
+import InstallPWAPrompt from "@/components/InstallPWAPrompt";
 
 export default function PublicReporteACPage() {
     const [sctrNames, setSctrNames] = useState<{id: string, label: string}[]>([]);
@@ -168,6 +169,7 @@ export default function PublicReporteACPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 pb-20">
+            <InstallPWAPrompt />
             <div className="max-w-2xl mx-auto space-y-6">
                 
                 {/* Header */}
