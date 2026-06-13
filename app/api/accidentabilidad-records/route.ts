@@ -44,33 +44,35 @@ export async function POST(req: NextRequest) {
 
         const isPostgres = !!process.env.POSTGRES_URL;
         
-        await db.execute('DELETE FROM accidentabilidad_records');
+        let inserted = 0;
 
-        let query = 'INSERT INTO accidentabilidad_records (id, date, month, type, description, responsable, zona, file_url, file_urls) VALUES ';
-        const values: any[] = [];
-        const placeholders: string[] = [];
-
-        records.forEach((record: any, index: number) => {
-            placeholders.push(`(?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-            values.push(
-                record.id || Date.now() + index,
-                record.date,
-                record.month || '',
-                record.type || '',
-                record.description || '',
-                record.responsable || record.responsible || '',
-                record.zona || record.location || '',
-                record.fileUrl || (record.fileUrls?.[0] || ''),
-                JSON.stringify(record.fileUrls || [])
+        for (const record of records) {
+            // Check if record exists based on fileUrl or description
+            const fileUrl = record.fileUrl || (record.fileUrls?.[0] || '');
+            const existing = await db.fetchAll(
+                'SELECT id FROM accidentabilidad_records WHERE file_url = ? OR description = ?', 
+                [fileUrl, record.description || '']
             );
-        });
-
-        if (records.length > 0) {
-            query += placeholders.join(', ');
-            await db.execute(query, values);
+            
+            if (existing.length === 0) {
+                await db.execute(
+                    'INSERT INTO accidentabilidad_records (date, month, type, description, responsable, zona, file_url, file_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        record.date,
+                        record.month || '',
+                        record.type || '',
+                        record.description || '',
+                        record.responsable || record.responsible || '',
+                        record.zona || record.location || '',
+                        fileUrl,
+                        JSON.stringify(record.fileUrls || [])
+                    ]
+                );
+                inserted++;
+            }
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, count: inserted });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }

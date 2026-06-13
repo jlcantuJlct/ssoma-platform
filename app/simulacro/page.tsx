@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useAuth, USER_LIST } from "@/lib/auth";
@@ -21,7 +21,7 @@ import {
     Eye
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { generateFilename, getInitials, sanitizeRecords, sanitizeValue } from "@/lib/utils";
+import { generateFilename, getInitials, sanitizeRecords, sanitizeValue, canDeleteRecord} from "@/lib/utils";
 
 // --- TYPES ---
 type SimulacroRecord = {
@@ -256,6 +256,11 @@ export default function SimulacroPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este registro?")) return;
         try {
             const res = await fetch('/api/simulacro-records', {

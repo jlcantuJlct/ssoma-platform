@@ -15,9 +15,13 @@ async function ensureTable() {
             cantidad INTEGER,
             location VARCHAR(100),
             pdf_url TEXT,
+            accion_inmediata TEXT,
+            descripcion TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+    try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN accion_inmediata TEXT'); } catch(e) {}
+    try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN descripcion TEXT'); } catch(e) {}
 }
 
 export async function GET() {
@@ -49,8 +53,8 @@ export async function POST(req: NextRequest) {
             
             if (existing.length === 0) {
                 await db.execute(
-                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url, accion_inmediata, descripcion)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         rid,
                         r.date || '',
@@ -59,7 +63,9 @@ export async function POST(req: NextRequest) {
                         r.condicion || '',
                         Number(r.cantidad) || 0,
                         r.location || '',
-                        r.pdfUrl || ''
+                        r.pdfUrl || '',
+                        r.accion_inmediata || '',
+                        r.descripcion || ''
                     ]
                 );
                 inserted++;
@@ -82,7 +88,7 @@ export async function PUT(req: NextRequest) {
         await ensureTable();
         const data = await req.json();
         
-        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl } = data;
+        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl, accion_inmediata, descripcion } = data;
         
         if (!id && !record_id) {
             return NextResponse.json({ success: false, error: 'Se requiere ID o record_id' }, { status: 400 });
@@ -92,7 +98,7 @@ export async function PUT(req: NextRequest) {
 
         await db.execute(
             `UPDATE reporte_ac_records 
-             SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?
+             SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?, accion_inmediata = ?, descripcion = ?
              WHERE record_id = ? OR id = ?`,
             [
                 date || '',
@@ -102,6 +108,8 @@ export async function PUT(req: NextRequest) {
                 Number(cantidad) || 0,
                 location || '',
                 pdfUrl || '',
+                accion_inmediata || '',
+                descripcion || '',
                 targetId,
                 Number(targetId) || 0
             ]

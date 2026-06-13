@@ -28,8 +28,13 @@ type Message = {
     type?: 'text' | 'gallery' | 'options';
 };
 
+import { usePathname } from 'next/navigation';
+
 export default function SSOMAAssistant() {
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+
+    if (pathname && pathname.startsWith('/public')) return null;
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',

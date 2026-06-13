@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -10,7 +10,7 @@ import {
     Download,
     DownloadCloud
 } from "lucide-react";
-import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload } from '@/lib/utils';
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, canDeleteRecord} from '@/lib/utils';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { useAuth } from "@/lib/auth";
 
@@ -103,6 +103,11 @@ export default function ClientCommunicationPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Eliminar este registro?')) return;
         const updated = records.filter(r => r.id !== id);
         try {

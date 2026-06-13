@@ -73,8 +73,8 @@ export default function Sidebar() {
         }
     }, [pathname, searchParams]);
 
-    // Ocultar Sidebar en login (Check posterior a hooks)
-    if (pathname === '/login') return null;
+    // Ocultar Sidebar en login y rutas públicas
+    if (pathname === '/login' || pathname.startsWith('/public')) return null;
 
     const activeSection = searchParams.get('section');
     const activeView = searchParams.get('view');

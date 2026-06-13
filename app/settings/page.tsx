@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Settings, Plus, Trash2, Save, User, MapPin, Leaf, RotateCcw, CloudDownload, HardDrive, Loader2, Bell } from 'lucide-react';
+import { Settings, Plus, Trash2, Save, User, MapPin, Leaf, RotateCcw, CloudDownload, HardDrive, Loader2, Bell, BookOpen } from 'lucide-react';
 import AdminAlertas from '@/components/AdminAlertas';
+import ContactsManager from '@/components/ContactsManager';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 
 const INITIAL_ZONES = SSOMA_LOCATIONS;
@@ -621,16 +622,30 @@ export default function SettingsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* ALERTAS EMAIL */}
+                        {/* ALERTAS EMAIL - DAILY CRON */}
                         <Card className="bg-slate-900 border-slate-800 shadow-xl border-l-4 border-l-red-500">
                             <CardHeader className="border-b border-slate-800 pb-4">
                                 <CardTitle className="text-red-400 font-bold flex items-center gap-2">
                                     <Bell size={20} />
-                                    Sistema de Alertas por Email
+                                    Recordatorios de Módulos Pendientes (Cron)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4 px-0 pb-0">
                                 <AdminAlertas />
+                            </CardContent>
+                        </Card>
+
+                        {/* CONTACTS MANAGER - INSPECTION OBSERVATIONS */}
+                        <Card className="bg-slate-900 border-slate-800 shadow-xl border-l-4 border-l-blue-500">
+                            <CardHeader className="border-b border-slate-800 pb-4">
+                                <CardTitle className="text-blue-400 font-bold flex items-center gap-2">
+                                    <BookOpen size={20} />
+                                    Contactos para Alertas de Inspecciones
+                                </CardTitle>
+                                <p className="text-xs text-slate-500 mt-1">Configura quiénes reciben los correos cuando se marca "Contiene Observaciones" al subir una inspección.</p>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <ContactsManager />
                             </CardContent>
                         </Card>
 

@@ -22,7 +22,8 @@ import {
     Users,
     DownloadCloud,
     Edit2,
-    FileX
+    FileX,
+    QrCode
 } from "lucide-react";
 import { 
     AreaChart, 
@@ -53,6 +54,8 @@ type ReporteACRecord = {
     cantidad: number;
     location: string;
     pdfUrl: string;
+    accion_inmediata?: string;
+    descripcion?: string;
 };
 
 export default function ReporteACPage() {
@@ -67,14 +70,20 @@ export default function ReporteACPage() {
         date: string;
         responsible: string;
         location: string;
-        actos: { name: string, cantidad: number }[];
-        condiciones: { name: string, cantidad: number }[];
+        descripcion: string;
+        accion_inmediata: string;
+        type: 'acto' | 'condicion';
+        actos_checked: string[];
+        condiciones_checked: string[];
     }>({
         date: new Date().toISOString().split('T')[0],
         responsible: user?.name || '',
         location: '',
-        actos: [],
-        condiciones: []
+        descripcion: '',
+        accion_inmediata: '',
+        type: 'acto',
+        actos_checked: [],
+        condiciones_checked: []
     });
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -82,6 +91,7 @@ export default function ReporteACPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
+    const [showQR, setShowQR] = useState(false);
 
     // Edit State
     const [editingRecord, setEditingRecord] = useState<ReporteACRecord | null>(null);
@@ -132,7 +142,9 @@ export default function ReporteACPage() {
                         condicion: r.condicion,
                         cantidad: Number(r.cantidad),
                         location: r.location,
-                        pdfUrl: r.pdf_url
+                        pdfUrl: r.pdf_url,
+                        accion_inmediata: r.accion_inmediata,
+                        descripcion: r.descripcion
                     }));
                     setRecords(mapped);
                     localStorage.setItem('reporte_ac_records', JSON.stringify(mapped));
@@ -159,8 +171,8 @@ export default function ReporteACPage() {
     };
 
     const handleSave = async () => {
-        if (form.actos.length === 0 && form.condiciones.length === 0) {
-            alert("Debe seleccionar al menos un Acto o Condición.");
+        if (form.actos_checked.length === 0 && form.condiciones_checked.length === 0) {
+            alert("Debe seleccionar al menos una clasificación de Acto o Condición.");
             return;
         }
 
@@ -169,8 +181,7 @@ export default function ReporteACPage() {
             return;
         }
 
-        const totalCantidad = form.actos.reduce((sum, item) => sum + item.cantidad, 0) + 
-                              form.condiciones.reduce((sum, item) => sum + item.cantidad, 0);
+        const totalCantidad = form.actos_checked.length + form.condiciones_checked.length;
 
         const confirmMsg = `⚠️ Estás a punto de registrar un total de ${totalCantidad} reporte(s).\n\n¿La cantidad de tarjetas TOP escaneadas en el archivo coincide exactamente con estos ${totalCantidad} registros?`;
         
@@ -197,29 +208,33 @@ export default function ReporteACPage() {
             const newRecords: ReporteACRecord[] = [];
             const baseId = Date.now();
 
-            form.actos.forEach((acto, i) => {
+            form.actos_checked.forEach((actoStr, i) => {
                 newRecords.push({
                     id: baseId + i,
                     date: form.date,
                     responsible: form.responsible,
                     location: form.location,
-                    acto: acto.name,
+                    acto: actoStr,
                     condicion: '',
-                    cantidad: acto.cantidad,
-                    pdfUrl: uploadedUrl
+                    cantidad: 1,
+                    pdfUrl: uploadedUrl,
+                    accion_inmediata: form.accion_inmediata,
+                    descripcion: form.descripcion
                 });
             });
 
-            form.condiciones.forEach((cond, i) => {
+            form.condiciones_checked.forEach((condStr, i) => {
                 newRecords.push({
                     id: baseId + 1000 + i,
                     date: form.date,
                     responsible: form.responsible,
                     location: form.location,
                     acto: '',
-                    condicion: cond.name,
-                    cantidad: cond.cantidad,
-                    pdfUrl: uploadedUrl
+                    condicion: condStr,
+                    cantidad: 1,
+                    pdfUrl: uploadedUrl,
+                    accion_inmediata: form.accion_inmediata,
+                    descripcion: form.descripcion
                 });
             });
 
@@ -229,7 +244,7 @@ export default function ReporteACPage() {
             handleSync(updated);
 
             // Reset
-            setForm({ ...form, actos: [], condiciones: [] });
+            setForm({ ...form, actos_checked: [], condiciones_checked: [], accion_inmediata: '', descripcion: '' });
             setPdfFile(null);
             alert(`✅ ${newRecords.length} reporte(s) de A/C registrado(s) con éxito.`);
         } catch (error) {
@@ -414,9 +429,36 @@ export default function ReporteACPage() {
                                 <p className="text-[10px] font-black text-blue-500 uppercase">Condiciones</p>
                                 <p className="text-2xl font-black text-white">{records.filter(r => r.condicion).length}</p>
                             </div>
+                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer hover:bg-slate-900 transition-colors" onClick={() => setShowQR(true)}>
+                                <div className="text-center">
+                                    <QrCode size={32} className="text-white mx-auto mb-1" />
+                                    <p className="text-[10px] font-black text-white uppercase">Obtener QR</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {showQR && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center relative shadow-2xl">
+                            <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 rounded-full p-1">
+                                <X size={20} />
+                            </button>
+                            <QrCode size={48} className="text-orange-500 mx-auto mb-4" />
+                            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">QR de Acceso Libre</h2>
+                            <p className="text-slate-400 text-sm mb-6">Escanee este código QR para acceder al reporte TOP desde cualquier dispositivo móvil sin contraseña.</p>
+                            <div className="bg-white p-4 rounded-2xl inline-block mx-auto mb-6 shadow-inner">
+                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac')}`} alt="QR Code" className="w-48 h-48" />
+                            </div>
+                            <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                <p className="text-xs text-slate-300 font-mono break-all select-all">
+                                    {typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Analysis Dashboard */}
                 <div className="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[2rem] shadow-xl">
@@ -490,171 +532,110 @@ export default function ReporteACPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* Form Side */}
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl space-y-6">
-                            <h2 className="text-xl font-black text-white flex items-center gap-2 mb-4">
-                                <Plus size={20} className="text-orange-500" />
-                                Nuevo Reporte
-                            </h2>
-
-                            <div className="space-y-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha</label>
-                                    <input 
-                                        type="date"
-                                        value={form.date}
-                                        onChange={e => setForm({...form, date: e.target.value})}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:border-orange-500 outline-none transition-all"
-                                    />
+                    <div className="lg:col-span-5 space-y-6">
+                        <div className="bg-[#1c222b] border border-slate-700/50 p-6 md:p-8 rounded-[2rem] shadow-2xl space-y-6 relative overflow-hidden">
+                            <div className="flex items-center gap-4 border-b border-slate-700/50 pb-6">
+                                <div className="bg-[#b35922] p-3 rounded-2xl shadow-lg">
+                                    <AlertTriangle size={32} className="text-[#1c222b] fill-current" />
                                 </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
-                                    <SearchableSelect 
-                                        options={RESPONSIBLES}
-                                        value={form.responsible}
-                                        onChange={val => setForm({...form, responsible: val})}
-                                        placeholder="Seleccionar responsable..."
-                                        icon={<Users size={16} />}
-                                    />
+                                <div>
+                                    <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Safety Observation Report</h1>
+                                    <p className="text-slate-400 text-sm">Observaciones de Seguridad</p>
                                 </div>
+                            </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar / Área</label>
-                                    <SearchableSelect 
-                                        options={SSOMA_LOCATIONS}
-                                        value={form.location}
-                                        onChange={val => setForm({...form, location: val})}
-                                        placeholder="Seleccionar lugar..."
-                                        icon={<MapPin size={16} />}
-                                    />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                    <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Calendar size={12}/> Fecha:</label>
+                                    <input type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
                                 </div>
+                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                    <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por:</label>
+                                    <select value={form.responsible} onChange={e=>setForm({...form, responsible: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
+                                        <option value="">Seleccionar...</option>
+                                        {RESPONSIBLES.map(r=><option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                </div>
+                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                    <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación:</label>
+                                    <select value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
+                                        <option value="">Seleccionar...</option>
+                                        {SSOMA_LOCATIONS.map(r=><option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                </div>
+                            </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Actos Inseguros (Múltiple)</label>
-                                    <SearchableSelect 
-                                        options={ACTOS_LIST}
-                                        value=""
-                                        onChange={val => {
-                                            if (val && !form.actos.find(a => a.name === val)) {
-                                                setForm({...form, actos: [...form.actos, { name: val, cantidad: 1 }]});
-                                            }
-                                        }}
-                                        placeholder="Agregar acto inseguro..."
-                                        icon={<AlertTriangle size={16} className="text-orange-500" />}
-                                    />
-                                    {form.actos.length > 0 && (
-                                        <div className="flex flex-col gap-2 mt-2">
-                                            {form.actos.map((a, idx) => (
-                                                <div key={`a-${idx}`} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-sm">
-                                                    <span className="truncate flex-1 font-medium" title={a.name}>{a.name}</span>
-                                                    <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-md border border-orange-500/20">
-                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Cant:</span>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            value={a.cantidad} 
-                                                            onChange={(e) => {
-                                                                const newActos = [...form.actos];
-                                                                newActos[idx].cantidad = Math.max(1, parseInt(e.target.value) || 1);
-                                                                setForm({...form, actos: newActos});
-                                                            }}
-                                                            className="w-12 bg-transparent text-center text-xs outline-none font-black text-orange-300"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setForm({...form, actos: form.actos.filter((_, i) => i !== idx)})} className="hover:text-red-400 p-1 bg-red-500/10 rounded-md transition-colors">
-                                                        <X size={14} />
-                                                    </button>
+                            <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
+                                <label className="text-xs text-slate-400 mb-2 block">Description of observation<br/><span className="text-[10px]">Descripción detallada de la observación...</span></label>
+                                <textarea value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
+                            </div>
+
+                            <div className="border border-[#b35922] rounded-xl p-4 bg-transparent mt-4">
+                                <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata</label>
+                                <textarea value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
+                            </div>
+
+                            <div className="flex justify-center my-6">
+                                <div className="flex bg-[#232a35] rounded-full p-1 border border-slate-700/50 w-full sm:w-auto relative">
+                                    <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f97316] rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
+                                    <button type="button" onClick={() => setForm({...form, type: 'acto'})} className={`relative flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider z-10 flex items-center justify-center gap-2 transition-colors ${form.type === 'acto' ? 'text-black' : 'text-slate-400 hover:text-slate-200'}`}>
+                                        <CheckCircle2 size={14} /> Acto Inseguro
+                                    </button>
+                                    <button type="button" onClick={() => setForm({...form, type: 'condicion'})} className={`relative flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider z-10 transition-colors ${form.type === 'condicion' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                                        Condición Insegura
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
+                                    const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
+                                    return (
+                                        <label key={item} className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all aspect-square justify-center items-center text-center gap-2 ${isChecked ? 'border-[#f97316] bg-[#f97316]/10 shadow-[0_0_15px_rgba(249,115,22,0.15)] scale-[1.02]' : 'border-slate-700 bg-transparent hover:border-slate-500 hover:bg-slate-800/50'}`}>
+                                            <div className="absolute top-2 right-2">
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-[#f97316] border-[#f97316]' : 'border-slate-500 bg-transparent'}`}>
+                                                    {isChecked && <CheckCircle2 size={12} className="text-white" />}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
+                                            </div>
+                                            <AlertTriangle size={24} className={isChecked ? 'text-[#f97316]' : 'text-slate-500'} />
+                                            <span className={`text-[10px] font-bold leading-tight ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
+                                            <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                    const list = form.type === 'acto' ? form.actos_checked : form.condiciones_checked;
+                                                    const newChecked = e.target.checked ? [...list, item] : list.filter(x => x !== item);
+                                                    if (form.type === 'acto') setForm({...form, actos_checked: newChecked});
+                                                    else setForm({...form, condiciones_checked: newChecked});
+                                                }}
+                                            />
+                                        </label>
+                                    );
+                                })}
+                            </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Condiciones Inseguras (Múltiple)</label>
-                                    <SearchableSelect 
-                                        options={CONDICIONES_LIST}
-                                        value=""
-                                        onChange={val => {
-                                            if (val && !form.condiciones.find(c => c.name === val)) {
-                                                setForm({...form, condiciones: [...form.condiciones, { name: val, cantidad: 1 }]});
-                                            }
-                                        }}
-                                        placeholder="Agregar condición insegura..."
-                                        icon={<AlertTriangle size={16} className="text-blue-500" />}
-                                    />
-                                    {form.condiciones.length > 0 && (
-                                        <div className="flex flex-col gap-2 mt-2">
-                                            {form.condiciones.map((c, idx) => (
-                                                <div key={`c-${idx}`} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-3 py-2 rounded-lg flex items-center justify-between gap-2 shadow-sm">
-                                                    <span className="truncate flex-1 font-medium" title={c.name}>{c.name}</span>
-                                                    <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-md border border-blue-500/20">
-                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Cant:</span>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            value={c.cantidad} 
-                                                            onChange={(e) => {
-                                                                const newConds = [...form.condiciones];
-                                                                newConds[idx].cantidad = Math.max(1, parseInt(e.target.value) || 1);
-                                                                setForm({...form, condiciones: newConds});
-                                                            }}
-                                                            className="w-12 bg-transparent text-center text-xs outline-none font-black text-blue-300"
-                                                        />
-                                                    </div>
-                                                    <button type="button" onClick={() => setForm({...form, condiciones: form.condiciones.filter((_, i) => i !== idx)})} className="hover:text-red-400 p-1 bg-red-500/10 rounded-md transition-colors">
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Evidencia (PDF)</label>
-                                    <div 
-                                        className="relative group"
-                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                        onDragLeave={() => setIsDragging(false)}
-                                        onDrop={(e) => { 
-                                            e.preventDefault(); 
-                                            setIsDragging(false); 
-                                            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                                                setPdfFile(e.dataTransfer.files[0]);
-                                            }
-                                        }}
-                                    >
-                                        <input 
-                                            type="file"
-                                            accept=".pdf"
-                                            onChange={e => setPdfFile(e.target.files?.[0] || null)}
-                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
-                                        />
-                                        <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                                            isDragging 
-                                                ? 'border-orange-500 bg-orange-500/20 scale-[1.02] shadow-lg shadow-orange-500/20' 
-                                                : pdfFile 
-                                                    ? 'border-orange-500/50 bg-slate-950' 
-                                                    : 'border-slate-800 bg-slate-950 group-hover:border-orange-500/50'
-                                        }`}>
-                                            <Upload className={`mx-auto mb-2 ${isDragging || pdfFile ? 'text-orange-500' : 'text-slate-600'} ${isDragging ? 'animate-bounce' : ''}`} size={24} />
-                                            <p className={`text-xs font-bold uppercase tracking-tighter ${isDragging ? 'text-orange-400' : 'text-slate-500'}`}>
-                                                {isDragging ? '¡SUELTA EL ARCHIVO AQUÍ!' : pdfFile ? pdfFile.name : 'Subir Archivo PDF'}
-                                            </p>
-                                        </div>
+                            <div className="space-y-1 pt-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Evidencia (PDF)</label>
+                                <div className="relative group" onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { setPdfFile(e.dataTransfer.files[0]); } }}>
+                                    <input type="file" accept=".pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full" />
+                                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${isDragging ? 'border-[#f97316] bg-[#f97316]/20' : pdfFile ? 'border-[#f97316]/50 bg-transparent' : 'border-slate-700 bg-transparent group-hover:border-[#f97316]/50'}`}>
+                                        <Upload className={`mx-auto mb-2 ${isDragging || pdfFile ? 'text-[#f97316]' : 'text-slate-600'} ${isDragging ? 'animate-bounce' : ''}`} size={20} />
+                                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${isDragging ? 'text-[#f97316]' : 'text-slate-500'}`}>
+                                            {isDragging ? '¡SUELTA EL ARCHIVO AQUÍ!' : pdfFile ? pdfFile.name : 'Subir Archivo PDF'}
+                                        </p>
                                     </div>
                                 </div>
+                            </div>
 
+                            <div className="pt-4 flex justify-center pb-2">
                                 <button 
                                     onClick={handleSave}
                                     disabled={isUploading}
-                                    className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl shadow-lg shadow-orange-900/20 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50"
+                                    className="w-full md:w-auto md:min-w-[250px] bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] hover:from-[#ff8c00] hover:to-[#ffa600] text-white font-bold py-3.5 px-8 rounded-full shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:-translate-y-1"
                                 >
-                                    {isUploading ? <Activity className="animate-spin" size={16} /> : <Save size={16} />}
-                                    Registrar Reporte
+                                    {isUploading ? <Activity className="animate-spin" size={18} /> : null}
+                                    Registrar Reporte ↑
                                 </button>
                             </div>
                         </div>
@@ -680,7 +661,9 @@ export default function ReporteACPage() {
                                                 { header: 'Acto', dataKey: 'acto' },
                                                 { header: 'Condición', dataKey: 'condicion' },
                                                 { header: 'Cantidad', dataKey: 'cantidad' },
-                                                { header: 'Lugar', dataKey: 'location' }
+                                                { header: 'Lugar', dataKey: 'location' },
+                                                { header: 'Descripción', dataKey: 'descripcion' },
+                                                { header: 'Acción Inmediata', dataKey: 'accion_inmediata' }
                                             ];
                                             exportTableToPDF('Reportes de Actos y Condiciones', cols, filteredRecords, 'Reportes_AC.pdf');
                                         }}

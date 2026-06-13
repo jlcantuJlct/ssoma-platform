@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -16,7 +16,7 @@ import {
     Ear,
     DownloadCloud
 } from "lucide-react";
-import { getDriveViewerUrl } from '@/lib/utils';
+import { getDriveViewerUrl, canDeleteRecord} from '@/lib/utils';
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import { uploadEvidence } from "@/lib/uploadClient";
 import { useAuth } from "@/lib/auth";
@@ -150,6 +150,11 @@ export default function MonitoringPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('\u23f1\ufe0f No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acci\u00f3n.');
+            return;
+        }
         if (confirm("¿Eliminar este registro de monitoreo?")) {
             try {
                 const res = await fetch('/api/monitoreos', {

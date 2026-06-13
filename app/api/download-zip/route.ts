@@ -22,7 +22,11 @@ export async function POST(req: Request) {
         const fetchPromises = files.map(async (file: { url: string, filename: string }) => {
             try {
                 const fileId = getDriveFileId(file.url);
-                if (!fileId) return;
+                if (!fileId) {
+                    const shortcutContent = `Este archivo no se puede descargar automaticamente (ej. SharePoint o externo).\nPor favor, abre el siguiente enlace en tu navegador para verlo/descargarlo:\n\n${file.url}`;
+                    zip.file(`${file.filename}_ENLACE.txt`, shortcutContent);
+                    return;
+                }
 
                 // Create a direct download URL
                 const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
@@ -30,12 +34,16 @@ export async function POST(req: Request) {
                 const response = await fetch(downloadUrl);
                 if (!response.ok) {
                     console.warn(`Could not download ${file.filename}`);
+                    const errorContent = `No se pudo descargar el archivo.\nEnlace original:\n${file.url}`;
+                    zip.file(`${file.filename}_ERROR.txt`, errorContent);
                     return;
                 }
 
                 const contentType = response.headers.get('content-type') || '';
                 if (contentType.includes('text/html')) {
                     console.warn(`Skipping ${file.filename}: received HTML (virus warning)`);
+                    const warningContent = `Google Drive no permitio la descarga automatica (posible advertencia de virus o archivo muy grande).\nPor favor, descargalo manualmente desde este enlace:\n\n${file.url}`;
+                    zip.file(`${file.filename}_ADVERTENCIA.txt`, warningContent);
                     return;
                 }
 
@@ -43,6 +51,8 @@ export async function POST(req: Request) {
                 zip.file(file.filename, arrayBuffer);
             } catch (error) {
                 console.error(`Error downloading ${file.filename}:`, error);
+                const errorContent = `Ocurrio un error al descargar el archivo.\nEnlace original:\n${file.url}`;
+                zip.file(`${file.filename}_ERROR.txt`, errorContent);
             }
         });
 

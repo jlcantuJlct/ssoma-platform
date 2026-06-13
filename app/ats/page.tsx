@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 import { RESPONSIBLES } from "@/lib/categories";
-import { generateFilename, getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, canDeleteRecord } from "@/lib/utils";
 
 // --- TYPES ---
 type AtsRecord = {
@@ -278,6 +278,11 @@ export default function AtsPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (confirm("¿Estás seguro de eliminar este registro?")) {
             try {
                 const res = await fetch('/api/ats-records', {

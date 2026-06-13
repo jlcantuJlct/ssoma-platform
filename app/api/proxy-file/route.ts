@@ -37,8 +37,9 @@ export async function GET(req: NextRequest) {
         let fetchUrl = url;
 
         // Convert standard Google Drive viewing URLs into direct download URLs automatically
-        if (url.includes('drive.google.com/file/d/') && !url.includes('export=')) {
-            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const isDrive = url.includes('drive.google.com');
+        if (isDrive && !url.includes('export=')) {
+            const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
             if (match && match[1]) {
                 fetchUrl = `https://drive.google.com/uc?export=download&id=${match[1]}&confirm=t`;
             }
@@ -51,9 +52,16 @@ export async function GET(req: NextRequest) {
             return new NextResponse(`Error fetching resource: ${response.statusText}`, { status: response.status });
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+        // If we get an HTML response (e.g. SharePoint login wall or Drive virus warning),
+        // we shouldn't return it as a binary (PDF/Image) which will appear corrupted.
+        // Instead, redirect to the original URL so the browser can handle it.
+        if (contentType.includes('text/html')) {
+            return NextResponse.redirect(url);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
 
         const headers = new Headers();
         headers.set('Content-Type', contentType);

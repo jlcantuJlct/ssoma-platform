@@ -1,0 +1,23 @@
+{
+  "name": "SSOMA Reporte TOP",
+  "short_name": "Reporte TOP",
+  "description": "Reporte de Actos y Condiciones de Acceso Libre",
+  "start_url": "/public/reporte-ac",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

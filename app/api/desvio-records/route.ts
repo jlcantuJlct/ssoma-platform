@@ -40,22 +40,25 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
         }
 
-        await db.execute('DELETE FROM desvio_evidence_records');
-
         for (const r of records) {
-            await db.execute(
-                `INSERT INTO desvio_evidence_records (record_id, date, responsible, category, description, location, images)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    String(r.id),
-                    r.date || '',
-                    r.responsible || '',
-                    r.category || '',
-                    r.description || '',
-                    r.location || '',
-                    JSON.stringify(r.images || [])
-                ]
-            );
+            const rid = String(r.id);
+            // Check if it already exists to avoid duplicates and prevent data loss
+            const existing = await db.fetchAll('SELECT id FROM desvio_evidence_records WHERE record_id = ?', [rid]);
+            if (existing.length === 0) {
+                await db.execute(
+                    `INSERT INTO desvio_evidence_records (record_id, date, responsible, category, description, location, images)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        rid,
+                        r.date || '',
+                        r.responsible || '',
+                        r.category || '',
+                        r.description || '',
+                        r.location || '',
+                        JSON.stringify(r.images || [])
+                    ]
+                );
+            }
         }
 
         if (records.length > 0) {

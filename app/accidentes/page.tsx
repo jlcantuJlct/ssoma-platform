@@ -43,7 +43,8 @@ const ACCIDENT_TYPES = [
     "Accidente Leve",
     "Accidente Incapacitante",
     "Accidente Mortal",
-    "Enfermedad Ocupacional"
+    "Enfermedad Ocupacional",
+    "No registra Accidentes, incidentes, enfermedades"
 ];
 
 export default function AccidentesPage() {

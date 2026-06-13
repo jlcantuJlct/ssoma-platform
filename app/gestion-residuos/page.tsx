@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
@@ -163,6 +163,11 @@ export default function GestionResiduosPage() {
     };
 
     const handleDelete = async (id: any) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Está seguro de eliminar este documento? Esta acción no se puede deshacer.')) {
             return;
         }

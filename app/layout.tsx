@@ -18,6 +18,12 @@ export const metadata: Metadata = {
   applicationName: "SSOMA Antigravity",
   keywords: ["SSOMA", "Seguridad", "Salud Ocupacional", "Medio Ambiente", "Gestión de Riesgos", "SCSST", "Dashboard"],
   robots: "index, follow",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    title: "Reporte TOP",
+    statusBarStyle: "black-translucent",
+    capable: true,
+  },
 };
 
 export default function RootLayout({

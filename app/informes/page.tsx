@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
@@ -7,7 +7,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, getDriveDownloadUrl, generateFilename } from "@/lib/utils";
+import { getDriveViewerUrl, getDriveDownloadUrl, generateFilename, canDeleteRecord} from "@/lib/utils";
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import PreviewCarouselModal from "@/components/PreviewCarouselModal";
 import BatchDownloadZip from "@/components/BatchDownloadZip";
@@ -29,6 +29,7 @@ export default function InformesPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadMsg, setDownloadMsg] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [externalLink, setExternalLink] = useState('');
     const [viewingEvidence, setViewingEvidence] = useState<any>(null);
     
     // Filters
@@ -103,6 +104,7 @@ export default function InformesPage() {
                     description: '',
                 });
                 setUploadedFiles([]);
+                setExternalLink('');
                 fetchData();
             }
         } catch (error) {
@@ -113,6 +115,11 @@ export default function InformesPage() {
     };
 
     const handleDelete = async (id: any) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
         
         try {
@@ -291,15 +298,46 @@ export default function InformesPage() {
                                         <div className="flex flex-wrap gap-2 pt-4">
                                             {uploadedFiles.map((url, idx) => (
                                                 <div key={idx} className="bg-slate-950 px-3 py-2 rounded-2xl border border-slate-800 flex items-center gap-3">
-                                                    <FileText size={14} className="text-violet-400" />
-                                                    <span className="text-[10px] font-bold text-slate-300">Archivo #{idx + 1}</span>
-                                                    <button onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} className="text-slate-600 hover:text-red-400">
+                                                    {url.startsWith('http') && !url.includes('blob.vercel') && !url.includes('firebasestorage') && !url.includes('cloudinary') ? (
+                                                        <Upload size={14} className="text-amber-400" />
+                                                    ) : (
+                                                        <FileText size={14} className="text-violet-400" />
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-slate-300">
+                                                        {url.startsWith('http') && !url.includes('blob.vercel') && !url.includes('firebasestorage') && !url.includes('cloudinary') ? 'Enlace Externo' : `Archivo #${idx + 1}`}
+                                                    </span>
+                                                    <button onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))} className="text-slate-600 hover:text-red-400" type="button">
                                                         <X size={14} />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
+                                </div>
+
+                                <div className="md:col-span-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Enlace Externo (Opcional - Para archivos mayores a 80MB)</label>
+                                    <div className="flex gap-2 mt-2">
+                                        <input 
+                                            type="url"
+                                            value={externalLink}
+                                            onChange={(e) => setExternalLink(e.target.value)}
+                                            placeholder="https://ejemplo.com/archivo-pesado (Drive, OneDrive, WeTransfer...)"
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none"
+                                        />
+                                        <button 
+                                            onClick={() => {
+                                                if (externalLink) {
+                                                    setUploadedFiles(prev => [...prev, externalLink]);
+                                                    setExternalLink('');
+                                                }
+                                            }}
+                                            className="bg-slate-800 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap"
+                                            type="button"
+                                        >
+                                            Añadir Enlace
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="md:col-span-3">

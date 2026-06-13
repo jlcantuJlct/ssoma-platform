@@ -45,17 +45,21 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Categories must be an array' }, { status: 400 });
         }
 
-        // Borrar y reemplazar
-        await db.execute('DELETE FROM pma_categories');
+        let inserted = 0;
 
         for (const c of categories) {
-            await db.execute(
-                `INSERT INTO pma_categories (category_id, label, hint) VALUES (?, ?, ?)`,
-                [c.id || '', c.label || '', c.hint || '']
-            );
+            const cid = c.id || '';
+            const existing = await db.fetchAll('SELECT id FROM pma_categories WHERE category_id = ?', [cid]);
+            if (existing.length === 0) {
+                await db.execute(
+                    `INSERT INTO pma_categories (category_id, label, hint) VALUES (?, ?, ?)`,
+                    [cid, c.label || '', c.hint || '']
+                );
+                inserted++;
+            }
         }
 
-        return NextResponse.json({ success: true, count: categories.length });
+        return NextResponse.json({ success: true, count: inserted });
     } catch (error: any) {
         console.error('Error saving PMA categories:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

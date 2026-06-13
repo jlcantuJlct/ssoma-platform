@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useAuth, USER_LIST } from "@/lib/auth";
@@ -29,7 +29,7 @@ import {
 import SearchableSelect from "@/components/SearchableSelect";
 import PreviewCarouselModal from "@/components/PreviewCarouselModal";
 import BatchDownloadZip from "@/components/BatchDownloadZip";
-import { generateFilename, getInitials, getDriveViewerUrl } from "@/lib/utils";
+import { generateFilename, getInitials, getDriveViewerUrl, canDeleteRecord} from "@/lib/utils";
 import JSZip from 'jszip';
 
 // --- TYPES ---
@@ -280,6 +280,11 @@ export default function BrigadistasPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este registro?")) return;
         try {
             const res = await fetch('/api/brigadista-records', {

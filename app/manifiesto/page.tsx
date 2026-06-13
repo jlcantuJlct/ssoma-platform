@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import SearchableSelect from "@/components/SearchableSelect";
-import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, sanitizeRecords } from '@/lib/utils';
+import { getDriveViewerUrl, getDriveDownloadUrl, handleBulkDownload, sanitizeRecords, canDeleteRecord} from '@/lib/utils';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
@@ -235,6 +235,11 @@ export default function ManifestPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este registro?")) return;
         try {
             const res = await fetch('/api/manifiesto-records', {

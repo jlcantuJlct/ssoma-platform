@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Download, Save, RefreshCw, Upload, FileText, Calendar, User, MapPin, X, Trash2, Folder, Plus } from "lucide-react";
@@ -8,14 +8,14 @@ import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import SearchableSelect from '@/components/SearchableSelect';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, generateFilename } from "@/lib/utils";
+import { getDriveViewerUrl, generateFilename, canDeleteRecord} from "@/lib/utils";
 import PreviewCarouselModal from "@/components/PreviewCarouselModal";
 import BatchDownloadZip from "@/components/BatchDownloadZip";
 
 // Constants
 const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const FULL_MONTHS = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
-const EVENT_TYPES = ["Accidente Leve", "Incidente Leve", "Incidente Peligroso", "Accidente Incapacitante", "Accidente Mortal", "Enfermedad Ocupacional"];
+const EVENT_TYPES = ["Accidente Leve", "Incidente Leve", "Incidente Peligroso", "Accidente Incapacitante", "Accidente Mortal", "Enfermedad Ocupacional", "No registra Accidentes, incidentes, enfermedades"];
 
 // Types
 type MonthlyData = {
@@ -167,6 +167,11 @@ export default function ReportsPage() {
     };
 
     const handleDeleteDoc = async (id: any) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Eliminar registro?')) return;
         try {
             const updated = docs.filter(r => r.id !== id);
@@ -697,10 +702,13 @@ export default function ReportsPage() {
                                                     <FileText size={16} />
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-white text-sm">{rec.type || 'Registro'}</h3>
-                                                    <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                                                        <Calendar size={10} /> {rec.month} - {rec.date}
-                                                    </p>
+                                                    <h3 className="font-bold text-white text-sm">Estadísticas {rec.zona ? `de ${rec.zona}` : ''} - {rec.month || ''}</h3>
+                                                    <div className="mt-1 space-y-1">
+                                                        <p className="text-[11px] font-bold text-emerald-400 leading-tight">{rec.type || 'Registro'}</p>
+                                                        <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                            <Calendar size={10} /> {rec.month} - {rec.date}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-1">

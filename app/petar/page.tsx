@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useAuth, USER_LIST } from "@/lib/auth";
@@ -24,7 +24,7 @@ import {
     DownloadCloud
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { generateFilename, getInitials } from "@/lib/utils";
+import { generateFilename, getInitials, canDeleteRecord} from "@/lib/utils";
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 
 // --- TYPES ---
@@ -285,6 +285,11 @@ export default function PetarPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('\u23f1\ufe0f No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acci\u00f3n.');
+            return;
+        }
         if (confirm("¿Estás seguro de eliminar este registro?")) {
             try {
                 const res = await fetch('/api/petar-records', {

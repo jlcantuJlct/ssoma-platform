@@ -22,8 +22,13 @@ const MODULE_LINKS: Record<string, string> = {
     'Evidencias PMA': '/pma',
 };
 
+import { usePathname } from 'next/navigation';
+
 export default function AlertaBanner() {
+    const pathname = usePathname();
     const { user } = useAuth();
+
+    if (pathname && pathname.startsWith('/public')) return null;
     const [pending, setPending]     = useState<string[]>([]);
     const [dismissed, setDismissed] = useState(false);
     const [expanded, setExpanded]   = useState(true);

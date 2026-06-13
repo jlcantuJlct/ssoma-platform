@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
@@ -7,7 +7,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, generateFilename } from "@/lib/utils";
+import { getDriveViewerUrl, generateFilename, canDeleteRecord} from "@/lib/utils";
 import PreviewCarouselModal from "@/components/PreviewCarouselModal";
 import BatchDownloadZip from "@/components/BatchDownloadZip";
 
@@ -167,6 +167,11 @@ export default function SCSSTPage() {
     };
 
     const handleDelete = async (id: any) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
         
         try {

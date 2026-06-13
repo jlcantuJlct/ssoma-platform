@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import {
     Folder
 } from 'lucide-react';
 import { uploadEvidence } from '@/lib/uploadClient';
-import { getDriveViewerUrl } from '@/lib/utils';
+import { getDriveViewerUrl, canDeleteRecord} from '@/lib/utils';
 
 interface EquipmentCert {
     id: number;
@@ -87,9 +87,9 @@ export default function EquipmentCertsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!form.equipment_name.trim()) {
-            alert('Por favor, ingrese el nombre del Equipo / Herramienta.');
-            return;
+        let finalTitle = form.equipment_name.trim();
+        if (!finalTitle) {
+            finalTitle = `Archivos de ${form.mes_registro}`;
         }
 
         if (pendingFiles.length === 0) {
@@ -115,7 +115,7 @@ export default function EquipmentCertsPage() {
             }
 
             // Guardar en BD
-            const dataToSave = { ...form, fileUrls: uploadedUrls };
+            const dataToSave = { ...form, equipment_name: finalTitle, fileUrls: uploadedUrls };
             const res = await fetch('/api/equipment-certs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -141,6 +141,11 @@ export default function EquipmentCertsPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm("¿Eliminar este certificado de equipo?")) return;
         try {
             await fetch('/api/equipment-certs', {
@@ -155,7 +160,7 @@ export default function EquipmentCertsPage() {
     };
 
     const filteredRecords = records.filter(r => {
-        const matchesSearch = !searchTerm || r.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) || r.plate_id.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = !searchTerm || r.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) || (r.plate_id && r.plate_id.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesType = !filterCertType || r.cert_type === filterCertType;
         const matchesMonth = !filterDate || r.mes_registro === filterDate; // Resurposed filterDate to act as Month filter
         return matchesSearch && matchesType && matchesMonth;
@@ -194,21 +199,12 @@ export default function EquipmentCertsPage() {
                         <CardContent>
                             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Equipo / Herramienta</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Título / Descripción</label>
                                     <input 
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Ej: Camioneta Hilux, Grúa..."
+                                        placeholder="Ej: Archivos de Mayo..."
                                         value={form.equipment_name}
                                         onChange={e => setForm({...form, equipment_name: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Placa / Código Interno</label>
-                                    <input 
-                                        className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="EGP-123 / COD-001"
-                                        value={form.plate_id}
-                                        onChange={e => setForm({...form, plate_id: e.target.value})}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -304,7 +300,7 @@ export default function EquipmentCertsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-slate-900/50 p-4 rounded-2xl border border-slate-800 items-end">
                     <div className="space-y-1">
                         <div className="flex justify-between items-center px-1">
-                            <label className="text-[9px] font-black text-slate-500 uppercase">Buscar Equipo/Placa</label>
+                            <label className="text-[9px] font-black text-slate-500 uppercase">Buscar Título/Descripción</label>
                             {searchTerm && (
                                 <button onClick={() => setSearchTerm("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
                                     <X size={10} />
@@ -405,7 +401,7 @@ export default function EquipmentCertsPage() {
                                     </div>
 
                                     <h3 className="text-xl font-bold mb-1">{record.equipment_name}</h3>
-                                    <p className="text-xs text-slate-500 mb-4 font-mono font-bold tracking-widest">{record.plate_id || 'SIN PLACA'}</p>
+                                    {record.plate_id && <p className="text-xs text-slate-500 mb-4 font-mono font-bold tracking-widest">{record.plate_id}</p>}
 
                                     <div className="space-y-3 mb-6">
                                         <div className="flex justify-between text-xs">

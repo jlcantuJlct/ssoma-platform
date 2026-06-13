@@ -1,43 +1,42 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import db from '@/lib/db';
 
-const PRESENCE_FILE = path.join(process.cwd(), 'data', 'presence.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(path.join(process.cwd(), 'data'))) {
-    fs.mkdirSync(path.join(process.cwd(), 'data'), { recursive: true });
+async function ensureTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS presence_records (
+            username VARCHAR(100) PRIMARY KEY,
+            name VARCHAR(100),
+            last_seen BIGINT
+        )
+    `);
 }
-
-// Presence record: { username: { name: string, lastSeen: number } }
 
 export async function POST(request: Request) {
     try {
+        await ensureTable();
         const { username, name } = await request.json();
         if (!username) return NextResponse.json({ success: false });
 
-        let presence: Record<string, { name: string, lastSeen: number }> = {};
-        if (fs.existsSync(PRESENCE_FILE)) {
-            presence = JSON.parse(fs.readFileSync(PRESENCE_FILE, 'utf8'));
-        }
-
-        // Update current user
-        presence[username] = {
-            name,
-            lastSeen: Date.now()
-        };
-
-        // Cleanup old presence (older than 1 minute)
         const now = Date.now();
-        const cleanedPresence: Record<string, { name: string, lastSeen: number }> = {};
-        Object.entries(presence).forEach(([u, data]) => {
-            if (now - data.lastSeen < 60000) {
-                cleanedPresence[u] = data;
-            }
-        });
+        // Insert or update
+        await db.execute(
+            `INSERT INTO presence_records (username, name, last_seen) 
+             VALUES (?, ?, ?) 
+             ON CONFLICT (username) 
+             DO UPDATE SET name = EXCLUDED.name, last_seen = EXCLUDED.last_seen`,
+            [username, name, now]
+        );
 
-        fs.writeFileSync(PRESENCE_FILE, JSON.stringify(cleanedPresence));
+        // Delete records older than 1 minute
+        await db.execute(`DELETE FROM presence_records WHERE last_seen < ?`, [now - 60000]);
+
+        // Get updated list
+        const rows = await db.fetchAll(`SELECT * FROM presence_records`);
+        const cleanedPresence: Record<string, { name: string, lastSeen: number }> = {};
+        for (const row of rows) {
+            cleanedPresence[row.username] = { name: row.name, lastSeen: Number(row.last_seen) };
+        }
 
         return NextResponse.json({ success: true, presence: cleanedPresence });
     } catch (error) {
@@ -47,19 +46,17 @@ export async function POST(request: Request) {
 
 export async function GET() {
     try {
-        if (!fs.existsSync(PRESENCE_FILE)) {
-            return NextResponse.json({ success: true, presence: {} });
-        }
-        const presence = JSON.parse(fs.readFileSync(PRESENCE_FILE, 'utf8'));
-        
-        // Cleanup on GET too
+        await ensureTable();
         const now = Date.now();
+        
+        // Delete records older than 1 minute
+        await db.execute(`DELETE FROM presence_records WHERE last_seen < ?`, [now - 60000]);
+
+        const rows = await db.fetchAll(`SELECT * FROM presence_records`);
         const cleanedPresence: Record<string, { name: string, lastSeen: number }> = {};
-        Object.entries(presence).forEach(([u, data]) => {
-            if (now - data.lastSeen < 60000) {
-                cleanedPresence[u] = data;
-            }
-        });
+        for (const row of rows) {
+            cleanedPresence[row.username] = { name: row.name, lastSeen: Number(row.last_seen) };
+        }
 
         return NextResponse.json({ success: true, presence: cleanedPresence });
     } catch (error) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
@@ -7,7 +7,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import { SSOMA_LOCATIONS } from '@/lib/locations';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { getDriveViewerUrl, sanitizeRecords, sanitizeValue } from "@/lib/utils";
+import { getDriveViewerUrl, sanitizeRecords, sanitizeValue, canDeleteRecord} from "@/lib/utils";
 
 export default function RISSTMAPage() {
     const { user } = useAuth();
@@ -123,6 +123,11 @@ export default function RISSTMAPage() {
     };
 
     const handleDelete = async (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
+            return;
+        }
         if (!confirm('¿Está seguro de eliminar este registro?')) return;
 
         try {

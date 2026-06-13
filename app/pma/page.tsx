@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -21,7 +21,7 @@ import {
     ExternalLink,
     RotateCcw
 , Download } from "lucide-react";
-import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue, handleBulkDownload } from '@/lib/utils';
+import { generateFilename, getDriveViewerUrl, getInitials, sanitizeRecords, sanitizeValue, handleBulkDownload, canDeleteRecord} from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -431,6 +431,11 @@ export default function PMAPage() {
     };
 
     const handleDelete = (id: number) => {
+        const record = records.find(r => r.id === id);
+        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+            alert('\u23f1\ufe0f No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acci\u00f3n.');
+            return;
+        }
         if (confirm("¿Está seguro de eliminar este registro?")) {
             setRecords(prev => prev.filter(r => r.id !== id));
         }

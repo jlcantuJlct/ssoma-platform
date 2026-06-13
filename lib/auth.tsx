@@ -129,9 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('ssoma_users_db', JSON.stringify(mockUsers));
     }, [mockUsers]);
 
-    // Proteger rutas
+    // Proteger rutas (excepto login y rutas públicas)
     useEffect(() => {
-        if (!loading && !user && pathname !== '/login') {
+        if (!loading && !user && pathname !== '/login' && !pathname.startsWith('/public')) {
             router.push('/login');
         }
     }, [user, loading, pathname, router]);
