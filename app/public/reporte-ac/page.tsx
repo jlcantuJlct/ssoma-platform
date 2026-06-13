@@ -18,22 +18,66 @@ import {
     Wrench,
     Package,
     Trash2,
-    ShieldAlert
+    ShieldAlert,
+    ShieldOff,
+    Siren,
+    Flame,
+    FileWarning,
+    SearchX,
+    Layers,
+    Cone,
+    BadgeMinus,
+    Wine,
+    Ban,
+    ShieldX,
+    Building,
+    LightbulbOff,
+    Route,
+    Droplets,
+    VolumeX,
+    Radiation,
+    CloudLightning,
+    Wind,
+    PlugZap,
+    FlaskConical,
+    User
 } from "lucide-react";
 
-const getCategoryIcon = (text: string, isChecked: boolean) => {
+const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20) => {
     const t = text.toLowerCase();
     const color = isChecked ? 'text-[#f97316]' : 'text-slate-500';
-    if (t.includes('vehícul') || t.includes('conducir')) return <Car size={20} className={color} />;
-    if (t.includes('epp')) return <HardHat size={20} className={color} />;
-    if (t.includes('altura') || t.includes('escalera') || t.includes('caída') || t.includes('apoyo') || t.includes('techo')) return <ArrowUp size={20} className={color} />;
-    if (t.includes('energía') || t.includes('eléctric')) return <Zap size={20} className={color} />;
-    if (t.includes('bloqueo')) return <Lock size={20} className={color} />;
-    if (t.includes('celular') || t.includes('teléfono')) return <Smartphone size={20} className={color} />;
-    if (t.includes('herramienta') || t.includes('equipo') || t.includes('petar')) return <Wrench size={20} className={color} />;
-    if (t.includes('carga') || t.includes('material') || t.includes('izaje')) return <Package size={20} className={color} />;
-    if (t.includes('limpieza') || t.includes('orden')) return <Trash2 size={20} className={color} />;
-    return <AlertTriangle size={20} className={color} />;
+    if (t.includes('conducir') && t.includes('autorización')) return <BadgeMinus size={size} className={color} />;
+    if (t.includes('vehícul') || t.includes('móviles') || t.includes('conducir')) return <Car size={size} className={color} />;
+    if (t.includes('guardas') || t.includes('barandas')) return <ShieldOff size={size} className={color} />;
+    if (t.includes('lesiones') || t.includes('accidentes')) return <Siren size={size} className={color} />;
+    if (t.includes('fuego') || t.includes('incendio') || t.includes('caliente')) return <Flame size={size} className={color} />;
+    if (t.includes('bloqueo') || t.includes('energía')) return <Zap size={size} className={color} />;
+    if (t.includes('celular') || t.includes('teléfono')) return <Smartphone size={size} className={color} />;
+    if (t.includes('epp')) return <HardHat size={size} className={color} />;
+    if (t.includes('normas') || t.includes('ssoma') || t.includes('petar')) return <FileWarning size={size} className={color} />;
+    if (t.includes('altura') || t.includes('caída') || t.includes('escaleras') || t.includes('apoyo')) return <ArrowUp size={size} className={color} />;
+    if (t.includes('evaluar') || t.includes('riesgos')) return <SearchX size={size} className={color} />;
+    if (t.includes('simultánea') || t.includes('múltiples')) return <Layers size={size} className={color} />;
+    if (t.includes('delimitar') || t.includes('señalización')) return <Cone size={size} className={color} />;
+    if (t.includes('alcohol') || t.includes('drogas')) return <Wine size={size} className={color} />;
+    if (t.includes('restringidas')) return <Ban size={size} className={color} />;
+    if (t.includes('cargas') || t.includes('izaje') || t.includes('levantar')) return <Package size={size} className={color} />;
+    if (t.includes('proteccion inadecuadas') || t.includes('inexistente para hacer')) return <ShieldX size={size} className={color} />;
+    if (t.includes('paredes') || t.includes('taludes')) return <Building size={size} className={color} />;
+    if (t.includes('herramienta') || t.includes('equipo') || t.includes('defectuosos')) return <Wrench size={size} className={color} />;
+    if (t.includes('iluminación')) return <LightbulbOff size={size} className={color} />;
+    if (t.includes('caminos') || t.includes('pisos') || t.includes('superficies')) return <Route size={size} className={color} />;
+    if (t.includes('congestión')) return <Activity size={size} className={color} />;
+    if (t.includes('derrame')) return <Droplets size={size} className={color} />;
+    if (t.includes('orden') || t.includes('limpieza') || t.includes('rrss')) return <Trash2 size={size} className={color} />;
+    if (t.includes('ruido')) return <VolumeX size={size} className={color} />;
+    if (t.includes('radiación')) return <Radiation size={size} className={color} />;
+    if (t.includes('climas')) return <CloudLightning size={size} className={color} />;
+    if (t.includes('ventilación')) return <Wind size={size} className={color} />;
+    if (t.includes('cables') || t.includes('energizados')) return <PlugZap size={size} className={color} />;
+    if (t.includes('quimicos')) return <FlaskConical size={size} className={color} />;
+    if (t.includes('ergonómicos')) return <User size={size} className={color} />;
+    return <AlertTriangle size={size} className={color} />;
 };
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
@@ -271,7 +315,7 @@ export default function PublicReporteACPage() {
                                             {isChecked && <CheckCircle2 size={12} className="text-white" />}
                                         </div>
                                     </div>
-                                    {getCategoryIcon(item, isChecked)}
+                                    {getCategoryIcon(item, isChecked, 20)}
                                     <span className={`text-[9px] sm:text-[10px] font-bold leading-tight ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
                                     <input 
                                         type="checkbox" 
