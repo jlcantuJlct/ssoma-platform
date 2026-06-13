@@ -32,7 +32,6 @@ import {
     Smartphone,
     Wrench,
     Package,
-    Trash2,
     ShieldAlert
 } from "lucide-react";
 
