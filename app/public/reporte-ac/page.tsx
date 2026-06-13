@@ -8,8 +8,33 @@ import {
     MapPin,
     CheckCircle2,
     Activity,
-    Users
+    Users,
+    Car,
+    HardHat,
+    ArrowUp,
+    Zap,
+    Lock,
+    Smartphone,
+    Wrench,
+    Package,
+    Trash2,
+    ShieldAlert
 } from "lucide-react";
+
+const getCategoryIcon = (text: string, isChecked: boolean) => {
+    const t = text.toLowerCase();
+    const color = isChecked ? 'text-[#f97316]' : 'text-slate-500';
+    if (t.includes('vehícul') || t.includes('conducir')) return <Car size={20} className={color} />;
+    if (t.includes('epp')) return <HardHat size={20} className={color} />;
+    if (t.includes('altura') || t.includes('escalera') || t.includes('caída') || t.includes('apoyo') || t.includes('techo')) return <ArrowUp size={20} className={color} />;
+    if (t.includes('energía') || t.includes('eléctric')) return <Zap size={20} className={color} />;
+    if (t.includes('bloqueo')) return <Lock size={20} className={color} />;
+    if (t.includes('celular') || t.includes('teléfono')) return <Smartphone size={20} className={color} />;
+    if (t.includes('herramienta') || t.includes('equipo') || t.includes('petar')) return <Wrench size={20} className={color} />;
+    if (t.includes('carga') || t.includes('material') || t.includes('izaje')) return <Package size={20} className={color} />;
+    if (t.includes('limpieza') || t.includes('orden')) return <Trash2 size={20} className={color} />;
+    return <AlertTriangle size={20} className={color} />;
+};
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { ACTOS_LIST, CONDICIONES_LIST } from "@/lib/categories";
@@ -175,14 +200,23 @@ export default function PublicReporteACPage() {
                 {/* Header */}
                 <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-6 sm:p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <AlertTriangle size={32} className="text-white" />
-                            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tighter">
-                                Reporte TOP
-                            </h1>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle size={32} className="text-white" />
+                                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tighter">
+                                    Reporte TOP
+                                </h1>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="bg-black/20 text-white/90 text-[10px] font-bold px-2 py-1 rounded border border-white/10 uppercase">Código: F-SIG-060</span>
+                                <span className="bg-black/20 text-white/90 text-[10px] font-bold px-2 py-1 rounded border border-white/10 uppercase">Versión: 01</span>
+                            </div>
                         </div>
-                        <p className="text-white/80 font-medium text-sm sm:text-base">
-                            Tarjeta de Observación Preventiva - Acceso Libre
+                        <p className="text-white font-bold text-sm sm:text-lg mb-1">
+                            Tarjeta de Observación Preventiva de Seguridad
+                        </p>
+                        <p className="text-white/80 font-medium text-xs flex items-center gap-1">
+                            <MapPin size={12} /> Proyecto: Red Vial 6
                         </p>
                     </div>
                 </div>
@@ -215,29 +249,19 @@ export default function PublicReporteACPage() {
                         </div>
                     </div>
 
-                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
-                        <label className="text-xs text-slate-400 mb-2 block">Descripción detallada de la observación...</label>
-                        <textarea value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
-                    </div>
-
-                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
-                        <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata (Opcional)</label>
-                        <textarea value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
-                    </div>
-
                     <div className="flex justify-center mt-6 mb-4">
                         <div className="flex bg-[#232a35] rounded-full p-1 border border-slate-700/50 w-full relative">
                             <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f97316] rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
                             <button type="button" onClick={() => setForm({...form, type: 'acto'})} className={`relative flex-1 px-2 py-2.5 text-xs font-bold uppercase tracking-wider z-10 flex items-center justify-center gap-1 sm:gap-2 transition-colors ${form.type === 'acto' ? 'text-black' : 'text-slate-400 hover:text-slate-200'}`}>
-                                <CheckCircle2 size={14} /> Actos
+                                <CheckCircle2 size={14} /> Acto Inseguro
                             </button>
                             <button type="button" onClick={() => setForm({...form, type: 'condicion'})} className={`relative flex-1 px-2 py-2.5 text-xs font-bold uppercase tracking-wider z-10 transition-colors ${form.type === 'condicion' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-                                Condiciones
+                                Condición Insegura
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
                         {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                             const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                             return (
@@ -247,7 +271,7 @@ export default function PublicReporteACPage() {
                                             {isChecked && <CheckCircle2 size={12} className="text-white" />}
                                         </div>
                                     </div>
-                                    <AlertTriangle size={20} className={isChecked ? 'text-[#f97316]' : 'text-slate-500'} />
+                                    {getCategoryIcon(item, isChecked)}
                                     <span className={`text-[9px] sm:text-[10px] font-bold leading-tight ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
                                     <input 
                                         type="checkbox" 
@@ -263,6 +287,16 @@ export default function PublicReporteACPage() {
                                 </label>
                             );
                         })}
+                    </div>
+
+                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
+                        <label className="text-xs text-slate-400 mb-2 block">Descripción detallada de la observación...</label>
+                        <textarea value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
+                    </div>
+
+                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
+                        <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata (Opcional)</label>
+                        <textarea value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
 
                     <div className="space-y-1 pt-4">
