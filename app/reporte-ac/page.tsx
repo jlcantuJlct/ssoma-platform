@@ -48,7 +48,6 @@ import {
     LightbulbOff,
     Route,
     Droplets,
-    Trash2,
     VolumeX,
     Radiation,
     CloudLightning,
