@@ -31,12 +31,20 @@ export default function InstallPWAPrompt() {
 
         // Always show the instructional prompt after a short delay if not standalone
         if (!isStandalone) {
-            const timer = setTimeout(() => {
-                setShowInstallPrompt(true);
-            }, 2000);
-            return () => clearTimeout(timer);
+            const dismissed = localStorage.getItem('pwaPromptDismissed');
+            if (!dismissed) {
+                const timer = setTimeout(() => {
+                    setShowInstallPrompt(true);
+                }, 2000);
+                return () => clearTimeout(timer);
+            }
         }
     }, [isStandalone]);
+
+    const dismissPrompt = () => {
+        localStorage.setItem('pwaPromptDismissed', 'true');
+        setShowInstallPrompt(false);
+    };
 
     if (isStandalone || !showInstallPrompt) return null;
 
@@ -44,7 +52,7 @@ export default function InstallPWAPrompt() {
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-10 fade-in duration-500">
             <div className="bg-slate-900 border border-[#f97316]/50 rounded-2xl shadow-2xl p-4 sm:p-5 flex flex-col gap-3 relative">
                 <button 
-                    onClick={() => setShowInstallPrompt(false)}
+                    onClick={dismissPrompt}
                     className="absolute -top-3 -right-3 bg-slate-800 text-slate-400 hover:text-white p-1.5 rounded-full border border-slate-700 shadow-md"
                 >
                     <X size={16} />
@@ -75,7 +83,7 @@ export default function InstallPWAPrompt() {
                 </div>
                 
                 <button 
-                    onClick={() => setShowInstallPrompt(false)}
+                    onClick={dismissPrompt}
                     className="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold py-2.5 rounded-xl transition-colors border border-slate-700"
                 >
                     Entendido
