@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   robots: "index, follow",
   manifest: "/manifest.json",
   appleWebApp: {
-    title: "Reporte TOP",
+    title: "TOP",
     statusBarStyle: "black-translucent",
     capable: true,
   },

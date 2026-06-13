@@ -1,6 +1,6 @@
 {
-  "name": "SSOMA Reporte TOP",
-  "short_name": "Reporte TOP",
+  "name": "TOP",
+  "short_name": "TOP",
   "description": "Reporte de Actos y Condiciones de Acceso Libre",
   "start_url": "/public/reporte-ac",
   "display": "standalone",
