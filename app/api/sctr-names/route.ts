@@ -27,9 +27,24 @@ export async function GET() {
 
             const best = attemptA.length >= attemptB.length ? attemptA : attemptB;
             
+            const stopwords = ["AVENIDA", "JULIO", "MIRAFLORES", "LIMA", "PERU", "MAPFRE", "WWWMAPFREPEOM", "NRO", "CONSTANCIA", "UBICACION", "UBICACIÓN", "RIESGO", "RIESGOLOCALOBRA", "LOCAL", "OBRA", "ASEGURADO", "ASEGURADOS", "ASEGURAMIENTO", "ASEGURADAS", "COMPAÑIA", "COMPAÑÍA", "EMPRESA", "ADMINISTRACION", "CONSTCION", "POLIZA", "PÓLIZA", "PENSIONES", "SALUD", "VIGENCIA", "TRABAJO", "LEY", "NORMAS", "COMPLEMENTARIAS", "EXPIDE", "FINES", "PRESENTE", "DEJAMOS", "PERSONAS", "ABAJO", "NOMBRADAS", "ESTAN", "ESTÁN", "NUESTRA", "NOMBRE", "CONTRATO", "HASTA", "COBERTURAS", "SEGUN", "SEGÚN", "MP", "SA", "NO", "CON", "DEL", "EL", "POR", "Y", "EN", "A", "T", "F", "MEDIANTE", "QUE", "BAJO", "DNI", "CIP", "RUC", "NRO", "N°", "DE", "LA", "LOS", "LAS"];
+
             best.forEach((line: string) => {
-                const cleaned = line.replace(/[^A-ZÁÉÍÓÚÑ\s]/g, '').replace(/DNI/g, '').replace(/CIP/g, '').replace(/RUC/g, '').trim().replace(/\s+/g, ' ');
-                if (cleaned.length > 10 && cleaned.includes(' ')) {
+                let cleaned = line.toUpperCase();
+                
+                stopwords.forEach(sw => {
+                    const regex = new RegExp(`\\b${sw}\\b`, 'gi');
+                    cleaned = cleaned.replace(regex, ' ');
+                });
+
+                cleaned = cleaned.replace(/[^A-ZÁÉÍÓÚÑ\s]/g, '').trim().replace(/\s+/g, ' ');
+                
+                const words = cleaned.split(' ');
+                if (words.length > 5) {
+                    cleaned = words.slice(-4).join(' '); // Tomar solo los últimos 4 si es muy largo
+                }
+
+                if (cleaned.length > 8 && cleaned.includes(' ')) {
                     allNames.add(cleaned);
                 }
             });
