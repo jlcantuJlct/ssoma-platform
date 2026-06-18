@@ -26,12 +26,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Calcular la nota sobre 20
-        // Se asume que el admin puso 20 preguntas (1 punto cada una). Si puso menos, se pondera a 20.
-        const numPreguntasReales = new Set(options.map((o: any) => o.question_id)).size;
-        const base = numPreguntasReales > 0 ? numPreguntasReales : totalQuestions;
-        
-        let score = Math.round((correctCount / base) * 20);
-        const passed = score >= 14;
+        // Ahora el examen presenta exactamente 10 preguntas. Cada una vale 2 puntos.
+        let score = correctCount * 2;
+        const passed = score >= 16;
 
         // Guardar el resultado
         await db.execute(

@@ -18,6 +18,9 @@ export default function AdminFormacionVirtual() {
     
     // Questions State (20 by default)
     const [questions, setQuestions] = useState<any[]>([]);
+    
+    // Bulk Load State
+    const [bulkText, setBulkText] = useState("");
 
     useEffect(() => {
         if (activeTab === 'list') {
@@ -145,6 +148,48 @@ export default function AdminFormacionVirtual() {
         setQuestions(newQ);
     };
 
+    const handleBulkLoad = () => {
+        if (!bulkText.trim()) return;
+        
+        const blocks = bulkText.split(/(?:\*\*Pregunta \d+:?\*\*|Pregunta \d+:?)/gi).filter(b => b.trim() !== "");
+        const newQuestions = [...questions];
+        
+        let qIdx = 0;
+        blocks.forEach(block => {
+            if (qIdx >= 20) return;
+            const lines = block.split('\n').map(l => l.trim()).filter(l => l !== "" && !l.includes("***"));
+            if (lines.length >= 2) {
+                // La primera linea suele ser la pregunta
+                newQuestions[qIdx].question_text = lines[0].replace(/^\*\*|\*\*$/g, '').trim();
+                
+                // Extraer opciones (hasta 4)
+                let oIdx = 0;
+                for (let i = 1; i < lines.length && oIdx < 4; i++) {
+                    let text = lines[i];
+                    // Identificar si la linea parece una opcion
+                    if (text.match(/^[-\s]*[A-D]\)/i) || text.match(/^[-\s]*[A-D]\./i)) {
+                        const isCorrect = text.toUpperCase().includes('(CORRECTA)');
+                        text = text.replace(/^[-\s]*[A-D][\)\.]\s*/i, '').replace(/\s*\*\*?\(CORRECTA\)\*\*?/i, '').replace(/\s*\(CORRECTA\)/i, '').trim();
+                        newQuestions[qIdx].options[oIdx].option_text = text;
+                        newQuestions[qIdx].options[oIdx].is_correct = isCorrect;
+                        oIdx++;
+                    }
+                }
+                
+                // Si no se encontró ninguna opción marcada como correcta y se cargaron opciones, marcar la primera
+                if (oIdx > 0 && !newQuestions[qIdx].options.some((o:any) => o.is_correct)) {
+                    newQuestions[qIdx].options[0].is_correct = true;
+                }
+                
+                qIdx++;
+            }
+        });
+        
+        setQuestions(newQuestions);
+        setBulkText("");
+        alert(`Se cargaron ${qIdx} preguntas con éxito.`);
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
@@ -260,6 +305,26 @@ export default function AdminFormacionVirtual() {
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold">Gestionar Examen (20 Preguntas)</h2>
                         <button onClick={() => setActiveTab('list')} className="text-slate-500 hover:text-slate-800"><X className="w-6 h-6" /></button>
+                    </div>
+
+                    <div className="mb-8 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                        <h3 className="font-bold text-indigo-800 mb-2">Carga Rápida (Masiva)</h3>
+                        <p className="text-sm text-indigo-600 mb-3">
+                            Pega aquí todo el texto de las preguntas y alternativas. El sistema intentará llenar los recuadros automáticamente. (Formato: Pregunta 1: ... A) ... B) ... (CORRECTA) )
+                        </p>
+                        <textarea 
+                            value={bulkText}
+                            onChange={(e) => setBulkText(e.target.value)}
+                            rows={4}
+                            className="w-full p-3 border border-indigo-200 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="Pega las 20 preguntas aquí..."
+                        />
+                        <button 
+                            onClick={handleBulkLoad}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 text-sm"
+                        >
+                            Procesar y Llenar
+                        </button>
                     </div>
 
                     <div className="space-y-8">

@@ -97,7 +97,7 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
                             </li>
                             <li className="flex items-start">
                                 <span className="bg-slate-800 w-6 h-6 rounded-full flex items-center justify-center text-xs text-white mr-3 shrink-0">3</span>
-                                La evaluación consta de 20 preguntas aleatorias. Nota mínima aprobatoria: 14.
+                                La evaluación consta de 10 preguntas aleatorias de un banco de preguntas (2 puntos cada una). Nota mínima aprobatoria: 16.
                             </li>
                         </ul>
                     </div>

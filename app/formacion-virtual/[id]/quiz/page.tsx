@@ -29,11 +29,13 @@ export default function QuizPage({ params }: { params: { id: string } }) {
             if (data.success && data.quiz) {
                 // Barajar preguntas
                 const shuffledQuestions = [...data.quiz].sort(() => Math.random() - 0.5);
+                // Seleccionar solo 10 aleatorias
+                const selectedQuestions = shuffledQuestions.slice(0, 10);
                 // Barajar opciones
-                shuffledQuestions.forEach(q => {
+                selectedQuestions.forEach(q => {
                     q.options = [...q.options].sort(() => Math.random() - 0.5);
                 });
-                setQuestions(shuffledQuestions);
+                setQuestions(selectedQuestions);
             }
         } catch (error) {
             console.error(error);
