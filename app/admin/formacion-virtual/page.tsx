@@ -151,7 +151,8 @@ export default function AdminFormacionVirtual() {
     const handleBulkLoad = () => {
         if (!bulkText.trim()) return;
         
-        const blocks = bulkText.split(/(?:\*\*Pregunta \d+:?\*\*|Pregunta \d+:?)/gi).filter(b => b.trim() !== "");
+        // Expresión regular mejorada para separar por "Pregunta 1:", "**Pregunta 1:**", "1.", "**1."
+        const blocks = bulkText.split(/(?:\*\*Pregunta \d+:?\*\*|Pregunta \d+:?|\*\*\d+\.|\b\d+\.)/gi).filter(b => b.trim() !== "");
         const newQuestions = [...questions];
         
         let qIdx = 0;
@@ -166,8 +167,8 @@ export default function AdminFormacionVirtual() {
                 let oIdx = 0;
                 for (let i = 1; i < lines.length && oIdx < 4; i++) {
                     let text = lines[i];
-                    // Identificar si la linea parece una opcion
-                    if (text.match(/^[-\s]*[A-D]\)/i) || text.match(/^[-\s]*[A-D]\./i)) {
+                    // Identificar si la linea parece una opcion: A) o A.
+                    if (text.match(/^[-\s]*[A-D][\)\.]/i)) {
                         const isCorrect = text.toUpperCase().includes('(CORRECTA)');
                         text = text.replace(/^[-\s]*[A-D][\)\.]\s*/i, '').replace(/\s*\*\*?\(CORRECTA\)\*\*?/i, '').replace(/\s*\(CORRECTA\)/i, '').trim();
                         newQuestions[qIdx].options[oIdx].option_text = text;
@@ -190,6 +191,13 @@ export default function AdminFormacionVirtual() {
         alert(`Se cargaron ${qIdx} preguntas con éxito.`);
     };
 
+    const [originUrl, setOriginUrl] = useState("");
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setOriginUrl(window.location.origin + '/formacion-virtual');
+        }
+    }, []);
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
@@ -198,23 +206,29 @@ export default function AdminFormacionVirtual() {
                     <p className="text-slate-500 mt-1">Crea y gestiona las capacitaciones para el personal</p>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center">
-                    <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/formacion-virtual' : '')}`} 
-                        alt="QR Portal" 
-                        className="w-16 h-16 mr-3 border border-slate-100 rounded"
-                    />
-                    <div className="text-sm">
-                        <p className="font-bold text-slate-800">QR de Acceso</p>
-                        <p className="text-slate-500 text-xs mb-2">Para el personal</p>
-                        <a 
-                            href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/formacion-virtual' : '')}`}
-                            target="_blank"
-                            download="QR_Formacion.png"
-                            className="text-indigo-600 font-bold hover:underline text-xs"
-                        >
-                            Ampliar / Guardar
-                        </a>
-                    </div>
+                    {originUrl ? (
+                        <>
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(originUrl)}`} 
+                                alt="QR Portal" 
+                                className="w-16 h-16 mr-3 border border-slate-100 rounded"
+                            />
+                            <div className="text-sm">
+                                <p className="font-bold text-slate-800">QR de Acceso</p>
+                                <p className="text-slate-500 text-xs mb-2">Para el personal</p>
+                                <a 
+                                    href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(originUrl)}`}
+                                    target="_blank"
+                                    download="QR_Formacion.png"
+                                    className="text-indigo-600 font-bold hover:underline text-xs"
+                                >
+                                    Ampliar / Guardar
+                                </a>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-16 h-16 mr-3 bg-slate-100 rounded animate-pulse" />
+                    )}
                 </div>
             </div>
 
