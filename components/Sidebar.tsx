@@ -142,6 +142,10 @@ export default function Sidebar() {
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Seguridad</span>
                         </div>
                         <SidebarItem hasAlert={alerts['/analytics']} icon={<GraduationCap size={16} className="text-yellow-500 group-hover:text-yellow-300 transition-colors" />} label="Control HHC" href="/analytics" active={pathname === '/analytics'} />
+                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />} label="Portal Formación" href="/formacion-virtual" active={pathname.startsWith('/formacion-virtual')} />
+                        {(user?.role === 'developer' || user?.role === 'manager') && (
+                            <SidebarItem icon={<Settings size={16} className="text-indigo-600 group-hover:text-indigo-400 transition-colors" />} label="Admin Formación" href="/admin/formacion-virtual" active={pathname === '/admin/formacion-virtual'} />
+                        )}
                         <SidebarItem hasAlert={alerts['/inspections']} icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
                         <SidebarItem hasAlert={alerts['/ats']} icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem hasAlert={alerts['/petar']} icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
@@ -175,17 +179,6 @@ export default function Sidebar() {
                         <SidebarItem hasAlert={alerts['/gestion-residuos']} icon={<Archive size={16} className="text-emerald-500 group-hover:text-emerald-300 transition-colors" />} label="Gestión de Residuos" href="/gestion-residuos" active={pathname === '/gestion-residuos'} />
                         <SidebarItem hasAlert={alerts['/manifiesto']} icon={<Recycle size={16} className="text-lime-500 group-hover:text-lime-300 transition-colors" />} label="Control de Manifiestos" href="/manifiesto" active={pathname === '/manifiesto'} />
                         <SidebarItem hasAlert={alerts['/autorizaciones-auxiliares']} icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Aut. Áreas Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
-                    </div>
-
-                    {/* CAPACITACIÓN VIRTUAL */}
-                    <div className="space-y-1 pt-2 border-t border-slate-800">
-                        <div className="px-3 py-2">
-                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Capacitación Virtual</span>
-                        </div>
-                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />} label="Portal para Personal" href="/formacion-virtual" active={pathname.startsWith('/formacion-virtual')} />
-                        {(user?.role === 'developer' || user?.role === 'manager') && (
-                            <SidebarItem icon={<Settings size={16} className="text-indigo-600 group-hover:text-indigo-400 transition-colors" />} label="Admin de Formación" href="/admin/formacion-virtual" active={pathname === '/admin/formacion-virtual'} />
-                        )}
                     </div>
 
                     {/* INFORMES Y OTROS */}
