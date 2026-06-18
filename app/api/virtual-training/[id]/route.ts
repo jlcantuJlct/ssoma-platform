@@ -36,15 +36,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const id = params.id;
-        const { title, video_url } = await req.json();
+        const { title, video_url, category } = await req.json();
         
         if (!title || !video_url) {
             return NextResponse.json({ success: false, error: 'Faltan datos' }, { status: 400 });
         }
 
+        const finalCategory = category || 'Todos';
+
         await db.execute(
-            'UPDATE virtual_trainings SET title = ?, video_url = ? WHERE id = ?',
-            [title, video_url, id]
+            'UPDATE virtual_trainings SET title = ?, video_url = ?, category = ? WHERE id = ?',
+            [title, video_url, finalCategory, id]
         );
 
         return NextResponse.json({ success: true });

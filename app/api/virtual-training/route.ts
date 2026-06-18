@@ -8,6 +8,7 @@ async function ensureTables() {
             id SERIAL PRIMARY KEY,
             title VARCHAR(255) NOT NULL,
             video_url TEXT NOT NULL,
+            category TEXT DEFAULT 'Todos',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active BOOLEAN DEFAULT true
         )
@@ -56,15 +57,17 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTables();
-        const { title, video_url } = await req.json();
+        const { title, video_url, category } = await req.json();
         
         if (!title || !video_url) {
             return NextResponse.json({ success: false, error: 'Faltan datos' }, { status: 400 });
         }
 
+        const finalCategory = category || 'Todos';
+
         const result = await db.execute(
-            'INSERT INTO virtual_trainings (title, video_url) VALUES (?, ?)',
-            [title, video_url]
+            'INSERT INTO virtual_trainings (title, video_url, category) VALUES (?, ?, ?)',
+            [title, video_url, finalCategory]
         );
 
         return NextResponse.json({ success: true, id: result.rows?.[0]?.id });

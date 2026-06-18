@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, UserCheck, ShieldAlert, ChevronRight, Loader2, IdCard } from "lucide-react";
+import { BookOpen, UserCheck, ShieldAlert, ChevronRight, Loader2, IdCard, Briefcase } from "lucide-react";
 
 export default function FormacionVirtualLogin() {
     const router = useRouter();
     const [name, setName] = useState("");
     const [dni, setDni] = useState("");
+    const [role, setRole] = useState("Movimiento de tierras");
     const [isValidated, setIsValidated] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -31,7 +32,8 @@ export default function FormacionVirtualLogin() {
                 setIsValidated(true);
                 sessionStorage.setItem("vt_user_name", name.toUpperCase());
                 sessionStorage.setItem("vt_user_dni", dni);
-                fetchTrainings(name.toUpperCase());
+                sessionStorage.setItem("vt_user_role", role);
+                fetchTrainings(name.toUpperCase(), role);
             } else {
                 setErrorMsg(data.error || "No autorizado");
             }
@@ -41,7 +43,7 @@ export default function FormacionVirtualLogin() {
         setLoading(false);
     };
 
-    const fetchTrainings = async (validatedName: string) => {
+    const fetchTrainings = async (validatedName: string, selectedRole: string) => {
         try {
             const res = await fetch("/api/virtual-training");
             const data = await res.json();
@@ -51,7 +53,9 @@ export default function FormacionVirtualLogin() {
             const dataResults = await resResults.json();
             
             if (data.success) {
-                const activeTrainings = data.trainings.filter((t: any) => t.is_active);
+                const activeTrainings = data.trainings.filter((t: any) => 
+                    t.is_active && (!t.category || t.category === 'Todos' || t.category === selectedRole)
+                );
                 setTrainings(activeTrainings);
                 
                 if (dataResults.success && dataResults.results) {
@@ -119,7 +123,25 @@ export default function FormacionVirtualLogin() {
                                     placeholder="Ej: PEREZ GOMEZ JUAN"
                                 />
                             </div>
-                            <p className="text-xs text-slate-500 mt-2">Debe coincidir con la lista oficial (SCTR).</p>
+                            <p className="text-xs text-slate-500 mt-2 mb-4">Debe coincidir con la lista oficial (SCTR).</p>
+
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Seleccione su Puesto / Área</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Briefcase className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <select 
+                                    required
+                                    value={role}
+                                    onChange={e => setRole(e.target.value)}
+                                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none bg-white appearance-none"
+                                >
+                                    <option value="Movimiento de tierras">Movimiento de tierras</option>
+                                    <option value="Obras civiles">Obras civiles</option>
+                                    <option value="Equipos">Equipos</option>
+                                    <option value="Trabajador administrativo">Trabajador administrativo</option>
+                                </select>
+                            </div>
                             
                             {errorMsg && (
                                 <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-lg flex items-start text-sm">

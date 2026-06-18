@@ -15,6 +15,7 @@ export default function AdminFormacionVirtual() {
     // Form State
     const [title, setTitle] = useState("");
     const [videoUrl, setVideoUrl] = useState("");
+    const [category, setCategory] = useState("Todos");
     
     // Questions State (20 by default)
     const [questions, setQuestions] = useState<any[]>([]);
@@ -95,13 +96,14 @@ export default function AdminFormacionVirtual() {
             const res = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, video_url: videoUrl }),
+                body: JSON.stringify({ title, video_url: videoUrl, category }),
             });
             const data = await res.json();
             if (data.success) {
                 alert(selectedTrainingId && activeTab === 'create' ? "Capacitación actualizada" : "Capacitación creada");
                 setTitle("");
                 setVideoUrl("");
+                setCategory("Todos");
                 setSelectedTrainingId(null);
                 setActiveTab('list');
             } else {
@@ -265,6 +267,7 @@ export default function AdminFormacionVirtual() {
                     onClick={() => {
                         setTitle("");
                         setVideoUrl("");
+                        setCategory("Todos");
                         setSelectedTrainingId(null);
                         setActiveTab('create');
                     }}
@@ -285,8 +288,18 @@ export default function AdminFormacionVirtual() {
             {!loading && activeTab === 'list' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {trainings.map(t => (
-                        <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                            <h3 className="font-bold text-lg text-slate-800 mb-2">{t.title}</h3>
+                        <div key={t.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-lg text-slate-800 leading-tight">{t.title}</h3>
+                                {t.category && t.category !== 'Todos' && (
+                                    <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full font-semibold ml-2 text-center leading-none">
+                                        {t.category}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-slate-500 mb-4 flex-1">
+                                {t.is_active ? 'Activa' : 'Inactiva'}
+                            </p>
                             <a href={t.video_url} target="_blank" className="text-sm text-indigo-600 hover:underline flex items-center mb-4">
                                 <Video className="w-4 h-4 mr-1" /> Ver Video Original
                             </a>
@@ -306,6 +319,7 @@ export default function AdminFormacionVirtual() {
                                         setSelectedTrainingId(t.id);
                                         setTitle(t.title);
                                         setVideoUrl(t.video_url);
+                                        setCategory(t.category || "Todos");
                                         setActiveTab('create');
                                     }}
                                     className="bg-amber-50 text-amber-600 hover:bg-amber-100 py-2 px-3 rounded-lg flex justify-center items-center transition-colors"
@@ -345,19 +359,36 @@ export default function AdminFormacionVirtual() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Enlace del Video (YouTube)</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Enlace del Video (YouTube o Drive)</label>
                             <input 
                                 type="url" 
-                                required 
+                                required
                                 value={videoUrl}
                                 onChange={e => setVideoUrl(e.target.value)}
-                                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="https://www.youtube.com/watch?v=..."
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none"
+                                placeholder="Ej: https://www.youtube.com/watch?v=..."
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Puesto Dirigido</label>
+                            <select
+                                value={category}
+                                onChange={e => setCategory(e.target.value)}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none bg-white"
+                            >
+                                <option value="Todos">Todos (General)</option>
+                                <option value="Movimiento de tierras">Movimiento de tierras</option>
+                                <option value="Obras civiles">Obras civiles</option>
+                                <option value="Equipos">Equipos</option>
+                                <option value="Trabajador administrativo">Trabajador administrativo</option>
+                            </select>
+                            <p className="text-xs text-slate-500 mt-1">Si seleccionas un puesto específico, solo los trabajadores de ese puesto verán esta capacitación.</p>
+                        </div>
+                        <div className="flex gap-4 pt-4">
                         <button type="submit" className="bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-indigo-700 transition-colors">
                             Guardar y Continuar
                         </button>
+                        </div>
                     </form>
                 </div>
             )}
