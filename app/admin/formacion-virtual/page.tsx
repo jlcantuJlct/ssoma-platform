@@ -224,7 +224,7 @@ export default function AdminFormacionVirtual() {
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800">Administración de Formación Virtual</h1>
+                    <h1 className="text-3xl font-black text-slate-800">Administración de SCHOOL SSOMA</h1>
                     <p className="text-slate-500 mt-1">Crea y gestiona las capacitaciones para el personal</p>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center">

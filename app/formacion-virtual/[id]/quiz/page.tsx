@@ -100,7 +100,9 @@ export default function QuizPage({ params }: { params: { id: string } }) {
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <div>
-                        <h1 className="font-black text-xl text-slate-800">Evaluación Final</h1>
+                        <div className="font-black text-xl uppercase tracking-widest text-indigo-800">
+                            SCHOOL SSOMA
+                        </div>
                         <p className="text-xs text-slate-500">Evaluado: {userName}</p>
                     </div>
                 </div>

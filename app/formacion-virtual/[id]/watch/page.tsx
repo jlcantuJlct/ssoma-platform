@@ -59,7 +59,7 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
                     <ChevronLeft className="w-5 h-5 mr-1" /> Volver
                 </button>
                 <div className="font-black text-xl uppercase tracking-widest text-white drop-shadow-md">
-                    Formación Virtual
+                    SCHOOL SSOMA
                 </div>
                 <div className="text-sm text-indigo-200 font-medium">
                     <span className="hidden md:inline">Usuario: </span>{userName}

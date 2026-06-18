@@ -81,8 +81,8 @@ export default function FormacionVirtualLogin() {
                         <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <BookOpen className="text-white w-8 h-8" />
                         </div>
-                        <h1 className="text-2xl font-black text-white">Formación Virtual</h1>
-                        <p className="text-indigo-100 text-sm mt-2">Plataforma de Capacitación SSOMA</p>
+                        <h1 className="text-2xl font-black text-white">SCHOOL SSOMA</h1>
+                        <p className="text-indigo-100 text-sm mt-2">Plataforma de Capacitación</p>
                     </div>
                     
                     <div className="p-8">
