@@ -1,0 +1,337 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Plus, Trash, Check, Video, List, X, Loader2 } from "lucide-react";
+
+export default function AdminFormacionVirtual() {
+    const [trainings, setTrainings] = useState<any[]>([]);
+    const [results, setResults] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    // UI State
+    const [activeTab, setActiveTab] = useState<'list' | 'create' | 'questions' | 'results'>('list');
+    const [selectedTrainingId, setSelectedTrainingId] = useState<number | null>(null);
+
+    // Form State
+    const [title, setTitle] = useState("");
+    const [videoUrl, setVideoUrl] = useState("");
+    
+    // Questions State (20 by default)
+    const [questions, setQuestions] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (activeTab === 'list') {
+            fetchTrainings();
+        } else if (activeTab === 'results') {
+            fetchResults();
+        }
+    }, [activeTab]);
+
+    const fetchTrainings = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/virtual-training");
+            const data = await res.json();
+            if (data.success) {
+                setTrainings(data.trainings);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        setLoading(false);
+    };
+
+    const fetchResults = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/virtual-training/results");
+            const data = await res.json();
+            if (data.success) {
+                setResults(data.results);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        setLoading(false);
+    };
+
+    const fetchQuestions = async (tId: number) => {
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/virtual-training/questions?trainingId=${tId}`);
+            const data = await res.json();
+            if (data.success) {
+                if (data.quiz && data.quiz.length > 0) {
+                    setQuestions(data.quiz);
+                } else {
+                    // Inicializar 20 preguntas
+                    const initialQuestions = Array.from({ length: 20 }, (_, i) => ({
+                        question_text: "",
+                        options: [
+                            { option_text: "", is_correct: true }, // A (marcamos una correcta por defecto para evitar errores)
+                            { option_text: "", is_correct: false }, // B
+                            { option_text: "", is_correct: false }, // C
+                            { option_text: "", is_correct: false }, // D
+                        ]
+                    }));
+                    setQuestions(initialQuestions);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        setLoading(false);
+    };
+
+    const handleCreateTraining = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch("/api/virtual-training", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, videoUrl }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Capacitación creada");
+                setTitle("");
+                setVideoUrl("");
+                setActiveTab('list');
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleSaveQuestions = async () => {
+        // Validación básica
+        for (let i = 0; i < questions.length; i++) {
+            if (!questions[i].question_text) {
+                alert(`La pregunta ${i + 1} está vacía`);
+                return;
+            }
+            const hasCorrect = questions[i].options.some((o: any) => o.is_correct);
+            if (!hasCorrect) {
+                alert(`La pregunta ${i + 1} no tiene una opción correcta seleccionada`);
+                return;
+            }
+        }
+
+        try {
+            const res = await fetch("/api/virtual-training/questions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ trainingId: selectedTrainingId, questions }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Preguntas guardadas correctamente");
+                setActiveTab('list');
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const setCorrectOption = (qIndex: number, oIndex: number) => {
+        const newQ = [...questions];
+        newQ[qIndex].options.forEach((o: any, idx: number) => {
+            o.is_correct = idx === oIndex;
+        });
+        setQuestions(newQ);
+    };
+
+    return (
+        <div className="p-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-slate-800 mb-8">Administración - Formación Virtual</h1>
+
+            <div className="flex gap-4 mb-6 border-b border-slate-200 pb-2">
+                <button 
+                    onClick={() => setActiveTab('list')}
+                    className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === 'list' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                    Lista de Capacitaciones
+                </button>
+                <button 
+                    onClick={() => setActiveTab('create')}
+                    className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === 'create' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                    <Plus className="inline w-4 h-4 mr-1" /> Nueva Capacitación
+                </button>
+                <button 
+                    onClick={() => setActiveTab('results')}
+                    className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === 'results' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                    Reporte de Resultados
+                </button>
+            </div>
+
+            {loading && <div className="flex justify-center my-12"><Loader2 className="animate-spin text-indigo-600 w-8 h-8" /></div>}
+
+            {!loading && activeTab === 'list' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {trainings.map(t => (
+                        <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <h3 className="font-bold text-lg text-slate-800 mb-2">{t.title}</h3>
+                            <a href={t.video_url} target="_blank" className="text-sm text-indigo-600 hover:underline flex items-center mb-4">
+                                <Video className="w-4 h-4 mr-1" /> Ver Video Original
+                            </a>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => {
+                                        setSelectedTrainingId(t.id);
+                                        setActiveTab('questions');
+                                        fetchQuestions(t.id);
+                                    }}
+                                    className="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold flex justify-center items-center"
+                                >
+                                    <List className="w-4 h-4 mr-1" /> Gestionar Examen
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {trainings.length === 0 && <p className="text-slate-500 col-span-full">No hay capacitaciones creadas.</p>}
+                </div>
+            )}
+
+            {!loading && activeTab === 'create' && (
+                <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-2xl shadow-sm">
+                    <h2 className="text-xl font-bold mb-4">Crear Nueva Capacitación</h2>
+                    <form onSubmit={handleCreateTraining} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Capacitación</label>
+                            <input 
+                                type="text" 
+                                required 
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Ej: Inducción SSOMA 2026"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Enlace del Video (YouTube)</label>
+                            <input 
+                                type="url" 
+                                required 
+                                value={videoUrl}
+                                onChange={e => setVideoUrl(e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="https://www.youtube.com/watch?v=..."
+                            />
+                        </div>
+                        <button type="submit" className="bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-indigo-700 transition-colors">
+                            Guardar y Continuar
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {!loading && activeTab === 'questions' && (
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold">Gestionar Examen (20 Preguntas)</h2>
+                        <button onClick={() => setActiveTab('list')} className="text-slate-500 hover:text-slate-800"><X className="w-6 h-6" /></button>
+                    </div>
+
+                    <div className="space-y-8">
+                        {questions.map((q, qIndex) => (
+                            <div key={qIndex} className="bg-slate-50 p-5 rounded-lg border border-slate-200">
+                                <div className="font-bold text-slate-700 mb-2">Pregunta {qIndex + 1}</div>
+                                <input 
+                                    type="text" 
+                                    placeholder="Escribe la pregunta aquí..."
+                                    value={q.question_text}
+                                    onChange={(e) => {
+                                        const newQ = [...questions];
+                                        newQ[qIndex].question_text = e.target.value;
+                                        setQuestions(newQ);
+                                    }}
+                                    className="w-full border border-slate-300 rounded-lg p-2 mb-4 font-medium"
+                                />
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {q.options.map((opt: any, oIndex: number) => {
+                                        const letters = ['A', 'B', 'C', 'D'];
+                                        return (
+                                            <div key={oIndex} className={`flex items-center p-2 rounded-lg border ${opt.is_correct ? 'border-green-500 bg-green-50' : 'border-slate-300 bg-white'}`}>
+                                                <div className="font-bold text-slate-500 w-6">{letters[oIndex]}</div>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={`Opción ${letters[oIndex]}`}
+                                                    value={opt.option_text}
+                                                    onChange={(e) => {
+                                                        const newQ = [...questions];
+                                                        newQ[qIndex].options[oIndex].option_text = e.target.value;
+                                                        setQuestions(newQ);
+                                                    }}
+                                                    className="flex-1 bg-transparent outline-none ml-2 text-sm"
+                                                />
+                                                <button 
+                                                    onClick={() => setCorrectOption(qIndex, oIndex)}
+                                                    className={`ml-2 p-1.5 rounded-full ${opt.is_correct ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400 hover:bg-slate-300'}`}
+                                                    title="Marcar como correcta"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-8 flex justify-end">
+                        <button 
+                            onClick={handleSaveQuestions}
+                            className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+                        >
+                            Guardar Examen
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!loading && activeTab === 'results' && (
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                                <th className="p-4 font-semibold border-b border-slate-200">Fecha</th>
+                                <th className="p-4 font-semibold border-b border-slate-200">Capacitación</th>
+                                <th className="p-4 font-semibold border-b border-slate-200">Colaborador</th>
+                                <th className="p-4 font-semibold border-b border-slate-200">Nota</th>
+                                <th className="p-4 font-semibold border-b border-slate-200">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.map((r, i) => (
+                                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="p-4 text-sm text-slate-500">{new Date(r.created_at).toLocaleDateString('es-PE')}</td>
+                                    <td className="p-4 text-sm font-medium text-slate-800">{r.training_title}</td>
+                                    <td className="p-4 text-sm text-slate-600">{r.user_name}</td>
+                                    <td className="p-4 text-sm font-bold">{r.score} / 20</td>
+                                    <td className="p-4">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {r.passed ? 'APROBADO' : 'DESAPROBADO'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                            {results.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="p-6 text-center text-slate-500">No hay evaluaciones registradas aún.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+}

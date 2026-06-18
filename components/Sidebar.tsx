@@ -177,6 +177,17 @@ export default function Sidebar() {
                         <SidebarItem hasAlert={alerts['/autorizaciones-auxiliares']} icon={<FileSignature size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Aut. Áreas Aux." href="/autorizaciones-auxiliares" active={pathname === '/autorizaciones-auxiliares'} />
                     </div>
 
+                    {/* CAPACITACIÓN VIRTUAL */}
+                    <div className="space-y-1 pt-2 border-t border-slate-800">
+                        <div className="px-3 py-2">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Capacitación Virtual</span>
+                        </div>
+                        <SidebarItem icon={<BookOpen size={16} className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />} label="Portal para Personal" href="/formacion-virtual" active={pathname.startsWith('/formacion-virtual')} />
+                        {(user?.role === 'developer' || user?.role === 'manager') && (
+                            <SidebarItem icon={<Settings size={16} className="text-indigo-600 group-hover:text-indigo-400 transition-colors" />} label="Admin de Formación" href="/admin/formacion-virtual" active={pathname === '/admin/formacion-virtual'} />
+                        )}
+                    </div>
+
                     {/* INFORMES Y OTROS */}
                     <div className="space-y-1 pt-2 border-t border-slate-800 mb-4">
                         <div className="px-3 py-2">
