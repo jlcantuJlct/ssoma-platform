@@ -64,15 +64,23 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
                     <h2 className="text-white text-2xl md:text-3xl font-bold mb-6 text-center text-slate-200">{training.title}</h2>
                     
                     {ytId ? (
-                        <div className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-800 relative bg-black">
-                            <iframe 
-                                className="w-full h-full absolute top-0 left-0"
-                                src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`} 
-                                title="Capacitación"
-                                frameBorder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                allowFullScreen
-                            ></iframe>
+                        <div className="w-full max-w-5xl flex flex-col items-center">
+                            <div className="w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-800 relative bg-black mb-4">
+                                <iframe 
+                                    className="w-full h-full absolute top-0 left-0"
+                                    src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`} 
+                                    title="Capacitación"
+                                    frameBorder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                            <p className="text-slate-400 text-sm">
+                                ¿El video te aparece bloqueado o con una carita triste? 
+                                <a href={training.video_url} target="_blank" className="text-indigo-400 font-bold ml-2 hover:underline">
+                                    Haz clic aquí para verlo en YouTube
+                                </a>
+                            </p>
                         </div>
                     ) : (
                         <div className="text-white bg-slate-800 p-8 rounded-xl text-center">
