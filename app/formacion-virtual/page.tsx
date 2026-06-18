@@ -53,9 +53,11 @@ export default function FormacionVirtualLogin() {
             const dataResults = await resResults.json();
             
             if (data.success) {
-                const activeTrainings = data.trainings.filter((t: any) => 
-                    t.is_active && (!t.category || t.category === 'Todos' || t.category === selectedRole)
-                );
+                const activeTrainings = data.trainings.filter((t: any) => {
+                    if (!t.is_active) return false;
+                    if (!t.category || t.category === 'Todos') return true;
+                    return t.category.includes('Todos') || t.category.includes(selectedRole);
+                });
                 setTrainings(activeTrainings);
                 
                 if (dataResults.success && dataResults.results) {
