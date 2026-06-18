@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, FileText, PlayCircle } from "lucide-react";
+import { ChevronLeft, FileText, PlayCircle, Loader2 } from "lucide-react";
 
 export default function WatchTrainingPage({ params }: { params: { id: string } }) {
     const router = useRouter();
@@ -41,9 +41,16 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
-    if (!training) return <div className="min-h-screen bg-slate-50 p-8">Cargando curso...</div>;
+    // Extraer ID de Google Drive
+    const getDriveId = (url: string) => {
+        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : null;
+    };
+
+    if (!training) return <div className="min-h-screen bg-slate-50 p-8 flex justify-center items-center"><Loader2 className="animate-spin text-indigo-600 w-8 h-8" /></div>;
 
     const ytId = getYouTubeId(training.video_url);
+    const driveId = getDriveId(training.video_url);
 
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col">
@@ -75,10 +82,29 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
                                     allowFullScreen
                                 ></iframe>
                             </div>
-                            <p className="text-slate-400 text-sm">
-                                ¿El video te aparece bloqueado o con una carita triste? 
+                            <p className="text-slate-400 text-sm text-center">
+                                ¿El video te aparece bloqueado o con una carita triste? <br className="md:hidden" />
                                 <a href={training.video_url} target="_blank" className="text-indigo-400 font-bold ml-2 hover:underline">
                                     Haz clic aquí para verlo en YouTube
+                                </a>
+                            </p>
+                        </div>
+                    ) : driveId ? (
+                        <div className="w-full max-w-5xl flex flex-col items-center">
+                            <div className="w-full aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-800 relative bg-black mb-4">
+                                <iframe 
+                                    className="w-full h-full absolute top-0 left-0"
+                                    src={`https://drive.google.com/file/d/${driveId}/preview`} 
+                                    title="Capacitación (Google Drive)"
+                                    frameBorder="0" 
+                                    allow="autoplay" 
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                            <p className="text-slate-400 text-sm text-center">
+                                ¿Tienes problemas para ver el video? <br className="md:hidden" />
+                                <a href={training.video_url} target="_blank" className="text-indigo-400 font-bold ml-2 hover:underline">
+                                    Haz clic aquí para abrirlo en Google Drive
                                 </a>
                             </p>
                         </div>
