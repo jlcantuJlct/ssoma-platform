@@ -147,7 +147,31 @@ export default function AdminFormacionVirtual() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-slate-800 mb-8">Administración - Formación Virtual</h1>
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-800">Administración de Formación Virtual</h1>
+                    <p className="text-slate-500 mt-1">Crea y gestiona las capacitaciones para el personal</p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center">
+                    <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/formacion-virtual' : '')}`} 
+                        alt="QR Portal" 
+                        className="w-16 h-16 mr-3 border border-slate-100 rounded"
+                    />
+                    <div className="text-sm">
+                        <p className="font-bold text-slate-800">QR de Acceso</p>
+                        <p className="text-slate-500 text-xs mb-2">Para el personal</p>
+                        <a 
+                            href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/formacion-virtual' : '')}`}
+                            target="_blank"
+                            download="QR_Formacion.png"
+                            className="text-indigo-600 font-bold hover:underline text-xs"
+                        >
+                            Ampliar / Guardar
+                        </a>
+                    </div>
+                </div>
+            </div>
 
             <div className="flex gap-4 mb-6 border-b border-slate-200 pb-2">
                 <button 
