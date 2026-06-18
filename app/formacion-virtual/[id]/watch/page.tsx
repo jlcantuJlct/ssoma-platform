@@ -115,6 +115,10 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
                             <a href={training.video_url} target="_blank" className="text-indigo-400 hover:underline mt-2 inline-block">Abrir en nueva pestaña</a>
                         </div>
                     )}
+
+                    <div className="mt-12 text-slate-500 text-xs font-semibold tracking-widest uppercase opacity-60">
+                        Creador: JLCANTU
+                    </div>
                 </div>
 
                 <div className="w-full md:w-80 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 p-6 flex flex-col">
