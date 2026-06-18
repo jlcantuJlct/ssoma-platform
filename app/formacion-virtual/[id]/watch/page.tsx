@@ -11,11 +11,13 @@ export default function WatchTrainingPage({ params }: { params: { id: string } }
 
     useEffect(() => {
         const name = sessionStorage.getItem("vt_user_name");
-        if (!name) {
+        const dni = sessionStorage.getItem("vt_user_dni");
+        if (!name || !dni) {
             router.push("/formacion-virtual");
             return;
         }
-        setUserName(name);
+        setUserName(`${dni} - ${name}`);
+        
         fetchTraining();
     }, [params.id]);
 

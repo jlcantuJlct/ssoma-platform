@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, UserCheck, ShieldAlert, ChevronRight, Loader2 } from "lucide-react";
+import { BookOpen, UserCheck, ShieldAlert, ChevronRight, Loader2, IdCard } from "lucide-react";
 
 export default function FormacionVirtualLogin() {
     const router = useRouter();
     const [name, setName] = useState("");
+    const [dni, setDni] = useState("");
     const [isValidated, setIsValidated] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -29,6 +30,7 @@ export default function FormacionVirtualLogin() {
             if (data.success && data.valid) {
                 setIsValidated(true);
                 sessionStorage.setItem("vt_user_name", name.toUpperCase());
+                sessionStorage.setItem("vt_user_dni", dni);
                 fetchTrainings(name.toUpperCase());
             } else {
                 setErrorMsg(data.error || "No autorizado");
@@ -87,7 +89,23 @@ export default function FormacionVirtualLogin() {
                     
                     <div className="p-8">
                         <form onSubmit={handleValidate}>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">Ingrese sus Apellidos y Nombres</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Número de DNI</label>
+                            <div className="relative mb-4">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <IdCard className="h-5 w-5 text-slate-400" />
+                                </div>
+                                <input 
+                                    type="text" 
+                                    required
+                                    value={dni}
+                                    onChange={e => setDni(e.target.value.replace(/[^0-9]/g, ''))}
+                                    maxLength={8}
+                                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none"
+                                    placeholder="Ej: 72345678"
+                                />
+                            </div>
+
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Apellidos y Nombres</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <UserCheck className="h-5 w-5 text-slate-400" />
