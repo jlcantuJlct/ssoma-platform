@@ -372,7 +372,7 @@ export default function AdminFormacionVirtual() {
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Puesto Dirigido (Puedes seleccionar varios)</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                {["Todos", "Movimiento de tierras", "Obras civiles", "Equipos", "Trabajador administrativo", "Planta de asfalto", "Agregados", "Concreto"].map(op => (
+                                {["Todos", "Conductor operador", "Trabajador administrativo", "Trabajador de OC", "Trabajador de Planta de concreto", "Trabajador de planta de asfalto", "Trabajador de Planta agregados", "Sub comite", "Brigadistas"].map(op => (
                                     <label key={op} className="flex items-center space-x-3 cursor-pointer">
                                         <input 
                                             type="checkbox"

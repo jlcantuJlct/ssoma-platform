@@ -8,7 +8,7 @@ export default function FormacionVirtualLogin() {
     const router = useRouter();
     const [name, setName] = useState("");
     const [dni, setDni] = useState("");
-    const [role, setRole] = useState("Movimiento de tierras");
+    const [role, setRole] = useState("Conductor operador");
     const [isValidated, setIsValidated] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -138,13 +138,14 @@ export default function FormacionVirtualLogin() {
                                     onChange={e => setRole(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none bg-white appearance-none"
                                 >
-                                    <option value="Movimiento de tierras">Movimiento de tierras</option>
-                                    <option value="Obras civiles">Obras civiles</option>
-                                    <option value="Equipos">Equipos</option>
+                                    <option value="Conductor operador">Conductor operador</option>
                                     <option value="Trabajador administrativo">Trabajador administrativo</option>
-                                    <option value="Planta de asfalto">Planta de asfalto</option>
-                                    <option value="Agregados">Agregados</option>
-                                    <option value="Concreto">Concreto</option>
+                                    <option value="Trabajador de OC">Trabajador de OC</option>
+                                    <option value="Trabajador de Planta de concreto">Trabajador de Planta de concreto</option>
+                                    <option value="Trabajador de planta de asfalto">Trabajador de planta de asfalto</option>
+                                    <option value="Trabajador de Planta agregados">Trabajador de Planta agregados</option>
+                                    <option value="Sub comite">Sub comite</option>
+                                    <option value="Brigadistas">Brigadistas</option>
                                 </select>
                             </div>
                             
