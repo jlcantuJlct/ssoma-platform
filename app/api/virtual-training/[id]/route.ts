@@ -32,3 +32,23 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
 }
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const id = params.id;
+        const { title, video_url } = await req.json();
+        
+        if (!title || !video_url) {
+            return NextResponse.json({ success: false, error: 'Faltan datos' }, { status: 400 });
+        }
+
+        await db.execute(
+            'UPDATE virtual_trainings SET title = ?, video_url = ? WHERE id = ?',
+            [title, video_url, id]
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (e: any) {
+        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    }
+}

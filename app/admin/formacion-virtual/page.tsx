@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash, Check, Video, List, X, Loader2 } from "lucide-react";
+import { Plus, Trash, Check, Video, List, X, Loader2, Edit } from "lucide-react";
 
 export default function AdminFormacionVirtual() {
     const [trainings, setTrainings] = useState<any[]>([]);
@@ -89,16 +89,20 @@ export default function AdminFormacionVirtual() {
     const handleCreateTraining = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch("/api/virtual-training", {
-                method: "POST",
+            const url = selectedTrainingId && activeTab === 'create' ? `/api/virtual-training/${selectedTrainingId}` : "/api/virtual-training";
+            const method = selectedTrainingId && activeTab === 'create' ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title, video_url: videoUrl }),
             });
             const data = await res.json();
             if (data.success) {
-                alert("Capacitación creada");
+                alert(selectedTrainingId && activeTab === 'create' ? "Capacitación actualizada" : "Capacitación creada");
                 setTitle("");
                 setVideoUrl("");
+                setSelectedTrainingId(null);
                 setActiveTab('list');
             } else {
                 alert("Error: " + data.error);
@@ -258,7 +262,12 @@ export default function AdminFormacionVirtual() {
                     Lista de Capacitaciones
                 </button>
                 <button 
-                    onClick={() => setActiveTab('create')}
+                    onClick={() => {
+                        setTitle("");
+                        setVideoUrl("");
+                        setSelectedTrainingId(null);
+                        setActiveTab('create');
+                    }}
                     className={`px-4 py-2 font-medium rounded-t-lg ${activeTab === 'create' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                 >
                     <Plus className="inline w-4 h-4 mr-1" /> Nueva Capacitación
@@ -293,6 +302,18 @@ export default function AdminFormacionVirtual() {
                                     <List className="w-4 h-4 mr-1" /> Gestionar Examen
                                 </button>
                                 <button 
+                                    onClick={() => {
+                                        setSelectedTrainingId(t.id);
+                                        setTitle(t.title);
+                                        setVideoUrl(t.video_url);
+                                        setActiveTab('create');
+                                    }}
+                                    className="bg-amber-50 text-amber-600 hover:bg-amber-100 py-2 px-3 rounded-lg flex justify-center items-center transition-colors"
+                                    title="Editar Capacitación"
+                                >
+                                    <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
                                     onClick={() => handleDeleteTraining(t.id)}
                                     className="bg-red-50 text-red-600 hover:bg-red-100 py-2 px-3 rounded-lg flex justify-center items-center transition-colors"
                                     title="Eliminar"
@@ -308,7 +329,9 @@ export default function AdminFormacionVirtual() {
 
             {!loading && activeTab === 'create' && (
                 <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-2xl shadow-sm">
-                    <h2 className="text-xl font-bold mb-4">Crear Nueva Capacitación</h2>
+                    <h2 className="text-xl font-bold mb-4">
+                        {selectedTrainingId ? "Editar Capacitación" : "Crear Nueva Capacitación"}
+                    </h2>
                     <form onSubmit={handleCreateTraining} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Capacitación</label>
