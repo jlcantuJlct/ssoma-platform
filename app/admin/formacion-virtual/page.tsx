@@ -108,6 +108,24 @@ export default function AdminFormacionVirtual() {
         }
     };
 
+    const handleDeleteTraining = async (id: number) => {
+        if (!window.confirm("¿Estás seguro de eliminar esta capacitación y todas sus preguntas?")) return;
+        
+        try {
+            const res = await fetch(`/api/virtual-training/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchTrainings();
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const handleSaveQuestions = async () => {
         // Validación básica
         for (let i = 0; i < questions.length; i++) {
@@ -263,7 +281,7 @@ export default function AdminFormacionVirtual() {
                             <a href={t.video_url} target="_blank" className="text-sm text-indigo-600 hover:underline flex items-center mb-4">
                                 <Video className="w-4 h-4 mr-1" /> Ver Video Original
                             </a>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mt-auto">
                                 <button 
                                     onClick={() => {
                                         setSelectedTrainingId(t.id);
@@ -273,6 +291,13 @@ export default function AdminFormacionVirtual() {
                                     className="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold flex justify-center items-center"
                                 >
                                     <List className="w-4 h-4 mr-1" /> Gestionar Examen
+                                </button>
+                                <button 
+                                    onClick={() => handleDeleteTraining(t.id)}
+                                    className="bg-red-50 text-red-600 hover:bg-red-100 py-2 px-3 rounded-lg flex justify-center items-center transition-colors"
+                                    title="Eliminar"
+                                >
+                                    <Trash className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
