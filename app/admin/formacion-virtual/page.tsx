@@ -291,9 +291,9 @@ export default function AdminFormacionVirtual() {
                         <div key={t.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-2">
                                 <h3 className="font-bold text-lg text-slate-800 leading-tight">{t.title}</h3>
-                                {t.category && t.category !== 'Todos' && (
+                                {t.category && (
                                     <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full font-semibold ml-2 text-center leading-none">
-                                        {t.category}
+                                        {t.category.split(', ').filter((c: string) => ["Todos", "Conductor operador", "Trabajador administrativo", "Trabajador de OC", "Trabajador de Planta de concreto", "Trabajador de planta de asfalto", "Trabajador de Planta agregados", "Sub comite", "Brigadistas"].includes(c)).join(', ') || 'Todos'}
                                     </span>
                                 )}
                             </div>
@@ -319,7 +319,9 @@ export default function AdminFormacionVirtual() {
                                         setSelectedTrainingId(t.id);
                                         setTitle(t.title);
                                         setVideoUrl(t.video_url);
-                                        setCategory(t.category ? t.category.split(', ') : ["Todos"]);
+                                        const validOptions = ["Todos", "Conductor operador", "Trabajador administrativo", "Trabajador de OC", "Trabajador de Planta de concreto", "Trabajador de planta de asfalto", "Trabajador de Planta agregados", "Sub comite", "Brigadistas"];
+                                        const cleanCategories = t.category ? t.category.split(', ').filter((c: string) => validOptions.includes(c)) : ["Todos"];
+                                        setCategory(cleanCategories.length > 0 ? cleanCategories : ["Todos"]);
                                         setActiveTab('create');
                                     }}
                                     className="bg-amber-50 text-amber-600 hover:bg-amber-100 py-2 px-3 rounded-lg flex justify-center items-center transition-colors"
