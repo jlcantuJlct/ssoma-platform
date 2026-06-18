@@ -171,6 +171,7 @@ export default function QuizResultPage({ params }: { params: { id: string } }) {
                         </div>
                     </div>
 
+                    </div>
                 </div>
             </main>
         </div>
