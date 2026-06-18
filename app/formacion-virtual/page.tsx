@@ -140,6 +140,9 @@ export default function FormacionVirtualLogin() {
                                     <option value="Obras civiles">Obras civiles</option>
                                     <option value="Equipos">Equipos</option>
                                     <option value="Trabajador administrativo">Trabajador administrativo</option>
+                                    <option value="Planta de asfalto">Planta de asfalto</option>
+                                    <option value="Agregados">Agregados</option>
+                                    <option value="Concreto">Concreto</option>
                                 </select>
                             </div>
                             

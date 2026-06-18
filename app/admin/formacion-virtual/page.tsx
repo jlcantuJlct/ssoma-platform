@@ -381,6 +381,9 @@ export default function AdminFormacionVirtual() {
                                 <option value="Obras civiles">Obras civiles</option>
                                 <option value="Equipos">Equipos</option>
                                 <option value="Trabajador administrativo">Trabajador administrativo</option>
+                                <option value="Planta de asfalto">Planta de asfalto</option>
+                                <option value="Agregados">Agregados</option>
+                                <option value="Concreto">Concreto</option>
                             </select>
                             <p className="text-xs text-slate-500 mt-1">Si seleccionas un puesto específico, solo los trabajadores de ese puesto verán esta capacitación.</p>
                         </div>
