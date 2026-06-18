@@ -89,7 +89,7 @@ export default function AdminFormacionVirtual() {
             const res = await fetch("/api/virtual-training", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, videoUrl }),
+                body: JSON.stringify({ title, video_url: videoUrl }),
             });
             const data = await res.json();
             if (data.success) {
