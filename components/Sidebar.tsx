@@ -196,6 +196,7 @@ export default function Sidebar() {
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
                                 <SidebarItem icon={<FileText size={16} className="text-emerald-500" />} label="Generar Informe Word" href="/monthly-report" active={pathname === '/monthly-report'} />
+                                <SidebarItem icon={<FileText size={16} className="text-violet-400" />} label="🪄 Generador Dinámico" href="/generador-informes" active={pathname === '/generador-informes'} />
                                 <SidebarItem icon={<FileText size={16} className="text-amber-500" />} label="Anexos OSITRAN" href="/ositran-report" active={pathname === '/ositran-report'} />
                                 <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Archivo Central SharePoint" href="/export-center" active={pathname === '/export-center'} />
                                 {user?.role === 'developer' && (
