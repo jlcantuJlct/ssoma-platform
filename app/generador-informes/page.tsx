@@ -1085,15 +1085,15 @@ function ImageDropZone({
                                 src={refSrc}
                                 alt="Referencia"
                                 loading="lazy"
-                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none mix-blend-screen"
+                                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity pointer-events-none mix-blend-screen"
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                         )}
                         
-                        <div className="relative z-10 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-all" 
+                        <div className="relative z-10 flex items-center justify-center gap-1.5 px-2 py-1 rounded-full backdrop-blur-md transition-all" 
                              style={{ background: isDragOver ? 'rgba(59, 130, 246, 0.8)' : 'rgba(10, 15, 25, 0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <ImageIcon size={14} style={{ color: isDragOver ? 'white' : 'hsl(215,20%,70%)' }} />
-                            <p className="text-[11px] font-semibold tracking-wide" style={{ color: isDragOver ? 'white' : 'hsl(215,20%,85%)' }}>
+                            <p className="text-[9px] font-medium tracking-wider" style={{ color: isDragOver ? 'white' : 'hsl(215,20%,85%)' }}>
                                 {isDragOver ? 'Suelta aquí' : 'Haz clic para subir foto'}
                             </p>
                         </div>
