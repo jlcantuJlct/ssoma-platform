@@ -700,6 +700,7 @@ export default function GeneradorInformesPage() {
 
                     {/* Botón generar */}
                     {isReadyToGenerate && tags.length > 0 && (
+                        <>
                         <button
                             onClick={handleGenerate}
                             disabled={status.stage === 'generating'}
@@ -737,7 +738,7 @@ export default function GeneradorInformesPage() {
                             <Trash2 size={20} />
                             Empezar Nuevo Mes (Limpiar Todo)
                         </button>
-
+                        </>
                     )}
 
                     {/* Botón descargar plantilla ejemplo */}
