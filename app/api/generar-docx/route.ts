@@ -123,57 +123,64 @@ export async function POST(request: Request) {
             // El motor antiguo solo detectaba el primer r:embed; ahora iteramos todos.
             // shapeCounter sigue siendo por párrafo (para el IGNORED_MAP),
             // pero tagCounter incrementa por cada imagen individual.
-            xmlString.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (parrafo) => {
+            xmlString = xmlString.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (parrafo) => {
                 if (parrafo.includes('<w:drawing') || parrafo.includes('<v:shape') || parrafo.includes('pic:pic')) {
                     shapeCounter++;
                     if (ignored.includes(shapeCounter)) return parrafo;
 
-                    // Recoger TODOS los r:embed del párrafo
-                    const allEmbeds: string[] = Array.from(
-                        parrafo.matchAll(/r:embed="([^"]+)"/g)
-                    ).map((m: RegExpMatchArray) => m[1]);
+                    let updatedParrafo = parrafo;
+                    const regex = /(r:embed|r:id)="([^"]+)"/g;
 
-                    // Fallback: si no hay r:embed, intentar con r:id (p.ej. v:shape)
-                    if (allEmbeds.length === 0) {
-                        const rIdMatch = parrafo.match(/r:id="([^"]+)"/);
-                        if (rIdMatch) allEmbeds.push(rIdMatch[1]);
-                    }
-
-                    // Inyectar imagen para CADA embed individual
-                    for (const rId of allEmbeds) {
-                        tagCounter++;
-                        const tagName = `foto_${String(tagCounter).padStart(3, '0')}`;
+                    updatedParrafo = updatedParrafo.replace(regex, (match, attrName, rId) => {
                         const target = getTargetFromRel(rId, relsElements);
-
-                        if (target && imageBuffers[tagName]) {
-                            const newBuf = imageBuffers[tagName];
-                            const { ext, mime } = getMimeTypeAndExt(newBuf);
-                            const oldExt = target.split('.').pop()?.toLowerCase();
-
-                            if (oldExt !== ext) {
-                                // Extensión diferente: reemplazar archivo y actualizar RELS
-                                renderedZip.remove(`word/${target}`);
-                                const newTarget = target.substring(0, target.lastIndexOf('.')) + '.' + ext;
+                        
+                        // Si el rel apunta a una imagen en la carpeta media
+                        if (target && (target.includes('media/') || target.includes('image'))) {
+                            tagCounter++;
+                            const tagName = `foto_${String(tagCounter).padStart(3, '0')}`;
+                            
+                            // Si el usuario subió una imagen para este slot
+                            if (imageBuffers[tagName]) {
+                                const newBuf = imageBuffers[tagName];
+                                const { ext, mime } = getMimeTypeAndExt(newBuf);
+                                const newTarget = `media/${tagName}.${ext}`;
+                                const newRId = `rId_${tagName}_${Date.now()}`; // Forzar unicidad
+                                
+                                // Inyectar el nuevo archivo físico en el zip
                                 renderedZip.file(`word/${newTarget}`, newBuf);
-
-                                for (let j = 0; j < relsElements.length; j++) {
-                                    if (relsElements[j].getAttribute('Id') === rId) {
-                                        relsElements[j].setAttribute('Target', newTarget);
-                                    }
-                                }
-
+                                
+                                // Actualizar el ContentTypes si la extensión es nueva
                                 if (!contentTypesString.includes(`Extension="${ext}"`)) {
                                     contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
                                 }
-                            } else {
-                                // Misma extensión: sobreescribir directamente
-                                renderedZip.file(`word/${target}`, newBuf);
+                                
+                                // Crear un nuevo Relationship
+                                const relNode = relsDoc.createElement('Relationship');
+                                relNode.setAttribute('Id', newRId);
+                                relNode.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+                                relNode.setAttribute('Target', newTarget);
+                                
+                                const relationshipsNode = relsDoc.getElementsByTagName('Relationships')[0];
+                                if (relationshipsNode) {
+                                    relationshipsNode.appendChild(relNode);
+                                }
+                                
+                                // Reemplazar el atributo en el XML para que apunte al NUEVO rId
+                                return `${attrName}="${newRId}"`;
                             }
                         }
-                    }
+                        
+                        // Si no es imagen o no hay imagen del usuario, dejamos el rId original
+                        return match;
+                    });
+                    
+                    return updatedParrafo;
                 }
                 return parrafo;
             });
+
+            // GUARDAR EL XML PRINCIPAL ACTUALIZADO (antes esto faltaba)
+            renderedZip.file('word/document.xml', xmlString);
 
             renderedZip.file('word/_rels/document.xml.rels', new XMLSerializer().serializeToString(relsDoc));
             renderedZip.file('[Content_Types].xml', contentTypesString);
