@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 const IGNORED_MAP: Record<string, number[]> = {
-    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24],
+    // Shapes ignorados: portada, logos, coordenadas, mapa Google Earth, organigrama y tablas fijas (shapes 1-29)
+    // Con esta lista, foto_001 = shape 30 = "Fotografía 8.1.1.1-1: Baños químicos" (primera foto real de campo)
+    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
     'PAD_CHINCHAYSULLO_PLANTILLA.docx': [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24, 67, 91, 92, 211, 224, 226, 228, 232],
     'PAD_BARANDAS_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 19],
     'PAD_JAHUAY_PLANTILLA.docx': [1, 2]
@@ -116,47 +118,55 @@ export async function POST(request: Request) {
             let shapeCounter = 0;
             let tagCounter = 0;
 
-            // Sincronización perfecta con extraer-fotos.js (usa split por párrafos)
+            // ── CORRECCIÓN: procesar TODOS los r:embed de cada párrafo ──────────
+            // Word agrupa múltiples imágenes en un mismo <w:p> (párrafo).
+            // El motor antiguo solo detectaba el primer r:embed; ahora iteramos todos.
+            // shapeCounter sigue siendo por párrafo (para el IGNORED_MAP),
+            // pero tagCounter incrementa por cada imagen individual.
             xmlString.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (parrafo) => {
                 if (parrafo.includes('<w:drawing') || parrafo.includes('<v:shape') || parrafo.includes('pic:pic')) {
                     shapeCounter++;
                     if (ignored.includes(shapeCounter)) return parrafo;
 
-                    let rIdMatch = parrafo.match(/r:embed="([^"]+)"/);
-                    if (!rIdMatch) rIdMatch = parrafo.match(/r:id="([^"]+)"/);
+                    // Recoger TODOS los r:embed del párrafo
+                    const allEmbeds: string[] = Array.from(
+                        parrafo.matchAll(/r:embed="([^"]+)"/g)
+                    ).map((m: RegExpMatchArray) => m[1]);
 
-                    if (rIdMatch) {
-                        const rId = rIdMatch[1];
+                    // Fallback: si no hay r:embed, intentar con r:id (p.ej. v:shape)
+                    if (allEmbeds.length === 0) {
+                        const rIdMatch = parrafo.match(/r:id="([^"]+)"/);
+                        if (rIdMatch) allEmbeds.push(rIdMatch[1]);
+                    }
+
+                    // Inyectar imagen para CADA embed individual
+                    for (const rId of allEmbeds) {
                         tagCounter++;
                         const tagName = `foto_${String(tagCounter).padStart(3, '0')}`;
                         const target = getTargetFromRel(rId, relsElements);
-                        
+
                         if (target && imageBuffers[tagName]) {
                             const newBuf = imageBuffers[tagName];
                             const { ext, mime } = getMimeTypeAndExt(newBuf);
-                            
                             const oldExt = target.split('.').pop()?.toLowerCase();
-                            
+
                             if (oldExt !== ext) {
-                                // Eliminar viejo
+                                // Extensión diferente: reemplazar archivo y actualizar RELS
                                 renderedZip.remove(`word/${target}`);
-                                // Crear nuevo nombre
                                 const newTarget = target.substring(0, target.lastIndexOf('.')) + '.' + ext;
                                 renderedZip.file(`word/${newTarget}`, newBuf);
-                                
-                                // Actualizar RELS
+
                                 for (let j = 0; j < relsElements.length; j++) {
                                     if (relsElements[j].getAttribute('Id') === rId) {
                                         relsElements[j].setAttribute('Target', newTarget);
                                     }
                                 }
-                                
-                                // Asegurar que exista en Content_Types
+
                                 if (!contentTypesString.includes(`Extension="${ext}"`)) {
                                     contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
                                 }
                             } else {
-                                // Misma extensión, solo sobreescribir
+                                // Misma extensión: sobreescribir directamente
                                 renderedZip.file(`word/${target}`, newBuf);
                             }
                         }

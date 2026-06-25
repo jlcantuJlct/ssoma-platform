@@ -110,8 +110,8 @@ export default function GeneradorInformesPage() {
             { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
         ];
         
-        // Las fotos ahora van correlativamente de foto_001 a foto_175
-        for (let i = 1; i <= 175; i++) {
+        // San Clemente: 239 slots reales (190 párrafos - 29 ignorados + 78 imágenes extra en párrafos multi-embed)
+        for (let i = 1; i <= 239; i++) {
             
             detected.push({
                 name: `foto_${String(i).padStart(3, '0')}`,
@@ -137,8 +137,8 @@ export default function GeneradorInformesPage() {
             { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
         ];
         
-        // Las fotos en Chinchaysullo van de foto_001 a foto_274
-        for (let i = 1; i <= 274; i++) {
+        // Chinchaysullo: 271 slots reales (291 párrafos - 24 ignorados + 4 imágenes extra en párrafos multi-embed)
+        for (let i = 1; i <= 271; i++) {
             detected.push({
                 name: `foto_${String(i).padStart(3, '0')}`,
                 type: 'image',
@@ -163,8 +163,8 @@ export default function GeneradorInformesPage() {
             { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
         ];
         
-        // Las fotos en Jahuay van de foto_001 a foto_043
-        for (let i = 1; i <= 43; i++) {
+        // Jahuay: 67 slots reales (45 párrafos - 2 ignorados + 24 imágenes extra en párrafos multi-embed)
+        for (let i = 1; i <= 67; i++) {
             detected.push({
                 name: `foto_${String(i).padStart(3, '0')}`,
                 type: 'image',
@@ -405,7 +405,7 @@ export default function GeneradorInformesPage() {
                                 ⚡ Cargar Plantilla PAD San Clemente
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'hsl(210,60%,50%)' }}>
-                                Carga automática — 175 fotos + texto de mes/año
+                                Carga automática — 239 fotos + texto de mes/año
                             </p>
                         </div>
                     </button>
@@ -431,7 +431,7 @@ export default function GeneradorInformesPage() {
                                 ⚡ Cargar Plantilla PAD Chinchaysullo
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'hsl(280, 50%, 65%)' }}>
-                                Carga automática — 274 fotos + texto de mes/año
+                                Carga automática — 271 fotos + texto de mes/año
                             </p>
                         </div>
                     </button>
@@ -457,7 +457,7 @@ export default function GeneradorInformesPage() {
                                 ⚡ Cargar Plantilla PAD Peaje Jahuay
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'hsl(30, 80%, 50%)' }}>
-                                Carga automática — 43 fotos + texto de mes/año
+                                Carga automática — 67 fotos + texto de mes/año
                             </p>
                         </div>
                     </button>
@@ -741,12 +741,57 @@ export default function GeneradorInformesPage() {
     );
 }
 
+// ─── Mapeo docType → carpeta estática en CDN ────────────────────────────────
+const FOLDER_BY_DOC: Record<string, string> = {
+    pad:      'referencias_pad',
+    chincha:  'referencias_chincha',
+    jahuay:   'referencias_jahuay',
+    barandas: 'referencias_barandas',
+};
+// Extensiones a intentar en orden (sin pasar por la API)
+const EXTS = ['png', 'jpg', 'jpeg'];
+
+// Hook: resuelve la primera URL estática que existe para esta imagen.
+// Resultado cacheado en sessionStorage para que no vuelva a intentar en la misma sesión.
+function useRefSrc(tagName: string, docType: string): string {
+    const cacheKey = `ref_url_${docType}_${tagName}`;
+    const [src, setSrc] = React.useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem(cacheKey) || '';
+        }
+        return '';
+    });
+
+    React.useEffect(() => {
+        if (src) return; // ya resuelta (sessionStorage o estado previo)
+        const folder = FOLDER_BY_DOC[docType] ?? 'referencias_pad';
+        let cancelled = false;
+        (async () => {
+            for (const ext of EXTS) {
+                const url = `/${folder}/${tagName}.${ext}`;
+                try {
+                    const r = await fetch(url, { method: 'HEAD' });
+                    if (!cancelled && r.ok) {
+                        sessionStorage.setItem(cacheKey, url);
+                        setSrc(url);
+                        return;
+                    }
+                } catch { /* ignorar */ }
+            }
+        })();
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tagName, docType]);
+
+    return src;
+}
+
 // ─── Sub-componente: zona de imagen ──────────────────────────────────────────
 function ImageDropZone({
     tag, docType, isDragOver, onDragOver, onDragLeave, onDrop, onFileChange, onClear
 }: {
     tag: DetectedTag;
-    docType: 'chincha' | 'pad';
+    docType: 'chincha' | 'pad' | 'jahuay' | 'barandas';
     isDragOver: boolean;
     onDragOver: React.DragEventHandler;
     onDragLeave: React.DragEventHandler;
@@ -756,6 +801,7 @@ function ImageDropZone({
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const refSrc = useRefSrc(tag.name, docType);
 
     return (
         <div>
@@ -835,15 +881,17 @@ function ImageDropZone({
                     </>
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-end group overflow-hidden pb-2">
-                        {/* Imagen de referencia original (mes anterior) como fondo */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
-                            src={`/api/generar-docx/foto-referencia?tag=${tag.name}&doc=${docType}`}
-                            alt="Referencia"
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none mix-blend-screen"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        />
+                        {/* Imagen de referencia: apunta directo a la CDN estática, cacheada por SW */}
+                        {refSrc && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={refSrc}
+                                alt="Referencia"
+                                loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none mix-blend-screen"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                        )}
                         
                         <div className="relative z-10 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-all" 
                              style={{ background: isDragOver ? 'rgba(59, 130, 246, 0.8)' : 'rgba(10, 15, 25, 0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
