@@ -110,8 +110,8 @@ export default function GeneradorInformesPage() {
             { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
         ];
         
-        // San Clemente: 239 slots reales (190 párrafos - 29 ignorados + 78 imágenes extra en párrafos multi-embed)
-        for (let i = 1; i <= 239; i++) {
+        // San Clemente: 259 slots reales (con ignored map 1-14, 72 y nuevo motor multi-embed)
+        for (let i = 1; i <= 259; i++) {
             
             detected.push({
                 name: `foto_${String(i).padStart(3, '0')}`,

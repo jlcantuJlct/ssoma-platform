@@ -11,7 +11,7 @@ export const maxDuration = 120;
 const IGNORED_MAP: Record<string, number[]> = {
     // Shapes ignorados: portada, logos, coordenadas, mapa Google Earth, organigrama y tablas fijas (shapes 1-29)
     // Con esta lista, foto_001 = shape 30 = "Fotografía 8.1.1.1-1: Baños químicos" (primera foto real de campo)
-    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 72],
     'PAD_CHINCHAYSULLO_PLANTILLA.docx': [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24, 67, 91, 92, 211, 224, 226, 228, 232],
     'PAD_BARANDAS_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 19],
     'PAD_JAHUAY_PLANTILLA.docx': [1, 2]
