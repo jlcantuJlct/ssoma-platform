@@ -1,7 +1,17 @@
-import { sql } from '@vercel/postgres';
+import db from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+async function ensureTable() {
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS report_drafts (
+            doc_type VARCHAR(255) PRIMARY KEY,
+            fields JSON,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
+}
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -12,11 +22,17 @@ export async function GET(request: Request) {
     }
 
     try {
-        const result = await sql`
-            SELECT fields FROM report_drafts WHERE doc_type = ${docType};
-        `;
-        if (result.rowCount && result.rowCount > 0) {
-            return NextResponse.json({ fields: result.rows[0].fields });
+        await ensureTable();
+        const result = await db.fetchOne(
+            `SELECT fields FROM report_drafts WHERE doc_type = ?`,
+            [docType]
+        );
+        if (result && result.fields) {
+            let fields = result.fields;
+            if (typeof fields === 'string') {
+                try { fields = JSON.parse(fields); } catch(e){}
+            }
+            return NextResponse.json({ fields });
         } else {
             return NextResponse.json({ fields: {} });
         }
@@ -34,13 +50,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'docType and fields are required' }, { status: 400 });
         }
 
-        // Upsert fields with jsonb merge (||) to prevent race conditions
-        await sql`
-            INSERT INTO report_drafts (doc_type, fields, updated_at)
-            VALUES (${docType}, ${JSON.stringify(fields)}::jsonb, CURRENT_TIMESTAMP)
-            ON CONFLICT (doc_type) DO UPDATE 
-            SET fields = report_drafts.fields || ${JSON.stringify(fields)}::jsonb, updated_at = CURRENT_TIMESTAMP;
-        `;
+        await ensureTable();
+
+        const existing = await db.fetchOne(`SELECT fields FROM report_drafts WHERE doc_type = ?`, [docType]);
+        let currentFields = {};
+        if (existing && existing.fields) {
+            currentFields = typeof existing.fields === 'string' ? JSON.parse(existing.fields) : existing.fields;
+        }
+        
+        const newFields = { ...currentFields, ...fields };
+        
+        if (existing) {
+            await db.execute(
+                `UPDATE report_drafts SET fields = ?, updated_at = CURRENT_TIMESTAMP WHERE doc_type = ?`,
+                [JSON.stringify(newFields), docType]
+            );
+        } else {
+            await db.execute(
+                `INSERT INTO report_drafts (doc_type, fields, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+                [docType, JSON.stringify(newFields)]
+            );
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -58,9 +88,8 @@ export async function DELETE(request: Request) {
     }
 
     try {
-        await sql`
-            DELETE FROM report_drafts WHERE doc_type = ${docType};
-        `;
+        await ensureTable();
+        await db.execute(`DELETE FROM report_drafts WHERE doc_type = ?`, [docType]);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error clearing draft:', error);
