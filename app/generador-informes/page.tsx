@@ -405,7 +405,7 @@ export default function GeneradorInformesPage() {
                                 ⚡ Cargar Plantilla PAD San Clemente
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'hsl(210,60%,50%)' }}>
-                                Carga automática — 239 fotos + texto de mes/año
+                                Carga automática — 259 fotos + texto de mes/año
                             </p>
                         </div>
                     </button>
@@ -754,13 +754,7 @@ const EXTS = ['png', 'jpg', 'jpeg'];
 // Hook: resuelve la primera URL estática que existe para esta imagen.
 // Resultado cacheado en sessionStorage para que no vuelva a intentar en la misma sesión.
 function useRefSrc(tagName: string, docType: string): string {
-    const cacheKey = `ref_url_${docType}_${tagName}`;
-    const [src, setSrc] = React.useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            return sessionStorage.getItem(cacheKey) || '';
-        }
-        return '';
-    });
+    const [src, setSrc] = React.useState<string>('');
 
     React.useEffect(() => {
         if (src) return; // ya resuelta (sessionStorage o estado previo)
@@ -768,11 +762,11 @@ function useRefSrc(tagName: string, docType: string): string {
         let cancelled = false;
         (async () => {
             for (const ext of EXTS) {
-                const url = `/${folder}/${tagName}.${ext}`;
+                const url = `/${folder}/${tagName}.${ext}?v=2`;
                 try {
                     const r = await fetch(url, { method: 'HEAD' });
                     if (!cancelled && r.ok) {
-                        sessionStorage.setItem(cacheKey, url);
+                        
                         setSrc(url);
                         return;
                     }
