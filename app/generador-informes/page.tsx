@@ -315,6 +315,9 @@ export default function GeneradorInformesPage() {
     // ─── Generar el documento ─────────────────────────────────────────────────
 
     const handleClearDraft = async () => {
+        const p = prompt("Clave para borrar:");
+        if (p !== "161976") { alert("Clave incorrecta"); return; }
+
         if (!templateFile) return;
         const confirmClear = window.confirm('¿Estás seguro de que quieres limpiar todo el borrador para iniciar un nuevo mes? Esto no se puede deshacer.');
         if (!confirmClear) return;
@@ -969,24 +972,24 @@ function ImageDropZone({
                             <div className="flex gap-2">
                                 <button
                                     onClick={e => { e.stopPropagation(); setShowPreview(true); }}
-                                    className="p-2 rounded-lg bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
+                                    className="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
                                     title="Ver foto"
                                 >
-                                    <Eye size={16} className="text-white" />
+                                    <Eye size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Ver</span>
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
-                                    className="p-2 rounded-lg bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
+                                    className="px-3 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
                                     title="Cambiar foto"
                                 >
-                                    <Upload size={16} className="text-white" />
+                                    <Upload size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Actualizar</span>
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); onClear(); }}
-                                    className="p-2 rounded-lg bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
+                                    className="px-3 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
                                     title="Eliminar foto"
                                 >
-                                    <Trash2 size={16} className="text-white" />
+                                    <Trash2 size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Eliminar</span>
                                 </button>
                             </div>
                             <span className="text-white text-xs font-medium px-2 py-1 bg-black/50 rounded-md">
