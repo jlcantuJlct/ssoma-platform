@@ -77,9 +77,22 @@ export async function POST(request: Request) {
         const textData: Record<string, string> = textDataStr ? JSON.parse(textDataStr) : {};
         const imageBuffers: Record<string, Buffer> = {};
         for (const [key, value] of formData.entries()) {
-            if (key.startsWith('img_') && value instanceof File) {
+            if (key.startsWith('img_')) {
                 const tagName = key.replace('img_', '');
-                imageBuffers[tagName] = Buffer.from(await value.arrayBuffer());
+                if (value instanceof File) {
+                    const buf = await value.arrayBuffer();
+                    imageBuffers[tagName] = Buffer.from(buf);
+                } else if (typeof value === 'string' && value.startsWith('http')) {
+                    try {
+                        const r = await fetch(value);
+                        if (r.ok) {
+                            const buf = await r.arrayBuffer();
+                            imageBuffers[tagName] = Buffer.from(buf);
+                        }
+                    } catch (e) {
+                        console.error('Failed to download image URL', value);
+                    }
+                }
             }
         }
 

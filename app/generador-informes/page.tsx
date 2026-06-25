@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
     Upload, FileText, Image as ImageIcon, Download, Trash2,
     Sparkles, CheckCircle, AlertCircle, Eye, X, Loader2,
-    Info, FilePlus, ChevronRight, Package
+    Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw
 } from 'lucide-react';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -15,6 +15,8 @@ interface DetectedTag {
     value?: string;
     file?: File;
     preview?: string;
+    remoteUrl?: string;
+    loading?: boolean;
 }
 
 interface ProcessingStatus {
@@ -39,6 +41,50 @@ export default function GeneradorInformesPage() {
     const [status, setStatus] = useState<ProcessingStatus>({ stage: 'idle', message: '', progress: 0 });
     const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
+    // --- Autoguardado Colaborativo ---
+    const loadDraft = useCallback(async (docType: string, currentTags: DetectedTag[]) => {
+        try {
+            const res = await fetch(`/api/draft?docType=${docType}`);
+            if (res.ok) {
+                const { fields } = await res.json();
+                if (fields && Object.keys(fields).length > 0) {
+                    setTags(prev => prev.map(t => {
+                        if (fields[t.name]) {
+                            if (t.type === 'text') return { ...t, value: fields[t.name] };
+                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name], preview: fields[t.name] };
+                        }
+                        return t;
+                    }));
+                }
+            }
+        } catch (e) {
+            console.error('Error loading draft', e);
+        }
+    }, []);
+
+    const saveDraftTimeout = useRef<NodeJS.Timeout | null>(null);
+    React.useEffect(() => {
+        if (!templateFile || tags.length === 0) return;
+        if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current);
+        
+        saveDraftTimeout.current = setTimeout(async () => {
+            const docType = templateFile.name;
+            const fields: Record<string, string> = {};
+            tags.forEach(t => {
+                if (t.type === 'text' && t.value) fields[t.name] = t.value;
+                if (t.type === 'image' && t.remoteUrl) fields[t.name] = t.remoteUrl;
+            });
+            
+            if (Object.keys(fields).length > 0) {
+                await fetch('/api/draft', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ docType, fields })
+                });
+            }
+        }, 2000);
+    }, [tags, templateFile]);
+
     const templateInputRef = useRef<HTMLInputElement>(null);
 
     // ─── Leer la plantilla y detectar etiquetas ──────────────────────────────
@@ -89,6 +135,7 @@ export default function GeneradorInformesPage() {
             }
 
             setTags(detected);
+            loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (${textTags.length} texto, ${imageTags.length} fotos)`, progress: 100 });
 
         } catch (e: any) {
@@ -226,11 +273,31 @@ export default function GeneradorInformesPage() {
         }
     };
 
-    const assignImage = (tagName: string, file: File) => {
+    const assignImage = async (tagName: string, file: File) => {
         const preview = URL.createObjectURL(file);
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file, preview } : t
+            t.name === tagName ? { ...t, file, preview, loading: true } : t
         ));
+
+        try {
+            const ext = file.name.split('.').pop();
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch(`/api/draft/image?filename=${tagName}_${Date.now()}.${ext}`, {
+                method: 'POST',
+                body: file
+            });
+            if (res.ok) {
+                const blob = await res.json();
+                setTags(prev => prev.map(t =>
+                    t.name === tagName ? { ...t, remoteUrl: blob.url, loading: false } : t
+                ));
+            } else {
+                setTags(prev => prev.map(t => t.name === tagName ? { ...t, loading: false } : t));
+            }
+        } catch (e) {
+            setTags(prev => prev.map(t => t.name === tagName ? { ...t, loading: false } : t));
+        }
     };
 
     const updateTextValue = (tagName: string, value: string) => {
@@ -246,6 +313,35 @@ export default function GeneradorInformesPage() {
     };
 
     // ─── Generar el documento ─────────────────────────────────────────────────
+
+    const handleClearDraft = async () => {
+        if (!templateFile) return;
+        const confirmClear = window.confirm('¿Estás seguro de que quieres limpiar todo el borrador para iniciar un nuevo mes? Esto no se puede deshacer.');
+        if (!confirmClear) return;
+        
+        const docType = templateFile.name;
+        setStatus({ stage: 'loading', message: '🧹 Limpiando borrador...', progress: 50 });
+        try {
+            await fetch(`/api/draft?docType=${docType}`, { method: 'DELETE' });
+            
+            // Reload clean template
+            if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') {
+                loadSanClemente();
+            } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
+                loadChinchaysullo();
+            } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
+                loadJahuay();
+            } else if (docType === 'PAD_BARANDAS_INTERNAL.docx') {
+                loadBarandas();
+            } else {
+                setTags([]);
+                setStatus({ stage: 'ready', message: 'Borrador limpiado. Puedes cargar una nueva plantilla.', progress: 100 });
+            }
+        } catch (e) {
+            setStatus({ stage: 'error', message: 'Error al limpiar borrador', progress: 0 });
+        }
+    };
+
     const handleGenerate = async () => {
         if (!templateFile) return;
         setStatus({ stage: 'generating', message: '📸 Preparando imágenes…', progress: 20 });
@@ -264,8 +360,12 @@ export default function GeneradorInformesPage() {
             formData.append('textData', JSON.stringify(textData));
 
             // Agregar imágenes
-            tags.filter(t => t.type === 'image' && t.file).forEach(t => {
-                formData.append(`img_${t.name}`, t.file!);
+            tags.filter(t => t.type === 'image' && (t.file || t.remoteUrl)).forEach(t => {
+                if (t.remoteUrl) {
+                    formData.append(`img_${t.name}`, t.remoteUrl);
+                } else if (t.file) {
+                    formData.append(`img_${t.name}`, t.file!);
+                }
             });
 
             const res = await fetch('/api/generar-docx', {
@@ -608,12 +708,33 @@ export default function GeneradorInformesPage() {
                                 boxShadow: '0 4px 20px hsl(161,94%,20%)'
                             }}
                         >
+                            
                             {status.stage === 'generating' ? (
-                                <><Loader2 size={18} className="animate-spin" /> Generando…</>
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    Generando...
+                                </>
                             ) : (
-                                <><Download size={18} /> Generar y Descargar</>
+                                <>
+                                    <FileCheck size={20} />
+                                    Generar Documento
+                                </>
                             )}
                         </button>
+                        
+                        <button
+                            onClick={handleClearDraft}
+                            disabled={status.stage === 'generating'}
+                            className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-60 mt-4"
+                            style={{
+                                background: 'hsl(348,83%,25%)',
+                                border: '1px solid hsl(348,83%,35%)'
+                            }}
+                        >
+                            <Trash2 size={20} />
+                            Empezar Nuevo Mes (Limpiar Todo)
+                        </button>
+
                     )}
 
                     {/* Botón descargar plantilla ejemplo */}
@@ -836,8 +957,13 @@ function ImageDropZone({
                         <img
                             src={tag.preview}
                             alt={tag.label}
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover transition-all ${tag.loading ? 'opacity-40 grayscale blur-sm' : ''}`}
                         />
+                        {tag.loading && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                            </div>
+                        )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
                         <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
                             <div className="flex gap-2">
