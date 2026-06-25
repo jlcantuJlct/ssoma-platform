@@ -193,10 +193,10 @@ export default function Sidebar() {
                         <SidebarItem hasAlert={alerts['/actas-supervision']} icon={<ClipboardSignature size={16} className="text-pink-500 group-hover:text-pink-300 transition-colors" />} label="Control de Actas de Superv." href="/actas-supervision" active={pathname === '/actas-supervision'} />
                         <SidebarItem hasAlert={alerts['/equipment-certs']} icon={<Truck size={16} className="text-blue-500" />} label="Certificados de Equipo" href="/equipment-certs" active={pathname === '/equipment-certs'} />
                         <SidebarItem hasAlert={alerts['/cliente']} icon={<ExternalLink size={16} className="text-cyan-500" />} label="Comunicación con Cliente" href="/cliente" active={pathname === '/cliente'} />
+                        <SidebarItem icon={<FileText size={16} className="text-violet-400" />} label="🪄 Generador Dinámico" href="/generador-informes" active={pathname === '/generador-informes'} />
                         {(user?.role === 'developer' || user?.role === 'manager') && (
                             <>
                                 <SidebarItem icon={<FileText size={16} className="text-emerald-500" />} label="Generar Informe Word" href="/monthly-report" active={pathname === '/monthly-report'} />
-                                <SidebarItem icon={<FileText size={16} className="text-violet-400" />} label="🪄 Generador Dinámico" href="/generador-informes" active={pathname === '/generador-informes'} />
                                 <SidebarItem icon={<FileText size={16} className="text-amber-500" />} label="Anexos OSITRAN" href="/ositran-report" active={pathname === '/ositran-report'} />
                                 <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Archivo Central SharePoint" href="/export-center" active={pathname === '/export-center'} />
                                 {user?.role === 'developer' && (

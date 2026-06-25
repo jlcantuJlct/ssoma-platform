@@ -3,6 +3,7 @@ const path = require('path');
 const { google } = require('googleapis');
 const os = require('os');
 const https = require('https');
+require('node:dns').setDefaultResultOrder('ipv4first');
 
 /**
  * CONFIGURACIÓN DEL ROBOT
@@ -462,6 +463,7 @@ async function poll() {
         });
     }).on('error', (e) => {
         console.error(`\n❌ Error de conexión: ${e.message}`);
+        console.log(`⏳ El robot intentará reconectarse automáticamente en 5 segundos...`);
         setTimeout(poll, POLLING_INTERVAL);
     });
 }

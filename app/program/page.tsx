@@ -216,7 +216,7 @@ export default function ProgramPage() {
         const loadData = async () => {
             try {
                 // 1. Load annual program from cloud
-                const progRes = await fetch('/api/annual-program');
+                const progRes = await fetch('/api/annual-program?_t=' + Date.now(), { cache: 'no-store' });
                 const progData = await progRes.json();
                 if (progData.success && Object.keys(progData.programData).length > 0) {
                     setProgramData(progData.programData);
@@ -237,7 +237,7 @@ export default function ProgramPage() {
                 }
 
                 // 2. Load inspections from cloud
-                const inspRes = await fetch('/api/inspections');
+                const inspRes = await fetch('/api/inspections?_t=' + Date.now(), { cache: 'no-store' });
                 const inspData = await inspRes.json();
                 if (inspData.success && inspData.records.length > 0) {
                     setExecutedInspections(inspData.records);
@@ -248,7 +248,7 @@ export default function ProgramPage() {
                 }
 
                 // 3. Load HHC from cloud
-                const hhcRes = await fetch('/api/hhc-records');
+                const hhcRes = await fetch('/api/hhc-records?_t=' + Date.now(), { cache: 'no-store' });
                 const hhcData = await hhcRes.json();
                 if (hhcData.success && hhcData.records.length > 0) {
                     setHhcRecords(hhcData.records);
@@ -259,7 +259,7 @@ export default function ProgramPage() {
                 }
 
                 // 4. Load Evidence from cloud
-                const evRes = await fetch('/api/evidence-records');
+                const evRes = await fetch('/api/evidence-records?_t=' + Date.now(), { cache: 'no-store' });
                 const evData = await evRes.json();
                 if (evData.success && evData.records.length > 0) {
                     setEvidenceRecords(evData.records);
@@ -270,7 +270,7 @@ export default function ProgramPage() {
                 }
 
                 // 5. Load PMA from cloud
-                const pmaRes = await fetch('/api/pma-records');
+                const pmaRes = await fetch('/api/pma-records?_t=' + Date.now(), { cache: 'no-store' });
                 const pmaData = await pmaRes.json();
                 if (pmaData.success && pmaData.records.length > 0) {
                     setPmaRecords(pmaData.records);
@@ -278,37 +278,37 @@ export default function ProgramPage() {
                 }
 
                 // 6. Load ATS from cloud
-                const atsRes = await fetch('/api/ats-records');
+                const atsRes = await fetch('/api/ats-records?_t=' + Date.now(), { cache: 'no-store' });
                 const atsData = await atsRes.json();
                 if (atsData.success) setAtsRecords(atsData.records);
 
                 // 7. Load PETAR from cloud
-                const petarRes = await fetch('/api/petar-records');
+                const petarRes = await fetch('/api/petar-records?_t=' + Date.now(), { cache: 'no-store' });
                 const petarData = await petarRes.json();
                 if (petarData.success) setPetarRecords(petarData.records);
 
                 // 8. Load Desvios from cloud
-                const detourRes = await fetch('/api/desvio-records');
+                const detourRes = await fetch('/api/desvio-records?_t=' + Date.now(), { cache: 'no-store' });
                 const detourData = await detourRes.json();
                 if (detourData.success) setDetourRecords(detourData.records);
 
                 // 9. Load Simulacros from cloud
-                const simRes = await fetch('/api/simulacro-records');
+                const simRes = await fetch('/api/simulacro-records?_t=' + Date.now(), { cache: 'no-store' });
                 const simData = await simRes.json();
                 if (simData.success) setSimulacroRecords(simData.records);
 
                 // 10. Load Brigadistas from cloud
-                const briRes = await fetch('/api/brigadista-records');
+                const briRes = await fetch('/api/brigadista-records?_t=' + Date.now(), { cache: 'no-store' });
                 const briData = await briRes.json();
                 if (briData.success) setBrigadistaRecords(briData.records);
 
                 // 11. Load RISSTMA from cloud
-                const risRes = await fetch('/api/risstma-records');
+                const risRes = await fetch('/api/risstma-records?_t=' + Date.now(), { cache: 'no-store' });
                 const risData = await risRes.json();
                 if (risData.success) setRisstmaRecords(risData.records);
 
                 // 12. Load Reporte A/C from cloud
-                const racRes = await fetch('/api/reporte-ac-records');
+                const racRes = await fetch('/api/reporte-ac-records?_t=' + Date.now(), { cache: 'no-store' });
                 const racData = await racRes.json();
                 if (racData.success) setReporteAcRecords(racData.records);
 

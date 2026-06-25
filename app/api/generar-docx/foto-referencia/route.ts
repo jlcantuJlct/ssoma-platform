@@ -1,55 +1,65 @@
 import { NextResponse, NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
+// 1 año en segundos — las imágenes de referencia no cambian entre sesiones
+const CACHE_TTL = 60 * 60 * 24 * 365;
+const CACHE_HEADER = `public, max-age=${CACHE_TTL}, immutable`;
+
+// Extensiones a intentar en orden de preferencia
+const EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'emf'];
+
+// Mapeo doc → carpeta pública estática
+const FOLDER_MAP: Record<string, string> = {
+    chincha:  'referencias_chincha',
+    jahuay:   'referencias_jahuay',
+    barandas: 'referencias_barandas',
+    pad:      'referencias_pad',
+};
+
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const tag = searchParams.get('tag'); // e.g., 'foto_001'
-    const doc = searchParams.get('doc'); // 'chincha' or 'pad'
+    const { searchParams, origin } = new URL(request.url);
+    const tag = searchParams.get('tag'); // e.g. 'foto_001'
+    const doc = searchParams.get('doc') ?? 'pad';
 
     if (!tag || !tag.startsWith('foto_')) {
         return new NextResponse('Tag de foto no proporcionado o inválido', { status: 400 });
     }
 
-    // Determine target directory based on doc parameter
-    let folder = 'referencias_pad';
-    if (doc === 'chincha') folder = 'referencias_chincha';
-    if (doc === 'jahuay') folder = 'referencias_jahuay';
-    if (doc === 'barandas') folder = 'referencias_barandas';
-    
-    const dir = path.join(process.cwd(), 'public', folder);
-    
-    if (!fs.existsSync(dir)) {
-        return new NextResponse('No reference images found', { status: 404 });
+    const folder = FOLDER_MAP[doc] ?? 'referencias_pad';
+
+    // Intentamos redirigir a cada extensión posible.
+    // Las imágenes están en la CDN de Vercel como archivos estáticos (public/).
+    for (const ext of EXTENSIONS) {
+        const staticUrl = `${origin}/${folder}/${tag}.${ext}`;
+        try {
+            const check = await fetch(staticUrl, { method: 'HEAD' });
+            if (check.ok) {
+                // Redirect permanente (301) + Cache-Control largo:
+                // el navegador recordará la URL final durante 1 año
+                // y no volverá a llamar a este endpoint.
+                return NextResponse.redirect(staticUrl, {
+                    status: 301,
+                    headers: {
+                        'Cache-Control': CACHE_HEADER,
+                    },
+                });
+            }
+        } catch {
+            // ignorar errores de red, seguir probando siguiente extensión
+        }
     }
 
-    const files = fs.readdirSync(dir);
-    const matchedFile = files.find(f => f.startsWith(tag + '.'));
-
-    if (!matchedFile) {
-        // Return a transparent pixel if no reference image
-        const transparent = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
-        return new NextResponse(transparent, {
-            status: 200,
-            headers: { 'Content-Type': 'image/png' }
-        });
-    }
-
-    const filePath = path.join(dir, matchedFile);
-    const fileBuffer = fs.readFileSync(filePath);
-    const ext = path.extname(matchedFile).toLowerCase();
-    
-    let mime = 'image/jpeg';
-    if (ext === '.png') mime = 'image/png';
-    else if (ext === '.gif') mime = 'image/gif';
-
-    return new NextResponse(fileBuffer, {
+    // Si no se encontró ninguna extensión, pixel transparente cacheado también
+    const transparent = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64'
+    );
+    return new NextResponse(transparent, {
         status: 200,
         headers: {
-            'Content-Type': mime,
-            'Cache-Control': 'no-store, max-age=0',
+            'Content-Type': 'image/png',
+            'Cache-Control': `public, max-age=3600`,
         },
     });
 }

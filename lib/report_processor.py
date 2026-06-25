@@ -101,8 +101,9 @@ def process_report(template_path, output_path, data_file_path):
                         # Insertar imagen ANTES del pie de foto
                         new_p = p.insert_paragraph_before('')
                         run = new_p.add_run()
-                        # Ajustar tamaño (5 pulgadas de ancho suele ser ideal para A4)
-                        run.add_picture(img_stream, width=Inches(5.2))
+                        # Tamaño uniforme: 7 cm de ancho × 4 cm de alto (igual que el Generador Dinámico)
+                        from docx.shared import Cm
+                        run.add_picture(img_stream, width=Cm(7), height=Cm(4))
                         used_photos.add(best_match.get("file_url"))
                         
                         # Si era un código manual [[...]], borrar el código
