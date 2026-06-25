@@ -34,12 +34,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'docType and fields are required' }, { status: 400 });
         }
 
-        // Upsert fields
+        // Upsert fields with jsonb merge (||) to prevent race conditions
         await sql`
             INSERT INTO report_drafts (doc_type, fields, updated_at)
             VALUES (${docType}, ${JSON.stringify(fields)}::jsonb, CURRENT_TIMESTAMP)
             ON CONFLICT (doc_type) DO UPDATE 
-            SET fields = ${JSON.stringify(fields)}::jsonb, updated_at = CURRENT_TIMESTAMP;
+            SET fields = report_drafts.fields || ${JSON.stringify(fields)}::jsonb, updated_at = CURRENT_TIMESTAMP;
         `;
 
         return NextResponse.json({ success: true });
