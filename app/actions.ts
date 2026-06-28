@@ -300,7 +300,7 @@ export async function getDashboardActivities() {
         const progress = await db.fetchAll('SELECT * FROM progress');
 
         // Fetch evidence (for indicators)
-        const evidence = await db.fetchAll('SELECT * FROM evidence');
+        const evidence = await db.fetchAll("SELECT id, activity_id, month, 'Evidencia Guardada' as file_path FROM evidence");
 
         // Merge data
         const merged = activities.map((act: any) => {
