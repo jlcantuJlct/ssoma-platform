@@ -207,7 +207,9 @@ export function DashboardCharts({
             }
         };
         loadAllRecords();
-        const syncInterval = setInterval(loadAllRecords, 60000); // Sync every min
+        const syncInterval = setInterval(() => {
+            if (!document.hidden) loadAllRecords();
+        }, 60000); // Sync every min only if active
         return () => clearInterval(syncInterval);
     }, []);
 

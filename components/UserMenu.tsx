@@ -31,6 +31,10 @@ export default function UserMenu() {
         if (!user) return;
 
         const heartbeat = async () => {
+            if (!user) return;
+            // AHORRO: No enviar latidos si la pestaña está oculta
+            if (document.hidden) return;
+
             try {
                 const res = await fetch('/api/presence', {
                     method: 'POST',
