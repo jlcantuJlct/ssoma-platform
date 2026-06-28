@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
     Upload, FileText, Image as ImageIcon, Download, Trash2,
     Sparkles, CheckCircle, AlertCircle, Eye, X, Loader2,
-    Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw
+    Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw, Archive, History
 } from 'lucide-react';
 import { compressImage } from '@/lib/uploadClient';
 
@@ -86,6 +86,8 @@ export default function GeneradorInformesPage() {
     const [status, setStatus] = useState<ProcessingStatus>({ stage: 'idle', message: '', progress: 0 });
     const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [archives, setArchives] = useState<any[]>([]);
     // --- Autoguardado Colaborativo ---
     const loadDraft = useCallback(async (docType: string, currentTags: DetectedTag[]) => {
         try {
@@ -402,34 +404,91 @@ export default function GeneradorInformesPage() {
 
     // ─── Generar el documento ─────────────────────────────────────────────────
 
-    const handleClearDraft = async () => {
-        const p = prompt("Clave para borrar:");
+    const loadArchives = async () => {
+        if (!templateFile) return;
+        try {
+            const res = await fetch(`/api/draft/archive?docType=${templateFile.name}`);
+            const data = await res.json();
+            setArchives(data.archives || []);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const loadHistoricalMonth = async (id: number, monthName: string) => {
+        setStatus({ stage: 'loading', message: `📂 Cargando histórico: ${monthName}...`, progress: 50 });
+        try {
+            const res = await fetch(`/api/draft/archive?id=${id}`);
+            const data = await res.json();
+            if (data.fields) {
+                setTags(prev => prev.map(t => {
+                    // Reset fields first
+                    let newTag = { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined };
+                    if (data.fields[t.name]) {
+                        if (t.type === 'text') newTag.value = data.fields[t.name];
+                        if (t.type === 'image') {
+                            newTag.remoteUrl = data.fields[t.name];
+                            newTag.preview = data.fields[t.name];
+                        }
+                    }
+                    return newTag;
+                }));
+            }
+            setShowHistoryModal(false);
+            setStatus({ stage: 'ready', message: `✅ Histórico cargado: ${monthName}`, progress: 100 });
+        } catch (e) {
+            setStatus({ stage: 'error', message: 'Error al cargar mes histórico', progress: 0 });
+        }
+    };
+
+    const deleteArchive = async (id: number) => {
+        if (!window.confirm("¿Seguro que deseas eliminar este archivo histórico para siempre?")) return;
+        try {
+            await fetch(`/api/draft/archive?id=${id}`, { method: 'DELETE' });
+            loadArchives();
+        } catch (e) {
+            console.error("Error al borrar historial", e);
+        }
+    };
+
+    const handleArchiveMonth = async () => {
+        const p = prompt("Clave de administrador (Para archivar):");
         if (p !== "161976") { alert("Clave incorrecta"); return; }
 
         if (!templateFile) return;
-        const confirmClear = window.confirm('¿Estás seguro de que quieres limpiar todo el borrador para iniciar un nuevo mes? Esto no se puede deshacer.');
-        if (!confirmClear) return;
+        const monthName = prompt("¿Bajo qué nombre deseas archivar este mes? (Ej. Junio 2026)");
+        if (!monthName) return;
         
         const docType = templateFile.name;
-        setStatus({ stage: 'loading', message: '🧹 Limpiando borrador...', progress: 50 });
+        setStatus({ stage: 'loading', message: `📦 Archivando ${monthName}...`, progress: 50 });
         try {
+            const fields: Record<string, string> = {};
+            tags.forEach(t => {
+                if (t.type === 'text' && t.value) fields[t.name] = t.value;
+                if (t.type === 'image' && t.remoteUrl) fields[t.name] = t.remoteUrl;
+            });
+            
+            // Guardar en el histórico
+            await fetch('/api/draft/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ docType, monthName, fields })
+            });
+
+            // Limpiar el borrador activo para el nuevo mes
             await fetch(`/api/draft?docType=${docType}`, { method: 'DELETE' });
             
             // Reload clean template
-            if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') {
-                loadSanClemente();
-            } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
-                loadChinchaysullo();
-            } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
-                loadJahuay();
-            } else if (docType === 'PAD_BARANDAS_INTERNAL.docx') {
-                loadBarandas();
-            } else {
+            if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') loadSanClemente();
+            else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') loadChinchaysullo();
+            else if (docType === 'PAD_JAHUAY_INTERNAL.docx') loadJahuay();
+            else if (docType === 'PAD_BARANDAS_INTERNAL.docx') loadBarandas();
+            else {
                 setTags([]);
-                setStatus({ stage: 'ready', message: 'Borrador limpiado. Puedes cargar una nueva plantilla.', progress: 100 });
+                setStatus({ stage: 'ready', message: `Mes ${monthName} archivado. Listo para un nuevo mes.`, progress: 100 });
             }
         } catch (e) {
-            setStatus({ stage: 'error', message: 'Error al limpiar borrador', progress: 0 });
+            setStatus({ stage: 'error', message: 'Error al archivar mes', progress: 0 });
         }
     };
 
@@ -815,16 +874,16 @@ export default function GeneradorInformesPage() {
                         </button>
                         
                         <button
-                            onClick={handleClearDraft}
+                            onClick={handleArchiveMonth}
                             disabled={status.stage === 'generating'}
                             className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-60 mt-4"
                             style={{
-                                background: 'hsl(348,83%,25%)',
-                                border: '1px solid hsl(348,83%,35%)'
+                                background: 'hsl(215,83%,35%)',
+                                border: '1px solid hsl(215,83%,45%)'
                             }}
                         >
-                            <Trash2 size={20} />
-                            Empezar Nuevo Mes (Limpiar Todo)
+                            <Archive size={20} />
+                            Archivar y Empezar Nuevo Mes
                         </button>
                         </>
                     )}
@@ -875,6 +934,14 @@ export default function GeneradorInformesPage() {
                                         Completa los campos y verifica el formulario antes de generar el documento final.
                                     </p>
                                 </div>
+                                <button
+                                    onClick={() => { loadArchives(); setShowHistoryModal(true); }}
+                                    className="px-4 py-2 rounded-lg font-bold text-white flex items-center gap-2 transition-colors"
+                                    style={{ background: 'hsl(215,83%,30%)', border: '1px solid hsl(215,83%,40%)' }}
+                                >
+                                    <History size={16} />
+                                    Ver Historial de Meses
+                                </button>
                             </div>
 
                             {/* ── Campos de texto ─────────────────────────── */}
@@ -950,6 +1017,57 @@ export default function GeneradorInformesPage() {
                     )}
                 </div>
             </div>
+
+            {/* Modal de Historial */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: 'hsl(222,47%,10%)', border: '1px solid hsl(222,47%,20%)' }}>
+                        <div className="flex justify-between items-center p-5 border-b border-white/10">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <History size={20} className="text-blue-400" />
+                                Historial de Meses Archivados
+                            </h2>
+                            <button onClick={() => setShowHistoryModal(false)} className="text-slate-400 hover:text-white transition">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-5 max-h-[60vh] overflow-y-auto">
+                            {archives.length === 0 ? (
+                                <p className="text-slate-400 text-center py-6">No tienes ningún mes archivado para esta plantilla aún.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {archives.map(arch => (
+                                        <div key={arch.id} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition">
+                                            <div>
+                                                <h3 className="font-bold text-white text-lg">{arch.month_name}</h3>
+                                                <p className="text-xs text-slate-400">Archivado el: {new Date(arch.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => loadHistoricalMonth(arch.id, arch.month_name)}
+                                                    className="px-3 py-1.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition text-sm font-semibold"
+                                                >
+                                                    Cargar Info
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteArchive(arch.id)}
+                                                    className="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-white/10 bg-black/20 text-xs text-slate-400">
+                            <AlertCircle size={14} className="inline mr-1 text-amber-500" />
+                            Nota: Cargar un mes histórico reemplazará el borrador que tengas actualmente en pantalla.
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
