@@ -206,7 +206,9 @@ function DashboardContent({ initialData }: DashboardClientProps) {
         } else if (view === 'grid' || view === 'cards') {
             setShowAnalytics(false);
         } else if (!view && !area) {
-            setShowAnalytics(true);
+            // Memory State: Restore last visited view, default to false (Programa Anual)
+            const savedView = localStorage.getItem('dashboard_last_view');
+            setShowAnalytics(savedView === 'analytics');
         }
 
         if (section && uniqueSections.some(s => s.id === section)) {
@@ -663,6 +665,11 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     </div>
                 </div>
 
+                {/* VISOR DE SALUD DE RED (Solo PC) */}
+                <div className="hidden lg:block w-full">
+                    <NetworkHealthWidget />
+                </div>
+
             {/* Header Area (Toolbar) */}
             <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800">
                 {!showAnalytics && (
@@ -751,6 +758,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                 params.delete('view');
                                 params.set('view', viewMode);
                             }
+                            localStorage.setItem('dashboard_last_view', newShow ? 'analytics' : 'program');
                             router.push(`?${params.toString()}`);
                             setShowAnalytics(newShow);
                         }}
