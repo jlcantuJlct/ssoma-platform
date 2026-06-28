@@ -45,6 +45,7 @@ import {
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import NetworkHealthWidget from '@/components/dashboard/NetworkHealthWidget';
 
 export default function Sidebar() {
     const { user } = useAuth();
@@ -117,6 +118,9 @@ export default function Sidebar() {
                         </h1>
                     </div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black">Sistema de Gestión</p>
+                    
+                    {/* Consumo de Red Compacto */}
+                    <NetworkHealthWidget />
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">

@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardData, Section, Activity, AuditLog, MONTHS } from "@/lib/types";
-import NetworkHealthWidget from "./NetworkHealthWidget";
 import { ActivityTable } from "./ActivityList";
 import { TableView } from "./TableView";
 import { DashboardCharts } from "./DashboardCharts";
@@ -662,11 +661,6 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                             Rastro
                         </button>
                     </div>
-                </div>
-
-                {/* VISOR DE SALUD DE RED (Visible en todos los dispositivos) */}
-                <div className="w-full my-4">
-                    <NetworkHealthWidget />
                 </div>
 
             {/* Header Area (Toolbar) */}
