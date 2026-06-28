@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardData, Section, Activity, AuditLog, MONTHS } from "@/lib/types";
+import NetworkHealthWidget from "./NetworkHealthWidget";
 import { ActivityTable } from "./ActivityList";
 import { TableView } from "./TableView";
 import { DashboardCharts } from "./DashboardCharts";
