@@ -206,8 +206,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
         } else if (view === 'grid' || view === 'cards') {
             setShowAnalytics(false);
         } else if (!view && !area) {
-            // SEGURIDAD DE DATOS: NUNCA recordar el dashboard pesado. Siempre iniciar en Programa Anual por defecto.
-            setShowAnalytics(false);
+            // El usuario solicitó explícitamente entrar al Dashboard, mostrar las gráficas oscuras.
+            setShowAnalytics(true);
         }
 
         if (section && uniqueSections.some(s => s.id === section)) {

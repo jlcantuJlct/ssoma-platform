@@ -130,8 +130,8 @@ export default function Sidebar() {
                         <SidebarItem
                             icon={<BarChart2 size={16} className="text-sky-400" />}
                             label="Dashboard"
-                            href="/"
-                            active={pathname === '/' && (!searchParams.get('view') || searchParams.get('view') === 'analytics')}
+                            href="/dashboard"
+                            active={pathname === '/dashboard'}
                         />
                         <SidebarItem icon={<Calendar size={16} className="text-emerald-400" />} label="Programa Anual" href="/program" active={pathname === '/program'} />
                     </div>
