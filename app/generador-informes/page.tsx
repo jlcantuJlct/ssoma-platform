@@ -135,6 +135,9 @@ export default function GeneradorInformesPage() {
     React.useEffect(() => {
         if (!templateFile || tags.length === 0) return;
         const interval = setInterval(() => {
+            // AHORRO INTELIGENTE: Si la pantalla está apagada, bloqueada o en otra pestaña, NO consumir datos.
+            if (document.hidden) return; 
+
             const docType = templateFile.name;
             fetch(`/api/draft?docType=${docType}`).then(r => r.json()).then(data => {
                 if (data.fields) {
