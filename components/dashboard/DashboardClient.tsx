@@ -664,8 +664,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     </div>
                 </div>
 
-                {/* VISOR DE SALUD DE RED (Oculto solo en móviles pequeños) */}
-                <div className="hidden md:block w-full my-4">
+                {/* VISOR DE SALUD DE RED (Visible en todos los dispositivos) */}
+                <div className="w-full my-4">
                     <NetworkHealthWidget />
                 </div>
 
