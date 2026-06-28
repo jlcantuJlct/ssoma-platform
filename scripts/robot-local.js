@@ -12,7 +12,7 @@ require('node:dns').setDefaultResultOrder('ipv4first');
 const BASE_URL = "https://ssoma-platform.vercel.app"; // Cambiado para pruebas locales (antes era https://ssoma-platform.vercel.app)
 const API_BASE_URL = `${BASE_URL}/api/export-center`;
 const CRON_SECRET = "ssoma_cron_2026"; // Debe coincidir con el del servidor
-const POLLING_INTERVAL = 5000; // 5 segundos
+const POLLING_INTERVAL = 15000; // 15 segundos (aumentado para ahorrar datos de Supabase)
 
 // Carpetas de Escritorio
 const DESKTOP_PATH = path.join(os.homedir(), 'Desktop');
@@ -440,39 +440,80 @@ async function processRequest(request) {
     }
 }
 
-async function poll() {
-    process.stdout.write(".");
+let isProcessing = false;
+
+async function checkPendingTasks() {
+    if (isProcessing) return;
+    isProcessing = true;
+    
     const url = `${API_BASE_URL}?action=get-pending`;
     
-    require('https').get(url, {
-        headers: { 'Authorization': `Bearer ${CRON_SECRET}` }
-    }, (res) => {
-        let body = '';
-        res.on('data', (chunk) => body += chunk);
-        res.on('end', async () => {
-            try {
-                const data = JSON.parse(body);
-                if (data.success && data.requests && data.requests.length > 0) {
-                    console.log(`\n🔔 Se encontraron ${data.requests.length} solicitudes pendientes.`);
-                    for (const req of data.requests) {
-                        await processRequest(req);
+    return new Promise((resolve) => {
+        require('https').get(url, {
+            headers: { 'Authorization': `Bearer ${CRON_SECRET}` }
+        }, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    if (data.success && data.requests && data.requests.length > 0) {
+                        console.log(`\n🔔 Se encontraron ${data.requests.length} solicitudes pendientes.`);
+                        for (const req of data.requests) {
+                            await processRequest(req);
+                        }
                     }
-                }
-            } catch (e) {}
-            setTimeout(poll, POLLING_INTERVAL);
+                } catch (e) {}
+                isProcessing = false;
+                resolve();
+            });
+        }).on('error', (e) => {
+            console.error(`\n❌ Error de conexión: ${e.message}`);
+            isProcessing = false;
+            resolve();
         });
-    }).on('error', (e) => {
-        console.error(`\n❌ Error de conexión: ${e.message}`);
-        console.log(`⏳ El robot intentará reconectarse automáticamente en 5 segundos...`);
-        setTimeout(poll, POLLING_INTERVAL);
     });
 }
 
-console.log("=================================================");
-console.log("   ROBOT LOCAL DE EXPORTACIÓN SSOMA v1.0");
-console.log("=================================================");
-console.log(`📡 Polleando: ${API_BASE_URL}`);
-console.log(`🏠 Escritorio: ${DESKTOP_PATH}`);
-console.log("Escaneando solicitudes...");
+const http = require('http');
+const server = http.createServer((req, res) => {
+    // Configurar CORS para permitir que la web se conecte
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+    
+    if (req.url === '/trigger') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        console.log("\n⚡ ¡Orden recibida desde la web! Activando descarga inmediata...");
+        checkPendingTasks();
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
 
-poll();
+// Polling de respaldo muy lento (cada 5 minutos) por si falla la conexión web
+async function fallbackPoll() {
+    const horaActual = new Date().getHours();
+    if (horaActual >= 7 && horaActual <= 19) {
+        await checkPendingTasks();
+    }
+    setTimeout(fallbackPoll, 300000); // 5 minutos
+}
+
+console.log("=================================================");
+console.log("   ROBOT LOCAL DE EXPORTACIÓN SSOMA v2.0");
+console.log("=================================================");
+console.log(`📡 Conectado a: ${API_BASE_URL}`);
+console.log(`🏠 Escritorio: ${DESKTOP_PATH}`);
+
+server.listen(3005, '127.0.0.1', () => {
+    console.log(`\n🟢 Robot listo. Escuchando órdenes inmediatas desde la web...`);
+    fallbackPoll(); // Iniciar respaldo
+});

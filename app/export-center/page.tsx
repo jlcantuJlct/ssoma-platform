@@ -60,6 +60,11 @@ export default function ExportCenterPage() {
                     message: '⏳ Solicitud enviada. El Robot Local está trabajando... Por favor, no cierres esta ventana.' 
                 });
 
+                // Despertar al robot local INMEDIATAMENTE
+                try {
+                    fetch('http://127.0.0.1:3005/trigger', { mode: 'no-cors' }).catch(() => {});
+                } catch (e) {}
+
                 // Polling for completion
                 const pollInterval = setInterval(async () => {
                     try {
