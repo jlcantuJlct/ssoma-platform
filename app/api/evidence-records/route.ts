@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
         // MIGRATION: Convert old 'EMO' objective to 'OBJ 05'
         await db.execute("UPDATE evidence_center_records SET objective = 'OBJ 05' WHERE objective = 'EMO'");
 
-        let rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
+        // OPTIMIZATION: Push limit to database level to avoid pulling tens of thousands of rows into Vercel memory
+        let rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC LIMIT 500');
         
         // Deduplicate and filter in JS for better fuzzy matching
         const uniqueRecords = [];

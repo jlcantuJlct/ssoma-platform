@@ -173,9 +173,8 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
     };
 
     useEffect(() => {
-        loadRecords(); // Primera carga NO es silenciosa para que veas que funciona
-        const interval = setInterval(() => loadRecords(true), 30000); // Sincronización de fondo SILENCIOSA
-        return () => clearInterval(interval);
+        loadRecords(); // Carga inicial
+        // INTERVALO DE 30s ELIMINADO PARA AHORRO MASIVO DE DATOS
     }, []);
 
     // SAVE DATA - Local + Cloud sync
@@ -586,9 +585,18 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
                     </h1>
                     <p className="text-slate-400 font-medium">Registro de Exámenes Médicos Ocupacionales</p>
                 </div>
-                <div className="bg-slate-950 px-6 py-3 rounded-xl border border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Registros</p>
-                    <p className="text-2xl font-black text-white">{records.length}</p>
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => loadRecords(true)}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors border border-slate-700 hover:border-slate-600"
+                    >
+                        <span>🔄</span>
+                        Actualizar
+                    </button>
+                    <div className="bg-slate-950 px-6 py-3 rounded-xl border border-slate-800">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Registros</p>
+                        <p className="text-2xl font-black text-white">{records.length}</p>
+                    </div>
                 </div>
             </header>
 
