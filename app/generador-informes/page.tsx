@@ -131,32 +131,12 @@ export default function GeneradorInformesPage() {
     }, [tags, templateFile]);
 
     
-    // Polling background sync
+    // Carga inicial y auto-guardado manejan toda la sincronización
     React.useEffect(() => {
-        if (!templateFile || tags.length === 0) return;
-        const interval = setInterval(() => {
-            const docType = templateFile.name;
-            fetch(`/api/draft?docType=${docType}`).then(r => r.json()).then(data => {
-                if (data.fields) {
-                    setTags(prev => prev.map(t => {
-                        if (data.fields[t.name]) {
-                            if (t.type === 'image' && t.remoteUrl !== data.fields[t.name]) {
-                                return { ...t, remoteUrl: data.fields[t.name], preview: data.fields[t.name] };
-                            }
-                            if (t.type === 'text' && t.value !== data.fields[t.name]) {
-                                // Only overwrite text if the local field is empty to avoid overwriting typing
-                                if (!t.value) {
-                                    return { ...t, value: data.fields[t.name] };
-                                }
-                            }
-                        }
-                        return t;
-                    }));
-                }
-            }).catch(() => {});
-        }, 60000); // 60 seconds for background sync (90% menos consumo que los 5s originales)
-        return () => clearInterval(interval);
-    }, [templateFile, tags.length]);
+        // El polling fue eliminado para mantener el consumo en Cero absoluto.
+        // La información se actualiza automáticamente al cargar la plantilla (loadDraft)
+        // y se guarda automáticamente al editar/subir (saveDraftTimeout).
+    }, []);
 
 
     const templateInputRef = useRef<HTMLInputElement>(null);
