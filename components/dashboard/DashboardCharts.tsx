@@ -207,10 +207,6 @@ export function DashboardCharts({
             }
         };
         loadAllRecords();
-        const syncInterval = setInterval(() => {
-            if (!document.hidden) loadAllRecords();
-        }, 60000); // Sync every min only if active
-        return () => clearInterval(syncInterval);
     }, []);
 
     // --- HHC DRAFT LOGIC ---
