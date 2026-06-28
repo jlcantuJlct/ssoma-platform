@@ -6,6 +6,7 @@ import {
     Sparkles, CheckCircle, AlertCircle, Eye, X, Loader2,
     Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw
 } from 'lucide-react';
+import { compressImage } from '@/lib/uploadClient';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 interface DetectedTag {
@@ -153,7 +154,7 @@ export default function GeneradorInformesPage() {
                     }));
                 }
             }).catch(() => {});
-        }, 5000); // 5 seconds for snappy sync
+        }, 60000); // 60 seconds for background sync (90% menos consumo que los 5s originales)
         return () => clearInterval(interval);
     }, [templateFile, tags.length]);
 
@@ -353,12 +354,24 @@ export default function GeneradorInformesPage() {
         ));
 
         try {
-            const ext = file.name.split('.').pop();
+            const ext = file.name.split('.').pop() || 'jpg';
+            
+            // COMPRESIÓN DE IMAGEN: Reducir drásticamente el peso antes de subir a Supabase
+            let finalFile = file;
+            if (file.type.startsWith('image/')) {
+                try {
+                    finalFile = await compressImage(file, 1280, 0.8);
+                } catch (e) {
+                    console.warn("No se pudo comprimir la imagen, usando original.", e);
+                }
+            }
+
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', finalFile);
+            
             const res = await fetch(`/api/draft/image?filename=${tagName}_${Date.now()}.${ext}`, {
                 method: 'POST',
-                body: file
+                body: finalFile
             });
             if (res.ok) {
                 const blob = await res.json();

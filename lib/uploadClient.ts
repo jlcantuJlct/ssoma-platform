@@ -96,7 +96,7 @@ async function compressPdf(
  * Compresses an image file before upload to stay within typical 
  * serverless body size limits (e.g. Vercel's 4.5MB).
  */
-async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promise<File> {
+export async function compressImage(file: File, maxWidth = 1280, quality = 0.8): Promise<File> {
     const imgText = file.type.toLowerCase();
     if (!imgText.includes('jpeg') && !imgText.includes('png') && !imgText.includes('jpg')) {
         return file; // No es una imagen comprimible fácilmente con este método
