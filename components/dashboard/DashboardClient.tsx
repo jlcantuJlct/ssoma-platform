@@ -206,9 +206,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
         } else if (view === 'grid' || view === 'cards') {
             setShowAnalytics(false);
         } else if (!view && !area) {
-            // Memory State: Restore last visited view, default to false (Programa Anual)
-            const savedView = localStorage.getItem('dashboard_last_view');
-            setShowAnalytics(savedView === 'analytics');
+            // SEGURIDAD DE DATOS: NUNCA recordar el dashboard pesado. Siempre iniciar en Programa Anual por defecto.
+            setShowAnalytics(false);
         }
 
         if (section && uniqueSections.some(s => s.id === section)) {
@@ -758,7 +757,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                 params.delete('view');
                                 params.set('view', viewMode);
                             }
-                            localStorage.setItem('dashboard_last_view', newShow ? 'analytics' : 'program');
+                            // Eliminado: No guardaremos esto en localStorage para obligar al usuario a hacer click manual
                             router.push(`?${params.toString()}`);
                             setShowAnalytics(newShow);
                         }}
