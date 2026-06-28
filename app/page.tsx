@@ -60,6 +60,10 @@ export default async function Home() {
       {/* Header Removed - Integrated into DashboardClient */}
       <h1 className="text-center text-xs text-gray-500 font-bold text-emerald-500">v2026.5.05 - MULTI-FILE & PDF-JS READY</h1>
 
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 mt-4 mx-auto max-w-4xl rounded shadow-sm text-center font-bold text-lg animate-pulse">
+        🚨 ALERTA: Tienes hasta el 18 de Julio para cancelar el Plan Pro de Supabase 🚨
+      </div>
+
       {/* Main Client Dashboard */}
       <DashboardClient initialData={dashboardData} />
     </div>
