@@ -153,7 +153,7 @@ export default function GeneradorInformesPage() {
                     }));
                 }
             }).catch(() => {});
-        }, 600000); // 10 minutos (600,000 ms)
+        }, 60000); // 1 minuto (60,000 ms)
         return () => clearInterval(interval);
     }, [templateFile, tags.length]);
 
