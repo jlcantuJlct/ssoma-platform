@@ -300,9 +300,10 @@ export default function GeneradorInformesPage() {
         
         setTimeout(() => {
             setTags(detected);
+            loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300); // Pequeño delay visual para que el usuario perciba la acción
-    }, []);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Chinchaysullo automáticamente desde el servidor ────
     const loadChinchaysullo = useCallback(async () => {
@@ -326,9 +327,10 @@ export default function GeneradorInformesPage() {
         
         setTimeout(() => {
             setTags(detected);
+            loadDraft('PAD_CHINCHAYSULLO_INTERNAL.docx', detected);
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, []);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Jahuay automáticamente desde el servidor ───────────
     const loadJahuay = useCallback(async () => {
@@ -352,9 +354,10 @@ export default function GeneradorInformesPage() {
         
         setTimeout(() => {
             setTags(detected);
+            loadDraft('PAD_JAHUAY_INTERNAL.docx', detected);
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, []);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Barandas automáticamente desde el servidor ─────────
     const loadBarandas = useCallback(async () => {
@@ -378,9 +381,10 @@ export default function GeneradorInformesPage() {
         
         setTimeout(() => {
             setTags(detected);
+            loadDraft('PAD_BARANDAS_INTERNAL.docx', detected);
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, []);
+    }, [loadDraft]);
 
     // ─── Drop de plantilla ───────────────────────────────────────────────────
     const handleTemplateDrop = (e: React.DragEvent) => {
