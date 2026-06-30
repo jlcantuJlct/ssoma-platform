@@ -127,7 +127,15 @@ export default function GeneradorInformesPage() {
     const [status, setStatus] = useState<ProcessingStatus>({ stage: 'idle', message: '', progress: 0 });
     const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
-    const [referenceMap, setReferenceMap] = useState<Record<string, string>>({});
+    const [allReferences, setAllReferences] = useState<Record<string, Record<string, string>>>({});
+
+    // Cargar mapa estático en background al entrar a la página (Carga ultra veloz)
+    React.useEffect(() => {
+        fetch('/references_map.json')
+            .then(r => r.json())
+            .then(data => setAllReferences(data))
+            .catch(() => {});
+    }, []);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [archives, setArchives] = useState<any[]>([]);
     // --- Autoguardado Colaborativo ---
@@ -279,27 +287,12 @@ export default function GeneradorInformesPage() {
 
             setTags(detected);
             loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
-            loadReferences('PAD_SAN_CLEMENTE_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (${textTags.length} texto, ${imageTags.length} fotos)`, progress: 100 });
 
         } catch (e: any) {
             setStatus({ stage: 'error', message: `❌ Error: ${e.message}`, progress: 0 });
         }
     }, []);
-
-    
-    const loadReferences = useCallback(async (docType: string) => {
-        try {
-            const res = await fetch('/references_map.json');
-            if (res.ok) {
-                const data = await res.json();
-                setReferenceMap(data[docType] || {});
-            }
-        } catch (e) {
-            console.error('Error loading references', e);
-        }
-    }, []);
-
     // ─── Cargar plantilla San Clemente automáticamente desde el servidor ────
     const loadSanClemente = useCallback(async () => {
         // En lugar de descargar 137MB al navegador y colapsar la memoria (Aw, Snap),
@@ -327,10 +320,9 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
-            loadReferences('PAD_SAN_CLEMENTE_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300); // Pequeño delay visual para que el usuario perciba la acción
-    }, [loadDraft, loadReferences]);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Chinchaysullo automáticamente desde el servidor ────
     const loadChinchaysullo = useCallback(async () => {
@@ -355,10 +347,9 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_CHINCHAYSULLO_INTERNAL.docx', detected);
-            loadReferences('PAD_CHINCHAYSULLO_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft, loadReferences]);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Jahuay automáticamente desde el servidor ───────────
     const loadJahuay = useCallback(async () => {
@@ -383,10 +374,9 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_JAHUAY_INTERNAL.docx', detected);
-            loadReferences('PAD_JAHUAY_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft, loadReferences]);
+    }, [loadDraft]);
 
     // ─── Cargar plantilla Barandas automáticamente desde el servidor ─────────
     const loadBarandas = useCallback(async () => {
@@ -411,10 +401,9 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_BARANDAS_INTERNAL.docx', detected);
-            loadReferences('PAD_BARANDAS_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft, loadReferences]);
+    }, [loadDraft]);
 
     // ─── Drop de plantilla ───────────────────────────────────────────────────
     const handleTemplateDrop = (e: React.DragEvent) => {
@@ -1115,7 +1104,7 @@ export default function GeneradorInformesPage() {
                                                 key={tag.name}
                                                 tag={tag}
                                                 docType={templateFile?.name || ''}
-                                                refSrc={referenceMap[tag.name.toLowerCase()]}
+                                                refSrc={allReferences[templateFile?.name || '']?.[tag.name.toLowerCase()]}
                                                 isDragOver={dragOverTag === tag.name}
                                                 onDragOver={e => { e.preventDefault(); setDragOverTag(tag.name); }}
                                                 onDragLeave={() => setDragOverTag(null)}
