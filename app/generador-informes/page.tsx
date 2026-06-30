@@ -1147,21 +1147,19 @@ const EXTS = ['png', 'jpg', 'jpeg'];
 // Hook: resuelve la primera URL estática que existe para esta imagen.
 // Resultado cacheado en localStorage para que sea instantáneo en el futuro.
 function useRefSrc(tagName: string, docType: string): string {
-    const [src, setSrc] = React.useState<string>('');
+    const cacheKey = `ref_img_${docType}_${tagName}`;
+    
+    // Inicializar directamente desde la memoria (Elimina el parpadeo de React)
+    const [src, setSrc] = React.useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            try { return localStorage.getItem(cacheKey) || ''; } catch(e) {}
+        }
+        return '';
+    });
 
     React.useEffect(() => {
         if (src) return; // ya resuelta en estado
-        const cacheKey = `ref_img_${docType}_${tagName}`;
         
-        // 1. Intentar recuperar de memoria instantánea
-        try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                setSrc(cached);
-                return;
-            }
-        } catch (e) {}
-
         const folder = FOLDER_BY_DOC[docType] ?? 'referencias_pad';
         let cancelled = false;
         (async () => {
@@ -1291,7 +1289,7 @@ function ImageDropZone({
                                 <img
                                     src={refSrc}
                                     alt="Referencia"
-                                    loading="lazy"
+                                    loading="eager"
                                     className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity pointer-events-none mix-blend-screen"
                                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
