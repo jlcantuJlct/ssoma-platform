@@ -290,10 +290,10 @@ export default function GeneradorInformesPage() {
     
     const loadReferences = useCallback(async (docType: string) => {
         try {
-            const res = await fetch(`/api/references?docType=${docType}`);
+            const res = await fetch('/references_map.json');
             if (res.ok) {
                 const data = await res.json();
-                setReferenceMap(data.references || {});
+                setReferenceMap(data[docType] || {});
             }
         } catch (e) {
             console.error('Error loading references', e);
@@ -1350,6 +1350,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
         </div>
     );
 }
+
 
 
 
