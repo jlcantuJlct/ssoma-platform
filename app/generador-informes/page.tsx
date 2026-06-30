@@ -1145,12 +1145,23 @@ const FOLDER_BY_DOC: Record<string, string> = {
 const EXTS = ['png', 'jpg', 'jpeg'];
 
 // Hook: resuelve la primera URL estática que existe para esta imagen.
-// Resultado cacheado en sessionStorage para que no vuelva a intentar en la misma sesión.
+// Resultado cacheado en localStorage para que sea instantáneo en el futuro.
 function useRefSrc(tagName: string, docType: string): string {
     const [src, setSrc] = React.useState<string>('');
 
     React.useEffect(() => {
-        if (src) return; // ya resuelta (sessionStorage o estado previo)
+        if (src) return; // ya resuelta en estado
+        const cacheKey = `ref_img_${docType}_${tagName}`;
+        
+        // 1. Intentar recuperar de memoria instantánea
+        try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                setSrc(cached);
+                return;
+            }
+        } catch (e) {}
+
         const folder = FOLDER_BY_DOC[docType] ?? 'referencias_pad';
         let cancelled = false;
         (async () => {
@@ -1159,8 +1170,8 @@ function useRefSrc(tagName: string, docType: string): string {
                 try {
                     const r = await fetch(url, { method: 'HEAD' });
                     if (!cancelled && r.ok) {
-                        
                         setSrc(url);
+                        try { localStorage.setItem(cacheKey, url); } catch (e) {}
                         return;
                     }
                 } catch { /* ignorar */ }
