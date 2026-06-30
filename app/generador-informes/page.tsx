@@ -145,13 +145,24 @@ export default function GeneradorInformesPage() {
                         return t;
                     }));
 
-                    // Cargar imágenes desde caché local asíncronamente
+                    // Cargar imágenes desde caché local en BLOQUE para máxima velocidad
+                    const updates = [];
                     for (const t of currentTags) {
                         if (t.type === 'image' && fields[t.name]) {
-                            getCachedImageURL(fields[t.name]).then(localUrl => {
-                                setTags(prev => prev.map(pt => pt.name === t.name ? { ...pt, preview: localUrl } : pt));
-                            });
+                            updates.push(getCachedImageURL(fields[t.name]).then(url => ({ name: t.name, url })));
                         }
+                    }
+                    if (updates.length > 0) {
+                        Promise.all(updates).then(results => {
+                            setTags(prev => {
+                                const m = [...prev];
+                                for (const res of results) {
+                                    const idx = m.findIndex(pt => pt.name === res.name);
+                                    if (idx !== -1) m[idx] = { ...m[idx], preview: res.url };
+                                }
+                                return m;
+                            });
+                        });
                     }
                 }
             }
@@ -200,7 +211,7 @@ export default function GeneradorInformesPage() {
                                 getCachedImageURL(data.fields[t.name]).then(localUrl => {
                                     setTags(current => current.map(pt => pt.name === t.name ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl } : pt));
                                 });
-                                return t; // El async se encarga de actualizar
+                                return t;
                             }
                             if (t.type === 'text' && t.value !== data.fields[t.name]) {
                                 if (!t.value) {
@@ -507,14 +518,29 @@ export default function GeneradorInformesPage() {
                         if (t.type === 'text') newTag.value = data.fields[t.name];
                         if (t.type === 'image') {
                             newTag.remoteUrl = data.fields[t.name];
-                            // Cargar desde caché en vez de gastar datos
-                            getCachedImageURL(data.fields[t.name]).then(localUrl => {
-                                setTags(current => current.map(pt => pt.name === t.name ? { ...pt, preview: localUrl } : pt));
-                            });
                         }
                     }
                     return newTag;
-                }));
+                });
+
+                const updates = [];
+                for (const t of newTags) {
+                    if (t.type === 'image' && t.remoteUrl) {
+                        updates.push(getCachedImageURL(t.remoteUrl).then(url => ({ name: t.name, url })));
+                    }
+                }
+                if (updates.length > 0) {
+                    Promise.all(updates).then(results => {
+                        setTags(prev => {
+                            const m = [...prev];
+                            for (const res of results) {
+                                const idx = m.findIndex(pt => pt.name === res.name);
+                                if (idx !== -1) m[idx] = { ...m[idx], preview: res.url };
+                            }
+                            return m;
+                        });
+                    });
+                }
             }
             setShowHistoryModal(false);
             setStatus({ stage: 'ready', message: `✅ Histórico cargado: ${monthName}`, progress: 100 });
