@@ -4,7 +4,7 @@ import path from 'path';
 
 const FOLDER_BY_DOC: Record<string, string> = {
     'PAD_SAN_CLEMENTE_INTERNAL.docx': 'referencias_pad',
-    'PAD_CHINCHAYSULLO_INTERNAL.docx': 'referencias_chinchaysullo',
+    'PAD_CHINCHAYSULLO_INTERNAL.docx': 'referencias_chincha',
     'PAD_JAHUAY_INTERNAL.docx': 'referencias_jahuay',
     'PAD_BARANDAS_INTERNAL.docx': 'referencias_barandas'
 };
@@ -34,3 +34,4 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ references: validReferences });
 }
+
