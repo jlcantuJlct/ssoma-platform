@@ -521,14 +521,16 @@ export default function GeneradorInformesPage() {
                         }
                     }
                     return newTag;
-                });
+                }));
 
                 const updates = [];
-                for (const t of newTags) {
-                    if (t.type === 'image' && t.remoteUrl) {
-                        updates.push(getCachedImageURL(t.remoteUrl).then(url => ({ name: t.name, url })));
+                Object.keys(data.fields).forEach(key => {
+                    const val = data.fields[key];
+                    if (typeof val === 'string' && (val.startsWith('http') || val.includes('/'))) {
+                        updates.push(getCachedImageURL(val).then(url => ({ name: key, url })));
                     }
-                }
+                });
+
                 if (updates.length > 0) {
                     Promise.all(updates).then(results => {
                         setTags(prev => {
