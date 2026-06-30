@@ -127,6 +127,7 @@ export default function GeneradorInformesPage() {
     const [status, setStatus] = useState<ProcessingStatus>({ stage: 'idle', message: '', progress: 0 });
     const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
+    const [referenceMap, setReferenceMap] = useState<Record<string, string>>({});
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [archives, setArchives] = useState<any[]>([]);
     // --- Autoguardado Colaborativo ---
@@ -267,10 +268,24 @@ export default function GeneradorInformesPage() {
 
             setTags(detected);
             loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
+            loadReferences('PAD_SAN_CLEMENTE_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (${textTags.length} texto, ${imageTags.length} fotos)`, progress: 100 });
 
         } catch (e: any) {
             setStatus({ stage: 'error', message: `❌ Error: ${e.message}`, progress: 0 });
+        }
+    }, []);
+
+    
+    const loadReferences = useCallback(async (docType: string) => {
+        try {
+            const res = await fetch(`/api/references?docType=${docType}`);
+            if (res.ok) {
+                const data = await res.json();
+                setReferenceMap(data.references || {});
+            }
+        } catch (e) {
+            console.error('Error loading references', e);
         }
     }, []);
 
@@ -301,9 +316,10 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_SAN_CLEMENTE_INTERNAL.docx', detected);
+            loadReferences('PAD_SAN_CLEMENTE_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300); // Pequeño delay visual para que el usuario perciba la acción
-    }, [loadDraft]);
+    }, [loadDraft, loadReferences]);
 
     // ─── Cargar plantilla Chinchaysullo automáticamente desde el servidor ────
     const loadChinchaysullo = useCallback(async () => {
@@ -328,9 +344,10 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_CHINCHAYSULLO_INTERNAL.docx', detected);
+            loadReferences('PAD_CHINCHAYSULLO_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft]);
+    }, [loadDraft, loadReferences]);
 
     // ─── Cargar plantilla Jahuay automáticamente desde el servidor ───────────
     const loadJahuay = useCallback(async () => {
@@ -355,9 +372,10 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_JAHUAY_INTERNAL.docx', detected);
+            loadReferences('PAD_JAHUAY_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft]);
+    }, [loadDraft, loadReferences]);
 
     // ─── Cargar plantilla Barandas automáticamente desde el servidor ─────────
     const loadBarandas = useCallback(async () => {
@@ -382,9 +400,10 @@ export default function GeneradorInformesPage() {
         setTimeout(() => {
             setTags(detected);
             loadDraft('PAD_BARANDAS_INTERNAL.docx', detected);
+            loadReferences('PAD_BARANDAS_INTERNAL.docx');
             setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
         }, 300);
-    }, [loadDraft]);
+    }, [loadDraft, loadReferences]);
 
     // ─── Drop de plantilla ───────────────────────────────────────────────────
     const handleTemplateDrop = (e: React.DragEvent) => {
@@ -1067,7 +1086,8 @@ export default function GeneradorInformesPage() {
                                             <ImageDropZone
                                                 key={tag.name}
                                                 tag={tag}
-                                                docType={(templateFile?.name || '').includes('CHINCHAYSULLO') ? 'chincha' : (templateFile?.name || '').includes('JAHUAY') ? 'jahuay' : (templateFile?.name || '').includes('BARANDAS') ? 'barandas' : 'pad'}
+                                                docType={templateFile?.name || ''}
+                                                refSrc={referenceMap[tag.name.toLowerCase()]}
                                                 isDragOver={dragOverTag === tag.name}
                                                 onDragOver={e => { e.preventDefault(); setDragOverTag(tag.name); }}
                                                 onDragLeave={() => setDragOverTag(null)}
@@ -1148,50 +1168,10 @@ const FOLDER_BY_DOC: Record<string, string> = {
 // Extensiones a intentar en orden (sin pasar por la API)
 const EXTS = ['png', 'jpg', 'jpeg'];
 
-// Hook: resuelve la primera URL estática que existe para esta imagen.
-// Resultado cacheado en localStorage para que sea instantáneo en el futuro.
-function useRefSrc(tagName: string, docType: string): string {
-    const cacheKey = `ref_img_${docType}_${tagName}`;
-    
-    // Inicializar directamente desde la memoria (Elimina el parpadeo de React)
-    const [src, setSrc] = React.useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            try { return localStorage.getItem(cacheKey) || ''; } catch(e) {}
-        }
-        return '';
-    });
-
-    React.useEffect(() => {
-        if (src) return; // ya resuelta en estado
-        
-        const folder = FOLDER_BY_DOC[docType] ?? 'referencias_pad';
-        let cancelled = false;
-        (async () => {
-            for (const ext of EXTS) {
-                const url = `/${folder}/${tagName}.${ext}?v=2`;
-                try {
-                    const r = await fetch(url, { method: 'HEAD' });
-                    if (!cancelled && r.ok) {
-                        setSrc(url);
-                        try { localStorage.setItem(cacheKey, url); } catch (e) {}
-                        return;
-                    }
-                } catch { /* ignorar */ }
-            }
-        })();
-        return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tagName, docType]);
-
-    return src;
-}
-
-// ─── Sub-componente: zona de imagen ──────────────────────────────────────────
-function ImageDropZone({
-    tag, docType, isDragOver, onDragOver, onDragLeave, onDrop, onFileChange, onClear
+function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLeave, onDrop, onFileChange, onClear
 }: {
     tag: DetectedTag;
-    docType: 'chincha' | 'pad' | 'jahuay' | 'barandas';
+    docType: string; refSrc?: string;
     isDragOver: boolean;
     onDragOver: React.DragEventHandler;
     onDragLeave: React.DragEventHandler;
@@ -1201,8 +1181,6 @@ function ImageDropZone({
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [showPreview, setShowPreview] = useState(false);
-    const refSrc = useRefSrc(tag.name, docType);
-
     return (
         <div>
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'hsl(215,20%,60%)' }}>
@@ -1344,3 +1322,6 @@ function ImageDropZone({
         </div>
     );
 }
+
+
+
