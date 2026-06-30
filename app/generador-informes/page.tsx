@@ -80,6 +80,47 @@ const compressImage = (file) => {
     });
 };
 
+// ─── Lógica de Caché Local (Cero Consumo) ─────────────────────────────────
+async function cacheImageURL(remoteUrl: string, blob: Blob) {
+    if (typeof window === 'undefined') return;
+    try {
+        const cache = await caches.open('ssoma-image-cache-v1');
+        await cache.put(remoteUrl, new Response(blob));
+    } catch (e) {
+        console.error("Error guardando en caché local:", e);
+    }
+}
+
+async function getCachedImageURL(remoteUrl: string): Promise<string> {
+    if (typeof window === 'undefined') return remoteUrl;
+    try {
+        const cache = await caches.open('ssoma-image-cache-v1');
+        const response = await cache.match(remoteUrl);
+        if (response) {
+            const blob = await response.blob();
+            return URL.createObjectURL(blob); // Retorna desde disco ($0 consumo)
+        } else {
+            // Si no está, la descargamos UNA VEZ y la guardamos
+            const fetchRes = await fetch(remoteUrl);
+            if (fetchRes.ok) {
+                const blob = await fetchRes.blob();
+                await cache.put(remoteUrl, new Response(blob));
+                return URL.createObjectURL(blob);
+            }
+        }
+    } catch (e) {
+        console.error("Error leyendo caché local:", e);
+    }
+    return remoteUrl; // fallback
+}
+
+async function clearImageCache() {
+    if (typeof window === 'undefined') return;
+    try {
+        await caches.delete('ssoma-image-cache-v1');
+    } catch (e) {}
+}
+
 export default function GeneradorInformesPage() {
     const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [tags, setTags] = useState<DetectedTag[]>([]);
@@ -98,10 +139,19 @@ export default function GeneradorInformesPage() {
                     setTags(prev => prev.map(t => {
                         if (fields[t.name]) {
                             if (t.type === 'text') return { ...t, value: fields[t.name] };
-                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name], preview: fields[t.name] };
+                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name] }; // No set preview yet
                         }
                         return t;
                     }));
+
+                    // Cargar imágenes desde caché local asíncronamente
+                    for (const t of currentTags) {
+                        if (t.type === 'image' && fields[t.name]) {
+                            getCachedImageURL(fields[t.name]).then(localUrl => {
+                                setTags(prev => prev.map(pt => pt.name === t.name ? { ...pt, preview: localUrl } : pt));
+                            });
+                        }
+                    }
                 }
             }
         } catch (e) {
@@ -146,7 +196,10 @@ export default function GeneradorInformesPage() {
                     setTags(prev => prev.map(t => {
                         if (data.fields[t.name]) {
                             if (t.type === 'image' && t.remoteUrl !== data.fields[t.name]) {
-                                return { ...t, remoteUrl: data.fields[t.name], preview: data.fields[t.name] };
+                                getCachedImageURL(data.fields[t.name]).then(localUrl => {
+                                    setTags(current => current.map(pt => pt.name === t.name ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl } : pt));
+                                });
+                                return t; // El async se encarga de actualizar
                             }
                             if (t.type === 'text' && t.value !== data.fields[t.name]) {
                                 if (!t.value) {
@@ -378,9 +431,12 @@ export default function GeneradorInformesPage() {
                 body: finalFile
             });
             if (res.ok) {
-                const blob = await res.json();
+                const blobUrl = await res.json();
+                // 1. Guardar en caché local para que no consuma datos mañana
+                await cacheImageURL(blobUrl.url, file);
+
                 setTags(prev => prev.map(t =>
-                    t.name === tagName ? { ...t, remoteUrl: blob.url, loading: false } : t
+                    t.name === tagName ? { ...t, remoteUrl: blobUrl.url, loading: false } : t
                 ));
             } else {
                 setTags(prev => prev.map(t => t.name === tagName ? { ...t, loading: false } : t));
@@ -428,7 +484,10 @@ export default function GeneradorInformesPage() {
                         if (t.type === 'text') newTag.value = data.fields[t.name];
                         if (t.type === 'image') {
                             newTag.remoteUrl = data.fields[t.name];
-                            newTag.preview = data.fields[t.name];
+                            // Cargar desde caché en vez de gastar datos
+                            getCachedImageURL(data.fields[t.name]).then(localUrl => {
+                                setTags(current => current.map(pt => pt.name === t.name ? { ...pt, preview: localUrl } : pt));
+                            });
                         }
                     }
                     return newTag;
@@ -477,6 +536,9 @@ export default function GeneradorInformesPage() {
 
             // Limpiar el borrador activo para el nuevo mes
             await fetch(`/api/draft?docType=${docType}`, { method: 'DELETE' });
+            
+            // Purgar caché local para liberar memoria del navegador
+            await clearImageCache();
             
             // Reload clean template
             if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') loadSanClemente();
