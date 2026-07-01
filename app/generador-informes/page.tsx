@@ -1083,7 +1083,7 @@ export default function GeneradorInformesPage() {
                                                     value={tag.value || ''}
                                                     onChange={e => updateTextValue(tag.name, e.target.value)}
                                                     placeholder={`Escribe ${tag.label.toLowerCase()}…`}
-                                                    className="w-full px-2 py-1.5 rounded-lg text-sm text-white outline-none transition-colors"
+                                                    className="w-full p-1.5 rounded-md text-sm text-white outline-none transition-colors"
                                                     style={{
                                                         background: 'hsl(222,47%,12%)',
                                                         border: tag.value ? '1px solid hsl(161,94%,30%)' : '1px solid hsl(222,47%,18%)',
@@ -1275,29 +1275,29 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </div>
                         )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5"
+                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-start gap-1.5 pt-4 pb-2"
                              style={{ zIndex: 10 }}>
                             <div className="flex gap-2">
                                 <button
                                     onClick={e => { e.stopPropagation(); setShowPreview(true); }}
-                                    className="px-2 py-1.5 rounded-lg bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
+                                    className="p-1.5 rounded-md bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
                                     title="Ver foto"
                                 >
-                                    <Eye size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Ver</span>
+                                    <Eye size={14} className="text-white" />
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
-                                    className="px-2 py-1.5 rounded-lg bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
+                                    className="p-1.5 rounded-md bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
                                     title="Cambiar foto"
                                 >
-                                    <Upload size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Actualizar</span>
+                                    <Upload size={14} className="text-white" />
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); onClear(); }}
-                                    className="px-2 py-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
+                                    className="p-1.5 rounded-md bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
                                     title="Eliminar foto"
                                 >
-                                    <Trash2 size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Eliminar</span>
+                                    <Trash2 size={14} className="text-white" />
                                 </button>
                             </div>
                             <span className="text-white text-[9px] font-medium px-1.5 py-0.5 bg-black/50 rounded-md">
