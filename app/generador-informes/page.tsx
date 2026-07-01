@@ -193,16 +193,16 @@ export default function GeneradorInformesPage() {
         saveDraftTimeout.current = setTimeout(async () => {
             const docType = templateFile.name;
             const fields: Record<string, string> = {};
-            const uploaders: Record<string, any> = {};
-            tags.forEach(t => {
-                  if (t.type === 'text') fields[t.name] = t.value || '';
-                  if (t.type === 'image') {
-                      fields[t.name] = t.remoteUrl || '';
-                      if (t.uploaderInitials) uploaders[t.name] = { initials: t.uploaderInitials, name: t.uploaderName };
+            
+              tags.forEach(t => {
+                  if (t.type === 'text' && t.value !== undefined) fields[t.name] = t.value;
+                  if (t.type === 'image' && t.remoteUrl !== undefined) {
+                      fields[t.name] = t.remoteUrl;
+                      fields[`_uploaderInitials_${t.name}`] = t.uploaderInitials || '';
+                      fields[`_uploaderName_${t.name}`] = t.uploaderName || '';
                   }
               });
-            
-            if (Object.keys(uploaders).length > 0) fields['_uploaders_'] = JSON.stringify(uploaders);
+    
             if (Object.keys(fields).length > 0) {
                 await fetch('/api/draft', {
                     method: 'POST',
@@ -489,7 +489,7 @@ export default function GeneradorInformesPage() {
 
     const clearTag = (tagName: string) => {
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined } : t
+            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: '', uploaderInitials: '', uploaderName: '' } : t
         ));
     };
 
