@@ -42,6 +42,14 @@ export async function POST(req: NextRequest) {
 
         for (const r of records) {
             const rid = String(r.id);
+
+            // ANTI-CLONE SECURITY: If 'rid' is a small number (not a timestamp), it's a deleted clone from an old cache.
+            if (!isNaN(Number(rid)) && Number(rid) > 0 && Number(rid) < 1000000000000) {
+                // To be safe, ONLY skip if it doesn't actually exist in DB (meaning it was deleted)
+                const checkExist = await db.fetchAll('SELECT id FROM desvio_evidence_records WHERE id = ?', [Number(rid)]);
+                if (checkExist.length === 0) continue; 
+            }
+
             // Check if it already exists to avoid duplicates and prevent data loss
             const numericId = !isNaN(Number(rid)) ? Number(rid) : 0;
             const existing = await db.fetchAll('SELECT id FROM desvio_evidence_records WHERE record_id = ? OR id = ?', [rid, numericId]);
