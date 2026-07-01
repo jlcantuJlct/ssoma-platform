@@ -1246,15 +1246,22 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                 {tag.preview ? (
                     <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         {refSrc && (
-                            <img
-                                src={refSrc}
-                                alt="Referencia"
-                                loading="lazy"
-                                className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-100 mix-blend-screen"
-                                style={{ zIndex: 0 }}
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
+                            <>
+                                <img
+                                    src={refSrc}
+                                    alt="Referencia"
+                                    loading="lazy"
+                                    className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-30 mix-blend-screen group-hover:opacity-100"
+                                    style={{ zIndex: 0 }}
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+                                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ef4444 10px, #ef4444 11px)',
+                                    zIndex: 0
+                                }}></div>
+                            </>
                         )}
                         <img
                             src={tag.preview}
@@ -1268,7 +1275,8 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </div>
                         )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3"
+                             style={{ zIndex: 10 }}>
                             <div className="flex gap-2">
                                 <button
                                     onClick={e => { e.stopPropagation(); setShowPreview(true); }}
