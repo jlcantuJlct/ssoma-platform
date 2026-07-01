@@ -75,6 +75,7 @@ export default function DetourPage() {
 
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
+        localStorage.removeItem('desvio_evidence_records'); // AUTO-KILL GHOSTS
         const loadRecords = async () => {
             try {
                 const res = await fetch('/api/desvio-records');
