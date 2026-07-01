@@ -1246,10 +1246,21 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                 {tag.preview ? (
                     <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {refSrc && (
+                            <img
+                                src={refSrc}
+                                alt="Referencia"
+                                loading="lazy"
+                                className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-100 mix-blend-screen"
+                                style={{ zIndex: 0 }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                        )}
                         <img
                             src={tag.preview}
                             alt={tag.label}
-                            className={`w-full h-full object-cover transition-all ${tag.loading ? 'opacity-40 grayscale blur-sm' : ''}`}
+                            className={`relative w-full h-full object-cover transition-all duration-300 group-hover:opacity-10 ${tag.loading ? 'opacity-40 grayscale blur-sm' : ''}`}
+                            style={{ zIndex: 1 }}
                         />
                         {tag.loading && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
