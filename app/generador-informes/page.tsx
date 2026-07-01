@@ -1009,7 +1009,7 @@ export default function GeneradorInformesPage() {
                         className="w-full py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-80 text-sm"
                         style={{ background: 'hsl(222,47%,12%)', color: 'hsl(215,20%,70%)', border: '1px solid hsl(222,47%,20%)' }}
                     >
-                        <FilePlus size={16} />
+                        <FilePlus size={14} />
                         Descargar Plantilla de Ejemplo
                     </a>
                 </div>
@@ -1053,7 +1053,7 @@ export default function GeneradorInformesPage() {
                                     className="px-4 py-2 rounded-lg font-bold text-white flex items-center gap-2 transition-colors"
                                     style={{ background: 'hsl(215,83%,30%)', border: '1px solid hsl(215,83%,40%)' }}
                                 >
-                                    <History size={16} />
+                                    <History size={14} />
                                     Ver Historial de Meses
                                 </button>
                             </div>
@@ -1083,7 +1083,7 @@ export default function GeneradorInformesPage() {
                                                     value={tag.value || ''}
                                                     onChange={e => updateTextValue(tag.name, e.target.value)}
                                                     placeholder={`Escribe ${tag.label.toLowerCase()}…`}
-                                                    className="w-full px-3 py-2 rounded-lg text-sm text-white outline-none transition-colors"
+                                                    className="w-full px-2 py-1.5 rounded-lg text-sm text-white outline-none transition-colors"
                                                     style={{
                                                         background: 'hsl(222,47%,12%)',
                                                         border: tag.value ? '1px solid hsl(161,94%,30%)' : '1px solid hsl(222,47%,18%)',
@@ -1157,7 +1157,7 @@ export default function GeneradorInformesPage() {
                                                 <h3 className="font-bold text-white text-lg">{arch.month_name}</h3>
                                                 <p className="text-xs text-slate-400">Archivado el: {new Date(arch.created_at).toLocaleDateString()}</p>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-1.5">
                                                 <button
                                                     onClick={() => loadHistoricalMonth(arch.id, arch.month_name)}
                                                     className="px-3 py-1.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition text-sm font-semibold"
@@ -1168,7 +1168,7 @@ export default function GeneradorInformesPage() {
                                                     onClick={() => deleteArchive(arch.id)}
                                                     className="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </div>
                                         </div>
@@ -1275,32 +1275,32 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </div>
                         )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3"
+                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5"
                              style={{ zIndex: 10 }}>
                             <div className="flex gap-2">
                                 <button
                                     onClick={e => { e.stopPropagation(); setShowPreview(true); }}
-                                    className="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
+                                    className="px-2 py-1.5 rounded-lg bg-white/20 hover:bg-white/40 transition flex items-center justify-center"
                                     title="Ver foto"
                                 >
-                                    <Eye size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Ver</span>
+                                    <Eye size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Ver</span>
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
-                                    className="px-3 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
+                                    className="px-2 py-1.5 rounded-lg bg-blue-500/80 hover:bg-blue-500 transition flex items-center justify-center"
                                     title="Cambiar foto"
                                 >
-                                    <Upload size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Actualizar</span>
+                                    <Upload size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Actualizar</span>
                                 </button>
                                 <button
                                     onClick={e => { e.stopPropagation(); onClear(); }}
-                                    className="px-3 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
+                                    className="px-2 py-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
                                     title="Eliminar foto"
                                 >
-                                    <Trash2 size={16} className="text-white" /> <span className="text-white text-xs font-medium ml-1">Eliminar</span>
+                                    <Trash2 size={14} className="text-white" /> <span className="text-white text-[10px] font-medium ml-1">Eliminar</span>
                                 </button>
                             </div>
-                            <span className="text-white text-xs font-medium px-2 py-1 bg-black/50 rounded-md">
+                            <span className="text-white text-[9px] font-medium px-1.5 py-0.5 bg-black/50 rounded-md">
                                 {tag.file?.name.substring(0, 15)}...
                             </span>
                         </div>
