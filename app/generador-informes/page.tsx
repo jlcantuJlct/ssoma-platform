@@ -7,6 +7,7 @@ import {
     Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw, Archive, History
 } from 'lucide-react';
 import { compressImage } from '@/lib/uploadClient';
+import { useAuth } from '@/lib/auth';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 interface DetectedTag {
@@ -18,6 +19,8 @@ interface DetectedTag {
     preview?: string;
     remoteUrl?: string;
     loading?: boolean;
+    uploaderInitials?: string;
+    uploaderName?: string;
 }
 
 interface ProcessingStatus {
@@ -122,6 +125,7 @@ async function clearImageCache() {
 }
 
 export default function GeneradorInformesPage() {
+    const { user } = useAuth();
     const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [tags, setTags] = useState<DetectedTag[]>([]);
     const [status, setStatus] = useState<ProcessingStatus>({ stage: 'idle', message: '', progress: 0 });
@@ -145,10 +149,12 @@ export default function GeneradorInformesPage() {
             if (res.ok) {
                 const { fields } = await res.json();
                 if (fields && Object.keys(fields).length > 0) {
+                    let uploaders = {};
+                    try { if (fields['_uploaders_']) uploaders = JSON.parse(fields['_uploaders_']); } catch(e){}
                     setTags(prev => prev.map(t => {
                         if (fields[t.name]) {
                             if (t.type === 'text') return { ...t, value: fields[t.name] };
-                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name] }; // No set preview yet
+                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name], uploaderInitials: uploaders[t.name]?.initials, uploaderName: uploaders[t.name]?.name }; // No set preview yet
                         }
                         return t;
                     }));
@@ -187,11 +193,16 @@ export default function GeneradorInformesPage() {
         saveDraftTimeout.current = setTimeout(async () => {
             const docType = templateFile.name;
             const fields: Record<string, string> = {};
+            const uploaders: Record<string, any> = {};
             tags.forEach(t => {
                 if (t.type === 'text' && t.value) fields[t.name] = t.value;
-                if (t.type === 'image' && t.remoteUrl) fields[t.name] = t.remoteUrl;
+                if (t.type === 'image' && t.remoteUrl) {
+                    fields[t.name] = t.remoteUrl;
+                    if (t.uploaderInitials) uploaders[t.name] = { initials: t.uploaderInitials, name: t.uploaderName };
+                }
             });
             
+            if (Object.keys(uploaders).length > 0) fields['_uploaders_'] = JSON.stringify(uploaders);
             if (Object.keys(fields).length > 0) {
                 await fetch('/api/draft', {
                     method: 'POST',
@@ -428,9 +439,10 @@ export default function GeneradorInformesPage() {
     };
 
     const assignImage = async (tagName: string, file: File) => {
+        const userInitials = user ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : '';
         const preview = URL.createObjectURL(file);
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file, preview, loading: true } : t
+            t.name === tagName ? { ...t, file, preview, loading: true, uploaderInitials: userInitials, uploaderName: user?.name } : t
         ));
 
         try {
