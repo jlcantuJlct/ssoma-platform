@@ -489,7 +489,7 @@ export default function GeneradorInformesPage() {
 
     const clearTag = (tagName: string) => {
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '' } : t
+            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined } : t
         ));
     };
 
