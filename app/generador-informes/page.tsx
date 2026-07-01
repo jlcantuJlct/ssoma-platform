@@ -1220,7 +1220,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                 {tag.label}
             </label>
             <div
-                className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200"
+                className="relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 group"
                 style={{
                     aspectRatio: '4/3',
                     background: isDragOver ? 'hsl(210,80%,12%)' : tag.preview ? 'black' : 'hsl(222,47%,11%)',
