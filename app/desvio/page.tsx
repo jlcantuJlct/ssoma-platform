@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -90,7 +90,11 @@ export default function DetourPage() {
                         images: typeof r.images === 'string' ? JSON.parse(r.images) : (r.images || [])
                     }));
                     setRecords(mapped);
-                    localStorage.setItem('desvio_evidence_records', JSON.stringify(mapped));
+                    try {
+                        localStorage.setItem('desvio_evidence_records', JSON.stringify(mapped));
+                    } catch (storageError) {
+                        console.warn('LocalStorage quota exceeded, skipping local cache for desvios.');
+                    }
                 }
             } catch (e) {
                 console.warn('Could not fetch Desvio records from cloud:', e);
