@@ -195,12 +195,12 @@ export default function GeneradorInformesPage() {
             const fields: Record<string, string> = {};
             const uploaders: Record<string, any> = {};
             tags.forEach(t => {
-                if (t.type === 'text' && t.value) fields[t.name] = t.value;
-                if (t.type === 'image' && t.remoteUrl) {
-                    fields[t.name] = t.remoteUrl;
-                    if (t.uploaderInitials) uploaders[t.name] = { initials: t.uploaderInitials, name: t.uploaderName };
-                }
-            });
+                  if (t.type === 'text') fields[t.name] = t.value || '';
+                  if (t.type === 'image') {
+                      fields[t.name] = t.remoteUrl || '';
+                      if (t.uploaderInitials) uploaders[t.name] = { initials: t.uploaderInitials, name: t.uploaderName };
+                  }
+              });
             
             if (Object.keys(uploaders).length > 0) fields['_uploaders_'] = JSON.stringify(uploaders);
             if (Object.keys(fields).length > 0) {
