@@ -62,10 +62,7 @@ export async function POST(request: Request) {
                 originalName = 'PAD_SAN CLEMENTE ultimo.docx';
             }
             
-            const localPath = path.join(
-                'C:\\Users\\jlcan\\Desktop\\Seguimiento de plataforma de seguridad Antigravity\\Informe mensual',
-                originalName // USAMOS EL ORIGINAL!
-            );
+            const localPath = `C:\\Users\\jlcan\\Desktop\\Seguimiento de plataforma de seguridad Antigravity\\Informe mensual\\${originalName}`;
             templateBuffer = fs.readFileSync(localPath);
         } else {
             if (!templateFile) {
