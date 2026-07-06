@@ -243,7 +243,7 @@ export default function GeneradorInformesPage() {
             .then(data => setAllReferences(data))
             .catch(() => {});
             
-        fetch('/api/template-permissions')
+        fetch('/api/template-permissions', { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 if (data.permissions) setTemplatePermissions(data.permissions);
