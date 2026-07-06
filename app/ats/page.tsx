@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useAuth, USER_LIST } from "@/lib/auth";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { uploadEvidence } from "@/lib/uploadClient";
+import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -53,9 +55,159 @@ export default function AtsPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
 
     // Filter State
-    const [filterDate, setFilterDate] = useState("");
+    const [filterStartDate, setFilterStartDate] = useState("");
+    const [filterEndDate, setFilterEndDate] = useState("");
     const [filterResponsible, setFilterResponsible] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
+
+    const filteredRecords = records.filter(r => {
+        const matchesDate = (!filterStartDate || r.date >= filterStartDate) && (!filterEndDate || r.date <= filterEndDate);
+        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+        const matchesLoc = filterLocation === "" || r.location === filterLocation;
+        return matchesDate && matchesResp && matchesLoc;
+    });
+
+    const exportAllToPDF = () => {
+        if (filteredRecords.length === 0) {
+            alert("No hay registros para exportar.");
+            return;
+        }
+
+        const doc = new jsPDF();
+        let y = 20;
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 150, 136);
+        doc.text("Reporte de Análisis de Trabajo Seguro (ATS)", 105, y, { align: "center" });
+        y += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        
+        if (filterStartDate || filterEndDate || filterResponsible || filterLocation) {
+            doc.text("Filtros Aplicados:", 20, y);
+            y += 5;
+            if (filterStartDate || filterEndDate) {
+                doc.text(`Fecha: ${filterStartDate || 'Inicio'} al ${filterEndDate || 'Fin'}`, 25, y);
+                y += 5;
+            }
+            if (filterResponsible) {
+                doc.text(`Responsable: ${filterResponsible}`, 25, y);
+                y += 5;
+            }
+            if (filterLocation) {
+                doc.text(`Lugar: ${filterLocation}`, 25, y);
+                y += 5;
+            }
+            y += 5;
+        }
+        
+        doc.setTextColor(0);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Nº", 20, y);
+        doc.text("Fecha", 30, y);
+        doc.text("Responsable", 60, y);
+        doc.text("Lugar", 140, y);
+        y += 6;
+        
+        doc.setFont("helvetica", "normal");
+        filteredRecords.forEach((record, index) => {
+            if (y > 270) {
+                doc.addPage();
+                y = 20;
+                doc.setFont("helvetica", "bold");
+                doc.text("Nº", 20, y);
+                doc.text("Fecha", 30, y);
+                doc.text("Responsable", 60, y);
+                doc.text("Lugar", 140, y);
+                y += 6;
+                doc.setFont("helvetica", "normal");
+            }
+            
+            const resp = record.responsible?.substring(0, 35) || "";
+            const loc = record.location?.substring(0, 30) || "";
+            
+            doc.text(`${index + 1}`, 20, y);
+            doc.text(record.date || "", 30, y);
+            doc.text(resp, 60, y);
+            doc.text(loc, 140, y);
+            y += 6;
+        });
+
+        doc.save(`Reporte_ATS_${generateFilename()}.pdf`);
+    };
+
+    
+    const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+
+    const downloadMergedPDF = async () => {
+        if (filteredRecords.length === 0) {
+            alert("No hay registros para descargar.");
+            return;
+        }
+
+        const filesToDownload = filteredRecords
+            .filter(r => r.fileUrl)
+            .map(r => r.fileUrl);
+
+        if (filesToDownload.length === 0) {
+            alert("Ninguno de los registros filtrados tiene un archivo adjunto.");
+            return;
+        }
+
+        setIsDownloadingZip(true);
+        setDownloadProgress(0);
+        try {
+            const mergedPdf = await PDFDocument.create();
+            let successCount = 0;
+
+            for (let i = 0; i < filesToDownload.length; i++) {
+                try {
+                    setDownloadProgress(Math.round(((i + 1) / filesToDownload.length) * 100));
+                    const proxyUrl = `/api/proxy-file?url=${encodeURIComponent(filesToDownload[i])}`;
+                    const res = await fetch(proxyUrl);
+                    if (!res.ok) continue;
+
+                    const arrayBuffer = await res.arrayBuffer();
+                    const pdf = await PDFDocument.load(arrayBuffer);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach((page) => {
+                        mergedPdf.addPage(page);
+                    });
+                    successCount++;
+                } catch (err) {
+                    console.error("Error merging file:", err);
+                }
+            }
+
+            if (successCount === 0) {
+                alert("No se pudo descargar ningún archivo PDF.");
+                return;
+            }
+
+            const mergedPdfBytes = await mergedPdf.save();
+            const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ATS_Documentos_${generateFilename()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            console.error("Error merging PDFs:", error);
+            alert("Error al unir los archivos PDF.");
+        } finally {
+            setIsDownloadingZip(false);
+            setDownloadProgress(0);
+        }
+    };
+
 
     // LOAD RECORDS FROM DATABASE
     useEffect(() => {
@@ -463,22 +615,31 @@ export default function AtsPage() {
                                 </div>
 
                                 {/* FILTERS */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50 items-end">
-                                    <div className="space-y-1">
+                                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6 bg-slate-800/30 p-4 rounded-xl border border-slate-800/50 items-end">
+                                    <div className="space-y-1 lg:col-span-2">
                                         <div className="flex justify-between items-center px-1">
-                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha</label>
-                                            {filterDate && (
-                                                <button onClick={() => setFilterDate("")} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase">Filtrar por Fecha (Inicio - Fin)</label>
+                                            {(filterStartDate || filterEndDate) && (
+                                                <button onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
                                                     <X size={10} />
                                                 </button>
                                             )}
                                         </div>
-                                        <input
-                                            type="date"
-                                            value={filterDate}
-                                            onChange={e => setFilterDate(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="date"
+                                                value={filterStartDate}
+                                                onChange={e => setFilterStartDate(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
+                                            />
+                                            <span className="text-slate-500 text-xs">-</span>
+                                            <input
+                                                type="date"
+                                                value={filterEndDate}
+                                                onChange={e => setFilterEndDate(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center px-1">
@@ -514,15 +675,35 @@ export default function AtsPage() {
                                             className="[&>div]:bg-slate-950 [&>div]:border-slate-700 [&>div]:py-1.5 [&>div]:px-3 [&>div]:text-xs"
                                         />
                                     </div>
-                                    <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterDate || filterResponsible || filterLocation) && (
+                                    <div className="flex items-center justify-end">
+                                        {(filterStartDate || filterEndDate || filterResponsible || filterLocation) && (
                                             <button 
-                                                onClick={() => { setFilterDate(""); setFilterResponsible(""); setFilterLocation(""); }}
+                                                onClick={() => { setFilterStartDate(""); setFilterEndDate(""); setFilterResponsible(""); setFilterLocation(""); }}
                                                 className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
                                                 <X size={12} strokeWidth={3} /> Limpiar Filtros
                                             </button>
                                         )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-slate-300">Registros Encontrados ({filteredRecords.length})</h3>
+                                    <div className="flex items-center gap-3">
+                                        <button 
+                                            onClick={downloadMergedPDF}
+                                            disabled={isDownloadingZip}
+                                            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-all disabled:opacity-50"
+                                        >
+                                            {isDownloadingZip ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div> : <Download size={14} />}
+                                            {isDownloadingZip ? `Uniendo... ${downloadProgress}%` : "Descargar PDFs (Unido)"}
+                                        </button>
+                                        <button 
+                                            onClick={exportAllToPDF}
+                                            className="flex items-center gap-2 px-4 py-2 bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-lg text-xs font-bold hover:bg-teal-500/20 transition-all"
+                                        >
+                                            <Download size={14} /> Exportar Reporte PDF
+                                        </button>
                                     </div>
                                 </div>
 
@@ -538,26 +719,14 @@ export default function AtsPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800/50">
-                                            {records.filter(r => {
-                                                const matchesDate = filterDate === "" || r.date === filterDate;
-                                                const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
-                                                const matchesLoc = filterLocation === "" || r.location === filterLocation;
-                                                return matchesDate && matchesResp && matchesLoc;
-                                            }).length === 0 ? (
+                                            {filteredRecords.length === 0 ? (
                                                 <tr>
                                                     <td colSpan={5} className="py-12 text-center text-slate-500 italic">
                                                         {records.length === 0 ? "No hay registros de ATS aún." : "No se encontraron registros con los filtros aplicados."}
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                records
-                                                    .filter(r => {
-                                                        const matchesDate = filterDate === "" || r.date === filterDate;
-                                                        const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
-                                                        const matchesLoc = filterLocation === "" || r.location === filterLocation;
-                                                        return matchesDate && matchesResp && matchesLoc;
-                                                    })
-                                                    .map((record) => (
+                                                filteredRecords.map((record) => (
                                                     <tr key={record.id} className="hover:bg-slate-800/30 transition-colors group text-sm">
                                                         <td className="py-4 pl-4 font-mono text-slate-300">{record.date}</td>
                                                         <td className="py-4">
