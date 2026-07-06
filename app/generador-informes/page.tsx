@@ -234,6 +234,7 @@ export default function GeneradorInformesPage() {
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
     const [allReferences, setAllReferences] = useState<Record<string, Record<string, string>>>({});
     const [templatePermissions, setTemplatePermissions] = useState<Record<string, string[]>>({});
+    const deletedFieldsRef = useRef<string[]>([]);
 
     // Cargar mapa estático y permisos al entrar a la página
     React.useEffect(() => {
@@ -316,7 +317,7 @@ export default function GeneradorInformesPage() {
         const currentDocType = templateFile.name;
         saveDraftTimeout.current = setTimeout(async () => {
             const docType = currentDocType;
-            const fields: Record<string, string> = {};
+            const fields: Record<string, string | null> = {};
             
               tags.forEach(t => {
                   if (t.type === 'text' && t.value !== undefined) fields[t.name] = t.value;
@@ -326,6 +327,15 @@ export default function GeneradorInformesPage() {
                       fields[`_uploaderName_${t.name}`] = t.uploaderName || '';
                   }
               });
+              
+              if (deletedFieldsRef.current.length > 0) {
+                  deletedFieldsRef.current.forEach(f => {
+                      fields[f] = null;
+                      fields[`_uploaderInitials_${f}`] = null;
+                      fields[`_uploaderName_${f}`] = null;
+                  });
+                  deletedFieldsRef.current = [];
+              }
     
             if (Object.keys(fields).length > 0) {
                 await fetch('/api/draft', {
@@ -1529,7 +1539,11 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                     <Upload size={14} className="text-white" />
                                 </button>
                                 <button
-                                    onClick={e => { e.stopPropagation(); onClear(); }}
+                                    onClick={e => { 
+                                        e.stopPropagation(); 
+                                        deletedFieldsRef.current.push(tag.name);
+                                        onClear(); 
+                                    }}
                                     className="p-1.5 rounded-md bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
                                     title="Eliminar foto"
                                 >

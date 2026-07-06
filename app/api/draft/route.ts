@@ -58,7 +58,14 @@ export async function POST(request: Request) {
             currentFields = typeof existing.fields === 'string' ? JSON.parse(existing.fields) : existing.fields;
         }
         
-        const newFields = { ...currentFields, ...fields };
+        const newFields: Record<string, any> = { ...currentFields };
+        for (const [k, v] of Object.entries(fields)) {
+            if (v === null) {
+                delete newFields[k];
+            } else {
+                newFields[k] = v;
+            }
+        }
         
         if (existing) {
             await db.execute(
