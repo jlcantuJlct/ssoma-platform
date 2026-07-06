@@ -1551,7 +1551,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                 </button>
                             </div>
                             <span className="text-white text-[9px] font-medium px-1.5 py-0.5 bg-black/50 rounded-md">
-                                {tag.file?.name.substring(0, 15)}...
+                                {tag.file?.name ? `${tag.file.name.substring(0, 15)}...` : 'foto_comprimida.jpg'}
                             </span>
                         </div>
                             {/* Uploader Initials Avatar on Hover */}

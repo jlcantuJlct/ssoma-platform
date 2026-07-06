@@ -48,18 +48,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Invalid programData' }, { status: 400 });
         }
 
-        // NO BORRAMOS TODA LA TABLA. Solo actualizamos los objetivos recibidos.
-        // Esto permite actualizaciones parciales (ej. solo 'obj2') sin perder 'obj1'.
+        const objIds = Object.keys(programData);
+        if (objIds.length > 0) {
+            // 1. Borrar todas las versiones anteriores de estos objetivos específicos en un solo paso
+            const placeholders = objIds.map(() => '?').join(',');
+            await db.execute(`DELETE FROM annual_program WHERE objective_id IN (${placeholders})`, objIds);
 
-        for (const [objId, data] of Object.entries(programData)) {
-            // 1. Borrar versión anterior de este objetivo específico
-            await db.execute('DELETE FROM annual_program WHERE objective_id = ?', [objId]);
-
-            // 2. Insertar nueva versión
-            await db.execute(
-                `INSERT INTO annual_program (objective_id, data_json) VALUES (?, ?)`,
-                [objId, JSON.stringify(data)]
-            );
+            // 2. Insertar nuevas versiones
+            const insertPromises = objIds.map(objId => {
+                return db.execute(
+                    `INSERT INTO annual_program (objective_id, data_json) VALUES (?, ?)`,
+                    [objId, JSON.stringify(programData[objId])]
+                );
+            });
+            await Promise.all(insertPromises);
         }
 
         return NextResponse.json({ success: true, message: `Updated ${Object.keys(programData).length} objectives` });

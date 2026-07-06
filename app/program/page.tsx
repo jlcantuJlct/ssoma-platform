@@ -374,11 +374,12 @@ export default function ProgramPage() {
 
         if (hasDataInMemory) {
             localStorage.setItem('annual_program_data', JSON.stringify(programData));
-            // Sync to cloud (fire and forget)
+            // Sync to cloud (fire and forget, but keepalive ensures it finishes if tab closes)
             fetch('/api/annual-program', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ programData })
+                body: JSON.stringify({ programData }),
+                keepalive: true
             }).catch(e => console.warn('Annual program cloud sync failed:', e));
         }
     }, [programData]);

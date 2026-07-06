@@ -390,48 +390,104 @@ export default function SCTRPage() {
                             </div>
 
                             {filterSearch.length >= 3 && (() => {
-                                const allMatches: { [line: string]: string[] } = {};
+                                const allMatches: { [key: string]: { entries: { period: string, line: string, year: number, monthIdx: number }[] } } = {};
                                 records.forEach(record => {
                                     const matches = getMatchesFromRecord(record, filterSearch);
                                     matches.forEach(line => {
-                                        if (!allMatches[line]) allMatches[line] = [];
+                                        // Extract DNI to use as a unique key for grouping
+                                        const dniMatch = line.match(/\b\d{8,9}\b/);
+                                        // If no DNI, fallback to normalized name (letters only)
+                                        const key = dniMatch ? dniMatch[0] : line.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z]/g, '').toLowerCase();
+                                        
+                                        if (!allMatches[key]) {
+                                            allMatches[key] = { entries: [] };
+                                        }
+                                        
                                         const label = `${record.month} ${record.year}`;
-                                        if (!allMatches[line].includes(label)) {
-                                            allMatches[line].push(label);
+                                        // Only add if this period isn't already there for this key
+                                        if (!allMatches[key].entries.some(e => e.period === label)) {
+                                            allMatches[key].entries.push({
+                                                period: label,
+                                                line: line,
+                                                year: record.year,
+                                                monthIdx: MONTHS.indexOf(record.month)
+                                            });
                                         }
                                     });
                                 });
-                                const uniqueLines = Object.keys(allMatches);
+                                const uniqueKeys = Object.keys(allMatches);
+                                
+                                // Pre-sort entries for each key so the most recent is at index 0
+                                uniqueKeys.forEach(key => {
+                                    allMatches[key].entries.sort((a, b) => {
+                                        if (a.year !== b.year) return b.year - a.year;
+                                        return b.monthIdx - a.monthIdx;
+                                    });
+                                });
+
+                                // Sort keys by relevance to the search term
+                                uniqueKeys.sort((a, b) => {
+                                    const scoreMatch = (line: string, search: string) => {
+                                        const normalizedLine = line.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                        const normalizedSearch = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                        const searchWords = normalizedSearch.split(/\s+/).filter(w => w.length > 0);
+                                        let score = 0;
+                                        for (const word of searchWords) {
+                                            const exactRegex = new RegExp(`\\b${word}\\b`);
+                                            if (exactRegex.test(normalizedLine)) score += 100;
+                                            else {
+                                                const startRegex = new RegExp(`\\b${word}`);
+                                                if (startRegex.test(normalizedLine)) score += 50;
+                                                else score += 10;
+                                            }
+                                        }
+                                        return score;
+                                    };
+                                    
+                                    const scoreA = scoreMatch(allMatches[a].entries[0].line, filterSearch);
+                                    const scoreB = scoreMatch(allMatches[b].entries[0].line, filterSearch);
+                                    
+                                    if (scoreA !== scoreB) return scoreB - scoreA;
+                                    return allMatches[a].entries[0].line.localeCompare(allMatches[b].entries[0].line);
+                                });
+
                                 return (
                                     <div className="animate-in fade-in zoom-in-95 duration-200 space-y-3">
-                                        {uniqueLines.length > 0 ? (
+                                        {uniqueKeys.length > 0 ? (
                                             <>
-                                                {uniqueLines.length > 1 && (
+                                                {uniqueKeys.length > 1 && (
                                                     <div className="bg-amber-500/10 border border-amber-500/50 p-4 rounded-2xl flex items-center gap-3 mb-4">
                                                         <AlertCircle size={20} className="text-amber-500" />
                                                         <div>
-                                                            <p className="text-xs font-black text-amber-500 uppercase">Múltiples Coincidencias ({uniqueLines.length})</p>
+                                                            <p className="text-xs font-black text-amber-500 uppercase">Múltiples Coincidencias ({uniqueKeys.length})</p>
                                                             <p className="text-[10px] text-slate-400 font-bold">Por favor, ingrese el nombre completo o DNI para una conformidad exacta.</p>
                                                         </div>
                                                     </div>
                                                 )}
-                                                {uniqueLines.map((line, idx) => (
+                                                {uniqueKeys.map((key, idx) => {
+                                                    const matchData = allMatches[key];
+                                                    const currentEntry = matchData.entries[0];
+                                                    
+                                                    return (
                                                     <div key={idx} className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl space-y-3">
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
                                                             <div className="flex-1">
-                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">{line}</p>
-                                                                <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-emerald-500/20">
-                                                                    {allMatches[line].map((period, pIdx) => (
-                                                                        <div key={pIdx} className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400">
-                                                                            {period}
+                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">{currentEntry.line}</p>
+                                                                <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-emerald-500/20">
+                                                                    {matchData.entries.map((entry, pIdx) => (
+                                                                        <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+                                                                            <div className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400 w-fit shrink-0">
+                                                                                {entry.period}
+                                                                            </div>
+                                                                            <span className="text-[10px] font-mono text-slate-400 break-all">{entry.line}</span>
                                                                         </div>
                                                                     ))}
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ))}
+                                                )})}
                                             </>
                                         ) : (
                                             <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3">

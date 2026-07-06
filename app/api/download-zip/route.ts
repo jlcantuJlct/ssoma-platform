@@ -21,15 +21,11 @@ export async function POST(req: Request) {
         // Fetch all files in parallel
         const fetchPromises = files.map(async (file: { url: string, filename: string }) => {
             try {
+                let downloadUrl = file.url;
                 const fileId = getDriveFileId(file.url);
-                if (!fileId) {
-                    const shortcutContent = `Este archivo no se puede descargar automaticamente (ej. SharePoint o externo).\nPor favor, abre el siguiente enlace en tu navegador para verlo/descargarlo:\n\n${file.url}`;
-                    zip.file(`${file.filename}_ENLACE.txt`, shortcutContent);
-                    return;
+                if (fileId) {
+                    downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
                 }
-
-                // Create a direct download URL
-                const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
 
                 const response = await fetch(downloadUrl);
                 if (!response.ok) {
