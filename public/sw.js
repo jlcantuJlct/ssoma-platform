@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REFERENCIAS_CACHE = 'referencias-imagenes'; // NUNCA cambia el nombre → nunca se borra
-const APP_CACHE         = 'app-cache-v1';         // Cambiar versión en cada deploy si se quiere limpiar
+const APP_CACHE         = 'app-cache-v2';         // Incrementado a v2 para forzar limpieza masiva
 
 // Rutas que pertenecen al caché de referencias (independiente)
 const REFERENCIAS_PATHS = [
@@ -40,7 +40,18 @@ self.addEventListener('activate', (e) => {
           .filter(k => k !== REFERENCIAS_CACHE && k.startsWith('app-cache-') && k !== APP_CACHE)
           .map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+    ).then(() => {
+      return self.clients.claim().then(() => {
+        // FORZAR ACTUALIZACIÓN: Recarga todas las pestañas abiertas para que usen la nueva versión
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(client => {
+            if (client.url && 'navigate' in client) {
+              client.navigate(client.url);
+            }
+          });
+        });
+      });
+    })
   );
 });
 
