@@ -626,6 +626,26 @@ export default function GeneradorInformesPage() {
         ));
     };
 
+    const handleClearDraft = async () => {
+        if (!templateFile) return;
+        if (!confirm(`¿Estás seguro de que deseas VACIAR LA PLANTILLA ${templateFile.name}?\nEsto borrará todas las fotos que se hayan guardado en ella.`)) return;
+        
+        try {
+            await fetch(`/api/draft?docType=${templateFile.name}`, { method: 'DELETE' });
+            setTags(prev => prev.map(t => ({
+                ...t,
+                value: t.type === 'text' ? '' : undefined,
+                remoteUrl: undefined,
+                file: undefined,
+                preview: undefined,
+                uploaderInitials: undefined,
+                uploaderName: undefined
+            })));
+        } catch (error) {
+            console.error('Error al limpiar plantilla', error);
+        }
+    };
+
     // ─── Generar el documento ─────────────────────────────────────────────────
 
     const loadArchives = async () => {
@@ -1162,31 +1182,46 @@ export default function GeneradorInformesPage() {
                     {/* Botón generar */}
                     {isReadyToGenerate && tags.length > 0 && (
                         <>
-                        <button
-                            type="button"
-                            onClick={handleGenerate}
-                            disabled={status.stage === 'generating'}
-                            className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-60"
-                            style={{
-                                background: status.stage === 'generating'
-                                    ? 'hsl(161,94%,20%)'
-                                    : 'linear-gradient(135deg, hsl(161,94%,28%), hsl(180,80%,32%))',
-                                boxShadow: '0 4px 20px hsl(161,94%,20%)'
-                            }}
-                        >
-                            
-                            {status.stage === 'generating' ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                    Generando...
-                                </>
-                            ) : (
-                                <>
-                                    <FileCheck size={20} />
-                                    Generar Documento
-                                </>
-                            )}
-                        </button>
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={handleGenerate}
+                                disabled={status.stage === 'generating'}
+                                className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-60"
+                                style={{
+                                    background: status.stage === 'generating'
+                                        ? 'hsl(161,94%,20%)'
+                                        : 'linear-gradient(135deg, hsl(161,94%,28%), hsl(180,80%,32%))',
+                                    boxShadow: '0 4px 20px hsl(161,94%,20%)'
+                                }}
+                            >
+                                
+                                {status.stage === 'generating' ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        Generando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileCheck size={20} />
+                                        Generar Documento
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClearDraft}
+                                disabled={status.stage === 'generating'}
+                                className="py-3 px-6 rounded-xl font-bold text-white flex items-center justify-center transition-all duration-200 active:scale-95 hover:bg-red-600 disabled:opacity-60"
+                                style={{
+                                    background: 'hsl(0,80%,35%)',
+                                    border: '1px solid hsl(0,80%,45%)'
+                                }}
+                                title="Vaciar plantilla (borrar todas las fotos cargadas aquí)"
+                            >
+                                <Trash2 size={22} />
+                            </button>
+                        </div>
                         
                         <button
                             onClick={handleArchiveMonth}
