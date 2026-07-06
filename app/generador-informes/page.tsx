@@ -266,14 +266,17 @@ export default function GeneradorInformesPage() {
             if (res.ok) {
                 const { fields } = await res.json();
                 if (fields && Object.keys(fields).length > 0) {
+                    let oldUploaders: any = {};
+                    try { if (fields['_uploaders_']) oldUploaders = JSON.parse(fields['_uploaders_']); } catch(e){}
+
                     setTags(prev => prev.map(t => {
                         if (fields[t.name]) {
                             if (t.type === 'text') return { ...t, value: fields[t.name] };
                             if (t.type === 'image') return { 
                                 ...t, 
                                 remoteUrl: fields[t.name], 
-                                uploaderInitials: fields[`_uploaderInitials_${t.name}`] || '', 
-                                uploaderName: fields[`_uploaderName_${t.name}`] || '' 
+                                uploaderInitials: fields[`_uploaderInitials_${t.name}`] || oldUploaders[t.name]?.initials || '', 
+                                uploaderName: fields[`_uploaderName_${t.name}`] || oldUploaders[t.name]?.name || '' 
                             }; // No set preview yet
                         }
                         return t;
@@ -1503,11 +1506,11 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </span>
                         </div>
                             {/* Uploader Initials Avatar on Hover */}
-                            {tag.uploaderInitials && (
+                            {(tag.uploaderInitials || tag.remoteUrl) && (
                                 <div className="absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 z-20 group/avatar cursor-help transition-opacity opacity-100"
                                     style={{ background: 'linear-gradient(135deg, hsl(215,83%,45%), hsl(215,83%,35%))' }}
                                     title={`Subido por: ${tag.uploaderName || 'Usuario'}`}>
-                                    <span className="text-white font-black text-[10px]">{tag.uploaderInitials}</span>
+                                    <span className="text-white font-black text-[10px]">{tag.uploaderInitials || '?'}</span>
                                 </div>
                             )}
                             {/* Badge ok */}
