@@ -1499,7 +1499,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                     src={refSrc}
                                     alt="Referencia"
                                     loading="lazy"
-                                    className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-30 mix-blend-screen group-hover:opacity-100"
+                                    className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-30 mix-blend-screen group-hover:opacity-100 group-active:opacity-100"
                                     style={{ zIndex: 0 }}
                                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
@@ -1512,7 +1512,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                         <img
                             src={tag.preview}
                             alt={tag.label}
-                            className={`relative w-full h-full object-cover transition-all duration-300 group-hover:opacity-10 ${tag.loading ? 'opacity-40 grayscale blur-sm' : ''}`}
+                            className={`relative w-full h-full object-cover transition-all duration-300 group-hover:opacity-10 group-active:opacity-10 ${tag.loading ? 'opacity-40 grayscale blur-sm' : ''}`}
                             style={{ zIndex: 1 }}
                         />
                         {tag.loading && (
