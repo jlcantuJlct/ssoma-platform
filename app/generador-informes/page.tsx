@@ -631,8 +631,9 @@ export default function GeneradorInformesPage() {
     };
 
     const clearTag = (tagName: string) => {
+        deletedFieldsRef.current.push(tagName);
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: '', uploaderInitials: '', uploaderName: '' } : t
+            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined } : t
         ));
     };
 
@@ -1541,7 +1542,6 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                 <button
                                     onClick={e => { 
                                         e.stopPropagation(); 
-                                        deletedFieldsRef.current.push(tag.name);
                                         onClear(); 
                                     }}
                                     className="p-1.5 rounded-md bg-red-500/80 hover:bg-red-500 transition flex items-center justify-center"
