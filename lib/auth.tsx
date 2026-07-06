@@ -114,12 +114,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setMockUsers(prev => {
             const updated = { ...prev };
             let changed = false;
+            
+            // 1. Update or add users from INITIAL_USERS
             Object.entries(INITIAL_USERS).forEach(([key, val]) => {
                 if (JSON.stringify(updated[key]) !== JSON.stringify(val)) {
                     updated[key] = val;
                     changed = true;
                 }
             });
+            
+            // 2. Remove any ghost users that were deleted or renamed in INITIAL_USERS
+            Object.keys(updated).forEach(key => {
+                if (!INITIAL_USERS[key as keyof typeof INITIAL_USERS]) {
+                    delete updated[key as keyof typeof INITIAL_USERS];
+                    changed = true;
+                }
+            });
+            
             return changed ? updated : prev;
         });
     }, []);
