@@ -29,7 +29,14 @@ export async function GET() {
             permissions[row.template_name] = users;
         }
 
-        return NextResponse.json({ permissions });
+        return NextResponse.json({ permissions }, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'Surrogate-Control': 'no-store'
+            }
+        });
     } catch (error) {
         console.error('Error fetching template permissions:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
