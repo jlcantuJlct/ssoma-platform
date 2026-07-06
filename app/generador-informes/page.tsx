@@ -1504,7 +1504,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                         </div>
                             {/* Uploader Initials Avatar on Hover */}
                             {tag.uploaderInitials && (
-                                <div className="absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 z-20 group/avatar cursor-help transition-opacity opacity-0 group-hover:opacity-100"
+                                <div className="absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 z-20 group/avatar cursor-help transition-opacity opacity-100"
                                     style={{ background: 'linear-gradient(135deg, hsl(215,83%,45%), hsl(215,83%,35%))' }}
                                     title={`Subido por: ${tag.uploaderName || 'Usuario'}`}>
                                     <span className="text-white font-black text-[10px]">{tag.uploaderInitials}</span>
