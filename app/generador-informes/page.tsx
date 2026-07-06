@@ -4,10 +4,11 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
     Upload, FileText, Image as ImageIcon, Download, Trash2,
     Sparkles, CheckCircle, AlertCircle, Eye, X, Loader2,
-    Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw, Archive, History
+    Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw, Archive, History,
+    Shield, ChevronDown
 } from 'lucide-react';
 import { compressImage } from '@/lib/uploadClient';
-import { useAuth } from '@/lib/auth';
+import { useAuth, ALL_USER_LIST } from '@/lib/auth';
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 interface DetectedTag {
@@ -124,6 +125,106 @@ async function clearImageCache() {
     } catch (e) {}
 }
 
+let sharedCanvas: HTMLCanvasElement | null = null;
+let sharedImg: HTMLImageElement | null = null;
+
+const compressImageClient = async (file: File | Blob, maxWidth = 1000, quality = 0.7): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        if (typeof window === 'undefined') return reject(new Error('SSR'));
+        if (!sharedCanvas) sharedCanvas = document.createElement('canvas');
+        if (!sharedImg) sharedImg = new Image();
+
+        const objectUrl = URL.createObjectURL(file);
+        
+        sharedImg.onload = () => {
+            URL.revokeObjectURL(objectUrl); // Release memory immediately
+            
+            let width = sharedImg!.width;
+            let height = sharedImg!.height;
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+            }
+            sharedCanvas!.width = width;
+            sharedCanvas!.height = height;
+            
+            const ctx = sharedCanvas!.getContext('2d');
+            ctx?.drawImage(sharedImg!, 0, 0, width, height);
+            
+            sharedCanvas!.toBlob((blob) => {
+                // Wipe canvas pixels immediately to free memory
+                ctx?.clearRect(0, 0, width, height);
+                sharedCanvas!.width = 0;
+                sharedCanvas!.height = 0;
+                sharedImg!.src = ''; // Clean up image source
+                
+                if (blob) resolve(blob);
+                else reject(new Error('Canvas toBlob failed'));
+            }, 'image/jpeg', quality);
+        };
+        
+        sharedImg.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            sharedImg!.src = '';
+            reject(new Error('Failed to load image for compression'));
+        };
+        
+        sharedImg.src = objectUrl;
+    });
+};
+
+function TemplatePermissionManager({ templateName, permissions, setPermissions }: { templateName: string, permissions: Record<string, string[]>, setPermissions: any }) {
+    const { user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
+    if (!user || (user.role !== 'developer' && user.role !== 'manager')) return null;
+
+    const allowed = permissions[templateName] || [];
+
+    const toggleUser = async (username: string) => {
+        const newAllowed = allowed.includes(username) ? allowed.filter((u: string) => u !== username) : [...allowed, username];
+        setPermissions((prev: Record<string, string[]>) => ({ ...prev, [templateName]: newAllowed }));
+        
+        try {
+            await fetch('/api/template-permissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ templateName, allowedUsers: newAllowed })
+            });
+        } catch(e) { console.error('Error guardando permisos', e); }
+    };
+
+    return (
+        <div className="relative mb-2 w-full z-10">
+            <button 
+                onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+                className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <Shield size={14} className="text-emerald-500" />
+                    <span>Permisos de Acceso ({allowed.length})</span>
+                </div>
+                <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 max-h-48 overflow-y-auto">
+                    <div className="p-2 text-[10px] text-slate-400 border-b border-slate-700">Selecciona quién puede cargar fotos:</div>
+                    {ALL_USER_LIST.map(u => (
+                        <label key={u.username} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-700/50 cursor-pointer text-xs">
+                            <input 
+                                type="checkbox" 
+                                checked={allowed.includes(u.username)}
+                                onChange={() => toggleUser(u.username)}
+                                className="rounded bg-slate-900 border-slate-600 text-emerald-500 focus:ring-emerald-500"
+                            />
+                            <span className="text-slate-200">{u.name}</span>
+                        </label>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function GeneradorInformesPage() {
     const { user } = useAuth();
     const [templateFile, setTemplateFile] = useState<File | null>(null);
@@ -132,14 +233,30 @@ export default function GeneradorInformesPage() {
     const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
     const [dragOverTag, setDragOverTag] = useState<string | null>(null);
     const [allReferences, setAllReferences] = useState<Record<string, Record<string, string>>>({});
+    const [templatePermissions, setTemplatePermissions] = useState<Record<string, string[]>>({});
 
-    // Cargar mapa estático en background al entrar a la página (Carga ultra veloz)
+    // Cargar mapa estático y permisos al entrar a la página
     React.useEffect(() => {
         fetch('/references_map.json')
             .then(r => r.json())
             .then(data => setAllReferences(data))
             .catch(() => {});
+            
+        fetch('/api/template-permissions')
+            .then(r => r.json())
+            .then(data => {
+                if (data.permissions) setTemplatePermissions(data.permissions);
+            })
+            .catch(() => {});
     }, []);
+
+    const canAccessTemplate = (templateName: string) => {
+        if (!user) return false;
+        if (user.role === 'developer' || user.role === 'manager') return true;
+        const allowed = templatePermissions[templateName];
+        if (!allowed || allowed.length === 0) return true; // Si no hay permisos definidos, asume libre acceso
+        return allowed.includes(user.username);
+    };
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [archives, setArchives] = useState<any[]>([]);
     // --- Autoguardado Colaborativo ---
@@ -149,12 +266,15 @@ export default function GeneradorInformesPage() {
             if (res.ok) {
                 const { fields } = await res.json();
                 if (fields && Object.keys(fields).length > 0) {
-                    let uploaders = {};
-                    try { if (fields['_uploaders_']) uploaders = JSON.parse(fields['_uploaders_']); } catch(e){}
                     setTags(prev => prev.map(t => {
                         if (fields[t.name]) {
                             if (t.type === 'text') return { ...t, value: fields[t.name] };
-                            if (t.type === 'image') return { ...t, remoteUrl: fields[t.name], uploaderInitials: uploaders[t.name]?.initials, uploaderName: uploaders[t.name]?.name }; // No set preview yet
+                            if (t.type === 'image') return { 
+                                ...t, 
+                                remoteUrl: fields[t.name], 
+                                uploaderInitials: fields[`_uploaderInitials_${t.name}`] || '', 
+                                uploaderName: fields[`_uploaderName_${t.name}`] || '' 
+                            }; // No set preview yet
                         }
                         return t;
                     }));
@@ -190,8 +310,9 @@ export default function GeneradorInformesPage() {
         if (!templateFile || tags.length === 0) return;
         if (saveDraftTimeout.current) clearTimeout(saveDraftTimeout.current);
         
+        const currentDocType = templateFile.name;
         saveDraftTimeout.current = setTimeout(async () => {
-            const docType = templateFile.name;
+            const docType = currentDocType;
             const fields: Record<string, string> = {};
             
               tags.forEach(t => {
@@ -304,6 +425,7 @@ export default function GeneradorInformesPage() {
             setStatus({ stage: 'error', message: `❌ Error: ${e.message}`, progress: 0 });
         }
     }, []);
+
     // ─── Cargar plantilla San Clemente automáticamente desde el servidor ────
     const loadSanClemente = useCallback(async () => {
         // En lugar de descargar 137MB al navegador y colapsar la memoria (Aw, Snap),
@@ -440,23 +562,31 @@ export default function GeneradorInformesPage() {
 
     const assignImage = async (tagName: string, file: File) => {
         const userInitials = user ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : '';
-        const preview = URL.createObjectURL(file);
+        
+        // Show loading state immediately without heavy preview
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file, preview, loading: true, uploaderInitials: userInitials, uploaderName: user?.name } : t
+            t.name === tagName ? { ...t, loading: true, uploaderInitials: userInitials, uploaderName: user?.name } : t
         ));
 
         try {
             const ext = file.name.split('.').pop() || 'jpg';
             
-            // COMPRESIÓN DE IMAGEN: Reducir drásticamente el peso antes de subir a Supabase
-            let finalFile = file;
+            // 1. COMPRESS FIRST to prevent GPU OOM from rendering raw 4K images
+            let finalFile: File | Blob = file;
             if (file.type.startsWith('image/')) {
                 try {
-                    finalFile = await compressImage(file, 1280, 0.8);
+                    finalFile = await compressImageClient(file, 800, 0.6); // Low res for fast preview & upload
                 } catch (e) {
                     console.warn("No se pudo comprimir la imagen, usando original.", e);
                 }
             }
+
+            const preview = URL.createObjectURL(finalFile);
+            
+            // 2. Set the compressed preview to the state so the browser doesn't crash decoding it
+            setTags(prev => prev.map(t =>
+                t.name === tagName ? { ...t, file: finalFile as File, preview } : t
+            ));
 
             const formData = new FormData();
             formData.append('file', finalFile);
@@ -606,45 +736,93 @@ export default function GeneradorInformesPage() {
         }
     };
 
-    const handleGenerate = async () => {
+
+
+    const handleGenerate = async (e?: React.MouseEvent) => {
+        if (e && e.preventDefault) e.preventDefault();
         if (!templateFile) return;
-        setStatus({ stage: 'generating', message: '📸 Preparando imágenes…', progress: 20 });
-        await new Promise(r => setTimeout(r, 300));
-        setStatus({ stage: 'generating', message: '📝 Inyectando datos en la plantilla…', progress: 50 });
+
+        let wakeLock: any = null;
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await (navigator as any).wakeLock.request('screen');
+            }
+        } catch (err) {}
 
         try {
-            const formData = new FormData();
-            formData.append('template', templateFile);
+            setStatus({ stage: 'generating', message: '📥 Descargando plantilla...', progress: 10 });
+            
+            let templateBuffer: ArrayBuffer;
+            if (templateFile.size < 100) {
+                // Es un archivo "dummy" interno, descargar del servidor local
+                const tRes = await fetch(`/api/get-template?name=${encodeURIComponent(templateFile.name)}`);
+                if (!tRes.ok) throw new Error('No se pudo descargar la plantilla base.');
+                templateBuffer = await tRes.arrayBuffer();
+            } else {
+                // Plantilla cargada manualmente por el usuario
+                templateBuffer = await templateFile.arrayBuffer();
+            }
 
-            // Agregar textos como JSON
             const textData: Record<string, string> = {};
             tags.filter(t => t.type === 'text').forEach(t => {
                 textData[t.name] = t.value || '';
             });
-            formData.append('textData', JSON.stringify(textData));
 
-            // Agregar imágenes
-            tags.filter(t => t.type === 'image' && (t.file || t.remoteUrl)).forEach(t => {
-                if (t.remoteUrl) {
-                    formData.append(`img_${t.name}`, t.remoteUrl);
-                } else if (t.file) {
-                    formData.append(`img_${t.name}`, t.file!);
+            const imageTags = tags.filter(t => t.type === 'image' && (t.file || t.remoteUrl));
+            const imageBuffers: Record<string, ArrayBuffer> = {};
+
+            for (let i = 0; i < imageTags.length; i++) {
+                const t = imageTags[i];
+                setStatus({ stage: 'generating', message: `📸 Descargando imagen ${i + 1} de ${imageTags.length}…`, progress: 10 + Math.floor((i / imageTags.length) * 40) });
+                await new Promise(r => setTimeout(r, 10)); // Yield a la UI
+                
+                try {
+                    if (t.file) {
+                        imageBuffers[t.name] = await t.file.arrayBuffer();
+                    } else if (t.remoteUrl) {
+                        // Usar el proxy para evitar bloqueos de CORS
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        const r = await fetch(`/api/proxy-image?url=${encodeURIComponent(t.remoteUrl)}`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        if (r.ok) {
+                            imageBuffers[t.name] = await r.arrayBuffer();
+                        } else {
+                            console.warn(`Error de red al descargar ${t.name}`);
+                        }
+                    }
+                } catch (err: any) {
+                    console.warn(`Saltando imagen ${t.name} por error de descarga:`, err.message);
                 }
-            });
-
-            const res = await fetch('/api/generar-docx', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Error al generar el documento.');
+            }
+            
+            setStatus({ stage: 'generating', message: '📝 Ensamblando Word en tu navegador... (Puede tardar unos segundos)', progress: 60 });
+            
+            // Yield a la UI antes del trabajo pesado
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Importar dinámicamente para evitar problemas de SSR si los hay
+            const { generateDocumentClientSide } = await import('@/lib/docxGenerator');
+            
+            let originalName = templateFile.name;
+            if (originalName.includes('INTERNAL')) {
+                if (originalName.includes('CHINCHAYSULLO')) originalName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
+                else if (originalName.includes('JAHUAY')) originalName = 'PAD_JAHUAY_PLANTILLA.docx';
+                else if (originalName.includes('BARANDAS')) originalName = 'PAD_BARANDAS_PLANTILLA.docx';
+                else originalName = 'PAD_SAN_CLEMENTE_PLANTILLA.docx';
             }
 
-            // Descargar el archivo
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
+            const outputBlob = await generateDocumentClientSide(
+                templateBuffer,
+                originalName,
+                textData,
+                imageBuffers
+            );
+
+            setStatus({ stage: 'generating', message: '✅ ¡Documento listo!', progress: 95 });
+
+            const url = URL.createObjectURL(outputBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `Informe_SSOMA_${new Date().toISOString().split('T')[0]}.docx`;
@@ -654,6 +832,10 @@ export default function GeneradorInformesPage() {
             setStatus({ stage: 'done', message: '✅ ¡Informe generado y descargado correctamente!', progress: 100 });
         } catch (e: any) {
             setStatus({ stage: 'error', message: `Error: ${e.message}` });
+        } finally {
+            if (wakeLock) {
+                try { await wakeLock.release(); } catch(e) {}
+            }
         }
     };
 
@@ -668,7 +850,7 @@ export default function GeneradorInformesPage() {
     const imageTags = tags.filter(t => t.type === 'image');
     const textTags = tags.filter(t => t.type === 'text');
     const isReadyToGenerate = status.stage === 'ready' || status.stage === 'done' || status.stage === 'error';
-    const filledImages = imageTags.filter(t => t.file).length;
+    const filledImages = imageTags.filter(t => t.file || t.remoteUrl).length;
     const filledTexts = textTags.filter(t => t.value).length;
 
     return (
@@ -747,17 +929,19 @@ export default function GeneradorInformesPage() {
                 <div className="lg:col-span-1 space-y-4">
 
                     {/* Botón rápido PAD San Clemente */}
-                    <button
-                        onClick={loadSanClemente}
-                        disabled={status.stage === 'loading' || status.stage === 'reading'}
-                        className="w-full rounded-2xl p-4 text-left transition-all duration-200 flex items-center gap-3"
-                        style={{
-                            background: 'linear-gradient(135deg, hsl(210,80%,12%), hsl(222,60%,10%))',
-                            border: '1px solid hsl(210,80%,30%)',
-                            cursor: (status.stage === 'loading' || status.stage === 'reading') ? 'not-allowed' : 'pointer',
-                            opacity: (status.stage === 'loading' || status.stage === 'reading') ? 0.7 : 1,
-                        }}
-                    >
+                    <div className="mb-4">
+                        <TemplatePermissionManager templateName="PAD_SAN_CLEMENTE_INTERNAL.docx" permissions={templatePermissions} setPermissions={setTemplatePermissions} />
+                        <button
+                            onClick={loadSanClemente}
+                            disabled={!canAccessTemplate('PAD_SAN_CLEMENTE_INTERNAL.docx') || status.stage === 'loading' || status.stage === 'reading'}
+                            className="w-full rounded-2xl p-4 text-left transition-all duration-200 flex items-center gap-3"
+                            style={{
+                                background: 'linear-gradient(135deg, hsl(210,80%,12%), hsl(222,60%,10%))',
+                                border: '1px solid hsl(210,80%,30%)',
+                                cursor: (!canAccessTemplate('PAD_SAN_CLEMENTE_INTERNAL.docx') || status.stage === 'loading' || status.stage === 'reading') ? 'not-allowed' : 'pointer',
+                                opacity: (!canAccessTemplate('PAD_SAN_CLEMENTE_INTERNAL.docx') || status.stage === 'loading' || status.stage === 'reading') ? 0.5 : 1,
+                            }}
+                        >
                         <div style={{ background: 'hsl(210,80%,20%)', borderRadius: '10px', padding: '10px', flexShrink: 0 }}>
                             {(status.stage === 'loading' || status.stage === 'reading')
                                 ? <Loader2 size={20} style={{ color: 'hsl(210,80%,65%)' }} className="animate-spin" />
@@ -773,17 +957,21 @@ export default function GeneradorInformesPage() {
                             </p>
                         </div>
                     </button>
+                    </div>
 
-                    <button
-                        onClick={loadChinchaysullo}
-                        disabled={status.stage === 'generating'}
-                        className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left mb-3"
-                        style={{
-                            background: 'hsl(280, 50%, 15%)',
-                            border: '1px solid hsl(280, 50%, 25%)',
-                            opacity: status.stage === 'generating' ? 0.5 : 1
-                        }}
-                    >
+                    <div className="mb-3">
+                        <TemplatePermissionManager templateName="PAD_CHINCHAYSULLO_INTERNAL.docx" permissions={templatePermissions} setPermissions={setTemplatePermissions} />
+                        <button
+                            onClick={loadChinchaysullo}
+                            disabled={!canAccessTemplate('PAD_CHINCHAYSULLO_INTERNAL.docx') || status.stage === 'generating'}
+                            className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left"
+                            style={{
+                                background: 'hsl(280, 50%, 15%)',
+                                border: '1px solid hsl(280, 50%, 25%)',
+                                cursor: (!canAccessTemplate('PAD_CHINCHAYSULLO_INTERNAL.docx') || status.stage === 'generating') ? 'not-allowed' : 'pointer',
+                                opacity: (!canAccessTemplate('PAD_CHINCHAYSULLO_INTERNAL.docx') || status.stage === 'generating') ? 0.5 : 1
+                            }}
+                        >
                         <div style={{ background: 'hsl(280, 50%, 20%)', borderRadius: '8px', padding: '10px' }}>
                             {(status.stage === 'loading' || status.stage === 'reading')
                                 ? <Loader2 size={20} style={{ color: 'hsl(280, 80%, 75%)' }} className="animate-spin" />
@@ -799,17 +987,21 @@ export default function GeneradorInformesPage() {
                             </p>
                         </div>
                     </button>
+                    </div>
 
-                    <button
-                        onClick={loadJahuay}
-                        disabled={status.stage === 'generating'}
-                        className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left mb-3"
-                        style={{
-                            background: 'hsl(30, 80%, 15%)',
-                            border: '1px solid hsl(30, 80%, 25%)',
-                            opacity: status.stage === 'generating' ? 0.5 : 1
-                        }}
-                    >
+                    <div className="mb-3">
+                        <TemplatePermissionManager templateName="PAD_JAHUAY_INTERNAL.docx" permissions={templatePermissions} setPermissions={setTemplatePermissions} />
+                        <button
+                            onClick={loadJahuay}
+                            disabled={!canAccessTemplate('PAD_JAHUAY_INTERNAL.docx') || status.stage === 'generating'}
+                            className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left"
+                            style={{
+                                background: 'hsl(30, 80%, 15%)',
+                                border: '1px solid hsl(30, 80%, 25%)',
+                                cursor: (!canAccessTemplate('PAD_JAHUAY_INTERNAL.docx') || status.stage === 'generating') ? 'not-allowed' : 'pointer',
+                                opacity: (!canAccessTemplate('PAD_JAHUAY_INTERNAL.docx') || status.stage === 'generating') ? 0.5 : 1
+                            }}
+                        >
                         <div style={{ background: 'hsl(30, 80%, 20%)', borderRadius: '8px', padding: '10px' }}>
                             {(status.stage === 'loading' || status.stage === 'reading')
                                 ? <Loader2 size={20} style={{ color: 'hsl(30, 80%, 70%)' }} className="animate-spin" />
@@ -825,17 +1017,21 @@ export default function GeneradorInformesPage() {
                             </p>
                         </div>
                     </button>
+                    </div>
 
-                    <button
-                        onClick={loadBarandas}
-                        disabled={status.stage === 'generating'}
-                        className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left mb-6"
-                        style={{
-                            background: 'hsl(200, 80%, 15%)',
-                            border: '1px solid hsl(200, 80%, 25%)',
-                            opacity: status.stage === 'generating' ? 0.5 : 1
-                        }}
-                    >
+                    <div className="mb-6">
+                        <TemplatePermissionManager templateName="PAD_BARANDAS_INTERNAL.docx" permissions={templatePermissions} setPermissions={setTemplatePermissions} />
+                        <button
+                            onClick={loadBarandas}
+                            disabled={!canAccessTemplate('PAD_BARANDAS_INTERNAL.docx') || status.stage === 'generating'}
+                            className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left"
+                            style={{
+                                background: 'hsl(200, 80%, 15%)',
+                                border: '1px solid hsl(200, 80%, 25%)',
+                                cursor: (!canAccessTemplate('PAD_BARANDAS_INTERNAL.docx') || status.stage === 'generating') ? 'not-allowed' : 'pointer',
+                                opacity: (!canAccessTemplate('PAD_BARANDAS_INTERNAL.docx') || status.stage === 'generating') ? 0.5 : 1
+                            }}
+                        >
                         <div style={{ background: 'hsl(200, 80%, 20%)', borderRadius: '8px', padding: '10px' }}>
                             {(status.stage === 'loading' || status.stage === 'reading')
                                 ? <Loader2 size={20} style={{ color: 'hsl(200, 80%, 70%)' }} className="animate-spin" />
@@ -851,6 +1047,7 @@ export default function GeneradorInformesPage() {
                             </p>
                         </div>
                     </button>
+                    </div>
 
                     {/* Barra de progreso — visible mientras carga/detecta/genera */}
                     {(status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && (
@@ -963,6 +1160,7 @@ export default function GeneradorInformesPage() {
                     {isReadyToGenerate && tags.length > 0 && (
                         <>
                         <button
+                            type="button"
                             onClick={handleGenerate}
                             disabled={status.stage === 'generating'}
                             className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-60"
