@@ -784,75 +784,53 @@ export default function GeneradorInformesPage() {
         } catch (err) {}
 
         try {
-            setStatus({ stage: 'generating', message: '📥 Descargando plantilla...', progress: 10 });
+            setStatus({ stage: 'generating', message: '📥 Enviando orden al servidor local para generar el informe...', progress: 20 });
             
-            let templateBuffer: ArrayBuffer;
-            if (templateFile.size < 100) {
-                // Es un archivo "dummy" interno, descargar del servidor local
-                const tRes = await fetch(`/api/get-template?name=${encodeURIComponent(templateFile.name)}`);
-                if (!tRes.ok) throw new Error('No se pudo descargar la plantilla base.');
-                templateBuffer = await tRes.arrayBuffer();
-            } else {
-                // Plantilla cargada manualmente por el usuario
-                templateBuffer = await templateFile.arrayBuffer();
-            }
-
+            const formData = new FormData();
+            
+            // Si es interno, enviamos el archivo dummy. El backend lee el .name y usa fs.readFileSync
+            formData.append('template', templateFile);
+            
             const textData: Record<string, string> = {};
             tags.filter(t => t.type === 'text').forEach(t => {
                 textData[t.name] = t.value || '';
             });
+            formData.append('textData', JSON.stringify(textData));
 
             const imageTags = tags.filter(t => t.type === 'image' && (t.file || t.remoteUrl));
-            const imageBuffers: Record<string, ArrayBuffer> = {};
-
+            const imageTagsData: any[] = [];
+            
             for (let i = 0; i < imageTags.length; i++) {
                 const t = imageTags[i];
-                setStatus({ stage: 'generating', message: `📸 Descargando imagen ${i + 1} de ${imageTags.length}…`, progress: 10 + Math.floor((i / imageTags.length) * 40) });
-                await new Promise(r => setTimeout(r, 10)); // Yield a la UI
-                
-                try {
-                    if (t.file) {
-                        imageBuffers[t.name] = await t.file.arrayBuffer();
-                    } else if (t.remoteUrl) {
-                        // Usar el proxy para evitar bloqueos de CORS
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 10000);
-                        const r = await fetch(`/api/proxy-image?url=${encodeURIComponent(t.remoteUrl)}`, { signal: controller.signal });
-                        clearTimeout(timeoutId);
-                        
-                        if (r.ok) {
-                            imageBuffers[t.name] = await r.arrayBuffer();
-                        } else {
-                            console.warn(`Error de red al descargar ${t.name}`);
-                        }
-                    }
-                } catch (err: any) {
-                    console.warn(`Saltando imagen ${t.name} por error de descarga:`, err.message);
+                if (t.file) {
+                    // Archivo subido en este momento
+                    formData.append(`img_${t.name}`, t.file);
+                } else if (t.remoteUrl) {
+                    // Url remota guardada en el borrador
+                    imageTagsData.push({ name: t.name, remoteUrl: t.remoteUrl });
                 }
             }
             
-            setStatus({ stage: 'generating', message: '📝 Ensamblando Word en tu navegador... (Puede tardar unos segundos)', progress: 60 });
+            formData.append('imageTagsData', JSON.stringify(imageTagsData));
             
-            // Yield a la UI antes del trabajo pesado
-            await new Promise(r => setTimeout(r, 100));
+            setStatus({ stage: 'generating', message: '📝 El servidor local está ensamblando tu informe... (Puede tardar unos segundos)', progress: 60 });
             
-            // Importar dinámicamente para evitar problemas de SSR si los hay
-            const { generateDocumentClientSide } = await import('@/lib/docxGenerator');
-            
-            let originalName = templateFile.name;
-            if (originalName.includes('INTERNAL')) {
-                if (originalName.includes('CHINCHAYSULLO')) originalName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
-                else if (originalName.includes('JAHUAY')) originalName = 'PAD_JAHUAY_PLANTILLA.docx';
-                else if (originalName.includes('BARANDAS')) originalName = 'PAD_BARANDAS_PLANTILLA.docx';
-                else originalName = 'PAD_SAN_CLEMENTE_PLANTILLA.docx';
+            const res = await fetch('/api/generar-docx', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                let errData;
+                try {
+                    errData = await res.json();
+                } catch(e) {
+                    throw new Error('Error al generar el documento en el servidor (Respuesta no válida)');
+                }
+                throw new Error(errData.error || 'Error al generar el documento en el servidor');
             }
 
-            const outputBlob = await generateDocumentClientSide(
-                templateBuffer,
-                originalName,
-                textData,
-                imageBuffers
-            );
+            const outputBlob = await res.blob();
 
             setStatus({ stage: 'generating', message: '✅ ¡Documento listo!', progress: 95 });
 
