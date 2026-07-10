@@ -768,23 +768,8 @@ export default function GeneradorInformesPage() {
                 return;
             }
 
-            // Limpiar el borrador activo para el nuevo mes
-            await fetch(`/api/draft?docType=${docType}`, { method: 'DELETE' });
-            
-            // Purgar caché local para liberar memoria del navegador
-            await clearImageCache();
-            
             loadArchives();
-            
-            // Reload clean template
-            if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') loadSanClemente();
-            else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') loadChinchaysullo();
-            else if (docType === 'PAD_JAHUAY_INTERNAL.docx') loadJahuay();
-            else if (docType === 'PAD_BARANDAS_INTERNAL.docx') loadBarandas();
-            else {
-                setTags([]);
-                setStatus({ stage: 'ready', message: `Mes ${monthName} archivado. Listo para un nuevo mes.`, progress: 100 });
-            }
+            setStatus({ stage: 'ready', message: `Mes ${monthName} archivado exitosamente.`, progress: 100 });
         } catch (e) {
             setStatus({ stage: 'error', message: 'Error al archivar mes', progress: 0 });
         }
@@ -1243,7 +1228,7 @@ export default function GeneradorInformesPage() {
                             }}
                         >
                             <Archive size={20} />
-                            Archivar y Empezar Nuevo Mes
+                            Archivar en Drive e Historial
                         </button>
                         </>
                     )}
