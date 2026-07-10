@@ -755,17 +755,26 @@ export default function GeneradorInformesPage() {
             });
             
             // Guardar en el histórico
-            await fetch('/api/draft/archive', {
+            const res = await fetch('/api/draft/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ docType, monthName, fields })
             });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                console.error("Archive Error:", errData);
+                setStatus({ stage: 'error', message: 'Error al archivar en servidor', progress: 0 });
+                return;
+            }
 
             // Limpiar el borrador activo para el nuevo mes
             await fetch(`/api/draft?docType=${docType}`, { method: 'DELETE' });
             
             // Purgar caché local para liberar memoria del navegador
             await clearImageCache();
+            
+            loadArchives();
             
             // Reload clean template
             if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') loadSanClemente();

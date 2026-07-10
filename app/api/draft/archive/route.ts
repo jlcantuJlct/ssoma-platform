@@ -4,9 +4,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 async function ensureTable() {
+    const isPostgres = !!process.env.POSTGRES_URL;
+    const pkDef = isPostgres ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
     await db.execute(`
         CREATE TABLE IF NOT EXISTS report_archives (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id ${pkDef},
             doc_type VARCHAR(255),
             month_name VARCHAR(255),
             fields JSON,
@@ -63,6 +65,34 @@ export async function POST(request: Request) {
 
         if (!docType || !monthName || !fields) {
             return NextResponse.json({ error: 'docType, monthName and fields are required' }, { status: 400 });
+        }
+
+        const cleanDocType = docType.replace('.docx', '');
+        const driveFolderName = `Informes Word/${cleanDocType}/${monthName}`;
+
+        const { uploadToDrive } = await import('@/lib/googleDrive');
+
+        // Subir fotos a Drive
+        for (const key in fields) {
+            const value = fields[key];
+            // Asumimos que las imágenes son las que empiezan por http (ej. blobs de vercel)
+            if (typeof value === 'string' && value.startsWith('http') && key.startsWith('foto_')) {
+                try {
+                    console.log(`Descargando ${key} para subir a Drive...`);
+                    const res = await fetch(value);
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const ext = blob.type.split('/')[1] || 'jpg';
+                        const fileName = `${key}.${ext}`;
+                        const file = new File([blob], fileName, { type: blob.type });
+                        
+                        console.log(`Subiendo ${fileName} a carpeta ${driveFolderName}...`);
+                        await uploadToDrive(file, driveFolderName, fileName);
+                    }
+                } catch (e) {
+                    console.error(`Error al subir ${key} a Drive:`, e);
+                }
+            }
         }
 
         await ensureTable();
