@@ -104,8 +104,9 @@ async function getCachedImageURL(remoteUrl: string): Promise<string> {
             const blob = await response.blob();
             return URL.createObjectURL(blob); // Retorna desde disco ($0 consumo)
         } else {
-            // Si no está, la descargamos UNA VEZ y la guardamos
-            const fetchRes = await fetch(remoteUrl);
+            // Si no está, la descargamos a través del optimizador de Next.js para que sea ligera (previene que Chrome explote con 800MB)
+            const proxyUrl = `/_next/image?url=${encodeURIComponent(remoteUrl)}&w=256&q=60`;
+            const fetchRes = await fetch(proxyUrl);
             if (fetchRes.ok) {
                 const blob = await fetchRes.blob();
                 await cache.put(remoteUrl, new Response(blob));
@@ -258,7 +259,6 @@ export default function GeneradorInformesPage() {
         if (!allowed || allowed.length === 0) return true; // Si no hay permisos definidos, asume libre acceso
         return allowed.includes(user.username);
     };
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [archives, setArchives] = useState<any[]>([]);
     // --- Autoguardado Colaborativo ---
     const loadDraft = useCallback(async (docType: string, currentTags: DetectedTag[]) => {
@@ -657,6 +657,12 @@ export default function GeneradorInformesPage() {
         }
     };
 
+    React.useEffect(() => {
+        if (templateFile) {
+            loadArchives();
+        }
+    }, [templateFile]);
+
     // ─── Generar el documento ─────────────────────────────────────────────────
 
     const loadArchives = async () => {
@@ -709,7 +715,6 @@ export default function GeneradorInformesPage() {
                     });
                 }
             }
-            setShowHistoryModal(false);
             setStatus({ stage: 'ready', message: `✅ Histórico cargado: ${monthName}`, progress: 100 });
         } catch (e) {
             setStatus({ stage: 'error', message: 'Error al cargar mes histórico', progress: 0 });
@@ -731,7 +736,13 @@ export default function GeneradorInformesPage() {
         if (p !== "161976") { alert("Clave incorrecta"); return; }
 
         if (!templateFile) return;
-        const monthName = prompt("¿Bajo qué nombre deseas archivar este mes? (Ej. Junio 2026)");
+
+        const cleanTemplateName = templateFile.name.replace(/_PLANTILLA\.docx| ultimo\.docx| Mayo \.docx|\.docx|_INTERNAL/gi, '').replace(/_/g, ' ');
+        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const now = new Date();
+        const defaultMonthName = `Plantilla ${cleanTemplateName} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+        const monthName = prompt("¿Bajo qué nombre deseas archivar este mes?", defaultMonthName);
         if (!monthName) return;
         
         const docType = templateFile.name;
@@ -815,7 +826,8 @@ export default function GeneradorInformesPage() {
             
             setStatus({ stage: 'generating', message: '📝 El servidor local está ensamblando tu informe... (Puede tardar unos segundos)', progress: 60 });
             
-            const res = await fetch('/api/generar-docx', {
+            // Importante: La web (Vercel) le da la orden directamente a tu plataforma local
+            const res = await fetch('http://localhost:3000/api/generar-docx', {
                 method: 'POST',
                 body: formData
             });
@@ -1237,6 +1249,50 @@ export default function GeneradorInformesPage() {
                         <FilePlus size={14} />
                         Descargar Plantilla de Ejemplo
                     </a>
+
+                    {/* ── Panel de Registros Históricos ──────────────────────── */}
+                    {templateFile && (
+                        <div className="w-full mt-6 rounded-xl border border-white/10 overflow-hidden" style={{ background: 'hsl(222,47%,10%)' }}>
+                            <div className="p-4 border-b border-white/10 bg-black/20">
+                                <h3 className="font-bold text-white flex items-center gap-2 text-sm">
+                                    <History size={16} className="text-blue-400" />
+                                    Registros Históricos
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1">Cargar meses archivados (reemplazará tu borrador actual).</p>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto p-3">
+                                {archives.length === 0 ? (
+                                    <p className="text-slate-500 text-center py-4 text-xs italic">No hay meses archivados.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {archives.map(arch => (
+                                            <div key={arch.id} className="flex flex-col gap-2 p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-semibold text-white text-sm">{arch.month_name}</span>
+                                                    <span className="text-[10px] text-slate-400">{new Date(arch.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => loadHistoricalMonth(arch.id, arch.month_name)}
+                                                        className="flex-1 py-1.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition text-xs font-semibold text-center"
+                                                    >
+                                                        Cargar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteArchive(arch.id)}
+                                                        className="px-2 py-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
+                                                        title="Eliminar registro"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Columna Derecha: Formulario ────────────────────────── */}
@@ -1273,14 +1329,6 @@ export default function GeneradorInformesPage() {
                                         Completa los campos y verifica el formulario antes de generar el documento final.
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => { loadArchives(); setShowHistoryModal(true); }}
-                                    className="px-4 py-2 rounded-lg font-bold text-white flex items-center gap-2 transition-colors"
-                                    style={{ background: 'hsl(215,83%,30%)', border: '1px solid hsl(215,83%,40%)' }}
-                                >
-                                    <History size={14} />
-                                    Ver Historial de Meses
-                                </button>
                             </div>
 
                             {/* ── Campos de texto ─────────────────────────── */}
@@ -1358,56 +1406,7 @@ export default function GeneradorInformesPage() {
                 </div>
             </div>
 
-            {/* Modal de Historial */}
-            {showHistoryModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ background: 'hsl(222,47%,10%)', border: '1px solid hsl(222,47%,20%)' }}>
-                        <div className="flex justify-between items-center p-5 border-b border-white/10">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                <History size={20} className="text-blue-400" />
-                                Historial de Meses Archivados
-                            </h2>
-                            <button onClick={() => setShowHistoryModal(false)} className="text-slate-400 hover:text-white transition">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-5 max-h-[60vh] overflow-y-auto">
-                            {archives.length === 0 ? (
-                                <p className="text-slate-400 text-center py-6">No tienes ningún mes archivado para esta plantilla aún.</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {archives.map(arch => (
-                                        <div key={arch.id} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition">
-                                            <div>
-                                                <h3 className="font-bold text-white text-lg">{arch.month_name}</h3>
-                                                <p className="text-xs text-slate-400">Archivado el: {new Date(arch.created_at).toLocaleDateString()}</p>
-                                            </div>
-                                            <div className="flex gap-1.5">
-                                                <button
-                                                    onClick={() => loadHistoricalMonth(arch.id, arch.month_name)}
-                                                    className="px-3 py-1.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition text-sm font-semibold"
-                                                >
-                                                    Cargar Info
-                                                </button>
-                                                <button
-                                                    onClick={() => deleteArchive(arch.id)}
-                                                    className="p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-4 border-t border-white/10 bg-black/20 text-xs text-slate-400">
-                            <AlertCircle size={14} className="inline mr-1 text-amber-500" />
-                            Nota: Cargar un mes histórico reemplazará el borrador que tengas actualmente en pantalla.
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }
