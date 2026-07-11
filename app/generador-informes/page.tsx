@@ -754,8 +754,8 @@ export default function GeneradorInformesPage() {
                 if (t.type === 'image' && t.remoteUrl) fields[t.name] = t.remoteUrl;
             });
             
-            // Guardar en el histórico
-            const res = await fetch('/api/draft/archive', {
+            // Guardar en el histórico enviando orden a la plataforma local
+            const res = await fetch('http://localhost:3000/api/draft/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ docType, monthName, fields })
