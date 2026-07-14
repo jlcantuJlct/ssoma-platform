@@ -60,53 +60,93 @@ export async function GET(request: Request) {
 
 // POST: Guardar un nuevo archivo (Mes histórico)
 export async function POST(request: Request) {
+    let reqData;
     try {
-        const { docType, monthName, fields } = await request.json();
+        reqData = await request.json();
+    } catch (e) {
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+    
+    const { docType, monthName, fields } = reqData;
 
-        if (!docType || !monthName || !fields) {
-            return NextResponse.json({ error: 'docType, monthName and fields are required' }, { status: 400 });
-        }
+    if (!docType || !monthName || !fields) {
+        return NextResponse.json({ error: 'docType, monthName and fields are required' }, { status: 400 });
+    }
 
-        const cleanDocType = docType.replace('.docx', '');
-        const driveFolderName = `Informes Word/${cleanDocType}/${monthName}`;
+    const encoder = new TextEncoder();
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
 
-        const { uploadToDrive } = await import('@/lib/googleDrive');
+    const cleanDocType = docType.replace('.docx', '');
+    const driveFolderName = `Informes Word/${cleanDocType}/${monthName}`;
 
-        // Subir fotos a Drive
-        for (const key in fields) {
-            const value = fields[key];
-            // Asumimos que las imágenes son las que empiezan por http (ej. blobs de vercel)
-            if (typeof value === 'string' && value.startsWith('http') && key.startsWith('foto_')) {
+    // Ejecutar en segundo plano
+    (async () => {
+        try {
+            const { uploadToDrive } = await import('@/lib/googleDrive');
+            
+            // Recolectar llaves de imágenes
+            const imageKeys = [];
+            for (const key in fields) {
+                const value = fields[key];
+                if (typeof value === 'string' && value.startsWith('http') && key.startsWith('foto_')) {
+                    imageKeys.push({ key, value });
+                }
+            }
+
+            // Guardar en BD PRIMERO para que el usuario no espere
+            writer.write(encoder.encode(JSON.stringify({ type: 'progress', message: `Guardando registro histórico...`, progress: 50 }) + '\n'));
+            
+            await ensureTable();
+            await db.execute(
+                `INSERT INTO report_archives (doc_type, month_name, fields) VALUES (?, ?, ?)`,
+                [docType, monthName, JSON.stringify(fields)]
+            );
+
+            // Éxito inmediato
+            writer.write(encoder.encode(JSON.stringify({ type: 'success' }) + '\n'));
+            writer.close(); // Cerramos la conexión para que el frontend termine y el usuario siga trabajando
+            
+            // --- PROCESO EN SEGUNDO PLANO (BACKGROUND) EN EL SERVIDOR ---
+            // Las fotos que falten subir se procesarán de forma asíncrona sin bloquear
+            const total = imageKeys.length;
+            let current = 0;
+            for (const item of imageKeys) {
+                current++;
+                const { key, value } = item;
                 try {
-                    console.log(`Descargando ${key} para subir a Drive...`);
+                    if (value.includes('drive.google.com') || value.includes('lh3.googleusercontent.com')) {
+                        continue;
+                    }
+                    console.log(`[Background] Descargando ${key} para subir a Drive (${current}/${total})...`);
                     const res = await fetch(value);
                     if (res.ok) {
                         const blob = await res.blob();
                         const ext = blob.type.split('/')[1] || 'jpg';
                         const fileName = `${key}.${ext}`;
                         const file = new File([blob], fileName, { type: blob.type });
-                        
-                        console.log(`Subiendo ${fileName} a carpeta ${driveFolderName}...`);
+                        console.log(`[Background] Subiendo ${fileName} a carpeta ${driveFolderName}...`);
                         await uploadToDrive(file, driveFolderName, fileName);
                     }
                 } catch (e) {
-                    console.error(`Error al subir ${key} a Drive:`, e);
+                    console.error(`[Background] Error al subir ${key} a Drive:`, e);
                 }
             }
+        } catch (error) {
+            console.error('Error saving archive:', error);
+            const errStr = error instanceof Error ? error.message : String(error);
+            writer.write(encoder.encode(JSON.stringify({ type: 'error', message: errStr }) + '\n'));
+        } finally {
+            writer.close();
         }
+    })();
 
-        await ensureTable();
-
-        await db.execute(
-            `INSERT INTO report_archives (doc_type, month_name, fields) VALUES (?, ?, ?)`,
-            [docType, monthName, JSON.stringify(fields)]
-        );
-
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error('Error saving archive:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-    }
+    return new Response(stream.readable, {
+        headers: {
+            'Content-Type': 'application/x-ndjson',
+            'Transfer-Encoding': 'chunked'
+        }
+    });
 }
 
 // DELETE: Eliminar un archivo histórico

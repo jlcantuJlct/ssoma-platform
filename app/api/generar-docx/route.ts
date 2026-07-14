@@ -4,21 +4,37 @@ import Docxtemplater from 'docxtemplater';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: Request) {
+    return new NextResponse(null, {
+        status: 200,
+        headers: CORS_HEADERS
+    });
+}
+
 const IGNORED_MAP: Record<string, number[]> = {
     // Shapes ignorados: portada, logos, coordenadas, mapa Google Earth, organigrama y tablas fijas (shapes 1-29)
     // Con esta lista, foto_001 = shape 30 = "Fotografía 8.1.1.1-1: Baños químicos" (primera foto real de campo)
-    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 72],
-    'PAD_SAN_CLEMENTE_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 72],
+    'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68],
+    'PAD_SAN_CLEMENTE_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68],
     'PAD_CHINCHAYSULLO_PLANTILLA.docx': [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24, 67, 91, 92, 211, 224, 226, 228, 232],
     'PAD_CHINCHAYSULLO_INTERNAL.docx': [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24, 67, 91, 92, 211, 224, 226, 228, 232],
     'PAD_BARANDAS_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 19],
     'PAD_BARANDAS_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 19],
     'PAD_JAHUAY_PLANTILLA.docx': [1, 2],
-    'PAD_JAHUAY_INTERNAL.docx': [1, 2]
+    'PAD_JAHUAY_INTERNAL.docx': [1, 2],
+    'MP6_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    'MP6_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 };
 
 function getTargetFromRel(rId: string, relsElements: any) {
@@ -51,19 +67,23 @@ export async function POST(request: Request) {
         let originalName = '';
         let templateName = '';
 
-        if (fileName.includes('INTERNAL')) {
-            if (fileName.includes('CHINCHAYSULLO')) {
-                templateName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
-                originalName = 'PAD-CHINCHAYSULLO ultimo.docx';
-            } else if (fileName.includes('JAHUAY')) {
-                templateName = 'PAD_JAHUAY_PLANTILLA.docx';
-                originalName = 'Peaje Jahuay Ultimo.docx';
-            } else if (fileName.includes('BARANDAS')) {
-                templateName = 'PAD_BARANDAS_PLANTILLA.docx';
-                originalName = 'MP Barandas Mayo .docx';
-            } else {
+        if (docType && docType.endsWith('_INTERNAL.docx')) {
+            // Lógica especial para plantillas pre-cargadas en el servidor
+            if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') {
                 templateName = 'PAD_SAN_CLEMENTE_PLANTILLA.docx';
                 originalName = 'PAD_SAN CLEMENTE ultimo.docx';
+            } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
+                templateName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
+                originalName = 'PAD-CHINCHAYSULLO ultimo.docx';
+            } else if (docType === 'PAD_BARANDAS_INTERNAL.docx') {
+                templateName = 'PAD_BARANDAS_PLANTILLA.docx';
+                originalName = 'MP Barandas Mayo .docx';
+            } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
+                templateName = 'PAD_JAHUAY_PLANTILLA.docx';
+                originalName = 'Peaje Jahuay Ultimo.docx';
+            } else if (docType === 'MP6_INTERNAL.docx') {
+                templateName = 'MP6_PLANTILLA.docx';
+                originalName = 'MP6 _ultimo.docx';
             }
             
             const localPath = path.join(process.cwd(), 'plantillas', originalName);
@@ -72,6 +92,7 @@ export async function POST(request: Request) {
             if (!templateFile) {
                 return NextResponse.json({ error: 'No se recibió la plantilla.' }, { status: 400 });
             }
+            templateName = fileName;
             templateBuffer = Buffer.from(await templateFile.arrayBuffer());
         }
 
@@ -101,24 +122,32 @@ export async function POST(request: Request) {
         if (imageTagsDataRaw) {
             try {
                 const imageTagsData = JSON.parse(imageTagsDataRaw);
+                
+                // Procesar de 1 en 1 para no saturar la red local (solicitado por el usuario)
                 for (const tag of imageTagsData) {
                     if (!tag.remoteUrl || !tag.name) continue;
-                    
                     try {
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 8000);
+                        const timeoutId = setTimeout(() => controller.abort(), 12000);
                         const r = await fetch(tag.remoteUrl, { signal: controller.signal });
                         clearTimeout(timeoutId);
                         
                         if (r.ok) {
                             const buf = await r.arrayBuffer();
-                            imageBuffers[tag.name] = Buffer.from(buf);
+                            // Compresión extrema en el backend para evitar que el navegador colapse con un ZIP masivo
+                            const compressedBuf = await sharp(Buffer.from(buf))
+                                .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+                                .jpeg({ quality: 60 })
+                                .toBuffer();
+                            imageBuffers[tag.name] = compressedBuf;
                         }
                     } catch (e) {
                         console.warn(`Error descargando imagen ${tag.name} en el backend`, e);
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("Error procesando imageTagsData", e);
+            }
         }
 
         const zip = new PizZip(templateBuffer);
@@ -129,7 +158,9 @@ export async function POST(request: Request) {
         // Haremos un reemplazo rápido en texto para MAYO 2026 a mes_anio si no existe.
         if (textData['mes_anio']) {
             let docXmlStr = zip.file('word/document.xml').asText();
-            docXmlStr = docXmlStr.replace(/MAYO[\s\u00A0]*2026/gi, '{mes_anio}');
+            // Buscar cualquier MES seguido de un año 202X (ej. MAYO 2026, JUNIO 2026) y reemplazarlo
+            docXmlStr = docXmlStr.replace(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)[\s\u00A0]*202[0-9]/gi, '{mes_anio}');
+            // Buscar también "mes año" genérico
             docXmlStr = docXmlStr.replace(/mes[\s\u00A0]*año/gi, '{mes_anio}');
             zip.file('word/document.xml', docXmlStr);
         }
@@ -234,6 +265,7 @@ export async function POST(request: Request) {
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'Content-Disposition': `attachment; filename="${outName}"`,
+                ...CORS_HEADERS
             },
         });
 
@@ -242,7 +274,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             error: e.message || 'Error al generar el documento.',
             properties: e.properties,
-        }, { status: 500 });
+        }, { status: 500, headers: CORS_HEADERS });
     }
 }
 // Dummy line to test

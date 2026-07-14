@@ -5,7 +5,7 @@ import {
     Upload, FileText, Image as ImageIcon, Download, Trash2,
     Sparkles, CheckCircle, AlertCircle, Eye, X, Loader2,
     Info, FilePlus, ChevronRight, Package, Search, Filter, MapPin, FileCheck, RefreshCw, Archive, History,
-    Shield, ChevronDown
+    Shield, ChevronDown, ExternalLink, Cloud, CloudUpload
 } from 'lucide-react';
 import { compressImage } from '@/lib/uploadClient';
 import { useAuth, ALL_USER_LIST } from '@/lib/auth';
@@ -19,6 +19,8 @@ interface DetectedTag {
     file?: File;
     preview?: string;
     remoteUrl?: string;
+    driveUrl?: string; // [NUEVO] URL definitivo en Google Drive
+    syncing?: boolean; // [NUEVO] Indica si se está sincronizando a Drive
     loading?: boolean;
     uploaderInitials?: string;
     uploaderName?: string;
@@ -359,10 +361,10 @@ export default function GeneradorInformesPage() {
             fetch(`/api/draft?docType=${docType}`).then(r => r.json()).then(data => {
                 if (data.fields) {
                     setTags(prev => prev.map(t => {
-                        if (data.fields[t.name]) {
+                        if (data.fields[t.name] && !deletedFieldsRef.current.includes(t.name)) {
                             if (t.type === 'image' && t.remoteUrl !== data.fields[t.name]) {
                                 getCachedImageURL(data.fields[t.name]).then(localUrl => {
-                                    setTags(current => current.map(pt => pt.name === t.name ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl } : pt));
+                                    setTags(current => current.map(pt => pt.name === t.name && !deletedFieldsRef.current.includes(t.name) ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl } : pt));
                                 });
                                 return t;
                             }
@@ -453,8 +455,8 @@ export default function GeneradorInformesPage() {
             { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
         ];
         
-        // San Clemente: 259 slots reales (con ignored map 1-14, 72 y nuevo motor multi-embed)
-        for (let i = 1; i <= 259; i++) {
+        // San Clemente: 268 slots reales (ignorando logos de portada y vectores)
+        for (let i = 1; i <= 268; i++) {
             
             detected.push({
                 name: `foto_${String(i).padStart(3, '0')}`,
@@ -551,6 +553,33 @@ export default function GeneradorInformesPage() {
         }, 300);
     }, [loadDraft]);
 
+    // ─── Cargar plantilla MP6 automáticamente desde el servidor ─────────
+    const loadMp6 = useCallback(async () => {
+        setStatus({ stage: 'loading', message: '⬇️ Cargando plantilla MP6…', progress: 20 });
+        setTags([]);
+        
+        setTemplateFile(new File(["dummy"], "MP6_INTERNAL.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+        
+        const detected: DetectedTag[] = [
+            { name: 'mes_anio', type: 'text', label: 'Mes Anio', value: '' }
+        ];
+        
+        // Las fotos en MP6 van de foto_001 a foto_144
+        for (let i = 1; i <= 144; i++) {
+            detected.push({
+                name: `foto_${String(i).padStart(3, '0')}`,
+                type: 'image',
+                label: `Foto ${String(i).padStart(3, '0')}`
+            });
+        }
+        
+        setTimeout(() => {
+            setTags(detected);
+            loadDraft('MP6_INTERNAL.docx', detected);
+            setStatus({ stage: 'ready', message: `✅ Plantilla lista — ${detected.length} campos detectados (1 texto, ${detected.length - 1} fotos)`, progress: 100 });
+        }, 300);
+    }, [loadDraft]);
+
     // ─── Drop de plantilla ───────────────────────────────────────────────────
     const handleTemplateDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -613,9 +642,14 @@ export default function GeneradorInformesPage() {
                 // 1. Guardar en caché local para que no consuma datos mañana
                 await cacheImageURL(blobUrl.url, file);
 
-                setTags(prev => prev.map(t =>
-                    t.name === tagName ? { ...t, remoteUrl: blobUrl.url, loading: false } : t
-                ));
+                setTags(prev => prev.map(t => {
+                    if (t.name === tagName) {
+                        // Si el usuario borró la foto mientras se subía, file será undefined, no la restauramos
+                        if (!t.file && !t.preview) return { ...t, loading: false };
+                        return { ...t, remoteUrl: blobUrl.url, loading: false };
+                    }
+                    return t;
+                }));
             } else {
                 setTags(prev => prev.map(t => t.name === tagName ? { ...t, loading: false } : t));
             }
@@ -637,8 +671,76 @@ export default function GeneradorInformesPage() {
         ));
     };
 
+    // ─── Worker de Sincronización en Segundo Plano (Background Sync) ───────
+    React.useEffect(() => {
+        if (!templateFile || tags.length === 0) return;
+        const interval = setInterval(async () => {
+            if (document.hidden) return; // Pausar si no están viendo la pestaña
+
+            // Encontrar la primera imagen que necesite sincronización
+            const tagToSync = tags.find(t => 
+                t.type === 'image' && 
+                t.remoteUrl && 
+                !t.driveUrl && 
+                !t.syncing
+            );
+
+            if (!tagToSync) return; // Nada que sincronizar
+
+            // Calcular el nombre de la carpeta destino (igual que en handleArchiveMonth)
+            const cleanTemplateName = templateFile.name.replace(/_PLANTILLA\.docx| ultimo\.docx| Mayo \.docx|\.docx|_INTERNAL/gi, '').replace(/_/g, ' ');
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const now = new Date();
+            const defaultMonthName = `Plantilla ${cleanTemplateName} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+            // Marcar como syncing para que no se envíe doble
+            setTags(prev => prev.map(t => t.name === tagToSync.name ? { ...t, syncing: true } : t));
+
+            try {
+                // Obtener extensión del remoteUrl (ej. foto_001.jpeg)
+                const ext = tagToSync.remoteUrl.split('.').pop() || 'jpg';
+                const filename = `${tagToSync.name}.${ext}`;
+
+                const res = await fetch('/api/draft/sync-drive-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: tagToSync.remoteUrl,
+                        docType: templateFile.name,
+                        monthName: defaultMonthName,
+                        filename: filename
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.driveUrl) {
+                        setTags(prev => prev.map(t => 
+                            t.name === tagToSync.name ? { ...t, driveUrl: data.driveUrl, syncing: false } : t
+                        ));
+                        return; // Éxito
+                    }
+                }
+                throw new Error("Respuesta inválida del sync");
+            } catch (error) {
+                console.error("Error sincronizando en background:", error);
+                // Si falla, quitamos el flag syncing para que lo reintente luego o se haga en el Archivo final
+                setTags(prev => prev.map(t => t.name === tagToSync.name ? { ...t, syncing: false } : t));
+            }
+        }, 3000); // Revisa cada 3 segundos
+
+        return () => clearInterval(interval);
+    }, [tags, templateFile]);
+
     const handleClearDraft = async () => {
         if (!templateFile) return;
+        
+        const clave = prompt("Para vaciar la plantilla, ingrese la clave de autorización:");
+        if (clave !== "161976") {
+            alert("Clave incorrecta. Operación cancelada.");
+            return;
+        }
+
         if (!confirm(`¿Estás seguro de que deseas VACIAR LA PLANTILLA ${templateFile.name}?\nEsto borrará todas las fotos que se hayan guardado en ella.`)) return;
         
         try {
@@ -751,11 +853,13 @@ export default function GeneradorInformesPage() {
             const fields: Record<string, string> = {};
             tags.forEach(t => {
                 if (t.type === 'text' && t.value) fields[t.name] = t.value;
-                if (t.type === 'image' && t.remoteUrl) fields[t.name] = t.remoteUrl;
+                if (t.type === 'image' && (t.driveUrl || t.remoteUrl)) {
+                    fields[t.name] = t.driveUrl || t.remoteUrl || '';
+                }
             });
             
-            // Guardar en el histórico enviando orden a la plataforma local
-            const res = await fetch('http://localhost:3000/api/draft/archive', {
+            // Guardar en el histórico
+            const res = await fetch('/api/draft/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ docType, monthName, fields })
@@ -768,8 +872,41 @@ export default function GeneradorInformesPage() {
                 return;
             }
 
-            loadArchives();
-            setStatus({ stage: 'ready', message: `Mes ${monthName} archivado exitosamente.`, progress: 100 });
+            if (!res.body) {
+                setStatus({ stage: 'error', message: 'Respuesta vacía del servidor', progress: 0 });
+                return;
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        if (data.type === 'progress') {
+                            setStatus({ stage: 'loading', message: data.message, progress: data.progress });
+                        } else if (data.type === 'error') {
+                            setStatus({ stage: 'error', message: 'Error: ' + data.message, progress: 0 });
+                            return;
+                        } else if (data.type === 'success') {
+                            setStatus({ stage: 'ready', message: `Mes ${monthName} archivado exitosamente.`, progress: 100 });
+                            loadArchives();
+                        }
+                    } catch (e) {
+                        console.error("Error parsing stream chunk:", e, line);
+                    }
+                }
+            }
         } catch (e) {
             setStatus({ stage: 'error', message: 'Error al archivar mes', progress: 0 });
         }
@@ -961,7 +1098,7 @@ export default function GeneradorInformesPage() {
                             }}
                         >
                         <div style={{ background: 'hsl(210,80%,20%)', borderRadius: '10px', padding: '10px', flexShrink: 0 }}>
-                            {(status.stage === 'loading' || status.stage === 'reading')
+                            {((status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && templateFile?.name === 'PAD_SAN_CLEMENTE_INTERNAL.docx')
                                 ? <Loader2 size={20} style={{ color: 'hsl(210,80%,65%)' }} className="animate-spin" />
                                 : <FileText size={20} style={{ color: 'hsl(210,80%,65%)' }} />
                             }
@@ -991,7 +1128,7 @@ export default function GeneradorInformesPage() {
                             }}
                         >
                         <div style={{ background: 'hsl(280, 50%, 20%)', borderRadius: '8px', padding: '10px' }}>
-                            {(status.stage === 'loading' || status.stage === 'reading')
+                            {((status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && templateFile?.name === 'PAD_CHINCHAYSULLO_INTERNAL.docx')
                                 ? <Loader2 size={20} style={{ color: 'hsl(280, 80%, 75%)' }} className="animate-spin" />
                                 : <FileText size={20} style={{ color: 'hsl(280, 80%, 75%)' }} />
                             }
@@ -1021,7 +1158,7 @@ export default function GeneradorInformesPage() {
                             }}
                         >
                         <div style={{ background: 'hsl(30, 80%, 20%)', borderRadius: '8px', padding: '10px' }}>
-                            {(status.stage === 'loading' || status.stage === 'reading')
+                            {((status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && templateFile?.name === 'PAD_JAHUAY_INTERNAL.docx')
                                 ? <Loader2 size={20} style={{ color: 'hsl(30, 80%, 70%)' }} className="animate-spin" />
                                 : <FileText size={20} style={{ color: 'hsl(30, 80%, 70%)' }} />
                             }
@@ -1051,7 +1188,7 @@ export default function GeneradorInformesPage() {
                             }}
                         >
                         <div style={{ background: 'hsl(200, 80%, 20%)', borderRadius: '8px', padding: '10px' }}>
-                            {(status.stage === 'loading' || status.stage === 'reading')
+                            {((status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && templateFile?.name === 'PAD_BARANDAS_INTERNAL.docx')
                                 ? <Loader2 size={20} style={{ color: 'hsl(200, 80%, 70%)' }} className="animate-spin" />
                                 : <FileText size={20} style={{ color: 'hsl(200, 80%, 70%)' }} />
                             }
@@ -1062,6 +1199,37 @@ export default function GeneradorInformesPage() {
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'hsl(200, 80%, 50%)' }}>
                                 Carga automática — 70 fotos + texto de mes/año
+                            </p>
+                        </div>
+                    </button>
+                    </div>
+
+                    {/* Botón rápido MP6 */}
+                    <div className="mb-6">
+                        <TemplatePermissionManager templateName="MP6_INTERNAL.docx" permissions={templatePermissions} setPermissions={setTemplatePermissions} />
+                        <button
+                            onClick={loadMp6}
+                            disabled={!canAccessTemplate('MP6_INTERNAL.docx') || status.stage === 'generating'}
+                            className="w-full rounded-xl p-4 flex items-start gap-4 transition-all duration-200 text-left"
+                            style={{
+                                background: 'hsl(180, 80%, 15%)',
+                                border: '1px solid hsl(180, 80%, 25%)',
+                                cursor: (!canAccessTemplate('MP6_INTERNAL.docx') || status.stage === 'generating') ? 'not-allowed' : 'pointer',
+                                opacity: (!canAccessTemplate('MP6_INTERNAL.docx') || status.stage === 'generating') ? 0.5 : 1
+                            }}
+                        >
+                        <div style={{ background: 'hsl(180, 80%, 20%)', borderRadius: '8px', padding: '10px' }}>
+                            {((status.stage === 'loading' || status.stage === 'reading' || status.stage === 'generating') && templateFile?.name === 'MP6_INTERNAL.docx')
+                                ? <Loader2 size={20} style={{ color: 'hsl(180, 80%, 70%)' }} className="animate-spin" />
+                                : <FileText size={20} style={{ color: 'hsl(180, 80%, 70%)' }} />
+                            }
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold" style={{ color: 'hsl(180, 80%, 70%)' }}>
+                                ⚡ Cargar Plantilla MP6
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: 'hsl(180, 80%, 50%)' }}>
+                                Carga automática — 144 fotos + texto de mes/año
                             </p>
                         </div>
                     </button>
@@ -1272,6 +1440,15 @@ export default function GeneradorInformesPage() {
                                                     >
                                                         Cargar
                                                     </button>
+                                                    <a
+                                                        href={`https://drive.google.com/drive/search?q=${encodeURIComponent('"' + arch.month_name + '"')}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition flex items-center justify-center"
+                                                        title="Ver carpeta en Google Drive"
+                                                    >
+                                                        <ExternalLink size={14} />
+                                                    </a>
                                                     <button
                                                         onClick={() => deleteArchive(arch.id)}
                                                         className="px-2 py-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition"
@@ -1490,6 +1667,18 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                         {tag.loading && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                            </div>
+                        )}
+                        {tag.syncing && (
+                            <div className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex items-center gap-1 z-20 border border-blue-500/30">
+                                <CloudUpload size={12} className="text-blue-400 animate-pulse" />
+                                <span className="text-[10px] font-medium text-blue-300">Syncing...</span>
+                            </div>
+                        )}
+                        {tag.driveUrl && (
+                            <div className="absolute top-1 right-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 flex items-center gap-1 z-20 border border-emerald-500/30">
+                                <Cloud size={12} className="text-emerald-400" />
+                                <span className="text-[10px] font-medium text-emerald-300">En Drive</span>
                             </div>
                         )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
