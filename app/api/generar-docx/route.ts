@@ -25,6 +25,7 @@ export async function OPTIONS(request: Request) {
 const IGNORED_MAP: Record<string, number[]> = {
     // Shapes ignorados: portada, logos, coordenadas, mapa Google Earth, organigrama y tablas fijas (shapes 1-29)
     // Con esta lista, foto_001 = shape 30 = "Fotografía 8.1.1.1-1: Baños químicos" (primera foto real de campo)
+    'PAD_SAN CLEMENTE ultimo.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68],
     'PAD_SAN_CLEMENTE_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68],
     'PAD_SAN_CLEMENTE_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68],
     'PAD_CHINCHAYSULLO_PLANTILLA.docx': [1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 23, 24, 67, 91, 92, 211, 224, 226, 228, 232],
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const templateFile = formData.get('template') as File | null;
         const textDataStr  = formData.get('textData')  as string | null;
+        const docType = formData.get('docType') as string | null;
 
         let templateBuffer: Buffer;
         const fileName = templateFile?.name || '';
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
         if (docType && docType.endsWith('_INTERNAL.docx')) {
             // Lógica especial para plantillas pre-cargadas en el servidor
             if (docType === 'PAD_SAN_CLEMENTE_INTERNAL.docx') {
-                templateName = 'PAD_SAN_CLEMENTE_PLANTILLA.docx';
+                templateName = 'PAD_SAN CLEMENTE ultimo.docx';
                 originalName = 'PAD_SAN CLEMENTE ultimo.docx';
             } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
                 templateName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
