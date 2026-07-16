@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     // Intentamos redirigir a cada extensión posible.
     // Las imágenes están en la CDN de Vercel como archivos estáticos (public/).
     for (const ext of EXTENSIONS) {
-        const staticUrl = `${origin}/${folder}/${tag}.${ext}`;
+        // v=2 fuerza a los navegadores a limpiar la caché de 1 año y descargar las nuevas referencias
+        const staticUrl = `${origin}/${folder}/${tag}.${ext}?v=2`;
         try {
             const check = await fetch(staticUrl, { method: 'HEAD' });
             if (check.ok) {

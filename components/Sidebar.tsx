@@ -203,6 +203,7 @@ export default function Sidebar() {
                                 <SidebarItem icon={<FileText size={16} className="text-emerald-500" />} label="Generar Informe Word" href="/monthly-report" active={pathname === '/monthly-report'} />
                                 <SidebarItem icon={<FileText size={16} className="text-amber-500" />} label="Anexos OSITRAN" href="/ositran-report" active={pathname === '/ositran-report'} />
                                 <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Archivo Central SharePoint" href="/export-center" active={pathname === '/export-center'} />
+                                <SidebarItem icon={<ClipboardList size={16} className="text-indigo-400" />} label="Auditoría / Actividad" href="/auditoria" active={pathname === '/auditoria'} />
                                 {user?.role === 'developer' && (
                                     <SidebarItem icon={<Settings size={16} className="text-pink-500" />} label="Configuración Maestros" href="/settings" active={pathname === '/settings'} />
                                 )}

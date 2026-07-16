@@ -177,6 +177,14 @@ export async function POST(req: NextRequest) {
                 const recordIdStr = body.record_id || (body.record && body.record.record_id);
                 if (!id && !recordIdStr) throw new Error('Falta el ID para DELETE');
 
+                const identifier = id || recordIdStr;
+                const { canDeleteRecord } = await import('@/lib/security');
+                const check = await canDeleteRecord('evidence_center_records', identifier, actingUser);
+                
+                if (!check.success) {
+                    return NextResponse.json({ success: false, error: check.error || 'No autorizado para eliminar este archivo.' }, { status: 403 });
+                }
+
                 if (id) {
                     await db.execute('DELETE FROM evidence_center_records WHERE id = ?', [id]);
                 } else {

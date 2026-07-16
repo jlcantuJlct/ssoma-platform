@@ -95,6 +95,15 @@ export async function POST(req: NextRequest) {
             if (body.action === 'DELETE') {
                 const id = body.id || (body.record && body.record.id);
                 if (!id) throw new Error('Falta el ID para DELETE');
+                
+                const actingUser = body.userName || 'Usuario';
+                const { canDeleteRecord } = await import('@/lib/security');
+                const check = await canDeleteRecord('accidentes_records', id, actingUser, 'involved_person');
+                
+                if (!check.success) {
+                    return NextResponse.json({ success: false, error: check.error }, { status: 403 });
+                }
+
                 await db.execute('DELETE FROM accidentes_records WHERE id = ?', [id]);
                 return NextResponse.json({ success: true });
             }

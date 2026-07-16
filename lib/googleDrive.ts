@@ -326,17 +326,15 @@ export async function uploadToDrive(file: File, folderName: string, fileName: st
     // C. FALLBACK: BRIDGE (APPS SCRIPT)
     try {
         // Lógica Inteligente para el Bridge:
-        // Si el Robot NO cambió el ID (finalTargetFolderId === rootFolderId), significa que:
-        // 1. O falló la creación de estructura.
-        // 2. O era una subida al root.
-        // En cualquier caso, si hay un relativePath, se lo pasamos al Bridge para que ÉL cree las carpetas.
-
-        const structureFailed = (finalTargetFolderId === rootFolderId) && (relativePath.length > 0);
-        const pathForBridge = structureFailed ? relativePath : ""; // Si Robot cumplió, Bridge no debe crear nada extra.
+        // Si el Script de Google Apps ignora el 'folderIdOverride', siempre debemos enviarle
+        // el relativePath para que él mismo navegue/cree las carpetas correctas.
+        const pathForBridge = relativePath; 
 
         console.log(`🌉 Bridge activado. Target: ${finalTargetFolderId}, Path extra: '${pathForBridge}'`);
 
-        return await uploadViaAppsScript(file, pathForBridge, fileName, finalTargetFolderId);
+        // FIX: No enviar finalTargetFolderId para que el Bridge use sus propios permisos
+        // para buscar o crear la carpeta, evitando el error de permisos 'Necesitas acceso'.
+        return await uploadViaAppsScript(file, pathForBridge, fileName, undefined);
     } catch (bridgeError: any) {
         console.error("❌ Falló TODO (Robot + Bridge):", bridgeError.message);
         throw bridgeError; // Ahora sí, error fatal.

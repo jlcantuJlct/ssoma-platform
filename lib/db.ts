@@ -73,10 +73,28 @@ if (process.env.POSTGRES_URL) {
     // --- LOCAL SQLITE MODE ---
     // Fallback for local dev if no Env vars
     const Database = require('better-sqlite3');
-    const dbPath = path.join(process.cwd(), 'ssoma.db');
+    const fs = require('fs');
+    const dataDir = path.join(process.cwd(), '.data');
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const dbPath = path.join(dataDir, 'ssoma.db');
     let sqlite: any;
 
     try {
+        // Migración automática de base de datos antigua a nueva ubicación si es necesario
+        const oldDbPath = path.join(process.cwd(), 'ssoma.db');
+        const oldJournalPath = path.join(process.cwd(), 'ssoma.db-journal');
+        const oldWalPath = path.join(process.cwd(), 'ssoma.db-wal');
+        const oldShmPath = path.join(process.cwd(), 'ssoma.db-shm');
+        
+        if (fs.existsSync(oldDbPath) && !fs.existsSync(dbPath)) {
+            fs.renameSync(oldDbPath, dbPath);
+            if (fs.existsSync(oldJournalPath)) fs.renameSync(oldJournalPath, path.join(dataDir, 'ssoma.db-journal'));
+            if (fs.existsSync(oldWalPath)) fs.renameSync(oldWalPath, path.join(dataDir, 'ssoma.db-wal'));
+            if (fs.existsSync(oldShmPath)) fs.renameSync(oldShmPath, path.join(dataDir, 'ssoma.db-shm'));
+        }
+
         sqlite = new Database(dbPath/*, { verbose: console.log } */);
         sqlite.pragma('journal_mode = WAL');
         console.log("💾 Connect mode: Local SQLite");

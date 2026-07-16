@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
 
-const ORIGINAL_DOC = 'C:\\Users\\jlcan\\Desktop\\Seguimiento de plataforma de seguridad Antigravity\\Informe mensual\\PAD_SAN CLEMENTE ultimo.docx';
+const ORIGINAL_DOC = path.join(__dirname, '..', 'plantillas', 'PAD_SAN CLEMENTE ultimo.docx');
 const OUTPUT_DIR   = path.join(__dirname, '..', 'public', 'referencias_pad');
 
 function extractReferenceImages() {
@@ -30,12 +30,11 @@ function extractReferenceImages() {
     let tagCounter = 0;
     let saved = 0;
     
-    const IGNORED_SHAPES = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 72]);
+    const IGNORED_SHAPES = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 68]);
     
     xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (parrafo) => {
         if (parrafo.includes('<w:drawing') || parrafo.includes('<v:shape') || parrafo.includes('pic:pic')) {
             shapeCounter++;
-            
             if (IGNORED_SHAPES.has(shapeCounter)) {
                 return parrafo;
             }

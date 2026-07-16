@@ -93,6 +93,14 @@ export async function POST(req: NextRequest) {
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
             
+            const tableName = type === 'acta' ? 'actas_supervision' : 'actas_levantamiento';
+            const { canDeleteRecord } = await import('@/lib/security');
+            const check = await canDeleteRecord(tableName, id, actingUser, 'responsible');
+            
+            if (!check.success) {
+                return NextResponse.json({ success: false, error: check.error }, { status: 403 });
+            }
+
             if (type === 'acta') {
                 await db.execute('DELETE FROM actas_supervision WHERE id=?', [id]);
                 await logActivity(actingUser, `ELIMINACIÓN ACTA`, 'Actas', `ID: ${id}`);
