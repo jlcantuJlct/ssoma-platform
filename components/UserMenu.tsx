@@ -1,9 +1,86 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "@/lib/auth";
-import { LogOut, User as UserIcon, Settings, ChevronDown } from "lucide-react";
+import { useAuth, ALL_USER_LIST } from "@/lib/auth";
+import { LogOut, User as UserIcon, Settings, ChevronDown, Activity } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+
+function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnline: boolean, getAvatarColor: (name: string) => string }) {
+    const [history, setHistory] = useState<any[] | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleMouseEnter = async () => {
+        if (history !== null) return; // already fetched
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/audit-history?user=${encodeURIComponent(u.name)}`);
+            const data = await res.json();
+            if (data.success) {
+                setHistory(data.history);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const userInitials = u.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+    const gradient = getAvatarColor(u.name);
+    
+    return (
+        <div 
+            onMouseEnter={handleMouseEnter}
+            className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradient} border-2 border-slate-900 flex items-center justify-center text-[10px] font-black text-white relative group transition-all duration-300 hover:z-30 hover:scale-125 shadow-lg cursor-pointer ${isOnline ? 'opacity-100' : 'opacity-30 grayscale hover:grayscale-0'}`}
+        >
+            {userInitials}
+            {isOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>}
+            
+            {/* Hover Tooltip con Historial */}
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-64 bg-slate-900/95 backdrop-blur-md text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-slate-700 shadow-2xl overflow-hidden z-50 flex flex-col">
+                <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/80 flex justify-between items-center">
+                    <span className="text-[11px] font-black truncate text-slate-200">{u.name}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${isOnline ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {isOnline ? 'En línea' : 'Desconectado'}
+                    </span>
+                </div>
+                <div className="p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide bg-slate-900">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-4 gap-2 text-slate-500">
+                            <Activity size={16} className="animate-pulse text-indigo-400" />
+                            <span className="text-[9px] uppercase tracking-widest font-bold">Cargando actividad...</span>
+                        </div>
+                    ) : history && history.length > 0 ? (
+                        history.map((log, idx) => {
+                            const date = new Date(log.timestamp);
+                            let actionColor = 'text-slate-300';
+                            if (log.action?.includes('ELIMINA') || log.action?.includes('DELETE')) actionColor = 'text-red-400 font-bold';
+                            if (log.action?.includes('NUEV') || log.action?.includes('CREA')) actionColor = 'text-emerald-400 font-bold';
+                            if (log.action?.includes('ACTUALIZA') || log.action?.includes('UPDATE')) actionColor = 'text-sky-400 font-bold';
+
+                            return (
+                                <div key={idx} className="flex flex-col bg-slate-800/40 p-2 rounded-lg border border-slate-800/50 hover:bg-slate-800/80 transition-colors">
+                                    <span className={`text-[10px] ${actionColor} uppercase tracking-wider`}>{log.action}</span>
+                                    <div className="flex justify-between items-center mt-1">
+                                        <span className="text-[9px] text-slate-400 font-mono bg-slate-950/50 px-1.5 py-0.5 rounded">{log.module}</span>
+                                        <span className="text-[8px] text-slate-500">{date.toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}</span>
+                                    </div>
+                                    {log.details && (
+                                        <span className="text-[9px] text-slate-500 mt-1 truncate max-w-full" title={log.details}>{log.details}</span>
+                                    )}
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-4 text-slate-500 opacity-60">
+                            <span className="text-[10px] italic">Sin actividad histórica</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function UserMenu() {
     const { user, logout } = useAuth();
@@ -32,7 +109,6 @@ export default function UserMenu() {
 
         const heartbeat = async () => {
             if (!user) return;
-            // AHORRO: No enviar latidos si la pestaña está oculta
             if (document.hidden) return;
 
             try {
@@ -58,8 +134,6 @@ export default function UserMenu() {
 
     if (!user) return null;
 
-    const othersOnline = Object.entries(onlineUsers).filter(([username]) => username !== user.username);
-
     // Helper to pick a distinct colorful gradient based on name
     const getAvatarColor = (name: string) => {
         const colors = [
@@ -76,6 +150,9 @@ export default function UserMenu() {
         }
         return colors[Math.abs(hash) % colors.length];
     };
+
+    // Filter out the current user, keep the rest of ALL_USER_LIST
+    const otherUsers = ALL_USER_LIST.filter(u => u.username !== user.username);
 
     return (
         <div className="fixed top-3 right-3 md:top-6 md:right-6 z-50 flex flex-col items-end gap-3" ref={menuRef}>
@@ -132,23 +209,15 @@ export default function UserMenu() {
 
             {/* Real-time Presence List (Floating Stack) */}
             <div className="flex flex-col gap-1.5 items-center z-10 pt-1">
-                {othersOnline.map(([username, data]) => {
-                    const userInitials = data.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                    const gradient = getAvatarColor(data.name);
+                {otherUsers.map(u => {
+                    const isOnline = !!onlineUsers[u.username];
                     return (
-                        <div 
-                            key={username}
-                            title={`${data.name} (En línea)`}
-                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradient} border-2 border-slate-900 flex items-center justify-center text-[10px] font-black text-white relative group transition-transform hover:z-10 hover:scale-125 shadow-lg cursor-pointer`}
-                        >
-                            {userInitials}
-                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>
-                            
-                            {/* Hover Name Tooltip */}
-                            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-slate-700 shadow-xl">
-                                {data.name}
-                            </div>
-                        </div>
+                        <UserAvatarWithHistory 
+                            key={u.username} 
+                            u={u} 
+                            isOnline={isOnline} 
+                            getAvatarColor={getAvatarColor} 
+                        />
                     );
                 })}
             </div>

@@ -26,10 +26,54 @@ async function ensureAuditLogTable() {
 export async function logActivity(user: string, action: string, module: string, details: string = '') {
     try {
         await ensureAuditLogTable();
+        const timestamp = new Date().toISOString();
+        const logId = crypto.randomUUID();
+
+        // Guardar en la DB local SQLite
         await db.execute(`
             INSERT INTO audit_logs (id, user_name, action, module, details)
             VALUES (?, ?, ?, ?, ?)
-        `, [crypto.randomUUID(), user, action, module, details]);
+        `, [logId, user, action, module, details]);
+
+        // Guardar también en un archivo JSON en la PC/Local como almacenamiento acumulativo 
+        // para no saturar la base de datos a largo plazo.
+        try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const dataDir = path.join(process.cwd(), 'data');
+            
+            if (!fs.existsSync(dataDir)) {
+                fs.mkdirSync(dataDir, { recursive: true });
+            }
+            
+            const filePath = path.join(dataDir, 'audit_history.json');
+            
+            const newEntry = {
+                id: logId,
+                user_name: user,
+                action,
+                module,
+                details,
+                timestamp
+            };
+
+            if (fs.existsSync(filePath)) {
+                // Leer y añadir al final para no sobrescribir (usando un append para ahorrar memoria si el archivo crece mucho)
+                // Pero como es un JSON array, lo más rápido para un JSON válido es:
+                const fileContent = fs.readFileSync(filePath, 'utf-8');
+                let history = [];
+                if (fileContent) {
+                    try { history = JSON.parse(fileContent); } catch(e){}
+                }
+                history.unshift(newEntry); // Agregar al inicio (más reciente primero)
+                fs.writeFileSync(filePath, JSON.stringify(history, null, 2));
+            } else {
+                fs.writeFileSync(filePath, JSON.stringify([newEntry], null, 2));
+            }
+        } catch (localErr) {
+            console.error("Error guardando historial local JSON:", localErr);
+        }
+
         return { success: true };
     } catch (e) {
         console.error("Audit Log Error:", e);
