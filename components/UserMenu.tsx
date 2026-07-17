@@ -61,13 +61,13 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnli
 
                             return (
                                 <div key={idx} className="flex flex-col bg-slate-800/40 p-1.5 rounded-lg border border-slate-800/50 hover:bg-slate-800/80 transition-colors">
-                                    <span className={`text-[8.5px] leading-tight ${actionColor} uppercase tracking-wide`}>{log.action}</span>
+                                    <span className={`text-[6px] leading-tight ${actionColor} uppercase tracking-wide`}>{log.action}</span>
                                     <div className="flex justify-between items-center mt-1">
-                                        <span className="text-[7.5px] text-slate-400 font-mono bg-slate-950/50 px-1 py-0.5 rounded">{log.module}</span>
-                                        <span className="text-[7.5px] text-slate-500">{date.toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}</span>
+                                        <span className="text-[5.5px] text-slate-400 font-mono bg-slate-950/50 px-1 py-0.5 rounded">{log.module}</span>
+                                        <span className="text-[5.5px] text-slate-500">{date.toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}</span>
                                     </div>
                                     {log.details && (
-                                        <span className="text-[8px] text-slate-500 mt-0.5 truncate max-w-full" title={log.details}>{log.details}</span>
+                                        <span className="text-[5.5px] text-slate-500 mt-0.5 truncate max-w-full" title={log.details}>{log.details}</span>
                                     )}
                                 </div>
                             );
