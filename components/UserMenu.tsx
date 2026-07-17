@@ -79,6 +79,7 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnli
                     )}
                 </div>
             </div>
+            </div>
         </div>
     );
 }
