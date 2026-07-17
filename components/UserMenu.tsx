@@ -31,13 +31,13 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnli
     return (
         <div 
             onMouseEnter={handleMouseEnter}
-            className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradient} border-2 border-slate-900 flex items-center justify-center text-[10px] font-black text-white relative group transition-all duration-300 hover:z-30 hover:scale-125 shadow-lg cursor-pointer ${isOnline ? 'opacity-100' : 'opacity-30 grayscale hover:grayscale-0'}`}
+            className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradient} border-2 border-slate-900 flex items-center justify-center text-[10px] font-black text-white relative group transition-all duration-300 hover:z-30 hover:scale-125 shadow-lg cursor-pointer ${isOnline ? 'opacity-100' : 'opacity-30 grayscale hover:grayscale-0 hover:opacity-100'}`}
         >
             {userInitials}
             {isOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>}
             
             {/* Hover Tooltip con Historial */}
-            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-64 bg-slate-900/95 backdrop-blur-md text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-slate-700 shadow-2xl overflow-hidden z-50 flex flex-col">
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 w-64 bg-slate-950 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-slate-700 shadow-2xl overflow-hidden z-50 flex flex-col">
                 <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/80 flex justify-between items-center">
                     <span className="text-[11px] font-black truncate text-slate-200">{u.name}</span>
                     <span className={`text-[9px] font-bold uppercase tracking-wider ${isOnline ? 'text-emerald-400' : 'text-slate-500'}`}>
