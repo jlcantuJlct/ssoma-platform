@@ -14,7 +14,6 @@ import {
     X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 
 export default function AuditoriaPage() {
     const { user, loading } = useAuth();
@@ -68,11 +67,15 @@ export default function AuditoriaPage() {
 
     return (
         <main className="flex-1 min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
-            <Header title="Auditoría y Registro de Actividad" subtitle="Rastro de acciones en la plataforma" />
             
             <div className="flex-1 p-4 md:p-6 overflow-y-auto z-10">
                 <div className="max-w-7xl mx-auto space-y-6">
                     
+                    <div className="mb-4">
+                        <h1 className="text-2xl font-black text-white tracking-tighter">Auditoría y Registro de Actividad</h1>
+                        <p className="text-sm text-slate-400">Rastro de acciones en la plataforma</p>
+                    </div>
+
                     {/* Controles Superiores */}
                     <div className="flex flex-col md:flex-row gap-4 items-end justify-between bg-slate-900/50 p-4 rounded-2xl border border-slate-800 backdrop-blur-xl">
                         <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
