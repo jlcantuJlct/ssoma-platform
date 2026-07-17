@@ -6,6 +6,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import AlertaBanner from "@/components/AlertaBanner";
 import SSOMAAssistant from "@/components/SSOMAAssistant";
 import UserMenu from "@/components/UserMenu";
+import ActivityTracker from "@/components/ActivityTracker";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-background flex`}>
         <Providers>
           <ErrorBoundary>
+            <ActivityTracker />
             <Sidebar />
             <main className="flex-1 overflow-y-auto h-screen relative bg-slate-950 pt-16 md:pt-0">
                 {children}

@@ -1,0 +1,3 @@
+const db = require('better-sqlite3')('ssoma.db');
+const records = db.prepare("SELECT month, personnel_list FROM sctr_monthly_records WHERE month = 'Julio'").all();
+console.log(records.map(r => r.personnel_list.substring(0, 500)));

@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth, ALL_USER_LIST } from "@/lib/auth";
-import { LogOut, User as UserIcon, Settings, ChevronDown, Activity } from "lucide-react";
+import { LogOut, User as UserIcon, Settings, ChevronDown, Activity, AlertTriangle } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
-function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnline: boolean, getAvatarColor: (name: string) => string }) {
+function UserAvatarWithHistory({ u, isOnline, getAvatarColor, hasAlert }: { u: any, isOnline: boolean, getAvatarColor: (name: string) => string, hasAlert?: boolean }) {
     const [history, setHistory] = useState<any[] | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -35,6 +35,11 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor }: { u: any, isOnli
         >
             {userInitials}
             {isOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>}
+            {hasAlert && (
+                <div className="absolute -top-1 -left-1 bg-amber-500/90 rounded-full p-[2px] shadow-lg animate-pulse border border-slate-900" title="Actividad reciente (Edición/Eliminación)">
+                    <AlertTriangle className="w-[10px] h-[10px] text-white" strokeWidth={3} />
+                </div>
+            )}
             
             {/* Hover Tooltip con Historial */}
             <div className="absolute right-full top-1/2 -translate-y-1/2 w-64 pr-3 opacity-0 group-hover:opacity-100 transition-opacity z-50">
@@ -92,8 +97,21 @@ export default function UserMenu() {
     const pathname = usePathname();
 
     const [onlineUsers, setOnlineUsers] = useState<Record<string, { name: string, lastSeen: number }>>({});
+    const [recentAlerts, setRecentAlerts] = useState<string[]>([]);
 
     if (pathname && pathname.startsWith('/public')) return null;
+
+    useEffect(() => {
+        // Fetch users with recent critical activity
+        fetch('/api/recent-alerts')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setRecentAlerts(data.users);
+                }
+            })
+            .catch(console.error);
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

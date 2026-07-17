@@ -1,0 +1,122 @@
+[
+  {
+    "Empresa": "Fecha",
+    "CASA": "Ene-26",
+    "": "",
+    "_1": "",
+    "_2": "",
+    "_3": "",
+    "Codigo": "Version",
+    "FOR-2026": "Rev. 00"
+  },
+  {
+    "Empresa": "",
+    "CASA": "",
+    "": "",
+    "_1": "",
+    "_2": "",
+    "_3": "",
+    "Codigo": "Fecha de creacion",
+    "FOR-2026": "01/01/2026"
+  },
+  {
+    "Empresa": "Dia",
+    "CASA": "Lunes",
+    "": "Martes",
+    "_1": "Miércoles",
+    "_2": "Jueves",
+    "_3": "Viernes",
+    "Codigo": "Sábado",
+    "FOR-2026": "Domingo"
+  },
+  {
+    "Empresa": "Fecha",
+    "CASA": "",
+    "": "",
+    "_1": "",
+    "_2": "1/01/2026",
+    "_3": "2/01/2026",
+    "Codigo": "3/01/2026",
+    "FOR-2026": "4/01/2026"
+  },
+  {
+    "Empresa": "Tema",
+    "CASA": "",
+    "": "",
+    "_1": "",
+    "_2": "Uso de EPP",
+    "_3": "La radiacion",
+    "Codigo": "Los Petar",
+    "FOR-2026": ""
+  },
+  {
+    "Empresa": "Tipo",
+    "CASA": "",
+    "": "",
+    "_1": "",
+    "_2": "Charla",
+    "_3": "Difusion",
+    "Codigo": "Capacitacion",
+    "FOR-2026": ""
+  },
+  {
+    "Empresa": "Area a cargo",
+    "CASA": "",
+    "": "",
+    "_1": "",
+    "_2": "Seguridad",
+    "_3": "Salud",
+    "Codigo": "Seguridad",
+    "FOR-2026": ""
+  },
+  {
+    "Empresa": "Dia",
+    "CASA": "Lunes",
+    "": "Martes",
+    "_1": "Miércoles",
+    "_2": "Jueves",
+    "_3": "Viernes",
+    "Codigo": "Sábado",
+    "FOR-2026": "Domingo"
+  },
+  {
+    "Empresa": "Fecha",
+    "CASA": "5/01/2026",
+    "": "6/01/2026",
+    "_1": "7/01/2026",
+    "_2": "8/01/2026",
+    "_3": "9/01/2026",
+    "Codigo": "10/01/2026",
+    "FOR-2026": "11/01/2026"
+  },
+  {
+    "Empresa": "Tema",
+    "CASA": "la sombra",
+    "": "el piso",
+    "_1": "el rio",
+    "_2": "el agua",
+    "_3": "el viento",
+    "Codigo": "los rayos",
+    "FOR-2026": "la mano"
+  },
+  {
+    "Empresa": "Tipo",
+    "CASA": "Charla",
+    "": "Difusion",
+    "_1": "Capacitacion",
+    "_2": "Charla",
+    "_3": "Difusion",
+    "Codigo": "Capacitacion",
+    "FOR-2026": "Charla"
+  },
+  {
+    "Empresa": "Area a cargo",
+    "CASA": "Medio ambie",
+    "": "Seguridad",
+    "_1": "Salud",
+    "_2": "Seguridad",
+    "_3": "operaciones",
+    "Codigo": "mantenimiento",
+    "FOR-2026": "calidad"
+  }
+]
