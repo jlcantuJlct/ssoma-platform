@@ -2841,11 +2841,12 @@ export function DashboardCharts({
                                 <div className="grid grid-cols-1 gap-3 mb-4">
                                     <div>
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Fecha</label>
-                                        <input type="date" value={newHHC.date} onChange={(e) => handleDateChange(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
+                                        <input name="reg_fecha" type="date" value={newHHC.date} onChange={(e) => handleDateChange(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500" />
                                     </div>
                                     <div>
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Responsable</label>
                                         <select
+                                            name="reg_responsable"
                                             value={newHHC.responsable}
                                             onChange={(e) => setNewHHC({ ...newHHC, responsable: e.target.value })}
                                             className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
@@ -2859,7 +2860,7 @@ export function DashboardCharts({
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
-                                            <select value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
+                                            <select name="reg_area" value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
                                                 <option value="seguridad">SEGURIDAD</option>
                                                 <option value="salud">SALUD</option>
                                                 <option value="ambiente">MEDIO AMBIENTE</option>
@@ -2867,7 +2868,7 @@ export function DashboardCharts({
                                         </div>
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Tipo</label>
-                                            <select value={newHHC.tipo} onChange={(e) => updateStat('tipo', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-[10px] font-bold outline-none focus:border-emerald-500">
+                                            <select name="reg_tipo" value={newHHC.tipo} onChange={(e) => updateStat('tipo', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-[10px] font-bold outline-none focus:border-emerald-500">
                                                 <option value="induccion_gen">INDUCCIÓN (4H)</option>
                                                 <option value="induccion_esp">IND. ESPECÍFICA (8H)</option>
                                                 <option value="capacitacion">CAPACITACIÓN (1H)</option>
@@ -2880,6 +2881,7 @@ export function DashboardCharts({
                                     <div>
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Lugar</label>
                                         <select
+                                            name="reg_lugar"
                                             value={newHHC.lugar || ''}
                                             onChange={(e) => setNewHHC({ ...newHHC, lugar: e.target.value })}
                                             className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
@@ -2916,6 +2918,7 @@ export function DashboardCharts({
                                                 <div className="relative group">
                                                     <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
                                                     <input 
+                                                        name="reg_tema_custom"
                                                         type="text" 
                                                         placeholder="Escriba el nombre del tema..."
                                                         value={newHHC.customTopic}
@@ -2927,6 +2930,7 @@ export function DashboardCharts({
                                         ) : (
                                             <div className="space-y-2">
                                                 <SearchableSelect
+                                                    name="reg_tema"
                                                     label="TEMA DEL PROGRAMA ANUAL"
                                                     options={trainingTopicsByArea[newHHC.area] || []}
                                                     value={newHHC.tema}
@@ -2957,14 +2961,14 @@ export function DashboardCharts({
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Hombres</label>
                                             <div className="relative group">
                                                 <Users className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
-                                                <input type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
+                                                <input name="reg_hombres" type="number" placeholder="0" value={newHHC.hombres} onChange={(e) => updateStat('hombres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Mujeres</label>
                                             <div className="relative group">
                                                 <Users className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-500" size={12} />
-                                                <input type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
+                                                <input name="reg_mujeres" type="number" placeholder="0" value={newHHC.mujeres} onChange={(e) => updateStat('mujeres', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-xl pl-6 pr-1 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all" />
                                             </div>
                                         </div>
                                     </div>
@@ -3159,6 +3163,7 @@ export function DashboardCharts({
                                                     )}
                                                 </div>
                                                 <SearchableSelect 
+                                                    name="filtro_responsable"
                                                     options={USER_LIST.map(u => u.name)}
                                                     value={filters.responsable}
                                                     onChange={(val) => setFilters(prev => ({ ...prev, responsable: val }))}

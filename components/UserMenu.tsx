@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth, ALL_USER_LIST } from "@/lib/auth";
 import { LogOut, User as UserIcon, Settings, ChevronDown, Activity, AlertTriangle } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
-function UserAvatarWithHistory({ u, isOnline, getAvatarColor, hasAlert }: { u: any, isOnline: boolean, getAvatarColor: (name: string) => string, hasAlert?: boolean }) {
+function UserAvatarWithHistory({ u, presenceData, getAvatarColor, hasAlert }: { u: any, presenceData?: { name: string, lastSeen: number, location?: string }, getAvatarColor: (name: string) => string, hasAlert?: boolean }) {
     const [history, setHistory] = useState<any[] | null>(null);
     const [loading, setLoading] = useState(false);
+    const isOnline = !!presenceData;
 
     const handleMouseEnter = async () => {
         if (history !== null) return; // already fetched
@@ -42,7 +44,7 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor, hasAlert }: { u: a
             )}
             
             {/* Hover Tooltip con Historial */}
-            <div className="absolute right-full top-1/2 -translate-y-1/2 w-64 pr-3 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+            <div className="absolute right-full top-1/2 -translate-y-1/2 w-64 pr-3 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all z-50">
                 <div className="bg-slate-950 text-white rounded-xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
                 <div className="px-3 py-2 border-b border-slate-800 bg-slate-950/80 flex justify-between items-center">
                     <span className="text-[11px] font-black truncate text-slate-200">{u.name}</span>
@@ -50,6 +52,13 @@ function UserAvatarWithHistory({ u, isOnline, getAvatarColor, hasAlert }: { u: a
                         {isOnline ? 'En línea' : 'Desconectado'}
                     </span>
                 </div>
+                {isOnline && presenceData?.location && (
+                    <div className="px-3 py-1.5 bg-slate-800/80 border-b border-slate-700/50 flex items-center gap-1.5">
+                        <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                            📍 {presenceData.location}
+                        </span>
+                    </div>
+                )}
                 <div className="p-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto scrollbar-hide bg-slate-900">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-4 gap-2 text-slate-500">
@@ -96,7 +105,7 @@ export default function UserMenu() {
     const router = useRouter();
     const pathname = usePathname();
 
-    const [onlineUsers, setOnlineUsers] = useState<Record<string, { name: string, lastSeen: number }>>({});
+    const [onlineUsers, setOnlineUsers] = useState<Record<string, { name: string, lastSeen: number, location?: string }>>({});
     const [recentAlerts, setRecentAlerts] = useState<string[]>([]);
 
     if (pathname && pathname.startsWith('/public')) return null;
@@ -124,6 +133,19 @@ export default function UserMenu() {
     }, []);
 
     // Real-time Presence System
+    const getLocationName = (path: string | null) => {
+        if (!path) return 'Navegando';
+        if (path === '/') return 'Dashboard Principal';
+        if (path.startsWith('/dashboard')) return 'Centro de Control HHC';
+        if (path.startsWith('/inspections')) return 'Inspecciones y Desvíos';
+        if (path.startsWith('/reports')) return 'Módulo de Reportes';
+        if (path.startsWith('/settings')) return 'Configuración';
+        if (path.startsWith('/program')) return 'Programa Anual';
+        if (path.startsWith('/pma')) return 'Evidencias PMA';
+        if (path.startsWith('/sstma-docs')) return 'Documentos SSTMA';
+        return 'Navegando';
+    };
+
     useEffect(() => {
         if (!user) return;
 
@@ -132,10 +154,22 @@ export default function UserMenu() {
             if (document.hidden) return;
 
             try {
+                // Get currently focused field ID/name
+                const activeEl = document.activeElement as HTMLElement;
+                let focusedField = '';
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'BUTTON' || activeEl.isContentEditable)) {
+                    focusedField = activeEl.id || activeEl.getAttribute('name') || activeEl.closest('[id]')?.id || '';
+                }
+
                 const res = await fetch('/api/presence', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user.username, name: user.name })
+                    body: JSON.stringify({ 
+                        username: user.username, 
+                        name: user.name,
+                        location: getLocationName(pathname),
+                        focusedField
+                    })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -147,10 +181,65 @@ export default function UserMenu() {
         };
 
         heartbeat(); // Initial
-        const interval = setInterval(heartbeat, 30000); // Every 30s
+        const interval = setInterval(heartbeat, 3000); // Every 3s for faster real-time feel
 
-        return () => clearInterval(interval);
-    }, [user]);
+        let timeoutId: NodeJS.Timeout;
+        const handleInteraction = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                heartbeat();
+            }, 500); // 500ms debounce
+        };
+
+        document.addEventListener('focusin', handleInteraction);
+        document.addEventListener('click', handleInteraction);
+
+        return () => {
+            clearInterval(interval);
+            clearTimeout(timeoutId);
+            document.removeEventListener('focusin', handleInteraction);
+            document.removeEventListener('click', handleInteraction);
+        };
+    }, [user, pathname]);
+
+    const renderFieldAvatars = () => {
+        if (!pathname || typeof document === 'undefined') return null;
+
+        return Object.entries(onlineUsers).map(([username, data]) => {
+            if (username === user?.username) return null;
+            if (!data.focusedField) return null;
+
+            const el = document.getElementById(data.focusedField) || document.querySelector(`[name="${data.focusedField}"]`);
+            if (!el) return null;
+
+            const rect = el.getBoundingClientRect();
+
+            return createPortal(
+                <div 
+                    key={username} 
+                    style={{ 
+                        position: 'fixed', 
+                        top: rect.top - 10, 
+                        left: rect.right - 10,
+                        zIndex: 2147483647,
+                        pointerEvents: 'none'
+                    }} 
+                    className="flex flex-col items-center animate-in zoom-in duration-300 drop-shadow-2xl"
+                >
+                    <div className="relative">
+                        <div className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
+                        <div className="w-6 h-6 rounded-full bg-emerald-600 border border-emerald-400 flex items-center justify-center text-white text-[9px] font-black shadow-[0_0_10px_rgba(16,185,129,0.8)] relative z-10">
+                            {data.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                    </div>
+                    <span className="mt-0.5 bg-emerald-950/90 text-emerald-400 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/50 shadow-lg whitespace-nowrap">
+                        {data.name.split(' ')[0]}
+                    </span>
+                </div>,
+                document.body
+            );
+        });
+    };
 
     if (!user) return null;
 
@@ -176,6 +265,7 @@ export default function UserMenu() {
 
     return (
         <div className="fixed top-3 right-3 md:top-6 md:right-6 z-50 flex flex-col items-end gap-3" ref={menuRef}>
+            {renderFieldAvatars()}
             
             {/* Current User Profile Button (Floating Avatar) */}
             <button
@@ -230,12 +320,12 @@ export default function UserMenu() {
             {/* Real-time Presence List (Floating Stack) */}
             <div className="flex flex-col gap-1.5 items-center z-10 pt-1">
                 {otherUsers.map(u => {
-                    const isOnline = !!onlineUsers[u.username];
+                    const presenceData = onlineUsers[u.username];
                     return (
                         <UserAvatarWithHistory 
                             key={u.username} 
                             u={u} 
-                            isOnline={isOnline} 
+                            presenceData={presenceData} 
                             getAvatarColor={getAvatarColor} 
                         />
                     );
