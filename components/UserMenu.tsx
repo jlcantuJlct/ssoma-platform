@@ -149,16 +149,35 @@ export default function UserMenu() {
     useEffect(() => {
         if (!user) return;
 
+        let lastInteractionTarget: HTMLElement | null = null;
+
         const heartbeat = async () => {
             if (!user) return;
             if (document.hidden) return;
 
             try {
-                // Get currently focused field ID/name
-                const activeEl = document.activeElement as HTMLElement;
                 let focusedField = '';
-                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'BUTTON' || activeEl.isContentEditable)) {
-                    focusedField = activeEl.id || activeEl.getAttribute('name') || activeEl.closest('[id]')?.id || '';
+                
+                // First try to derive the field from the last interaction (click/focus)
+                if (lastInteractionTarget) {
+                    const closestNamed = lastInteractionTarget.closest('[name]');
+                    if (closestNamed && closestNamed.tagName !== 'FORM' && closestNamed.tagName !== 'MAIN' && closestNamed.tagName !== 'BODY') {
+                        focusedField = closestNamed.getAttribute('name') || '';
+                    }
+                    if (!focusedField) {
+                        const innerNamed = lastInteractionTarget.querySelector('input[name], select[name], textarea[name], button[name]');
+                        if (innerNamed) {
+                            focusedField = innerNamed.getAttribute('name') || '';
+                        }
+                    }
+                }
+
+                // Fallback to activeElement if nothing was found via click
+                if (!focusedField) {
+                    const activeEl = document.activeElement as HTMLElement;
+                    if (activeEl && activeEl !== document.body) {
+                        focusedField = activeEl.getAttribute('name') || activeEl.id || '';
+                    }
                 }
 
                 const res = await fetch('/api/presence', {
@@ -184,7 +203,10 @@ export default function UserMenu() {
         const interval = setInterval(heartbeat, 3000); // Every 3s for faster real-time feel
 
         let timeoutId: NodeJS.Timeout;
-        const handleInteraction = () => {
+        const handleInteraction = (e: Event) => {
+            if (e.target instanceof HTMLElement) {
+                lastInteractionTarget = e.target;
+            }
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
                 heartbeat();
@@ -209,12 +231,22 @@ export default function UserMenu() {
             let rafId: number;
 
             const updatePos = () => {
-                const el = document.getElementById(data.focusedField) || document.querySelector(`[name="${data.focusedField}"]`);
+                let el = document.getElementById(data.focusedField) || document.querySelector(`[name="${data.focusedField}"]`);
                 const avatar = avatarRef.current;
                 
                 if (el && avatar) {
+                    // Fallback to a visible container if the target is hidden (e.g., file inputs, hidden inputs)
+                    const isHidden = (el as HTMLElement).style.display === 'none' || 
+                                     (el as HTMLElement).classList.contains('hidden') || 
+                                     (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'hidden') || 
+                                     (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'file');
+                                     
+                    if (isHidden) {
+                        el = el.closest('[name]:not([type="file"]):not(.hidden)') || el.parentElement || el;
+                    }
+
                     const rect = el.getBoundingClientRect();
-                    const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+                    const isVisible = rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 0 && rect.height > 0;
                     
                     if (isVisible) {
                         avatar.style.transform = `translate(${rect.right - 10}px, ${rect.top - 10}px)`;

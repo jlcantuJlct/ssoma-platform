@@ -1606,7 +1606,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
     const inputRef = useRef<HTMLInputElement>(null);
     const [showPreview, setShowPreview] = useState(false);
     return (
-        <div>
+        <div name={`dropzone_${tag.name}`}>
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'hsl(215,20%,60%)' }}>
                 <code className="px-1 py-0.5 rounded text-xs mr-1"
                     style={{ background: 'hsl(222,47%,15%)', color: '#93c5fd' }}>
