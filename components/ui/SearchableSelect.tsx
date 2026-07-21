@@ -18,6 +18,8 @@ interface SearchableSelectProps {
     searchPlaceholder?: string;
     icon?: React.ReactNode;
     variant?: 'emerald' | 'blue'; // Unified with our design system colors
+    name?: string;
+    className?: string;
 }
 
 export function SearchableSelect({
@@ -27,7 +29,9 @@ export function SearchableSelect({
     placeholder = "Seleccionar...",
     searchPlaceholder = "Buscar...",
     icon,
-    variant = 'emerald'
+    variant = 'emerald',
+    name,
+    className
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -76,9 +80,10 @@ export function SearchableSelect({
     }, []);
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className={`relative ${className || ''}`} ref={dropdownRef}>
             <button
                 type="button"
+                name={name}
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full bg-slate-950 border border-slate-700/50 rounded-xl px-4 py-3 text-left focus:ring-2 ${variant === 'blue' ? 'focus:ring-blue-500/50' : 'focus:ring-emerald-500/50'} outline-none transition-all flex items-center justify-between group hover:border-slate-600 shadow-lg`}
             >
@@ -100,6 +105,7 @@ export function SearchableSelect({
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
+                                name={name ? `${name}_search` : undefined}
                                 className={`w-full bg-slate-950 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2 text-xs text-white outline-none ${variant === 'blue' ? 'focus:border-blue-500' : 'focus:border-emerald-500'} transition-colors`}
                                 placeholder={searchPlaceholder}
                                 value={searchTerm}

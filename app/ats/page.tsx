@@ -651,6 +651,7 @@ export default function AtsPage() {
                                             )}
                                         </div>
                                         <SearchableSelect 
+                                            name="filtro_responsable"
                                             options={RESPONSIBLES}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
@@ -668,6 +669,7 @@ export default function AtsPage() {
                                             )}
                                         </div>
                                         <SearchableSelect 
+                                            name="filtro_lugar"
                                             options={SSOMA_LOCATIONS}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}
