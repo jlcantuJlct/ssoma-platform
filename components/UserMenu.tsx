@@ -202,6 +202,83 @@ export default function UserMenu() {
         };
     }, [user, pathname]);
 
+    const FieldAvatar = ({ username, data }: { username: string, data: any }) => {
+        const avatarRef = useRef<HTMLDivElement>(null);
+
+        useEffect(() => {
+            let rafId: number;
+
+            const updatePos = () => {
+                const el = document.getElementById(data.focusedField) || document.querySelector(`[name="${data.focusedField}"]`);
+                const avatar = avatarRef.current;
+                
+                if (el && avatar) {
+                    const rect = el.getBoundingClientRect();
+                    const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+                    
+                    if (isVisible) {
+                        avatar.style.transform = `translate(${rect.right - 10}px, ${rect.top - 10}px)`;
+                        avatar.style.opacity = '1';
+                    } else {
+                        avatar.style.opacity = '0';
+                    }
+                }
+            };
+
+            // Initial position
+            updatePos();
+
+            // Using requestAnimationFrame inside scroll listener for smooth 60fps updates
+            const onScroll = () => {
+                cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(updatePos);
+            };
+
+            window.addEventListener('scroll', onScroll, true);
+            window.addEventListener('resize', onScroll);
+
+            // Also poll every 100ms in case layout shifts without scrolling
+            const interval = setInterval(updatePos, 100);
+
+            return () => {
+                window.removeEventListener('scroll', onScroll, true);
+                window.removeEventListener('resize', onScroll);
+                clearInterval(interval);
+                cancelAnimationFrame(rafId);
+            };
+        }, [data.focusedField]);
+
+        if (typeof document === 'undefined') return null;
+
+        return createPortal(
+            <div 
+                ref={avatarRef}
+                style={{ 
+                    position: 'fixed', 
+                    top: 0, 
+                    left: 0,
+                    opacity: 0,
+                    zIndex: 2147483647,
+                    pointerEvents: 'none',
+                    transition: 'opacity 0.2s',
+                    willChange: 'transform' // hint for GPU acceleration
+                }} 
+                className="flex flex-col items-center drop-shadow-2xl"
+            >
+                <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
+                    <div className="w-6 h-6 rounded-full bg-emerald-600 border border-emerald-400 flex items-center justify-center text-white text-[9px] font-black shadow-[0_0_10px_rgba(16,185,129,0.8)] relative z-10">
+                        {data.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                </div>
+                <span className="mt-0.5 bg-emerald-950/90 text-emerald-400 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/50 shadow-lg whitespace-nowrap">
+                    {data.name.split(' ')[0]}
+                </span>
+            </div>,
+            document.body
+        );
+    };
+
     const renderFieldAvatars = () => {
         if (!pathname || typeof document === 'undefined') return null;
 
@@ -209,35 +286,7 @@ export default function UserMenu() {
             if (username === user?.username) return null;
             if (!data.focusedField) return null;
 
-            const el = document.getElementById(data.focusedField) || document.querySelector(`[name="${data.focusedField}"]`);
-            if (!el) return null;
-
-            const rect = el.getBoundingClientRect();
-
-            return createPortal(
-                <div 
-                    key={username} 
-                    style={{ 
-                        position: 'fixed', 
-                        top: rect.top - 10, 
-                        left: rect.right - 10,
-                        zIndex: 2147483647,
-                        pointerEvents: 'none'
-                    }} 
-                    className="flex flex-col items-center animate-in zoom-in duration-300 drop-shadow-2xl"
-                >
-                    <div className="relative">
-                        <div className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
-                        <div className="w-6 h-6 rounded-full bg-emerald-600 border border-emerald-400 flex items-center justify-center text-white text-[9px] font-black shadow-[0_0_10px_rgba(16,185,129,0.8)] relative z-10">
-                            {data.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-                        </div>
-                    </div>
-                    <span className="mt-0.5 bg-emerald-950/90 text-emerald-400 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-emerald-500/50 shadow-lg whitespace-nowrap">
-                        {data.name.split(' ')[0]}
-                    </span>
-                </div>,
-                document.body
-            );
+            return <FieldAvatar key={username} username={username} data={data} />;
         });
     };
 
