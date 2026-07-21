@@ -379,7 +379,7 @@ export default function ManifestPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Registro</label>
-                                            <select value={documentType} onChange={e => setDocumentType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold focus:border-emerald-500 outline-none appearance-none cursor-pointer">
+                                            <select name="documentType" value={documentType} onChange={e => setDocumentType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold focus:border-emerald-500 outline-none appearance-none cursor-pointer">
                                                 <option value="Manifiesto">Manifiesto</option>
                                                 <option value="Certificado de Transportista">Certificado de Transportista</option>
                                                 <option value="Certificado de Disposición Final">Certificado de Disposición Final</option>
@@ -390,7 +390,7 @@ export default function ManifestPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Fecha de Emisión</label>
                                             <div className="relative">
                                                 <Calendar className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                                <input name="form_date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
                                             </div>
                                         </div>
 
@@ -398,14 +398,14 @@ export default function ManifestPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">
                                                 {documentType === 'Manifiesto' ? 'N° de Manifiesto' : 'N° de Certificado'}
                                             </label>
-                                            <input type="text" placeholder={`Ej: ${documentType === 'Manifiesto' ? 'MAN-2024-001' : 'CERT-2024-001'}`} value={form.manifestNumber} onChange={e => setForm({...form, manifestNumber: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                            <input name="form_manifestNumber" type="text" placeholder={`Ej: ${documentType === 'Manifiesto' ? 'MAN-2024-001' : 'CERT-2024-001'}`} value={form.manifestNumber} onChange={e => setForm({...form, manifestNumber: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
                                         </div>
 
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Empresa Operadora (EO-RS)</label>
                                             <div className="relative">
                                                 <Truck className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <input type="text" placeholder="Nombre de la EO-RS..." value={form.transportCompany} onChange={e => setForm({...form, transportCompany: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
+                                                <input name="form_transportCompany" type="text" placeholder="Nombre de la EO-RS..." value={form.transportCompany} onChange={e => setForm({...form, transportCompany: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none" required />
                                             </div>
                                         </div>
 
@@ -427,19 +427,19 @@ export default function ManifestPage() {
                                                             <div className="flex-1 space-y-2">
                                                                 <div className="relative">
                                                                     <AlertTriangle className="absolute left-2.5 top-2 text-amber-500/50" size={14} />
-                                                                    <input list="waste-list" placeholder="Seleccione o escriba tipo de residuo..." value={item.wasteType} onChange={e => {
+                                                                    <input name="item_wasteType" list="waste-list" placeholder="Seleccione o escriba tipo de residuo..." value={item.wasteType} onChange={e => {
                                                                         const newItems = [...items];
                                                                         newItems[idx].wasteType = e.target.value;
                                                                         setItems(newItems);
                                                                     }} className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-[11px] font-bold text-white focus:border-emerald-500 outline-none" required />
                                                                 </div>
                                                                 <div className="flex gap-2">
-                                                                    <input type="number" step="0.01" placeholder="Cant." value={item.quantity} onChange={e => {
+                                                                    <input name="item_quantity" type="number" step="0.01" placeholder="Cant." value={item.quantity} onChange={e => {
                                                                         const newItems = [...items];
                                                                         newItems[idx].quantity = e.target.value;
                                                                         setItems(newItems);
                                                                     }} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] font-mono text-white focus:border-emerald-500 outline-none" required />
-                                                                    <select value={item.unit} onChange={e => {
+                                                                    <select name="item_unit" value={item.unit} onChange={e => {
                                                                         const newItems = [...items];
                                                                         newItems[idx].unit = e.target.value;
                                                                         setItems(newItems);
@@ -470,7 +470,7 @@ export default function ManifestPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Lugar de Origen</label>
                                             <div className="relative">
                                                 <MapPin className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <select value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none appearance-none" required>
+                                                <select name="form_location" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-emerald-500 outline-none appearance-none" required>
                                                     <option value="">Seleccionar Lugar...</option>
                                                     {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                                                 </select>
@@ -493,7 +493,7 @@ export default function ManifestPage() {
                                                 files.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                             }`}
                                         >
-                                            <input 
+                                            <input name="input_45080" 
                                                 type="file"
                                                 multiple
                                                 accept=".pdf"
@@ -576,7 +576,7 @@ export default function ManifestPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -592,7 +592,7 @@ export default function ManifestPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterWasteType" 
                                             type="text"
                                             placeholder="Buscar tipo..."
                                             value={filterWasteType}
@@ -609,7 +609,7 @@ export default function ManifestPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_26977" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

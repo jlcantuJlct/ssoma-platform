@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
@@ -588,10 +588,7 @@ export default function InspectionsPage() {
 
     const processPdf = async (file: File) => {
         if (!file) return;
-        if (!formData.inspectionType || !formData.responsible || !formData.area || !formData.zone) {
-            alert("⚠️ Por favor seleccione TIPO DE INSPECCIÓN, ÁREA, LUGAR y RESPONSABLE antes de subir el archivo para nombrarlo correctamente.");
-            return;
-        }
+        // Validación eliminada a petición del usuario
 
         try {
             setIsUploading(true);
@@ -628,10 +625,7 @@ export default function InspectionsPage() {
             return;
         }
 
-        if (!formData.inspectionType || !formData.responsible || !formData.area || !formData.zone) {
-            alert("⚠️ Por favor seleccione primero el TIPO DE INSPECCIÓN, ÁREA, LUGAR y RESPONSABLE para nombrar el archivo correctamente.");
-            return;
-        }
+        // Validación eliminada a petición del usuario
 
         setIsUploading(true);
         try {
@@ -826,10 +820,7 @@ export default function InspectionsPage() {
             return;
         }
 
-        if (!formData.responsible || !formData.inspectionType || !formData.zone) {
-            alert("Por favor complete todos los campos obligatorios");
-            return;
-        }
+        // Validación eliminada a petición del usuario
 
         if (editingId) {
             // ACTUALIZACIÓN
@@ -1080,7 +1071,7 @@ export default function InspectionsPage() {
                             {/* Selector de Mes */}
                             <div className="relative group">
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={16} />
-                                <select
+                                <select name="selectedMonth"
                                     value={selectedMonth}
                                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
                                     className="pl-9 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500 appearance-none hover:bg-slate-700 transition-colors cursor-pointer"
@@ -1163,7 +1154,7 @@ export default function InspectionsPage() {
                                         </div>
                                     )}
 
-                                    <input
+                                    <input name="input_11698"
                                         type="file"
                                         accept=".xlsx, .xls"
                                         ref={fileInputRef}
@@ -1411,7 +1402,7 @@ export default function InspectionsPage() {
                                             </div>
                                         </div>
 
-                                        <SearchableSelect
+                                        <SearchableSelect name="formData_inspectionType"
                                             options={INSPECTION_TYPES_BY_AREA[formData.area as keyof typeof INSPECTION_TYPES_BY_AREA] || INSPECTION_TYPES_BY_AREA['Seguridad']}
                                             value={formData.inspectionType}
                                             onChange={(val) => setFormData({ ...formData, inspectionType: val })}
@@ -1440,7 +1431,7 @@ export default function InspectionsPage() {
                                                     className={`relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-emerald-500/50 transition-all ${isDraggingPdf ? 'border-emerald-500 bg-emerald-500/10 scale-[1.02]' : ''}`}
                                                 >
                                                     <div className="flex flex-col items-center gap-1">
-                                                        <input
+                                                        <input name="input_21575"
                                                             type="file"
                                                             accept=".pdf"
                                                             onChange={handlePdfUpload}
@@ -1460,7 +1451,7 @@ export default function InspectionsPage() {
                                                     className={`relative group bg-slate-950 border border-slate-800 rounded-xl p-3 border-dashed hover:border-blue-500/50 transition-all ${isDraggingImgs ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : ''}`}
                                                 >
                                                     <div className="flex flex-col items-center gap-1">
-                                                        <input
+                                                        <input name="input_26698"
                                                             type="file"
                                                             accept="image/*"
                                                             multiple
@@ -1496,7 +1487,7 @@ export default function InspectionsPage() {
                                         {/* CONTROLES DE OBSERVACIONES */}
                                         <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-3">
                                             <div className="flex items-center gap-2">
-                                                <input 
+                                                <input name="input_42064" 
                                                     type="checkbox" 
                                                     id="hasObs"
                                                     checked={hasObservations}
@@ -1533,7 +1524,7 @@ export default function InspectionsPage() {
                                                     {observedAreas.includes('Otros') && (
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] uppercase font-bold text-slate-500">Especificar Área / Correo</label>
-                                                            <input 
+                                                            <input name="otherObservedArea" 
                                                                 type="text" 
                                                                 value={otherObservedArea}
                                                                 onChange={e => setOtherObservedArea(e.target.value)}
@@ -1579,7 +1570,7 @@ export default function InspectionsPage() {
                                     {/* Filtro Responsable */}
                                     <div className="relative">
                                         <User className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
+                                        <select name="filterResponsible"
                                             value={filterResponsible}
                                             onChange={(e) => setFilterResponsible(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
@@ -1592,7 +1583,7 @@ export default function InspectionsPage() {
                                     {/* Filtro Zona */}
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
+                                        <select name="filterZone"
                                             value={filterZone}
                                             onChange={(e) => setFilterZone(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
@@ -1604,7 +1595,7 @@ export default function InspectionsPage() {
 
                                     {/* Filtro Tipo */}
                                     <div className="relative">
-                                        <SearchableSelect
+                                        <SearchableSelect name="filterType_Todo_Tipo"
                                             options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
                                             value={filterType || "Todo Tipo"}
                                             onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
@@ -1617,7 +1608,7 @@ export default function InspectionsPage() {
                                     {/* Filtro Fecha */}
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input
+                                        <input name="filterDate"
                                             type="date"
                                             value={filterDate}
                                             onChange={(e) => setFilterDate(e.target.value)}
@@ -1628,7 +1619,7 @@ export default function InspectionsPage() {
                                     {/* Filtro Area (reset button if needed or just Area select) */}
                                     <div className="relative">
                                         <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select
+                                        <select name="filterArea"
                                             value={filterArea}
                                             onChange={(e) => setFilterArea(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"

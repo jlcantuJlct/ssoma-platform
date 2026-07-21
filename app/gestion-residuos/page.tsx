@@ -268,7 +268,7 @@ export default function GestionResiduosPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha Emisión</label>
-                                    <input
+                                    <input name="formData_date"
                                         type="date"
                                         value={formData.date}
                                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -278,7 +278,7 @@ export default function GestionResiduosPage() {
 
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Tipo de Documento</label>
-                                    <select
+                                    <select name="formData_documentType"
                                         value={formData.documentType}
                                         onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
                                         className="w-full bg-slate-950 text-slate-300 px-4 py-3 rounded-xl border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-sm appearance-none"
@@ -332,7 +332,7 @@ export default function GestionResiduosPage() {
                                             uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_79523" 
                                             type="file" multiple disabled={isUploading}
                                             onChange={handleFileUpload}
                                             className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait"
@@ -446,7 +446,7 @@ export default function GestionResiduosPage() {
                                         </button>
                                     )}
                                 </div>
-                                <input 
+                                <input name="filterDate" 
                                     type="date"
                                     value={filterDate}
                                     onChange={e => setFilterDate(e.target.value)}
@@ -462,7 +462,7 @@ export default function GestionResiduosPage() {
                                         </button>
                                     )}
                                 </div>
-                                <select 
+                                <select name="filterDocType" 
                                     value={filterDocType}
                                     onChange={e => setFilterDocType(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none appearance-none"
@@ -484,7 +484,7 @@ export default function GestionResiduosPage() {
                                         </button>
                                     )}
                                 </div>
-                                <select 
+                                <select name="filterLocation" 
                                     value={filterLocation}
                                     onChange={e => setFilterLocation(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none appearance-none"

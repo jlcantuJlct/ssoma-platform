@@ -173,27 +173,27 @@ export default function ClientCommunicationPage() {
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
-                                        <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
+                                        <input name="form_date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Tipo</label>
-                                        <select value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none">
+                                        <select name="form_type" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none">
                                             <option value="Enviada">Carta Enviada (Salida)</option>
                                             <option value="Recibida">Carta Recibida (Entrada)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Asunto / N° de Carta</label>
-                                        <input type="text" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
+                                        <input name="form_subject" type="text" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Destinatario / Remitente</label>
-                                        <input type="text" value={form.recipient} onChange={e => setForm({...form, recipient: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
+                                        <input name="form_recipient" type="text" value={form.recipient} onChange={e => setForm({...form, recipient: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-cyan-500 outline-none" required />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Cargar PDF</label>
                                         <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
-                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                            <input name="input_12911" type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                             <Upload className="mx-auto text-slate-600 group-hover:text-cyan-500 mb-2" size={24} />
                                             <p className="text-[10px] font-bold text-slate-500">CLICK PARA SUBIR</p>
                                         </div>
@@ -218,7 +218,7 @@ export default function ClientCommunicationPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -234,7 +234,7 @@ export default function ClientCommunicationPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <select 
+                                        <select name="filterType" 
                                             value={filterType}
                                             onChange={e => setFilterType(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-cyan-500 outline-none"
@@ -253,7 +253,7 @@ export default function ClientCommunicationPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterSearch" 
                                             type="text"
                                             placeholder="Palabra clave..."
                                             value={filterSearch}

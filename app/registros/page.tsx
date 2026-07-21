@@ -194,7 +194,7 @@ export default function StatisticsPage() {
                             {/* Year Selector */}
                             <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800">
                                 <Calendar size={16} className="text-slate-500 ml-2" />
-                                <select 
+                                <select name="selectedYear" 
                                     value={selectedYear} 
                                     onChange={(e) => setSelectedYear(Number(e.target.value))}
                                     className="bg-transparent text-sm font-bold text-white outline-none pr-2 cursor-pointer"
@@ -206,7 +206,7 @@ export default function StatisticsPage() {
                             {/* Month Selector */}
                             <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800">
                                 <Filter size={16} className="text-slate-500 ml-2" />
-                                <select 
+                                <select name="selectedMonth" 
                                     value={selectedMonth} 
                                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
                                     className="bg-transparent text-sm font-bold text-white outline-none pr-2 cursor-pointer"

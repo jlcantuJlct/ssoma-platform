@@ -441,7 +441,7 @@ export default function PetarPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Fecha</label>
-                                            <input
+                                            <input name="form_date"
                                                 type="date"
                                                 value={form.date}
                                                 onChange={e => setForm({ ...form, date: e.target.value })}
@@ -451,7 +451,7 @@ export default function PetarPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Responsable</label>
-                                            <select
+                                            <select name="form_responsible"
                                                 value={form.responsible}
                                                 onChange={e => setForm({ ...form, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-orange-500 outline-none transition-colors"
@@ -465,7 +465,7 @@ export default function PetarPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ubicación / Lugar</label>
-                                            <select
+                                            <select name="form_location"
                                                 value={form.location}
                                                 onChange={e => setForm({ ...form, location: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-orange-500 outline-none transition-colors"
@@ -479,7 +479,7 @@ export default function PetarPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tipo de PETAR</label>
-                                            <select
+                                            <select name="form_type"
                                                 value={form.type}
                                                 // @ts-ignore
                                                 onChange={e => setForm({ ...form, type: e.target.value })}
@@ -494,7 +494,7 @@ export default function PetarPage() {
                                         <div className="space-y-2 pt-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Archivo PETAR (PDF)</label>
                                             <div className="relative group">
-                                                <input
+                                                <input name="input_1531"
                                                     type="file"
                                                     accept=".pdf"
                                                     onChange={handleFileUpload}
@@ -588,14 +588,14 @@ export default function PetarPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <input
+                                            <input name="filterStartDate"
                                                 type="date"
                                                 value={filterStartDate}
                                                 onChange={e => setFilterStartDate(e.target.value)}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:border-orange-500 outline-none transition-colors"
                                             />
                                             <span className="text-slate-500 text-xs">-</span>
-                                            <input
+                                            <input name="filterEndDate"
                                                 type="date"
                                                 value={filterEndDate}
                                                 onChange={e => setFilterEndDate(e.target.value)}
@@ -612,7 +612,7 @@ export default function PetarPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="filterResponsible" 
                                             options={RESPONSIBLES}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
@@ -629,7 +629,7 @@ export default function PetarPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="filterLocation" 
                                             options={SSOMA_LOCATIONS}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

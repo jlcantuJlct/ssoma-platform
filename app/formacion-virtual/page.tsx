@@ -100,7 +100,7 @@ export default function FormacionVirtualLogin() {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <IdCard className="h-5 w-5 text-slate-400" />
                                 </div>
-                                <input 
+                                <input name="dni" 
                                     type="text" 
                                     required
                                     value={dni}
@@ -116,7 +116,7 @@ export default function FormacionVirtualLogin() {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <UserCheck className="h-5 w-5 text-slate-400" />
                                 </div>
-                                <input 
+                                <input name="name" 
                                     type="text" 
                                     required
                                     value={name}
@@ -132,7 +132,7 @@ export default function FormacionVirtualLogin() {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Briefcase className="h-5 w-5 text-slate-400" />
                                 </div>
-                                <select 
+                                <select name="role" 
                                     required
                                     value={role}
                                     onChange={e => setRole(e.target.value)}

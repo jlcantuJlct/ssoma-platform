@@ -351,7 +351,7 @@ export default function AdminFormacionVirtual() {
                     <form onSubmit={handleCreateTraining} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Título de la Capacitación</label>
-                            <input 
+                            <input name="title" 
                                 type="text" 
                                 required 
                                 value={title}
@@ -362,7 +362,7 @@ export default function AdminFormacionVirtual() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Enlace del Video (YouTube o Drive)</label>
-                            <input 
+                            <input name="videoUrl" 
                                 type="url" 
                                 required
                                 value={videoUrl}
@@ -376,7 +376,7 @@ export default function AdminFormacionVirtual() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
                                 {["Todos", "Conductor operador", "Trabajador administrativo", "Trabajador de OC", "Trabajador de Planta de concreto", "Trabajador de planta de asfalto", "Trabajador de Planta agregados", "Sub comite", "Brigadistas"].map(op => (
                                     <label key={op} className="flex items-center space-x-3 cursor-pointer">
-                                        <input 
+                                        <input name="input_63076" 
                                             type="checkbox"
                                             className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                             checked={category.includes(op)}
@@ -417,7 +417,7 @@ export default function AdminFormacionVirtual() {
                         <p className="text-sm text-indigo-600 mb-3">
                             Pega aquí todo el texto de las preguntas y alternativas. El sistema intentará llenar los recuadros automáticamente. (Formato: Pregunta 1: ... A) ... B) ... (CORRECTA) )
                         </p>
-                        <textarea 
+                        <textarea name="bulkText" 
                             value={bulkText}
                             onChange={(e) => setBulkText(e.target.value)}
                             rows={4}
@@ -436,7 +436,7 @@ export default function AdminFormacionVirtual() {
                         {questions.map((q, qIndex) => (
                             <div key={qIndex} className="bg-slate-50 p-5 rounded-lg border border-slate-200">
                                 <div className="font-bold text-slate-700 mb-2">Pregunta {qIndex + 1}</div>
-                                <input 
+                                <input name="q_question_text" 
                                     type="text" 
                                     placeholder="Escribe la pregunta aquí..."
                                     value={q.question_text}
@@ -454,7 +454,7 @@ export default function AdminFormacionVirtual() {
                                         return (
                                             <div key={oIndex} className={`flex items-center p-2 rounded-lg border ${opt.is_correct ? 'border-green-500 bg-green-50' : 'border-slate-300 bg-white'}`}>
                                                 <div className="font-bold text-slate-500 w-6">{letters[oIndex]}</div>
-                                                <input 
+                                                <input name="opt_option_text" 
                                                     type="text" 
                                                     placeholder={`Opción ${letters[oIndex]}`}
                                                     value={opt.option_text}

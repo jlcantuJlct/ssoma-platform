@@ -213,7 +213,7 @@ function TemplatePermissionManager({ templateName, permissions, setPermissions }
                     <div className="p-2 text-[10px] text-slate-400 border-b border-slate-700">Selecciona quién puede cargar fotos:</div>
                     {ALL_USER_LIST.map(u => (
                         <label key={u.username} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-700/50 cursor-pointer text-xs">
-                            <input 
+                            <input name="input_42065" 
                                 type="checkbox" 
                                 checked={allowed.includes(u.username)}
                                 onChange={() => toggleUser(u.username)}
@@ -1268,7 +1268,7 @@ export default function GeneradorInformesPage() {
                         onDrop={handleTemplateDrop}
                         onClick={() => !templateFile && templateInputRef.current?.click()}
                     >
-                        <input
+                        <input name="input_89019"
                             ref={templateInputRef}
                             type="file"
                             accept=".docx"
@@ -1522,7 +1522,7 @@ export default function GeneradorInformesPage() {
                                                     </code>
                                                     {tag.label}
                                                 </label>
-                                                <input
+                                                <input name="tag_value"
                                                     type="text"
                                                     value={tag.value || ''}
                                                     onChange={e => updateTextValue(tag.name, e.target.value)}
@@ -1627,7 +1627,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                 onDrop={onDrop}
                 onClick={() => !tag.preview && inputRef.current?.click()}
             >
-                <input
+                <input name="input_53641"
                     ref={inputRef}
                     type="file"
                     accept="image/*"

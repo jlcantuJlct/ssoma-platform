@@ -217,11 +217,11 @@ export default function MonitoringPage() {
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Fecha del Monitoreo</label>
-                                        <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
+                                        <input name="form_date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Agente</label>
-                                        <select value={form.agentType} onChange={e => setForm({...form, agentType: e.target.value as any})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none">
+                                        <select name="form_agentType" value={form.agentType} onChange={e => setForm({...form, agentType: e.target.value as any})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none">
                                             <option value="Físico">Físico (Ruido, Iluminación, etc)</option>
                                             <option value="Químico">Químico (Polvo, Gases)</option>
                                             <option value="Ergonómico">Ergonómico (Posturas, Cargas)</option>
@@ -231,16 +231,16 @@ export default function MonitoringPage() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Parámetro Medido</label>
-                                        <input type="text" placeholder="Ej: Ruido Ocupacional, Polvo Inhalable..." value={form.parameter} onChange={e => setForm({...form, parameter: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
+                                        <input name="form_parameter" type="text" placeholder="Ej: Ruido Ocupacional, Polvo Inhalable..." value={form.parameter} onChange={e => setForm({...form, parameter: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Ubicación / Área</label>
-                                        <input type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
+                                        <input name="form_location" type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-rose-500 outline-none" required />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase">Cargar Informe (PDF)</label>
                                         <div className="border-2 border-dashed border-slate-800 rounded-2xl p-6 hover:bg-slate-800/50 transition-all text-center group cursor-pointer relative">
-                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                            <input name="input_6890" type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                                             <Upload className="mx-auto text-slate-600 group-hover:text-rose-500 mb-2" size={24} />
                                             <p className="text-[10px] font-bold text-slate-500">SUBIR INFORME TÉCNICO</p>
                                         </div>
@@ -276,7 +276,7 @@ export default function MonitoringPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -292,7 +292,7 @@ export default function MonitoringPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <select 
+                                        <select name="filterAgent" 
                                             value={filterAgent}
                                             onChange={e => setFilterAgent(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-rose-500 outline-none"
@@ -314,7 +314,7 @@ export default function MonitoringPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_21562" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val: string) => setFilterLocation(val)}

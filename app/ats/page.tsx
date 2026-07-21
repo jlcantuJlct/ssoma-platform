@@ -495,6 +495,7 @@ export default function AtsPage() {
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Fecha</label>
                                             <input
                                                 type="date"
+                                                name="ats_fecha"
                                                 value={form.date}
                                                 onChange={e => setForm({ ...form, date: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-teal-500 outline-none transition-colors"
@@ -504,6 +505,7 @@ export default function AtsPage() {
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Responsable</label>
                                             <select
+                                                name="ats_responsable"
                                                 value={form.responsible}
                                                 onChange={e => setForm({ ...form, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-teal-500 outline-none transition-colors"
@@ -518,6 +520,7 @@ export default function AtsPage() {
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ubicación / Lugar</label>
                                             <select
+                                                name="ats_lugar"
                                                 value={form.location}
                                                 onChange={e => setForm({ ...form, location: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-teal-500 outline-none transition-colors"
@@ -532,7 +535,7 @@ export default function AtsPage() {
                                         <div className="space-y-2 pt-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Archivo ATS (PDF)</label>
                                             <div className="relative group">
-                                                <input
+                                                <input name="input_34862"
                                                     type="file"
                                                     accept=".pdf"
                                                     onChange={handleFileUpload}
@@ -626,14 +629,14 @@ export default function AtsPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <input
+                                            <input name="filterStartDate"
                                                 type="date"
                                                 value={filterStartDate}
                                                 onChange={e => setFilterStartDate(e.target.value)}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:border-teal-500 outline-none transition-colors"
                                             />
                                             <span className="text-slate-500 text-xs">-</span>
-                                            <input
+                                            <input name="filterEndDate"
                                                 type="date"
                                                 value={filterEndDate}
                                                 onChange={e => setFilterEndDate(e.target.value)}

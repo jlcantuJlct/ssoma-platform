@@ -496,11 +496,11 @@ export default function WasteManagementPage() {
                     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-wrap items-center justify-center gap-8">
                         <div className="flex items-center gap-3">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha de Carga:</label>
-                            <input type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" />
+                            <input name="entryDate" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-emerald-400 font-bold outline-none focus:border-emerald-500" />
                         </div>
                         <div className="flex items-center gap-3">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sede / Ubicación:</label>
-                            <select value={entryLocation} onChange={e => setEntryLocation(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold outline-none focus:border-emerald-500">
+                            <select name="entryLocation" value={entryLocation} onChange={e => setEntryLocation(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold outline-none focus:border-emerald-500">
                                 <option value="">Seleccionar Sede...</option>
                                 {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                             </select>
@@ -521,7 +521,7 @@ export default function WasteManagementPage() {
                                         {WASTE_CATEGORIES.filter(c => c.type === 'No Peligroso').map(cat => (
                                             <div key={cat.id} className="flex items-center justify-between gap-4 bg-slate-950 p-2 rounded-xl border border-slate-800 hover:border-emerald-500/50 transition-colors">
                                                 <label className="text-[10px] font-bold text-slate-300 flex-1">{cat.label}</label>
-                                                <input 
+                                                <input name="multiWeights_cat_label" 
                                                     type="number" 
                                                     step="0.01" 
                                                     placeholder="0.00"
@@ -542,7 +542,7 @@ export default function WasteManagementPage() {
                                             onDragLeave={() => setIsDragging(false)}
                                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
                                         >
-                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
+                                            <input name="input_11499" type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
                                             <Upload className={`mx-auto mb-2 ${isDragging ? 'text-emerald-500 animate-bounce' : 'text-slate-600'}`} size={20} />
                                             <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-300">
                                                 {files.length > 0 ? `${files.length} ARCHIVOS` : 'SUBIR EVIDENCIA'}
@@ -627,7 +627,7 @@ export default function WasteManagementPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -643,7 +643,7 @@ export default function WasteManagementPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_91288" 
                                             options={WASTE_CATEGORIES.map(c => ({ id: c.label, label: c.label }))}
                                             value={filterWasteType}
                                             onChange={(val) => setFilterWasteType(val)}
@@ -660,7 +660,7 @@ export default function WasteManagementPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_91357" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}
@@ -773,7 +773,7 @@ export default function WasteManagementPage() {
                                                         <label className="text-[10px] font-bold text-slate-300 block leading-tight">{cat.label}</label>
                                                         <span className="text-[8px] text-slate-500 font-mono uppercase">{cat.unit}</span>
                                                     </div>
-                                                    <input 
+                                                    <input name="multiWeights_cat_label" 
                                                         type="number" 
                                                         step="0.01" 
                                                         placeholder="0.0"
@@ -788,7 +788,7 @@ export default function WasteManagementPage() {
 
                                     <div className="space-y-2">
                                         <div className="border-2 border-dashed border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:border-red-500/50 relative">
-                                            <input type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
+                                            <input name="input_35715" type="file" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-50" multiple />
                                             <Upload className="mx-auto mb-2 text-slate-600" size={20} />
                                             <p className="text-[10px] font-bold text-slate-500 uppercase">Subir Manifiesto / Guía</p>
                                         </div>

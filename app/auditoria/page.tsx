@@ -83,7 +83,7 @@ export default function AuditoriaPage() {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <Search size={12} /> Búsqueda General
                                 </label>
-                                <input
+                                <input name="searchTerm"
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -95,7 +95,7 @@ export default function AuditoriaPage() {
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <Filter size={12} /> Filtrar por Módulo
                                 </label>
-                                <select
+                                <select name="filterModule"
                                     value={filterModule}
                                     onChange={(e) => setFilterModule(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 transition-colors appearance-none"

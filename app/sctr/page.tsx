@@ -382,7 +382,7 @@ export default function SCTRPage() {
                             </h2>
                             <div className="relative group">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                <input 
+                                <input name="input_95949" 
                                     className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
                                     placeholder="Ingrese DNI o Nombre..."
                                      onChange={e => setFilterSearch(e.target.value)}
@@ -511,20 +511,20 @@ export default function SCTRPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mes de Cobertura</label>
-                                            <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500" value={form.month} onChange={e => setForm({...form, month: e.target.value})}>
+                                            <select name="form_month" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500" value={form.month} onChange={e => setForm({...form, month: e.target.value})}>
                                                 {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Empresa</label>
-                                            <select className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500" value={form.company} onChange={e => setForm({...form, company: e.target.value})}>
+                                            <select name="form_company" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500" value={form.company} onChange={e => setForm({...form, company: e.target.value})}>
                                                 {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
                                         <div className="md:col-span-2 space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Archivo PDF de Póliza</label>
                                             <div className="relative h-12">
-                                                <input type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                                <input name="input_87488" type="file" accept=".pdf" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                                                 <div className={`h-full flex items-center justify-center gap-3 border-2 border-dashed rounded-xl transition-all ${form.file_url ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 bg-slate-950'}`}>
                                                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-emerald-500" /> : form.file_url ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Plus className="w-4 h-4 text-slate-500" />}
                                                     <span className="text-[10px] font-black uppercase text-slate-400">{isUploading ? 'Procesando...' : form.file_url ? 'Archivo Listo' : 'Seleccionar PDF'}</span>
@@ -538,11 +538,11 @@ export default function SCTRPage() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vencimiento</label>
-                                                    <input type="date" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs outline-none" value={form.expiration_date} onChange={e => setForm({...form, expiration_date: e.target.value})} />
+                                                    <input name="form_expiration_date" type="date" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs outline-none" value={form.expiration_date} onChange={e => setForm({...form, expiration_date: e.target.value})} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nº Póliza</label>
-                                                    <input type="text" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs outline-none" value={form.policy_number} onChange={e => setForm({...form, policy_number: e.target.value})} />
+                                                    <input name="form_policy_number" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs outline-none" value={form.policy_number} onChange={e => setForm({...form, policy_number: e.target.value})} />
                                                 </div>
                                             </div>
                                         </div>
@@ -551,7 +551,7 @@ export default function SCTRPage() {
                                                 Lista de Personal (Nombres/DNI) 
                                                 <span className={form.personnel_list ? "text-emerald-500" : "text-amber-500"}>{form.personnel_list ? "✓ Cargado" : "⚠ Pendiente"}</span>
                                             </label>
-                                            <textarea 
+                                            <textarea name="form_personnel_list" 
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-[10px] font-mono outline-none h-24"
                                                 placeholder="Pega aquí los nombres si el robot falla..."
                                                 value={form.personnel_list}
@@ -593,7 +593,7 @@ export default function SCTRPage() {
                                         </button>
                                     )}
                                 </div>
-                                <select 
+                                <select name="filterMonth" 
                                     value={filterMonth}
                                     onChange={e => setFilterMonth(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-emerald-500 outline-none"
@@ -611,7 +611,7 @@ export default function SCTRPage() {
                                         </button>
                                     )}
                                 </div>
-                                <input 
+                                <input name="filterPolicy" 
                                     type="text"
                                     placeholder="Buscar póliza..."
                                     value={filterPolicy}
@@ -628,7 +628,7 @@ export default function SCTRPage() {
                                         </button>
                                     )}
                                 </div>
-                                <SearchableSelect 
+                                <SearchableSelect name="SearchableSelect_6450" 
                                     options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                     value={filterLocation}
                                     onChange={(val: string) => setFilterLocation(val)}

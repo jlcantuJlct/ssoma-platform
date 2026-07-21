@@ -177,7 +177,7 @@ export default function InformesPage() {
                                 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Mes del Informe</label>
-                                    <SearchableSelect 
+                                    <SearchableSelect name="formData_month" 
                                         options={MONTHS}
                                         value={formData.month}
                                         onChange={(val) => setFormData({...formData, month: val})}
@@ -189,7 +189,7 @@ export default function InformesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ubicación / Proyecto</label>
                                     <div className="relative group">
                                         <MapPin className="absolute left-3 top-3 text-violet-500/50" size={16} />
-                                        <select 
+                                        <select name="formData_zona" 
                                             value={formData.zona}
                                             onChange={(e) => setFormData({...formData, zona: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-violet-500 outline-none"
@@ -204,7 +204,7 @@ export default function InformesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
                                     <div className="relative group">
                                         <User className="absolute left-3 top-3 text-violet-500/50" size={16} />
-                                        <select 
+                                        <select name="formData_responsable" 
                                             value={formData.responsable}
                                             onChange={(e) => setFormData({...formData, responsable: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-violet-500 outline-none"
@@ -219,7 +219,7 @@ export default function InformesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha de Subida</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input 
+                                        <input name="formData_date" 
                                             type="date"
                                             value={formData.date}
                                             onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -263,7 +263,7 @@ export default function InformesPage() {
                                             uploadedFiles.length > 0 ? 'border-violet-500/30 bg-violet-500/5' : 'border-slate-800 hover:border-slate-700'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_80470" 
                                             type="file" multiple disabled={isUploading}
                                             onChange={async (e) => {
                                                 const files = Array.from(e.target.files || []);
@@ -318,7 +318,7 @@ export default function InformesPage() {
                                 <div className="md:col-span-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Enlace Externo (Opcional - Para archivos mayores a 80MB)</label>
                                     <div className="flex gap-2 mt-2">
-                                        <input 
+                                        <input name="externalLink" 
                                             type="url"
                                             value={externalLink}
                                             onChange={(e) => setExternalLink(e.target.value)}
@@ -342,7 +342,7 @@ export default function InformesPage() {
 
                                 <div className="md:col-span-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Descripción / Notas Adicionales</label>
-                                    <textarea 
+                                    <textarea name="formData_description" 
                                         value={formData.description}
                                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-violet-500 outline-none h-20 resize-none mt-2"
@@ -415,7 +415,7 @@ export default function InformesPage() {
                                     </button>
                                 )}
                             </div>
-                            <select 
+                            <select name="filterMonth" 
                                 value={filterMonth}
                                 onChange={e => setFilterMonth(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-violet-500 outline-none appearance-none"
@@ -433,7 +433,7 @@ export default function InformesPage() {
                                     </button>
                                 )}
                             </div>
-                            <select 
+                            <select name="filterLocation" 
                                 value={filterLocation}
                                 onChange={e => setFilterLocation(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-violet-500 outline-none appearance-none"

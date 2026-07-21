@@ -355,7 +355,7 @@ export default function DetourPage() {
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
                                         <div className="relative group">
                                             <Calendar className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                            <input
+                                            <input name="form_date"
                                                 type="date"
                                                 value={form.date}
                                                 onChange={e => setForm({ ...form, date: e.target.value })}
@@ -369,7 +369,7 @@ export default function DetourPage() {
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Responsable</label>
                                         <div className="relative group">
                                             <User className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                            <select
+                                            <select name="form_responsible"
                                                 value={form.responsible}
                                                 onChange={e => setForm({ ...form, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-blue-500 outline-none appearance-none transition-colors"
@@ -388,7 +388,7 @@ export default function DetourPage() {
                                             <div className="absolute left-3 top-3 text-emerald-500/50">
                                                 <Filter size={16} />
                                             </div>
-                                            <select
+                                            <select name="form_location"
                                                 value={form.location}
                                                 onChange={e => setForm({ ...form, location: e.target.value })}
                                                 className="w-full bg-slate-950 border-2 border-emerald-500/20 rounded-xl pl-10 pr-3 py-3 text-white text-sm focus:border-emerald-500 outline-none transition-all shadow-lg shadow-emerald-500/5"
@@ -404,7 +404,7 @@ export default function DetourPage() {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="form_category" 
                                             options={detourCategories}
                                             value={form.category}
                                             onChange={(val) => setForm({ ...form, category: val })}
@@ -428,7 +428,7 @@ export default function DetourPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Archivos (Max 9)</label>
                                         <div className="border-2 border-dashed border-slate-700 rounded-xl p-4 hover:bg-slate-800/50 transition-colors text-center cursor-pointer group relative">
-                                            <input
+                                            <input name="input_57582"
                                                 type="file"
                                                 onChange={handleFileUpload}
                                                 multiple
@@ -510,7 +510,7 @@ export default function DetourPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input
+                                        <input name="filterDate"
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -526,7 +526,7 @@ export default function DetourPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_90096" 
                                             options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
@@ -543,7 +543,7 @@ export default function DetourPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="filterCategory" 
                                             options={detourCategories}
                                             value={filterCategory}
                                             onChange={(val) => setFilterCategory(val)}
@@ -560,7 +560,7 @@ export default function DetourPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_97742" 
                                             options={SSOMA_LOCATIONS.map(loc => ({ id: loc, label: loc }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

@@ -242,7 +242,7 @@ export default function ReportsPage() {
     };
 
     const CellInput = ({ rKey, m }: { rKey: string, m: number }) => (
-        <input
+        <input name="data_rKey_m_0_data_rKey_m"
             type="number"
             value={data[rKey][m] === 0 ? '' : data[rKey][m]}
             onChange={(e) => handleChange(rKey, m, e.target.value)}
@@ -285,7 +285,7 @@ export default function ReportsPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <select 
+                    <select name="selectedExtYear" 
                         value={selectedExtYear}
                         onChange={(e) => setSelectedExtYear(Number(e.target.value))}
                         className="bg-slate-950 border border-slate-800 text-white font-bold text-sm outline-none px-4 py-2 rounded-xl"
@@ -537,7 +537,7 @@ export default function ReportsPage() {
                                     
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Mes del Evento</label>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="formData_month" 
                                             options={FULL_MONTHS}
                                             value={formData.month}
                                             onChange={(val) => setFormData({...formData, month: val})}
@@ -547,7 +547,7 @@ export default function ReportsPage() {
 
                                     <div className="space-y-2 lg:col-span-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Tipo de Evento</label>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="formData_type" 
                                             options={EVENT_TYPES}
                                             value={formData.type}
                                             onChange={(val) => setFormData({...formData, type: val})}
@@ -559,7 +559,7 @@ export default function ReportsPage() {
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ubicación / Proyecto</label>
                                         <div className="relative group">
                                             <MapPin className="absolute left-3 top-3 text-emerald-500/50" size={16} />
-                                            <select 
+                                            <select name="formData_zona" 
                                                 value={formData.zona}
                                                 onChange={(e) => setFormData({...formData, zona: e.target.value})}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none"
@@ -574,7 +574,7 @@ export default function ReportsPage() {
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha del Suceso</label>
                                         <div className="relative">
                                             <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                            <input 
+                                            <input name="formData_date" 
                                                 type="date"
                                                 value={formData.date}
                                                 onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -618,7 +618,7 @@ export default function ReportsPage() {
                                                 uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700'
                                             }`}
                                         >
-                                            <input 
+                                            <input name="input_55992" 
                                                 type="file" multiple disabled={isUploading}
                                                 onChange={async (e) => {
                                                     const files = Array.from(e.target.files || []);
@@ -666,7 +666,7 @@ export default function ReportsPage() {
 
                                     <div className="md:col-span-3">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Descripción / Notas</label>
-                                        <textarea 
+                                        <textarea name="formData_description" 
                                             value={formData.description}
                                             onChange={(e) => setFormData({...formData, description: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-emerald-500 outline-none h-20 resize-none mt-2"

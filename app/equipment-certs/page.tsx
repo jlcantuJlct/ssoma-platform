@@ -200,7 +200,7 @@ export default function EquipmentCertsPage() {
                             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Título / Descripción</label>
-                                    <input 
+                                    <input name="form_equipment_name" 
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         placeholder="Ej: Archivos de Mayo..."
                                         value={form.equipment_name}
@@ -209,7 +209,7 @@ export default function EquipmentCertsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Mes de Registro</label>
-                                    <select 
+                                    <select name="form_mes_registro" 
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.mes_registro}
                                         onChange={e => setForm({...form, mes_registro: e.target.value})}
@@ -219,7 +219,7 @@ export default function EquipmentCertsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Certificado</label>
-                                    <select 
+                                    <select name="form_cert_type" 
                                         className="w-full bg-slate-800 border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={form.cert_type}
                                         onChange={e => setForm({...form, cert_type: e.target.value})}
@@ -248,7 +248,7 @@ export default function EquipmentCertsPage() {
                                             pendingFiles.length > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-slate-800 hover:border-slate-700'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_70731" 
                                             type="file" multiple disabled={isUploading}
                                             onChange={handleFileSelect}
                                             className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait z-10"
@@ -309,7 +309,7 @@ export default function EquipmentCertsPage() {
                         </div>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
-                            <input 
+                            <input name="searchTerm" 
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-blue-500 outline-none transition-all"
                                 placeholder="Buscar..."
                                 value={searchTerm}
@@ -326,7 +326,7 @@ export default function EquipmentCertsPage() {
                                 </button>
                             )}
                         </div>
-                        <select 
+                        <select name="filterCertType" 
                             value={filterCertType}
                             onChange={e => setFilterCertType(e.target.value)}
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"
@@ -345,7 +345,7 @@ export default function EquipmentCertsPage() {
                                 </button>
                             )}
                         </div>
-                        <select 
+                        <select name="filterDate" 
                             value={filterDate}
                             onChange={e => setFilterDate(e.target.value)}
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-blue-500 outline-none"

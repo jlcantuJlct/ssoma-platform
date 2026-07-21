@@ -127,7 +127,7 @@ export default function LoginPage() {
                                     Seleccionar Usuario
                                 </label>
                                 <div className="relative">
-                                    <select
+                                    <select name="selectedUser"
                                         value={selectedUser}
                                         onChange={(e) => setSelectedUser(e.target.value)}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3.5 px-4 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all appearance-none cursor-pointer hover:bg-slate-900"
@@ -152,7 +152,7 @@ export default function LoginPage() {
                                         Contraseña
                                     </label>
                                     <div className="relative group">
-                                        <input
+                                        <input name="password"
                                             type={showPassword ? "text" : "password"}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
@@ -210,7 +210,7 @@ export default function LoginPage() {
                                 <form onSubmit={handleVisualRecovery} className="space-y-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Usuario</label>
-                                        <select
+                                        <select name="selectedUser"
                                             value={selectedUser}
                                             onChange={(e) => setSelectedUser(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3.5 px-4 text-white focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
@@ -230,7 +230,7 @@ export default function LoginPage() {
                                             <Lock size={14} className="text-orange-500" />
                                             Nueva Clave (Opcional)
                                         </label>
-                                        <input
+                                        <input name="newRecoveryPassword"
                                             type="text"
                                             value={newRecoveryPassword}
                                             onChange={(e) => setNewRecoveryPassword(e.target.value)}

@@ -581,7 +581,7 @@ export default function PMAPage() {
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
                                             <div className="relative group">
                                                 <Calendar className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                                <input
+                                                <input name="form_date"
                                                     type="date"
                                                     value={form.date}
                                                     onChange={e => setForm({ ...form, date: e.target.value })}
@@ -592,7 +592,7 @@ export default function PMAPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Hora (HH:MM:SS)</label>
-                                            <input
+                                            <input name="form_time"
                                                 type="text"
                                                 value={form.time}
                                                 onChange={e => setForm({ ...form, time: e.target.value })}
@@ -608,7 +608,7 @@ export default function PMAPage() {
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Responsable</label>
                                         <div className="relative group">
                                             <User className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                            <select
+                                            <select name="form_responsible"
                                                 value={form.responsible}
                                                 onChange={e => setForm({ ...form, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-white text-sm focus:border-emerald-500 outline-none appearance-none transition-colors"
@@ -630,7 +630,7 @@ export default function PMAPage() {
                                             <div className="absolute left-3 top-3 text-emerald-500/50">
                                                 <Filter size={16} />
                                             </div>
-                                            <select
+                                            <select name="form_location"
                                                 value={form.location}
                                                 onChange={e => setForm({ ...form, location: e.target.value })}
                                                 className="w-full bg-slate-950 border-2 border-emerald-500/20 rounded-xl pl-10 pr-3 py-3 text-white text-sm focus:border-emerald-500 outline-none transition-all shadow-lg shadow-emerald-500/5"
@@ -647,7 +647,7 @@ export default function PMAPage() {
                                                                   {/* Categoría */}
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase">Control de Fotos PMA</label>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="form_category" 
                                             options={pmaCategories}
                                             value={form.category}
                                             onChange={(val) => setForm({ ...form, category: val })}
@@ -678,7 +678,7 @@ export default function PMAPage() {
                                             onDragLeave={() => setIsDragging(false)}
                                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFileUpload(e as any); }}
                                         >
-                                            <input
+                                            <input name="input_57659"
                                                 type="file"
                                                 onChange={handleFileUpload}
                                                 accept="image/*,.pdf"
@@ -806,7 +806,7 @@ export default function PMAPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input
+                                        <input name="filterDate"
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -822,7 +822,7 @@ export default function PMAPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_73601" 
                                             options={ALL_RESPONSIBLES.map(r => ({ id: r, label: r }))}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
@@ -839,7 +839,7 @@ export default function PMAPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="filterCategory" 
                                             options={pmaCategories}
                                             value={filterCategory}
                                             onChange={(val) => setFilterCategory(val)}
@@ -856,7 +856,7 @@ export default function PMAPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_48778" 
                                             options={SSOMA_LOCATIONS.map(loc => ({ id: loc, label: loc }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

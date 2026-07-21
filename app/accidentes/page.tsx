@@ -255,7 +255,7 @@ export default function AccidentesPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
                                             <div className="relative">
                                                 <Calendar className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
+                                                <input name="form_date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
                                             </div>
                                         </div>
 
@@ -263,7 +263,7 @@ export default function AccidentesPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Hora</label>
                                             <div className="relative">
                                                 <Clock className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <input type="time" value={form.time} onChange={e => setForm({...form, time: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
+                                                <input name="form_time" type="time" value={form.time} onChange={e => setForm({...form, time: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
                                             </div>
                                         </div>
 
@@ -271,7 +271,7 @@ export default function AccidentesPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Lugar / Sede</label>
                                             <div className="relative">
                                                 <MapPin className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <select value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none appearance-none" required>
+                                                <select name="form_location" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none appearance-none" required>
                                                     <option value="">Seleccionar Lugar...</option>
                                                     {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                                                 </select>
@@ -282,7 +282,7 @@ export default function AccidentesPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Evento</label>
                                             <div className="relative">
                                                 <AlertTriangle className="absolute left-3 top-2.5 text-amber-500/50" size={16} />
-                                                <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none appearance-none" required>
+                                                <select name="form_type" value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none appearance-none" required>
                                                     <option value="">Seleccionar Tipo...</option>
                                                     {ACCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                                 </select>
@@ -293,13 +293,13 @@ export default function AccidentesPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Involucrado / Responsable</label>
                                             <div className="relative">
                                                 <User className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <input type="text" placeholder="Nombre completo..." value={form.involvedPerson} onChange={e => setForm({...form, involvedPerson: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
+                                                <input name="form_involvedPerson" type="text" placeholder="Nombre completo..." value={form.involvedPerson} onChange={e => setForm({...form, involvedPerson: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-red-500 outline-none" required />
                                             </div>
                                         </div>
 
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Breve Descripción</label>
-                                            <textarea 
+                                            <textarea name="form_description" 
                                                 value={form.description} 
                                                 onChange={e => setForm({...form, description: e.target.value})} 
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:border-red-500 outline-none resize-none h-20" 
@@ -324,7 +324,7 @@ export default function AccidentesPage() {
                                                 files.length > 0 ? 'border-red-500/30 bg-red-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                             }`}
                                         >
-                                            <input 
+                                            <input name="input_33779" 
                                                 type="file"
                                                 multiple
                                                 accept=".pdf,.jpg,.jpeg,.png"
@@ -400,7 +400,7 @@ export default function AccidentesPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -416,7 +416,7 @@ export default function AccidentesPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <select 
+                                        <select name="filterType" 
                                             value={filterType}
                                             onChange={e => setFilterType(e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-red-500 outline-none"
@@ -434,7 +434,7 @@ export default function AccidentesPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_45828" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

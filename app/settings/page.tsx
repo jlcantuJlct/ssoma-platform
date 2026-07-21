@@ -348,7 +348,7 @@ export default function SettingsPage() {
                             <div className="grid grid-cols-2 gap-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
                                 <div className="col-span-2 md:col-span-1 space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Usuario (ID Login)</label>
-                                    <input
+                                    <input name="username"
                                         type="text"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
@@ -359,7 +359,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="col-span-2 md:col-span-1 space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Nombre Completo</label>
-                                    <input
+                                    <input name="fullName"
                                         type="text"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
@@ -369,7 +369,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="col-span-2 md:col-span-1 space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Contraseña</label>
-                                    <input
+                                    <input name="password"
                                         type="text"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -379,7 +379,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="col-span-2 md:col-span-1 space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Rol</label>
-                                    <select
+                                    <select name="role"
                                         value={role}
                                         onChange={(e) => setRole(e.target.value as any)}
                                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 outline-none"
@@ -442,7 +442,7 @@ export default function SettingsPage() {
                             </CardHeader>
                             <CardContent className="pt-6 space-y-6">
                                 <div className="flex gap-2">
-                                    <input
+                                    <input name="zoneName"
                                         type="text"
                                         value={zoneName}
                                         onChange={(e) => setZoneName(e.target.value)}
@@ -481,14 +481,14 @@ export default function SettingsPage() {
                             </CardHeader>
                             <CardContent className="pt-6 space-y-6">
                                 <div className="space-y-3 p-4 bg-slate-950/50 rounded-xl border border-slate-800">
-                                    <input
+                                    <input name="pmaLabel"
                                         type="text"
                                         value={pmaLabel}
                                         onChange={(e) => setPmaLabel(e.target.value)}
                                         placeholder="Nombre de la Categoría..."
                                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-amber-500 outline-none"
                                     />
-                                    <input
+                                    <input name="pmaHint"
                                         type="text"
                                         value={pmaHint}
                                         onChange={(e) => setPmaHint(e.target.value)}
@@ -576,7 +576,7 @@ export default function SettingsPage() {
                                     </button>
 
                                     <div className="relative">
-                                        <input
+                                        <input name="input_90663"
                                             type="file"
                                             accept=".json"
                                             onChange={(e) => {

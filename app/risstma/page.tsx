@@ -191,7 +191,7 @@ export default function RISSTMAPage() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         <Calendar size={12} /> Fecha de Entrega
                                     </label>
-                                    <input 
+                                    <input name="formData_date" 
                                         type="date" 
                                         value={formData.date}
                                         onChange={e => setFormData({...formData, date: e.target.value})}
@@ -203,7 +203,7 @@ export default function RISSTMAPage() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         <User size={12} /> Trabajador
                                     </label>
-                                    <SearchableSelect 
+                                    <SearchableSelect name="SearchableSelect_8136" 
                                         options={USER_LIST.map(u => u.name)}
                                         value={formData.workerName}
                                         onChange={val => setFormData({...formData, workerName: val})}
@@ -215,7 +215,7 @@ export default function RISSTMAPage() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         <FileText size={12} /> Documento Entregado
                                     </label>
-                                    <select 
+                                    <select name="formData_documentType" 
                                         value={formData.documentType}
                                         onChange={e => setFormData({...formData, documentType: e.target.value})}
                                         className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -231,7 +231,7 @@ export default function RISSTMAPage() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
                                         Lugar / Sede
                                     </label>
-                                    <select 
+                                    <select name="formData_lugar" 
                                         value={formData.lugar}
                                         onChange={e => setFormData({...formData, lugar: e.target.value})}
                                         className="w-full p-3 bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -268,7 +268,7 @@ export default function RISSTMAPage() {
                                             formData.fileUrl ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_43549" 
                                             type="file" 
                                             accept="image/*,application/pdf"
                                             disabled={isUploading}
@@ -339,7 +339,7 @@ export default function RISSTMAPage() {
                                 </button>
                             )}
                         </div>
-                        <input 
+                        <input name="filters_date" 
                             type="date"
                             value={filters.date}
                             onChange={e => setFilters({...filters, date: e.target.value})}
@@ -355,7 +355,7 @@ export default function RISSTMAPage() {
                                 </button>
                             )}
                         </div>
-                        <input 
+                        <input name="filters_workerName" 
                             type="text"
                             placeholder="Buscar..."
                             value={filters.workerName}
@@ -372,7 +372,7 @@ export default function RISSTMAPage() {
                                 </button>
                             )}
                         </div>
-                        <SearchableSelect 
+                        <SearchableSelect name="SearchableSelect_46754" 
                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                             value={filters.lugar}
                             onChange={(val) => setFilters({...filters, lugar: val})}

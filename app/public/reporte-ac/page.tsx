@@ -270,12 +270,12 @@ export default function PublicReporteACPage() {
                     <div className="grid grid-cols-1 gap-4">
                         <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
                             <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Calendar size={12}/> Fecha:</label>
-                            <input type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
+                            <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
                         </div>
                         
                         <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
                             <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por (Búsqueda SCTR):</label>
-                            <SearchableSelect 
+                            <SearchableSelect name="form_responsible" 
                                 options={sctrNames}
                                 value={form.responsible}
                                 onChange={(val) => setForm({...form, responsible: val})}
@@ -286,7 +286,7 @@ export default function PublicReporteACPage() {
                         
                         <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
                             <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación:</label>
-                            <select value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
+                            <select name="form_location" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
                                 <option value="">Seleccionar...</option>
                                 {SSOMA_LOCATIONS.map((r: string)=><option key={r} value={r}>{r}</option>)}
                             </select>
@@ -317,7 +317,7 @@ export default function PublicReporteACPage() {
                                     </div>
                                     {getCategoryIcon(item, isChecked, 20)}
                                     <span className={`text-[9px] sm:text-[10px] font-bold leading-tight ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
-                                    <input 
+                                    <input name="input_38238" 
                                         type="checkbox" 
                                         className="hidden"
                                         checked={isChecked}
@@ -335,18 +335,18 @@ export default function PublicReporteACPage() {
 
                     <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
                         <label className="text-xs text-slate-400 mb-2 block">Descripción detallada de la observación...</label>
-                        <textarea value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
+                        <textarea name="form_descripcion" value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
                     </div>
 
                     <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
                         <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata (Opcional)</label>
-                        <textarea value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
+                        <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
 
                     <div className="space-y-1 pt-4">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Evidencia (Opcional)</label>
                         <div className="relative group" onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { setPdfFile(e.dataTransfer.files[0]); } }}>
-                            <input type="file" accept="image/*,.pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full" />
+                            <input name="input_2296" type="file" accept="image/*,.pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full" />
                             <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${isDragging ? 'border-[#f97316] bg-[#f97316]/20' : pdfFile ? 'border-[#f97316]/50 bg-transparent' : 'border-slate-700 bg-transparent group-hover:border-[#f97316]/50'}`}>
                                 <Upload className={`mx-auto mb-2 ${isDragging || pdfFile ? 'text-[#f97316]' : 'text-slate-600'} ${isDragging ? 'animate-bounce' : ''}`} size={20} />
                                 <p className={`text-[10px] font-bold uppercase tracking-tighter ${isDragging ? 'text-[#f97316]' : 'text-slate-500'}`}>

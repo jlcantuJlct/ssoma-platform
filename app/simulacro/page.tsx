@@ -308,7 +308,7 @@ export default function SimulacroPage() {
                                     <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Fecha del Simulacro</label>
-                                            <input
+                                            <input name="form_date"
                                                 type="date"
                                                 value={form.date}
                                                 onChange={e => setForm({ ...form, date: e.target.value })}
@@ -318,7 +318,7 @@ export default function SimulacroPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Responsable / Ejecutor</label>
-                                            <select
+                                            <select name="form_responsible"
                                                 value={form.responsible}
                                                 onChange={e => setForm({ ...form, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-orange-500 outline-none transition-colors"
@@ -330,7 +330,7 @@ export default function SimulacroPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Tipo de Simulacro</label>
-                                            <select
+                                            <select name="form_drillType"
                                                 value={form.drillType}
                                                 onChange={e => setForm({ ...form, drillType: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-orange-500 outline-none transition-colors"
@@ -342,7 +342,7 @@ export default function SimulacroPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Zona / Lugar</label>
-                                            <select
+                                            <select name="form_location"
                                                 value={form.location}
                                                 onChange={e => setForm({ ...form, location: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-orange-500 outline-none transition-colors"
@@ -367,7 +367,7 @@ export default function SimulacroPage() {
                                                     file ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                                 }`}
                                             >
-                                                <input 
+                                                <input name="input_7012" 
                                                     type="file"
                                                     accept=".pdf,image/*"
                                                     disabled={isUploading}
@@ -466,7 +466,7 @@ export default function SimulacroPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -482,7 +482,7 @@ export default function SimulacroPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterResponsible" 
                                             type="text"
                                             placeholder="Buscar..."
                                             value={filterResponsible}
@@ -499,7 +499,7 @@ export default function SimulacroPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_52036" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

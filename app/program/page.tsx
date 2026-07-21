@@ -1217,7 +1217,7 @@ export default function ProgramPage() {
                             <div className="flex items-center gap-4">
                                 {/* Checkbox de Reemplazo */}
                                 <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
-                                    <input
+                                    <input name="input_62888"
                                         type="checkbox"
                                         id="replace-mode"
                                         checked={autoReplace}
@@ -1237,7 +1237,7 @@ export default function ProgramPage() {
                                         Limpiar
                                     </button>
                                     <div className="relative">
-                                        <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
+                                        <input name="input_68752" type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
                                         <label htmlFor="excel-import-btn" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all border border-indigo-400/20 active:scale-95">
                                             <Upload size={18} />
                                             Cargar Excel
@@ -1287,7 +1287,7 @@ export default function ProgramPage() {
                                                         onClick={() => !isEditing && handleCellEdit(desc, i, c, area)}
                                                     >
                                                         {isEditing ? (
-                                                            <input
+                                                            <input name="editValue"
                                                                 autoFocus
                                                                 className="w-full h-full bg-slate-950 text-white text-center border border-emerald-500 rounded-none text-[10px] focus:outline-none"
                                                                 value={editValue}
@@ -1629,7 +1629,7 @@ export default function ProgramPage() {
                                                 <div className="flex gap-4">
                                                     <div className="flex-1 space-y-2">
                                                         <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nueva Categoría</label>
-                                                        <select 
+                                                        <select name="reconfigRecord_category" 
                                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 transition-colors"
                                                             value={reconfigRecord.category}
                                                             onChange={(e) => {
@@ -1693,7 +1693,7 @@ export default function ProgramPage() {
                                                     {reconfigRecord.category && RECONFIG_SUBTYPES[reconfigRecord.category] && (
                                                         <div className="flex-1 space-y-2">
                                                             <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Nuevo Tipo / Tema</label>
-                                                            <SearchableSelect
+                                                            <SearchableSelect name="reconfigRecord_subtype"
                                                                 options={RECONFIG_SUBTYPES[reconfigRecord.category]}
                                                                 value={reconfigRecord.subtype}
                                                                 onChange={(val) => setReconfigRecord({ ...reconfigRecord, subtype: val })}
@@ -1708,7 +1708,7 @@ export default function ProgramPage() {
                                                     <div className="flex gap-4 p-3 border border-slate-800 rounded-xl bg-slate-950/50">
                                                         <div className="flex-1 space-y-2">
                                                             <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Fecha a Reportar</label>
-                                                            <input 
+                                                            <input name="reconfigRecord_date" 
                                                                 type="date"
                                                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                                                                 value={reconfigRecord.date}
@@ -1763,7 +1763,7 @@ export default function ProgramPage() {
                                                         </div>
                                                         <div className="flex-1 space-y-2">
                                                             <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">Área Programada</label>
-                                                            <select 
+                                                            <select name="reconfigRecord_area" 
                                                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                                                                 value={reconfigRecord.area}
                                                                 onChange={(e) => setReconfigRecord({ ...reconfigRecord, area: e.target.value })}
@@ -1808,7 +1808,7 @@ export default function ProgramPage() {
                                                                 const isNuevoTema = reconfigRecord.tema === '__NUEVO__';
                                                                 return (
                                                                     <div className="space-y-2">
-                                                                        <select 
+                                                                        <select name="isNuevoTema_NUEVO_reconfigRecord_tema" 
                                                                             className="w-full bg-slate-900 border border-amber-500/50 rounded-lg px-3 py-1.5 text-xs text-white"
                                                                             value={isNuevoTema ? '__NUEVO__' : (reconfigRecord.tema || '')}
                                                                             onChange={(e) => {
@@ -1836,7 +1836,7 @@ export default function ProgramPage() {
                                                                             <option value="__NUEVO__">➕ Ingresar tema nuevo...</option>
                                                                         </select>
                                                                         {isNuevoTema && (
-                                                                            <input
+                                                                            <input name="newTema"
                                                                                 type="text"
                                                                                 placeholder="Escribe el tema de la capacitación..."
                                                                                 className="w-full bg-slate-800 border border-amber-400/60 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 outline-none"
@@ -1878,7 +1878,7 @@ export default function ProgramPage() {
                                                                 </button>
                                                             </div>
                                                             {reconfigRecord.temaAdicional === true && (
-                                                                <input
+                                                                <input name="reconfigRecord_nombreTemaAdicional"
                                                                     type="text"
                                                                     placeholder="Escribe el nombre del tema adicional..."
                                                                     className="w-full mt-2 bg-slate-800 border border-emerald-400/60 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-emerald-400 outline-none"

@@ -389,25 +389,25 @@ export default function BrigadistasPage() {
                                     <form onSubmit={handleSubmit} className="space-y-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Fecha</label>
-                                            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none" />
+                                            <input name="form_date" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Responsable</label>
-                                            <select value={form.responsible} onChange={e => setForm({ ...form, responsible: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
+                                            <select name="form_responsible" value={form.responsible} onChange={e => setForm({ ...form, responsible: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
                                                 <option value="">Seleccionar...</option>
                                                 {USER_LIST.map(u => <option key={u.username} value={u.name}>{u.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Tipo de Brigada / Actividad</label>
-                                            <select value={form.brigadistaType} onChange={e => setForm({ ...form, brigadistaType: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
+                                            <select name="form_brigadistaType" value={form.brigadistaType} onChange={e => setForm({ ...form, brigadistaType: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
                                                 <option value="">Seleccionar tipo...</option>
                                                 {brigadeTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Zona / Lugar</label>
-                                            <select value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
+                                            <select name="form_location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 outline-none">
                                                 <option value="">Seleccionar lugar...</option>
                                                 {SSOMA_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                                             </select>
@@ -426,7 +426,7 @@ export default function BrigadistasPage() {
                                                     uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                                 }`}
                                             >
-                                                <input 
+                                                <input name="input_63200" 
                                                     type="file"
                                                     multiple
                                                     accept=".pdf,image/*"
@@ -505,7 +505,7 @@ export default function BrigadistasPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterDate" 
                                             type="date"
                                             value={filterDate}
                                             onChange={e => setFilterDate(e.target.value)}
@@ -521,7 +521,7 @@ export default function BrigadistasPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterResponsible" 
                                             type="text"
                                             placeholder="Buscar..."
                                             value={filterResponsible}
@@ -538,7 +538,7 @@ export default function BrigadistasPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_64407" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}

@@ -10,22 +10,33 @@ async function ensureTable() {
             last_seen BIGINT
         )
     `);
+    
+    // Add location and focusedField columns if they don't exist
+    try {
+        await db.execute(`ALTER TABLE presence_records ADD COLUMN location VARCHAR(255)`);
+    } catch (e) {}
+    try {
+        await db.execute(`ALTER TABLE presence_records ADD COLUMN focusedField VARCHAR(255)`);
+    } catch (e) {}
 }
 
 export async function POST(request: Request) {
     try {
         await ensureTable();
-        const { username, name } = await request.json();
+        const { username, name, location, focusedField } = await request.json();
         if (!username) return NextResponse.json({ success: false });
 
         const now = Date.now();
+        const locString = location || 'Navegando';
+        const focusString = focusedField || '';
+        
         // Insert or update
         await db.execute(
-            `INSERT INTO presence_records (username, name, last_seen) 
-             VALUES (?, ?, ?) 
+            `INSERT INTO presence_records (username, name, last_seen, location, focusedField) 
+             VALUES (?, ?, ?, ?, ?) 
              ON CONFLICT (username) 
-             DO UPDATE SET name = EXCLUDED.name, last_seen = EXCLUDED.last_seen`,
-            [username, name, now]
+             DO UPDATE SET name = EXCLUDED.name, last_seen = EXCLUDED.last_seen, location = EXCLUDED.location, focusedField = EXCLUDED.focusedField`,
+            [username, name, now, locString, focusString]
         );
 
         // Delete records older than 1 minute
@@ -33,9 +44,14 @@ export async function POST(request: Request) {
 
         // Get updated list
         const rows = await db.fetchAll(`SELECT * FROM presence_records`);
-        const cleanedPresence: Record<string, { name: string, lastSeen: number }> = {};
+        const cleanedPresence: Record<string, { name: string, lastSeen: number, location?: string, focusedField?: string }> = {};
         for (const row of rows) {
-            cleanedPresence[row.username] = { name: row.name, lastSeen: Number(row.last_seen) };
+            cleanedPresence[row.username] = { 
+                name: row.name, 
+                lastSeen: Number(row.last_seen), 
+                location: row.location, 
+                focusedField: row.focusedField || row.focusedfield 
+            };
         }
 
         return NextResponse.json({ success: true, presence: cleanedPresence });
@@ -53,9 +69,14 @@ export async function GET() {
         await db.execute(`DELETE FROM presence_records WHERE last_seen < ?`, [now - 60000]);
 
         const rows = await db.fetchAll(`SELECT * FROM presence_records`);
-        const cleanedPresence: Record<string, { name: string, lastSeen: number }> = {};
+        const cleanedPresence: Record<string, { name: string, lastSeen: number, location?: string, focusedField?: string }> = {};
         for (const row of rows) {
-            cleanedPresence[row.username] = { name: row.name, lastSeen: Number(row.last_seen) };
+            cleanedPresence[row.username] = { 
+                name: row.name, 
+                lastSeen: Number(row.last_seen), 
+                location: row.location, 
+                focusedField: row.focusedField || row.focusedfield 
+            };
         }
 
         return NextResponse.json({ success: true, presence: cleanedPresence });

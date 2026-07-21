@@ -454,7 +454,7 @@ export default function EPPPage() {
                                         <div className="grid grid-cols-1 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase">Mes del Control</label>
-                                                <input 
+                                                <input name="form_month" 
                                                     type="month" 
                                                     value={form.month} 
                                                     onChange={e => setForm({...form, month: e.target.value})} 
@@ -466,7 +466,7 @@ export default function EPPPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Responsable de Entrega</label>
-                                            <SearchableSelect
+                                            <SearchableSelect name="SearchableSelect_55870"
                                                 options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                                 value={form.responsible}
                                                 onChange={(val) => setForm({ ...form, responsible: val })}
@@ -479,7 +479,7 @@ export default function EPPPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Lugar / Sede</label>
                                             <div className="relative">
                                                 <MapPin className="absolute left-3 top-2.5 text-slate-600" size={16} />
-                                                <select value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-blue-500 outline-none appearance-none" required>
+                                                <select name="form_location" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:border-blue-500 outline-none appearance-none" required>
                                                     <option value="">Seleccionar...</option>
                                                     {SSOMA_LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
                                                 </select>
@@ -488,7 +488,7 @@ export default function EPPPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Descripción / Título del Lote</label>
-                                            <input 
+                                            <input name="form_description" 
                                                 type="text" 
                                                 placeholder="Ej: Entrega de Botas y Cascos Abril 2024" 
                                                 value={form.description} 
@@ -538,7 +538,7 @@ export default function EPPPage() {
                                                 files.length > 0 ? 'border-blue-500/30 bg-blue-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                             }`}
                                         >
-                                            <input 
+                                            <input name="input_4869" 
                                                 type="file"
                                                 multiple
                                                 accept=".pdf"
@@ -620,7 +620,7 @@ export default function EPPPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <input 
+                                        <input name="filterMonth" 
                                             type="month"
                                             value={filterMonth}
                                             onChange={e => setFilterMonth(e.target.value)}
@@ -636,7 +636,7 @@ export default function EPPPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_13879" 
                                             options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
@@ -653,7 +653,7 @@ export default function EPPPage() {
                                                 </button>
                                             )}
                                         </div>
-                                        <SearchableSelect 
+                                        <SearchableSelect name="SearchableSelect_86576" 
                                             options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}
@@ -787,7 +787,7 @@ export default function EPPPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Artículo EPP</label>
-                                            <SearchableSelect
+                                            <SearchableSelect name="SearchableSelect_5803"
                                                 options={EPP_CATALOG.map(c => ({ id: c.label, label: c.label }))}
                                                 value={invForm.item_name}
                                                 onChange={handleInvItemSelect}
@@ -798,7 +798,7 @@ export default function EPPPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
-                                                <input 
+                                                <input name="invForm_quantity" 
                                                     type="number" min="1" 
                                                     value={invForm.quantity} 
                                                     onChange={e => setInvForm({...invForm, quantity: parseInt(e.target.value)||0})}
@@ -808,7 +808,7 @@ export default function EPPPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase">Unidad</label>
-                                                <input 
+                                                <input name="invForm_unit" 
                                                     type="text" 
                                                     value={invForm.unit} 
                                                     disabled
@@ -819,7 +819,7 @@ export default function EPPPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Lugar / Sede (Opcional)</label>
-                                            <select 
+                                            <select name="invForm_location" 
                                                 value={invForm.location}
                                                 onChange={e => setInvForm({...invForm, location: e.target.value})}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none appearance-none cursor-pointer"
@@ -831,7 +831,7 @@ export default function EPPPage() {
 
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Responsable (Opcional)</label>
-                                            <SearchableSelect
+                                            <SearchableSelect name="SearchableSelect_20396"
                                                 options={USER_LIST.map(u => ({ id: u.name, label: u.name }))}
                                                 value={invForm.responsible}
                                                 onChange={(val) => setInvForm({ ...invForm, responsible: val })}
@@ -845,7 +845,7 @@ export default function EPPPage() {
                                                 <label className="flex-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 cursor-pointer rounded-xl py-2 flex items-center justify-center gap-2 transition-colors">
                                                     <Upload size={14} className="text-slate-400" />
                                                     <span className="text-[10px] font-bold text-slate-300">SUBIR FOTO/PDF</span>
-                                                    <input type="file" multiple onChange={handleInvFileUpload} disabled={isInvUploading} className="hidden" />
+                                                    <input name="input_93724" type="file" multiple onChange={handleInvFileUpload} disabled={isInvUploading} className="hidden" />
                                                 </label>
                                             </div>
                                             {invFiles.length > 0 && (
@@ -935,7 +935,7 @@ export default function EPPPage() {
                                                 <FileText size={20} className="text-slate-500" /> Historial de Movimientos
                                             </h3>
                                             <div className="flex items-center gap-2">
-                                                <input 
+                                                <input name="invFilterMonth" 
                                                     type="month"
                                                     value={invFilterMonth}
                                                     onChange={e => setInvFilterMonth(e.target.value)}

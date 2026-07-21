@@ -236,7 +236,7 @@ export default function SCSSTPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha de Ejecución</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input 
+                                        <input name="formData_date" 
                                             type="date"
                                             value={formData.date}
                                             onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -247,7 +247,7 @@ export default function SCSSTPage() {
 
                                 <div className="space-y-2 lg:col-span-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Actividad SCSST (Debe coincidir con Programa Anual)</label>
-                                    <SearchableSelect 
+                                    <SearchableSelect name="formData_activity" 
                                         options={activities}
                                         value={formData.activity}
                                         onChange={(val) => setFormData({...formData, activity: val})}
@@ -262,7 +262,7 @@ export default function SCSSTPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
                                     <div className="relative group">
                                         <User className="absolute left-3 top-3 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                        <select 
+                                        <select name="formData_responsable" 
                                             value={formData.responsable}
                                             onChange={(e) => setFormData({...formData, responsable: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer hover:border-slate-700 transition-all"
@@ -280,7 +280,7 @@ export default function SCSSTPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ubicación / Zona</label>
                                     <div className="relative group">
                                         <MapPin className="absolute left-3 top-3 text-emerald-500/50 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                        <select 
+                                        <select name="formData_zona" 
                                             value={formData.zona}
                                             onChange={(e) => setFormData({...formData, zona: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-emerald-500 outline-none appearance-none cursor-pointer hover:border-slate-700 transition-all"
@@ -338,7 +338,7 @@ export default function SCSSTPage() {
                                             uploadedFiles.length > 0 ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/30'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_46216" 
                                             type="file"
                                             multiple
                                             disabled={isUploading}
@@ -432,7 +432,7 @@ export default function SCSSTPage() {
 
                                 <div className="md:col-span-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Descripción / Notas Adicionales</label>
-                                    <textarea 
+                                    <textarea name="formData_description" 
                                         value={formData.description}
                                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                                         placeholder="Ingrese detalles sobre la ejecución de la actividad..."
@@ -509,7 +509,7 @@ export default function SCSSTPage() {
                             </div>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-2.5 text-emerald-500/50" size={14} />
-                                <input 
+                                <input name="filters_date" 
                                     type="date"
                                     value={filters.date}
                                     onChange={(e) => setFilters({...filters, date: e.target.value})}
@@ -526,7 +526,7 @@ export default function SCSSTPage() {
                                     </button>
                                 )}
                             </div>
-                            <SearchableSelect 
+                            <SearchableSelect name="filters_activity" 
                                 options={filterOptions.activities}
                                 value={filters.activity}
                                 onChange={(val) => setFilters({...filters, activity: val})}
@@ -542,7 +542,7 @@ export default function SCSSTPage() {
                                     </button>
                                 )}
                             </div>
-                            <SearchableSelect 
+                            <SearchableSelect name="filters_responsable" 
                                 options={filterOptions.responsibles}
                                 value={filters.responsable}
                                 onChange={(val) => setFilters({...filters, responsable: val})}
@@ -558,7 +558,7 @@ export default function SCSSTPage() {
                                     </button>
                                 )}
                             </div>
-                            <SearchableSelect 
+                            <SearchableSelect name="filters_zona" 
                                 options={filterOptions.zones}
                                 value={filters.zona}
                                 onChange={(val) => setFilters({...filters, zona: val})}

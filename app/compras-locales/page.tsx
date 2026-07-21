@@ -223,7 +223,7 @@ export default function ComprasLocalesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Fecha</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input 
+                                        <input name="formData_date" 
                                             type="date"
                                             value={formData.date}
                                             onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -236,7 +236,7 @@ export default function ComprasLocalesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Responsable</label>
                                     <div className="relative group">
                                         <User className="absolute left-3 top-3 text-fuchsia-500/50" size={16} />
-                                        <select 
+                                        <select name="formData_responsable" 
                                             value={formData.responsable}
                                             onChange={(e) => setFormData({...formData, responsable: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-fuchsia-500 outline-none"
@@ -251,7 +251,7 @@ export default function ComprasLocalesPage() {
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ubicación / Zona</label>
                                     <div className="relative group">
                                         <MapPin className="absolute left-3 top-3 text-fuchsia-500/50" size={16} />
-                                        <select 
+                                        <select name="formData_zona" 
                                             value={formData.zona}
                                             onChange={(e) => setFormData({...formData, zona: e.target.value})}
                                             className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:border-fuchsia-500 outline-none"
@@ -264,7 +264,7 @@ export default function ComprasLocalesPage() {
 
                                 <div className="md:col-span-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Descripción de la Compra</label>
-                                    <textarea 
+                                    <textarea name="formData_description" 
                                         value={formData.description}
                                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                                         placeholder="Ej: Compra de 5 galones de agua San Luis..."
@@ -292,7 +292,7 @@ export default function ComprasLocalesPage() {
                                             uploadedFiles.length > 0 ? 'border-fuchsia-500/30 bg-fuchsia-500/5' : 'border-slate-800 hover:border-slate-700'
                                         }`}
                                     >
-                                        <input 
+                                        <input name="input_5036" 
                                             type="file" multiple disabled={isUploading}
                                             onChange={handleFileUpload}
                                             className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-wait z-10"
@@ -397,7 +397,7 @@ export default function ComprasLocalesPage() {
                                     </button>
                                 )}
                             </div>
-                            <input 
+                            <input name="filterDate" 
                                 type="month"
                                 value={filterDate}
                                 onChange={e => setFilterDate(e.target.value)}
@@ -413,7 +413,7 @@ export default function ComprasLocalesPage() {
                                     </button>
                                 )}
                             </div>
-                            <select 
+                            <select name="filterZona" 
                                 value={filterZona}
                                 onChange={e => setFilterZona(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[10px] text-white focus:border-fuchsia-500 outline-none appearance-none"

@@ -253,7 +253,7 @@ export default function AutorizacionesAuxiliaresPage() {
                                 <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Fecha</label>
                                 <div className="relative">
                                     <Calendar className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                    <input 
+                                    <input name="form_date" 
                                         type="date" 
                                         required
                                         value={form.date}
@@ -265,7 +265,7 @@ export default function AutorizacionesAuxiliaresPage() {
 
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Tipo de Autorización</label>
-                                <select
+                                <select name="form_authType"
                                     required
                                     value={form.authType}
                                     onChange={e => setForm({...form, authType: e.target.value})}
@@ -280,7 +280,7 @@ export default function AutorizacionesAuxiliaresPage() {
                                 <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Lugar / Frente de Trabajo</label>
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                                    <input 
+                                    <input name="form_location" 
                                         type="text" 
                                         required
                                         placeholder="Ej: Km 15"
@@ -307,7 +307,7 @@ export default function AutorizacionesAuxiliaresPage() {
                                 onDrop={(e) => { handleDragLeave(e); handleFileUpload(e); }}
                                 onClick={() => document.getElementById('authFile')?.click()}
                             >
-                                <input type="file" id="authFile" className="hidden" accept=".pdf,image/*" multiple onChange={handleFileUpload} />
+                                <input name="input_58025" type="file" id="authFile" className="hidden" accept=".pdf,image/*" multiple onChange={handleFileUpload} />
                                 <Upload className={`mx-auto mb-3 transition-colors ${isDragging ? 'text-emerald-400 scale-110' : 'text-slate-500 group-hover:text-emerald-400'}`} size={32} />
                                 
                                 {isDragging ? (
@@ -407,15 +407,15 @@ export default function AutorizacionesAuxiliaresPage() {
                         <div className="flex flex-wrap gap-2">
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-2 text-slate-500" size={14} />
-                                <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 pl-8 pr-2 text-xs text-slate-300" title="Filtrar por fecha" />
+                                <input name="filterDate" type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 pl-8 pr-2 text-xs text-slate-300" title="Filtrar por fecha" />
                             </div>
-                            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 px-2 text-xs text-slate-300">
+                            <select name="filterType" value={filterType} onChange={e => setFilterType(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 px-2 text-xs text-slate-300">
                                 <option value="">Todos los Tipos</option>
                                 {AUTH_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-2 text-slate-500" size={14} />
-                                <input type="text" placeholder="Buscar lugar..." value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 pl-8 pr-2 text-xs text-slate-300" />
+                                <input name="filterLocation" type="text" placeholder="Buscar lugar..." value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-md py-1 pl-8 pr-2 text-xs text-slate-300" />
                             </div>
                             {(filterDate || filterType || filterLocation) && (
                                 <button onClick={() => {setFilterDate(''); setFilterType(''); setFilterLocation('');}} className="text-xs text-red-400 hover:text-red-300 px-2">Limpiar</button>

@@ -175,7 +175,7 @@ export default function MonthlyReportPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Mes del Reporte</label>
-                            <select
+                            <select name="selectedMonth"
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-emerald-500 outline-none transition-all font-bold"
@@ -185,7 +185,7 @@ export default function MonthlyReportPage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Año</label>
-                            <select
+                            <select name="selectedYear"
                                 value={selectedYear}
                                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-white focus:border-emerald-500 outline-none transition-all font-bold"
@@ -247,11 +247,11 @@ export default function MonthlyReportPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-slate-600 uppercase">HHT (Horas Hombre)</label>
-                                    <input type="number" value={manualStats.HHT} onChange={(e) => setManualStats({...manualStats, HHT: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm" />
+                                    <input name="manualStats_HHT" type="number" value={manualStats.HHT} onChange={(e) => setManualStats({...manualStats, HHT: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm" />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-slate-600 uppercase">TDP (Días Perdidos)</label>
-                                    <input type="number" value={manualStats.TDP} onChange={(e) => setManualStats({...manualStats, TDP: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm" />
+                                    <input name="manualStats_TDP" type="number" value={manualStats.TDP} onChange={(e) => setManualStats({...manualStats, TDP: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm" />
                                 </div>
                             </div>
 
@@ -259,7 +259,7 @@ export default function MonthlyReportPage() {
                                 {['ATT', 'APP', 'ATP', 'AM'].map(key => (
                                     <div key={key} className="space-y-1">
                                         <label className="text-[8px] font-bold text-slate-700 uppercase">{key}</label>
-                                        <input type="number" value={manualStats[key]} onChange={(e) => setManualStats({...manualStats, [key]: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white" />
+                                        <input name="manualStats_key" type="number" value={manualStats[key]} onChange={(e) => setManualStats({...manualStats, [key]: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white" />
                                     </div>
                                 ))}
                             </div>
@@ -268,7 +268,7 @@ export default function MonthlyReportPage() {
                                 {['RES_PEL', 'RES_NO_PEL', 'RES_APROV'].map(key => (
                                     <div key={key} className="space-y-1">
                                         <label className="text-[8px] font-bold text-slate-700 uppercase">{key.replace('RES_', '')}</label>
-                                        <input type="number" value={manualStats[key]} onChange={(e) => setManualStats({...manualStats, [key]: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-emerald-500 font-bold" />
+                                        <input name="manualStats_key" type="number" value={manualStats[key]} onChange={(e) => setManualStats({...manualStats, [key]: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-emerald-500 font-bold" />
                                     </div>
                                 ))}
                             </div>

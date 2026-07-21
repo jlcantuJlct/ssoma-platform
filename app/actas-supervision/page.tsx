@@ -270,7 +270,7 @@ export default function ActasSupervisionPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                                 <Calendar size={12} /> Fecha
                                             </label>
-                                            <input
+                                            <input name="actaForm_date"
                                                 type="date"
                                                 value={actaForm.date}
                                                 onChange={e => setActaForm({ ...actaForm, date: e.target.value })}
@@ -281,7 +281,7 @@ export default function ActasSupervisionPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                                 <MapPin size={12} /> Lugar
                                             </label>
-                                            <select
+                                            <select name="actaForm_place"
                                                 value={actaForm.place}
                                                 onChange={e => setActaForm({ ...actaForm, place: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 outline-none transition-all"
@@ -294,7 +294,7 @@ export default function ActasSupervisionPage() {
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                                 <FileText size={12} /> N° Informe de Observaciones
                                             </label>
-                                            <input
+                                            <input name="actaForm_reportNumber"
                                                 type="text"
                                                 placeholder="Ej: INF-001-2026"
                                                 value={actaForm.reportNumber}
@@ -323,7 +323,7 @@ export default function ActasSupervisionPage() {
                                     <form onSubmit={handleSubmitLifting} className="space-y-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Informe N° (Escoger)</label>
-                                            <select
+                                            <select name="liftingForm_reportNumber"
                                                 value={liftingForm.reportNumber}
                                                 onChange={e => setLiftingForm({ ...liftingForm, reportNumber: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
@@ -335,7 +335,7 @@ export default function ActasSupervisionPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha Levantamiento</label>
-                                                <input
+                                                <input name="liftingForm_date"
                                                     type="date"
                                                     value={liftingForm.date}
                                                     onChange={e => setLiftingForm({ ...liftingForm, date: e.target.value })}
@@ -344,7 +344,7 @@ export default function ActasSupervisionPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">N° Levantamiento</label>
-                                                <select
+                                                <select name="liftingForm_liftingNumber"
                                                     value={liftingForm.liftingNumber}
                                                     onChange={e => setLiftingForm({ ...liftingForm, liftingNumber: parseInt(e.target.value) })}
                                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:border-blue-500 outline-none transition-all"
@@ -357,7 +357,7 @@ export default function ActasSupervisionPage() {
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lugar</label>
-                                            <select
+                                            <select name="liftingForm_place"
                                                 value={liftingForm.place}
                                                 onChange={e => setLiftingForm({ ...liftingForm, place: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
@@ -368,7 +368,7 @@ export default function ActasSupervisionPage() {
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Responsable</label>
-                                            <select
+                                            <select name="liftingForm_responsible"
                                                 value={liftingForm.responsible}
                                                 onChange={e => setLiftingForm({ ...liftingForm, responsible: e.target.value })}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
@@ -381,14 +381,14 @@ export default function ActasSupervisionPage() {
                                         {/* UPLOADS */}
                                         <div className="grid grid-cols-2 gap-4 pt-2">
                                             <div className="relative group">
-                                                <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'img')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                                <input name="input_65782" type="file" accept="image/*" onChange={e => handleFileUpload(e, 'img')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                                                 <div className={`p-4 border-2 border-dashed rounded-2xl text-center transition-all ${files.img ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-950 hover:border-blue-500/50'}`}>
                                                     <ImageIcon className={files.img ? 'text-emerald-400 mx-auto mb-1' : 'text-slate-600 mx-auto mb-1'} size={20} />
                                                     <span className="text-[8px] font-black uppercase text-slate-500">{files.img ? 'Imagen Lista' : 'Cargar Imagen'}</span>
                                                 </div>
                                             </div>
                                             <div className="relative group">
-                                                <input type="file" accept=".pdf" onChange={e => handleFileUpload(e, 'pdf')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                                <input name="input_56333" type="file" accept=".pdf" onChange={e => handleFileUpload(e, 'pdf')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                                                 <div className={`p-4 border-2 border-dashed rounded-2xl text-center transition-all ${files.pdf ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-950 hover:border-blue-500/50'}`}>
                                                     <FileIcon className={files.pdf ? 'text-emerald-400 mx-auto mb-1' : 'text-slate-600 mx-auto mb-1'} size={20} />
                                                     <span className="text-[8px] font-black uppercase text-slate-500">{files.pdf ? 'PDF Listo' : 'Cargar PDF'}</span>
@@ -428,7 +428,7 @@ export default function ActasSupervisionPage() {
                                                     </button>
                                                 )}
                                             </div>
-                                            <input 
+                                            <input name="filterDate" 
                                                 type="date"
                                                 value={filterDate}
                                                 onChange={e => setFilterDate(e.target.value)}
@@ -444,7 +444,7 @@ export default function ActasSupervisionPage() {
                                                     </button>
                                                 )}
                                             </div>
-                                            <SearchableSelect 
+                                            <SearchableSelect name="SearchableSelect_73428" 
                                                 options={SSOMA_LOCATIONS.map(l => ({ id: l, label: l }))}
                                                 value={filterPlace}
                                                 onChange={(val) => setFilterPlace(val)}
@@ -461,7 +461,7 @@ export default function ActasSupervisionPage() {
                                                     </button>
                                                 )}
                                             </div>
-                                            <input 
+                                            <input name="filterReport" 
                                                 type="text"
                                                 placeholder="Buscar..."
                                                 value={filterReport}
