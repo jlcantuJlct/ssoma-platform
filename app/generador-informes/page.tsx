@@ -1775,7 +1775,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             <X size={14} className="text-white" />
                         </button>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={tag.preview} alt={tag.label}
+                        <img src={tag.remoteUrl || tag.preview} alt={tag.label}
                             className="max-w-full max-h-[90vh] rounded-xl object-contain"
                             style={{ boxShadow: '0 25px 60px rgba(0,0,0,0.7)' }}
                         />
