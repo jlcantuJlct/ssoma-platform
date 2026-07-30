@@ -2996,7 +2996,7 @@ export function DashboardCharts({
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
                                             <select name="reg_area" value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
@@ -3474,7 +3474,7 @@ export function DashboardCharts({
                                                         );
                                                     })}
                                             </tbody>
-                                        </table>
+                                        </table></div>
                                     </div>
                                 </div>
 
@@ -3549,7 +3549,7 @@ export function DashboardCharts({
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                                                     <div>
                                                         <input
                                                             type="file"
@@ -3587,7 +3587,7 @@ export function DashboardCharts({
                                                 {/* FILTER CONTROLS */}
                                                 <div className="flex items-center gap-2">
                                                 {/* BOTÓN DE TEMARIO MENSUAL (PROGRAMA) */}
-                                                <div className="flex items-center ml-4 border-l border-slate-700 pl-4">
+                                                <div className="flex flex-wrap items-center gap-2 md:ml-2 md:border-l border-slate-700 md:pl-2">
                                                     <input 
                                                         type="file" 
                                                         accept="application/pdf" 
@@ -3667,7 +3667,7 @@ export function DashboardCharts({
                                             </div>
 
                                             <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
-                                                <table className="w-full text-left text-[10px]">
+                                                <div className="overflow-x-auto w-full"><table className="w-full text-left text-[10px] min-w-[400px]">
                                                     <thead>
                                                         <tr className="text-slate-500 border-b border-slate-700">
                                                             <th className="pb-2">MES</th>
@@ -3717,7 +3717,7 @@ export function DashboardCharts({
                                                                 </tr>
                                                             ))}
                                                     </tbody>
-                                                </table>
+                                                </table></div></div>
                                             </div>
                                         </div>
                                     </div>
