@@ -364,7 +364,7 @@ export default function GeneradorInformesPage() {
                         if (data.fields[t.name] && !deletedFieldsRef.current.includes(t.name)) {
                             if (t.type === 'image' && t.remoteUrl !== data.fields[t.name]) {
                                 getCachedImageURL(data.fields[t.name]).then(localUrl => {
-                                    setTags(current => current.map(pt => pt.name === t.name && !deletedFieldsRef.current.includes(t.name) ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl } : pt));
+                                    setTags(current => current.map(pt => pt.name === t.name && !deletedFieldsRef.current.includes(t.name) ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl, uploaderInitials: data.fields[`_uploaderInitials_${t.name}`] || '', uploaderName: data.fields[`_uploaderName_${t.name}`] || '' } : pt));
                                 });
                                 return t;
                             }
@@ -1715,11 +1715,11 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </span>
                         </div>
                             {/* Uploader Initials Avatar on Hover */}
-                            {(tag.uploaderInitials || tag.remoteUrl) && (
+                            {tag.uploaderInitials && (
                                 <div className="absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 z-20 group/avatar cursor-help transition-opacity opacity-100"
                                     style={{ background: 'linear-gradient(135deg, hsl(215,83%,45%), hsl(215,83%,35%))' }}
                                     title={`Subido por: ${tag.uploaderName || 'Usuario'}`}>
-                                    <span className="text-white font-black text-[10px]">{tag.uploaderInitials || '?'}</span>
+                                    <span className="text-white font-black text-[10px]">{tag.uploaderInitials}</span>
                                 </div>
                             )}
                             {/* Badge ok */}
