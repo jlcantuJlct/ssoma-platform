@@ -3483,7 +3483,7 @@ export function DashboardCharts({
                         {/* Modal de Programa Mensual */}
                         {showProgramModal && (
                             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                                <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                                <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-3xl w-full max-w-[calc(100vw-2rem)] md:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
                                     <div className="p-6 border-b border-slate-700">
                                         <div className="flex justify-between items-start md:items-center">
                                             <h3 className="text-lg md:text-xl font-black text-white pr-4">📅 Programa Mensual de Capacitaciones</h3>
@@ -3497,7 +3497,7 @@ export function DashboardCharts({
                                         <p className="text-xs text-slate-400 mt-2">Gestiona las actividades programadas para autocompletar el registro</p>
                                     </div>
 
-                                    <div className="p-6 overflow-y-auto flex-1">
+                                    <div className="p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 min-w-0">
                                         {isDeveloper && (
                                             <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
                                                 <h4 className="text-sm font-bold text-emerald-400 mb-3">Agregar Actividad Programada</h4>
@@ -3666,7 +3666,7 @@ export function DashboardCharts({
                                                 </div>
                                             </div>
 
-                                            <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+                                            <div className="overflow-x-auto w-full max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
                                                 <table className="w-full text-left text-[10px] min-w-[400px]">
                                                     <thead>
                                                         <tr className="text-slate-500 border-b border-slate-700">
