@@ -2996,7 +2996,7 @@ export function DashboardCharts({
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
                                             <select name="reg_area" value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
@@ -3474,7 +3474,7 @@ export function DashboardCharts({
                                                         );
                                                     })}
                                             </tbody>
-                                        </table></div>
+                                        </table>
                                     </div>
                                 </div>
 
@@ -3485,8 +3485,8 @@ export function DashboardCharts({
                             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                                 <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
                                     <div className="p-6 border-b border-slate-700">
-                                        <div className="flex justify-between items-center">
-                                            <h3 className="text-xl font-black text-white">📅 Programa Mensual de Capacitaciones</h3>
+                                        <div className="flex justify-between items-start md:items-center">
+                                            <h3 className="text-lg md:text-xl font-black text-white pr-4">📅 Programa Mensual de Capacitaciones</h3>
                                             <button
                                                 onClick={() => setShowProgramModal(false)}
                                                 className="text-slate-400 hover:text-white transition-colors"
@@ -3501,7 +3501,7 @@ export function DashboardCharts({
                                         {isDeveloper && (
                                             <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
                                                 <h4 className="text-sm font-bold text-emerald-400 mb-3">Agregar Actividad Programada</h4>
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     <div>
                                                         <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Fecha</label>
                                                         <input
@@ -3549,7 +3549,7 @@ export function DashboardCharts({
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                                <div className="grid grid-cols-2 gap-3 mt-3">
                                                     <div>
                                                         <input
                                                             type="file"
@@ -3581,13 +3581,13 @@ export function DashboardCharts({
                                         )}
 
                                         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                                            <div className="flex justify-between items-center mb-3">
+                                            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 mb-3">
                                                 <h4 className="text-sm font-bold text-blue-400">Actividades Programadas</h4>
 
                                                 {/* FILTER CONTROLS */}
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
                                                 {/* BOTÓN DE TEMARIO MENSUAL (PROGRAMA) */}
-                                                <div className="flex flex-wrap items-center gap-2 md:ml-2 md:border-l border-slate-700 md:pl-2">
+                                                <div className="flex flex-wrap items-center gap-2 md:ml-4 border-l border-slate-700 md:pl-4">
                                                     <input 
                                                         type="file" 
                                                         accept="application/pdf" 
@@ -3667,7 +3667,7 @@ export function DashboardCharts({
                                             </div>
 
                                             <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
-                                                <div className="overflow-x-auto w-full"><table className="w-full text-left text-[10px] min-w-[400px]">
+                                                <table className="w-full text-left text-[10px] min-w-[400px]">
                                                     <thead>
                                                         <tr className="text-slate-500 border-b border-slate-700">
                                                             <th className="pb-2">MES</th>
@@ -3717,7 +3717,7 @@ export function DashboardCharts({
                                                                 </tr>
                                                             ))}
                                                     </tbody>
-                                                </table></div></div>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>
