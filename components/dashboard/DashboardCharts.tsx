@@ -3,11 +3,11 @@
 import { Activity, MONTHS } from "@/lib/types";
 import { ComplianceGauge } from "./ComplianceGauge";
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Rectangle, ComposedChart, Area, AreaChart, LabelList, ReferenceLine } from 'recharts';
-import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PlusCircle, PieChart as PieChartIcon, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Target, Award, ShieldCheck, Activity as ActivityIcon, Leaf, Users, Clock, Calculator, HardHat, Trash2, Edit, History, Plus, PlusCircle, PieChart as PieChartIcon, CheckCircle2, UploadCloud, Loader2 } from 'lucide-react';
 import { categorizeActivitiesByObjective, OBJECTIVES_CONFIG } from "@/lib/objective-categorization";
 import { calculateObjectiveMonthlyStats } from '@/lib/program-utils';
 import { USER_LIST, useAuth } from "@/lib/auth";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
@@ -77,6 +77,93 @@ export function DashboardCharts({
     const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' });
     const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
     const [programMonthFilter, setProgramMonthFilter] = useState<number>(new Date().getMonth());
+
+    // --- TEMARIO MENSUAL LOGIC (PROGRAMA) ---
+    const [monthlyTemarioUrl, setMonthlyTemarioUrl] = useState<string | null>(null);
+    const [isUploadingTemario, setIsUploadingTemario] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setMonthlyTemarioUrl(data.url);
+                } else {
+                    setMonthlyTemarioUrl(null);
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching temario:", err);
+                setMonthlyTemarioUrl(null);
+            });
+    }, [programMonthFilter, currentYear]);
+
+    const handleUploadTemario = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingTemario(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folderName', `Temarios_Mensuales/${currentYear}/${programMonthFilter}`);
+        formData.append('fileName', `Temario_${MONTHS[programMonthFilter]}_${currentYear}.pdf`);
+
+        try {
+            const uploadRes = await fetch('/api/upload-evidence', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+
+            if (uploadData.success || uploadData.path) {
+                const driveUrl = uploadData.path;
+                const saveRes = await fetch('/api/monthly-temarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ month: programMonthFilter, year: currentYear, url: driveUrl })
+                });
+                const saveData = await saveRes.json();
+                
+                if (saveData.success) {
+                    setMonthlyTemarioUrl(driveUrl);
+                    alert('✅ Temario mensual subido y guardado exitosamente.');
+                } else {
+                    alert('⚠️ Error al guardar la URL del temario: ' + saveData.error);
+                }
+            } else {
+                alert('⚠️ Error subiendo el PDF a Drive: ' + uploadData.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('⚠️ Error de conexión.');
+        } finally {
+            setIsUploadingTemario(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleDeleteTemario = async () => {
+        if (!window.confirm('¿Estás seguro de ELIMINAR el temario de este mes?')) return;
+        
+        try {
+            const res = await fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMonthlyTemarioUrl(null);
+                alert('✅ Temario eliminado correctamente.');
+            } else {
+                alert('⚠️ Error al eliminar el temario.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('⚠️ Error de conexión al intentar eliminar.');
+        }
+    };
+
+
     const [newProgram, setNewProgram] = useState({ date: '', tema: '', area: 'seguridad' as const, tipo: 'capacitacion' as const });
     const [isDraggingHhcPdf, setIsDraggingHhcPdf] = useState(false);
     const [isDraggingHhcImgs, setIsDraggingHhcImgs] = useState(false);
@@ -534,7 +621,9 @@ export function DashboardCharts({
 
 
     // --- STATE FOR NEW HHC INDEX LOGIC ---
+    
     const [hhcMonthFilter, setHhcMonthFilter] = useState<number>(new Date().getMonth());
+    
     // Store manually input HHT, Empleados, Obreros per month "YYYY-M" -> value
     const [monthlyHHTInputs, setMonthlyHHTInputs] = useState<Record<string, number>>({});
     const [monthlyEmpleadosInputs, setMonthlyEmpleadosInputs] = useState<Record<string, number>>({});
@@ -2580,7 +2669,8 @@ export function DashboardCharts({
                                 <p className="text-xs text-slate-400 font-medium">Gestión de Horas Hombre Capacitadas e Indicadores</p>
                             </div>
                         </div>
-                    </div>
+
+                        </div>
 
                     {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4 relative z-10">
@@ -3447,6 +3537,59 @@ export function DashboardCharts({
 
                                                 {/* FILTER CONTROLS */}
                                                 <div className="flex items-center gap-2">
+                                                {/* BOTÓN DE TEMARIO MENSUAL (PROGRAMA) */}
+                                                <div className="flex items-center ml-4 border-l border-slate-700 pl-4">
+                                                    <input 
+                                                        type="file" 
+                                                        accept="application/pdf" 
+                                                        className="hidden" 
+                                                        ref={fileInputRef} 
+                                                        onChange={handleUploadTemario} 
+                                                    />
+                                                    {monthlyTemarioUrl ? (
+                                                        <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-indigo-500/50 shadow-inner">
+                                                            {/* VER */}
+                                                            <a href={monthlyTemarioUrl} target="_blank" rel="noopener noreferrer" title="Ver Temario" className="flex items-center gap-1.5 text-[10px] text-white font-bold px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded transition-colors shadow-lg shadow-indigo-500/20">
+                                                                <Eye size={12} /> Ver
+                                                            </a>
+                                                            
+                                                            {/* DESCARGAR */}
+                                                            <a href={monthlyTemarioUrl.replace('/view?usp=drivesdk', '/export?format=pdf').replace('/view', '/export?format=pdf')} target="_blank" rel="noopener noreferrer" title="Descargar PDF" className="text-slate-400 hover:text-emerald-400 p-1.5 rounded hover:bg-slate-700 transition-colors">
+                                                                <Download size={12} />
+                                                            </a>
+
+                                                            {/* ACTUALIZAR */}
+                                                            <button 
+                                                                onClick={() => fileInputRef.current?.click()} 
+                                                                disabled={isUploadingTemario}
+                                                                className="text-slate-400 hover:text-blue-400 p-1.5 rounded hover:bg-slate-700 transition-colors"
+                                                                title="Actualizar Temario"
+                                                            >
+                                                                <UploadCloud size={12} className={isUploadingTemario ? "animate-pulse" : ""} />
+                                                            </button>
+
+                                                            {/* ELIMINAR */}
+                                                            <button 
+                                                                onClick={handleDeleteTemario} 
+                                                                disabled={isUploadingTemario}
+                                                                className="text-slate-400 hover:text-red-400 p-1.5 rounded hover:bg-slate-700 transition-colors"
+                                                                title="Eliminar Temario"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            disabled={isUploadingTemario}
+                                                            className="flex items-center gap-1.5 text-[10px] text-white font-bold px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-indigo-500/30 hover:border-indigo-500/60 rounded transition-all shadow-lg shadow-indigo-500/10 disabled:opacity-50"
+                                                        >
+                                                            {isUploadingTemario ? <Loader2 className="animate-spin" size={12} /> : <UploadCloud size={12} className="text-indigo-400" />}
+                                                            {isUploadingTemario ? "Cargando..." : "Cargar Temario"}
+                                                        </button>
+                                                    )}
+                                                </div>
+
                                                     <select
                                                         value={programMonthFilter}
                                                         onChange={(e) => setProgramMonthFilter(Number(e.target.value))}
