@@ -81,6 +81,7 @@ export function DashboardCharts({
     // --- TEMARIO MENSUAL LOGIC (PROGRAMA) ---
     const [monthlyTemarioUrl, setMonthlyTemarioUrl] = useState<string | null>(null);
     const [isUploadingTemario, setIsUploadingTemario] = useState(false);
+    const [isDraggingTemario, setIsDraggingTemario] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -99,10 +100,7 @@ export function DashboardCharts({
             });
     }, [programMonthFilter, currentYear]);
 
-    const handleUploadTemario = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const processTemarioUpload = async (file: File) => {
         setIsUploadingTemario(true);
         const formData = new FormData();
         formData.append('file', file);
@@ -140,6 +138,32 @@ export function DashboardCharts({
         } finally {
             setIsUploadingTemario(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleUploadTemario = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) processTemarioUpload(file);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingTemario(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingTemario(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDraggingTemario(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.type === "application/pdf") {
+            processTemarioUpload(file);
+        } else if (file) {
+            alert("⚠️ Solo se permiten archivos en formato PDF.");
         }
     };
 
@@ -3579,14 +3603,21 @@ export function DashboardCharts({
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <button 
-                                                            onClick={() => fileInputRef.current?.click()}
-                                                            disabled={isUploadingTemario}
-                                                            className="flex items-center gap-1.5 text-[10px] text-white font-bold px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-indigo-500/30 hover:border-indigo-500/60 rounded transition-all shadow-lg shadow-indigo-500/10 disabled:opacity-50"
+                                                        <div 
+                                                            onDragOver={handleDragOver}
+                                                            onDragLeave={handleDragLeave}
+                                                            onDrop={handleDrop}
+                                                            className={`flex items-center transition-all ${isDraggingTemario ? 'scale-105 opacity-90' : ''}`}
                                                         >
-                                                            {isUploadingTemario ? <Loader2 className="animate-spin" size={12} /> : <UploadCloud size={12} className="text-indigo-400" />}
-                                                            {isUploadingTemario ? "Cargando..." : "Cargar Temario"}
-                                                        </button>
+                                                            <button 
+                                                                onClick={() => fileInputRef.current?.click()}
+                                                                disabled={isUploadingTemario}
+                                                                className={`flex items-center gap-1.5 text-[10px] text-white font-bold px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border ${isDraggingTemario ? 'border-emerald-500 shadow-emerald-500/50' : 'border-indigo-500/30 hover:border-indigo-500/60 shadow-indigo-500/10'} rounded transition-all shadow-lg disabled:opacity-50`}
+                                                            >
+                                                                {isUploadingTemario ? <Loader2 className="animate-spin" size={12} /> : <UploadCloud size={12} className={isDraggingTemario ? "text-emerald-400" : "text-indigo-400"} />}
+                                                                {isUploadingTemario ? "Cargando..." : (isDraggingTemario ? "Suelta el PDF aquí" : "Cargar Temario")}
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
 
