@@ -1766,7 +1766,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                     style={{ background: 'rgba(0,0,0,0.85)' }}
                     onClick={() => setShowPreview(false)}
                 >
-                    <div className="relative max-w-3xl max-h-full">
+                    <div className="relative max-w-[95vw] max-h-full">
                         <button
                             onClick={() => setShowPreview(false)}
                             className="absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center z-10"
@@ -1776,7 +1776,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                         </button>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={tag.preview} alt={tag.label}
-                            className="max-w-full max-h-[80vh] rounded-xl object-contain"
+                            className="max-w-full max-h-[90vh] rounded-xl object-contain"
                             style={{ boxShadow: '0 25px 60px rgba(0,0,0,0.7)' }}
                         />
                         <p className="text-center text-sm mt-2" style={{ color: 'hsl(215,20%,60%)' }}>
