@@ -90,7 +90,7 @@ const compressImage = (file) => {
 async function cacheImageURL(remoteUrl: string, blob: Blob) {
     if (typeof window === 'undefined') return;
     try {
-        const cache = await caches.open('ssoma-image-cache-v1');
+        const cache = await caches.open('ssoma-image-cache-v2');
         await cache.put(remoteUrl, new Response(blob));
     } catch (e) {
         console.error("Error guardando en caché local:", e);
@@ -100,14 +100,14 @@ async function cacheImageURL(remoteUrl: string, blob: Blob) {
 async function getCachedImageURL(remoteUrl: string): Promise<string> {
     if (typeof window === 'undefined') return remoteUrl;
     try {
-        const cache = await caches.open('ssoma-image-cache-v1');
+        const cache = await caches.open('ssoma-image-cache-v2');
         const response = await cache.match(remoteUrl);
         if (response) {
             const blob = await response.blob();
             return URL.createObjectURL(blob); // Retorna desde disco ($0 consumo)
         } else {
             // Si no está, la descargamos a través del optimizador de Next.js para que sea ligera (previene que Chrome explote con 800MB)
-            const proxyUrl = `/_next/image?url=${encodeURIComponent(remoteUrl)}&w=256&q=60`;
+            const proxyUrl = `/_next/image?url=${encodeURIComponent(remoteUrl)}&w=828&q=75`;
             const fetchRes = await fetch(proxyUrl);
             if (fetchRes.ok) {
                 const blob = await fetchRes.blob();
@@ -124,7 +124,7 @@ async function getCachedImageURL(remoteUrl: string): Promise<string> {
 async function clearImageCache() {
     if (typeof window === 'undefined') return;
     try {
-        await caches.delete('ssoma-image-cache-v1');
+        await caches.delete('ssoma-image-cache-v2');
     } catch (e) {}
 }
 
@@ -279,7 +279,8 @@ export default function GeneradorInformesPage() {
                                 ...t, 
                                 remoteUrl: fields[t.name], 
                                 uploaderInitials: fields[`_uploaderInitials_${t.name}`] || oldUploaders[t.name]?.initials || '', 
-                                uploaderName: fields[`_uploaderName_${t.name}`] || oldUploaders[t.name]?.name || '' 
+                                uploaderName: fields[`_uploaderName_${t.name}`] || oldUploaders[t.name]?.name || '',
+                                driveUrl: fields[`_driveUrl_${t.name}`] || ''
                             }; // No set preview yet
                         }
                         return t;
@@ -327,6 +328,7 @@ export default function GeneradorInformesPage() {
                       fields[t.name] = t.remoteUrl;
                       fields[`_uploaderInitials_${t.name}`] = t.uploaderInitials || '';
                       fields[`_uploaderName_${t.name}`] = t.uploaderName || '';
+                      fields[`_driveUrl_${t.name}`] = t.driveUrl || '';
                   }
               });
               
@@ -335,6 +337,7 @@ export default function GeneradorInformesPage() {
                       fields[f] = null;
                       fields[`_uploaderInitials_${f}`] = null;
                       fields[`_uploaderName_${f}`] = null;
+                      fields[`_driveUrl_${f}`] = null;
                   });
                   deletedFieldsRef.current = [];
               }
@@ -364,7 +367,7 @@ export default function GeneradorInformesPage() {
                         if (data.fields[t.name] && !deletedFieldsRef.current.includes(t.name)) {
                             if (t.type === 'image' && t.remoteUrl !== data.fields[t.name]) {
                                 getCachedImageURL(data.fields[t.name]).then(localUrl => {
-                                    setTags(current => current.map(pt => pt.name === t.name && !deletedFieldsRef.current.includes(t.name) ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl, uploaderInitials: data.fields[`_uploaderInitials_${t.name}`] || '', uploaderName: data.fields[`_uploaderName_${t.name}`] || '' } : pt));
+                                    setTags(current => current.map(pt => pt.name === t.name && !deletedFieldsRef.current.includes(t.name) ? { ...pt, remoteUrl: data.fields[t.name], preview: localUrl, uploaderInitials: data.fields[`_uploaderInitials_${t.name}`] || '', uploaderName: data.fields[`_uploaderName_${t.name}`] || '', driveUrl: data.fields[`_driveUrl_${t.name}`] || '' } : pt));
                                 });
                                 return t;
                             }
@@ -1648,7 +1651,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                     src={refSrc}
                                     alt="Referencia"
                                     loading="lazy"
-                                    className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-30 mix-blend-screen group-hover:opacity-100 group-active:opacity-100"
+                                    className="absolute inset-0 w-full h-full object-cover transition-opacity pointer-events-none opacity-30 group-hover:opacity-100 group-active:opacity-100"
                                     style={{ zIndex: 0 }}
                                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
@@ -1738,11 +1741,11 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                                     src={refSrc}
                                     alt="Referencia"
                                     loading="eager"
-                                    className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity pointer-events-none mix-blend-screen"
+                                    className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity pointer-events-none"
                                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 />
                                 {/* Patrón de líneas diagonales para indicar que está vacío */}
-                                <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
+                                <div className="absolute inset-0 pointer-events-none opacity-20"
                                      style={{ background: 'repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, transparent 10px, transparent 20px)' }}>
                                 </div>
                             </>
@@ -1758,6 +1761,16 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                     </div>
                 )}
             </div>
+
+            {/* Enlace a Drive */}
+            {tag.driveUrl && (
+                <div className="mt-1.5 flex items-center">
+                    <a href={tag.driveUrl} target="_blank" rel="noreferrer" className="text-[10px] font-medium text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 truncate w-full" title="Abrir foto en Google Drive">
+                        <ExternalLink size={11} className="flex-shrink-0" />
+                        <span className="truncate">{tag.driveUrl}</span>
+                    </a>
+                </div>
+            )}
 
             {/* Modal de preview ampliado */}
             {showPreview && tag.preview && (
