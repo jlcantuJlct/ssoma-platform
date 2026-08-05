@@ -332,22 +332,30 @@ export default function GeneradorInformesPage() {
                   }
               });
               
+            let deletedToSend: string[] = [];
               if (deletedFieldsRef.current.length > 0) {
-                  deletedFieldsRef.current.forEach(f => {
+                  deletedToSend = [...deletedFieldsRef.current];
+                  deletedToSend.forEach(f => {
                       fields[f] = null;
                       fields[`_uploaderInitials_${f}`] = null;
                       fields[`_uploaderName_${f}`] = null;
                       fields[`_driveUrl_${f}`] = null;
                   });
-                  deletedFieldsRef.current = [];
               }
     
             if (Object.keys(fields).length > 0) {
-                await fetch('/api/draft', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ docType, fields })
-                });
+                try {
+                    await fetch('/api/draft', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ docType, fields })
+                    });
+                    if (deletedToSend.length > 0) {
+                        deletedFieldsRef.current = deletedFieldsRef.current.filter(f => !deletedToSend.includes(f));
+                    }
+                } catch(e) {
+                    console.error('Failed to save draft:', e);
+                }
             }
         }, 2000);
     }, [tags, templateFile]);
