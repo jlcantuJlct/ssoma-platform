@@ -238,6 +238,7 @@ export default function GeneradorInformesPage() {
     const [allReferences, setAllReferences] = useState<Record<string, Record<string, string>>>({});
     const [templatePermissions, setTemplatePermissions] = useState<Record<string, string[]>>({});
     const deletedFieldsRef = useRef<string[]>([]);
+    const activeDocTypeRef = useRef<string | null>(null);
 
     // Cargar mapa estático y permisos al entrar a la página
     React.useEffect(() => {
@@ -254,6 +255,12 @@ export default function GeneradorInformesPage() {
             .catch(() => {});
     }, []);
 
+    React.useEffect(() => {
+        if (templateFile) {
+            activeDocTypeRef.current = templateFile.name;
+        }
+    }, [templateFile]);
+
     const canAccessTemplate = (templateName: string) => {
         if (!user) return false;
         if (user.role === 'developer' || user.role === 'manager') return true;
@@ -266,45 +273,67 @@ export default function GeneradorInformesPage() {
     const loadDraft = useCallback(async (docType: string, currentTags: DetectedTag[]) => {
         try {
             const res = await fetch(`/api/draft?docType=${docType}`);
+            let fields: any = {};
             if (res.ok) {
-                const { fields } = await res.json();
-                if (fields && Object.keys(fields).length > 0) {
-                    let oldUploaders: any = {};
-                    try { if (fields['_uploaders_']) oldUploaders = JSON.parse(fields['_uploaders_']); } catch(e){}
+                const data = await res.json();
+                if (data.fields) fields = data.fields;
+            }
+            
+            // PREVENCIÓN DE RACE CONDITION: Si el usuario cambió de plantilla mientras esto cargaba, abortar
+            if (activeDocTypeRef.current && activeDocTypeRef.current !== docType) {
+                console.log(`Abortando carga de borrador obsoleto. Actual: ${activeDocTypeRef.current}, Solicitado: ${docType}`);
+                return;
+            }
 
-                    setTags(prev => prev.map(t => {
-                        if (fields[t.name]) {
-                            if (t.type === 'text') return { ...t, value: fields[t.name] };
-                            if (t.type === 'image') return { 
-                                ...t, 
-                                remoteUrl: fields[t.name], 
-                                uploaderInitials: fields[`_uploaderInitials_${t.name}`] || oldUploaders[t.name]?.initials || '', 
-                                uploaderName: fields[`_uploaderName_${t.name}`] || oldUploaders[t.name]?.name || '',
-                                driveUrl: fields[`_driveUrl_${t.name}`] || ''
-                            }; // No set preview yet
-                        }
-                        return t;
-                    }));
-
-                    // Cargar imágenes desde caché local en BLOQUE para máxima velocidad
-                    const updates = [];
-                    for (const t of currentTags) {
-                        if (t.type === 'image' && fields[t.name]) {
-                            updates.push(getCachedImageURL(fields[t.name]).then(url => ({ name: t.name, url })));
-                        }
+            // FALLBACK LOCALSTORAGE: Si el servidor (Vercel) borró el borrador por ser efímero, recuperarlo local
+            const localStr = localStorage.getItem(`draft_${docType}`);
+            if (localStr) {
+                try {
+                    const localFields = JSON.parse(localStr);
+                    // Si el servidor devolvió vacío, usamos local
+                    if (Object.keys(fields).length === 0 && Object.keys(localFields).length > 0) {
+                        fields = localFields;
+                        console.log('Recuperando borrador de LocalStorage (Servidor vacío)');
                     }
-                    if (updates.length > 0) {
-                        Promise.all(updates).then(results => {
-                            setTags(prev => {
-                                const m = [...prev];
-                                for (const res of results) {
-                                    const idx = m.findIndex(pt => pt.name === res.name);
-                                    if (idx !== -1) m[idx] = { ...m[idx], preview: res.url };
-                                }
-                                return m;
-                            });
+                } catch(e){}
+            }
+
+            if (fields && Object.keys(fields).length > 0) {
+                let oldUploaders: any = {};
+                try { if (fields['_uploaders_']) oldUploaders = JSON.parse(fields['_uploaders_']); } catch(e){}
+
+                setTags(prev => prev.map(t => {
+                    if (fields[t.name]) {
+                        if (t.type === 'text') return { ...t, value: fields[t.name] };
+                        if (t.type === 'image') return { 
+                            ...t, 
+                            remoteUrl: fields[t.name], 
+                            uploaderInitials: fields[`_uploaderInitials_${t.name}`] || oldUploaders[t.name]?.initials || '', 
+                            uploaderName: fields[`_uploaderName_${t.name}`] || oldUploaders[t.name]?.name || '',
+                            driveUrl: fields[`_driveUrl_${t.name}`] || ''
+                        }; // No set preview yet
+                    }
+                    return t;
+                }));
+
+                // Cargar imágenes desde caché local en BLOQUE para máxima velocidad
+                const updates = [];
+                for (const t of currentTags) {
+                    if (t.type === 'image' && fields[t.name]) {
+                        updates.push(getCachedImageURL(fields[t.name]).then(url => ({ name: t.name, url })));
+                    }
+                }
+                if (updates.length > 0) {
+                    Promise.all(updates).then(results => {
+                        setTags(prev => {
+                            const m = [...prev];
+                            for (const res of results) {
+                                const idx = m.findIndex(pt => pt.name === res.name);
+                                if (idx !== -1) m[idx] = { ...m[idx], preview: res.url };
+                            }
+                            return m;
                         });
-                    }
+                    });
                 }
             }
         } catch (e) {
@@ -324,11 +353,19 @@ export default function GeneradorInformesPage() {
             
               tags.forEach(t => {
                   if (t.type === 'text' && t.value !== undefined) fields[t.name] = t.value;
-                  if (t.type === 'image' && t.remoteUrl !== undefined) {
-                      fields[t.name] = t.remoteUrl;
-                      fields[`_uploaderInitials_${t.name}`] = t.uploaderInitials || '';
-                      fields[`_uploaderName_${t.name}`] = t.uploaderName || '';
-                      fields[`_driveUrl_${t.name}`] = t.driveUrl || '';
+                  if (t.type === 'image') {
+                      if (t.remoteUrl !== undefined) {
+                          fields[t.name] = t.remoteUrl;
+                          fields[`_uploaderInitials_${t.name}`] = t.uploaderInitials || '';
+                          fields[`_uploaderName_${t.name}`] = t.uploaderName || '';
+                          fields[`_driveUrl_${t.name}`] = t.driveUrl || '';
+                      } else {
+                          // FORCE NULL FOR EMPTY IMAGES SO THE DB AND LOCALSTORAGE DELETE THEM PROPERLY
+                          fields[t.name] = null;
+                          fields[`_uploaderInitials_${t.name}`] = null;
+                          fields[`_uploaderName_${t.name}`] = null;
+                          fields[`_driveUrl_${t.name}`] = null;
+                      }
                   }
               });
               
@@ -345,6 +382,9 @@ export default function GeneradorInformesPage() {
     
             if (Object.keys(fields).length > 0) {
                 try {
+                    // Guardar también en el navegador por seguridad (localStorage)
+                    localStorage.setItem(`draft_${docType}`, JSON.stringify(fields));
+
                     await fetch('/api/draft', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -370,6 +410,9 @@ export default function GeneradorInformesPage() {
 
             const docType = templateFile.name;
             fetch(`/api/draft?docType=${docType}`).then(r => r.json()).then(data => {
+                // PREVENCIÓN DE RACE CONDITION: Abortar si la plantilla cambió durante el fetch
+                if (activeDocTypeRef.current && activeDocTypeRef.current !== docType) return;
+
                 if (data.fields) {
                     setTags(prev => prev.map(t => {
                         if (data.fields[t.name] && !deletedFieldsRef.current.includes(t.name)) {
@@ -644,7 +687,8 @@ export default function GeneradorInformesPage() {
             const formData = new FormData();
             formData.append('file', finalFile);
             
-            const res = await fetch(`/api/draft/image?filename=${tagName}_${Date.now()}.${ext}`, {
+            const safeDocType = templateFile ? templateFile.name.replace(/_INTERNAL\.docx|\.docx/g, '') : 'plantilla';
+            const res = await fetch(`/api/draft/image?filename=${safeDocType}_${tagName}_${Date.now()}.${ext}`, {
                 method: 'POST',
                 body: finalFile
             });

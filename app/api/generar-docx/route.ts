@@ -177,6 +177,13 @@ export async function POST(request: Request) {
         const renderedZip = doc.getZip();
 
         // ── 2. Inyección de Imágenes directamente en ZIP ─────────────────────
+        const fallbackSvg = `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f1f5f9" />
+            <rect width="96%" height="94%" x="2%" y="3%" fill="none" stroke="#f87171" stroke-width="12" stroke-dasharray="20, 20" rx="10" ry="10" />
+            <text x="50%" y="50%" font-family="sans-serif" font-size="50" font-weight="bold" fill="#f87171" text-anchor="middle" dominant-baseline="middle">Falta cargar foto</text>
+        </svg>`;
+        const fallbackBuffer = await sharp(Buffer.from(fallbackSvg)).png().toBuffer();
+
         let xmlString = renderedZip.file('word/document.xml').asText();
         const relsString = renderedZip.file('word/_rels/document.xml.rels').asText();
         let contentTypesString = renderedZip.file('[Content_Types].xml').asText();
@@ -209,38 +216,37 @@ export async function POST(request: Request) {
                         tagCounter++;
                         const tagName = `foto_${String(tagCounter).padStart(3, '0')}`;
                         
-                        // Si el usuario subió una imagen para este slot
-                        if (imageBuffers[tagName]) {
-                            const newBuf = imageBuffers[tagName];
-                            const { ext, mime } = getMimeTypeAndExt(newBuf);
-                            const newTarget = `media/${tagName}.${ext}`;
-                            const newRId = `rId_${tagName}_${Date.now()}`; // Forzar unicidad
-                            
-                            // Inyectar el nuevo archivo físico en el zip
-                            renderedZip.file(`word/${newTarget}`, newBuf);
-                            
-                            // Actualizar el ContentTypes si la extensión es nueva
-                            if (!contentTypesString.includes(`Extension="${ext}"`)) {
-                                contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
-                            }
-                            
-                            // Crear un nuevo Relationship
-                            const relNode = relsDoc.createElement('Relationship');
-                            relNode.setAttribute('Id', newRId);
-                            relNode.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
-                            relNode.setAttribute('Target', newTarget);
-                            
-                            const relationshipsNode = relsDoc.getElementsByTagName('Relationships')[0];
-                            if (relationshipsNode) {
-                                relationshipsNode.appendChild(relNode);
-                            }
-                            
-                            // Reemplazar el atributo en el XML para que apunte al NUEVO rId
-                            return `${attrName}="${newRId}"`;
+                        // Si el usuario subió una imagen para este slot, o usamos el fallback si no hay
+                        const newBuf = imageBuffers[tagName] || fallbackBuffer;
+                        
+                        const { ext, mime } = getMimeTypeAndExt(newBuf);
+                        const newTarget = `media/${tagName}.${ext}`;
+                        const newRId = `rId_${tagName}_${Date.now()}`; // Forzar unicidad
+                        
+                        // Inyectar el nuevo archivo físico en el zip
+                        renderedZip.file(`word/${newTarget}`, newBuf);
+                        
+                        // Actualizar el ContentTypes si la extensión es nueva
+                        if (!contentTypesString.includes(`Extension="${ext}"`)) {
+                            contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
                         }
+                        
+                        // Crear un nuevo Relationship
+                        const relNode = relsDoc.createElement('Relationship');
+                        relNode.setAttribute('Id', newRId);
+                        relNode.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+                        relNode.setAttribute('Target', newTarget);
+                        
+                        const relationshipsNode = relsDoc.getElementsByTagName('Relationships')[0];
+                        if (relationshipsNode) {
+                            relationshipsNode.appendChild(relNode);
+                        }
+                        
+                        // Reemplazar el atributo en el XML para que apunte al NUEVO rId
+                        return `${attrName}="${newRId}"`;
                     }
                     
-                    // Si no es imagen o no hay imagen del usuario, dejamos el rId original
+                    // Si no es imagen, dejamos el rId original
                     return match;
                 });
                 
