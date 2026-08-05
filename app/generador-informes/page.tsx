@@ -610,7 +610,7 @@ export default function GeneradorInformesPage() {
         
         // Show loading state immediately without heavy preview
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, loading: true, uploaderInitials: userInitials, uploaderName: user?.name } : t
+            t.name === tagName ? { ...t, loading: true, uploaderInitials: userInitials, uploaderName: user?.name, driveUrl: undefined } : t
         ));
 
         try {
@@ -670,7 +670,7 @@ export default function GeneradorInformesPage() {
     const clearTag = (tagName: string) => {
         deletedFieldsRef.current.push(tagName);
         setTags(prev => prev.map(t =>
-            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined } : t
+            t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined, driveUrl: undefined } : t
         ));
     };
 
