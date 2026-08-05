@@ -708,9 +708,8 @@ export default function GeneradorInformesPage() {
             setTags(prev => prev.map(t => t.name === tagToSync.name ? { ...t, syncing: true } : t));
 
             try {
-                // Obtener extensión del remoteUrl (ej. foto_001.jpeg)
-                const ext = tagToSync.remoteUrl.split('.').pop() || 'jpg';
-                const filename = `${tagToSync.name}.${ext}`;
+                // Obtener nombre de archivo único de Vercel Blob (ej. foto_001_1784673090145.jpg)
+                const filename = tagToSync.remoteUrl.split('/').pop()?.split('?')[0] || `${tagToSync.name}.jpg`;
 
                 const res = await fetch('/api/draft/sync-drive-image', {
                     method: 'POST',
