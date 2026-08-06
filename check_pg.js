@@ -1,29 +1,18 @@
-const { createPool } = require('@vercel/postgres');
 require('dotenv').config({ path: '.env.local' });
-
-const pool = createPool({
-    connectionString: process.env.POSTGRES_URL,
+const { Pool } = require('pg');
+const pool = new Pool({
+    connectionString: process.env.POSTGRES_URL.replace('5432', '6543'),
+    ssl: { rejectUnauthorized: false }
 });
 
-async function check() {
+async function run() {
     try {
-        console.log("--- ATS RECORDS (POSTGRES) ---");
-        const ats = await pool.query("SELECT * FROM ats_records ORDER BY date DESC LIMIT 5");
-        console.log(ats.rows);
-
-        console.log("--- HHC RECORDS (POSTGRES) ---");
-        const hhc = await pool.query("SELECT * FROM hhc_records ORDER BY date DESC LIMIT 5");
-        console.log(hhc.rows);
-
-        console.log("--- INSPECTION RECORDS (POSTGRES) ---");
-        const insp = await pool.query("SELECT * FROM inspection_records ORDER BY date DESC LIMIT 5");
-        console.log(insp.rows);
-
-    } catch (e) {
+        const res = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name='presence_records'`);
+        console.log(res.rows);
+    } catch(e) {
         console.error(e);
     } finally {
-        process.exit();
+        pool.end();
     }
 }
-
-check();
+run();

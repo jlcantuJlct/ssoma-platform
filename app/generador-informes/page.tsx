@@ -1022,14 +1022,21 @@ export default function GeneradorInformesPage() {
                             method: 'POST',
                             body: formData
                         });
-                        // If it responded with anything, the server is there
-                        if (res.ok || res.status >= 400) {
+                        
+                        // Validamos que sea nuestro servidor y no otro programa aleatorio.
+                        // Nuestro servidor retorna un docx (res.ok) o un JSON con error (status 400/500 con content-type json)
+                        const contentType = res.headers.get('content-type') || '';
+                        const isNuestraApi = res.ok || contentType.includes('application/json');
+
+                        if (isNuestraApi) {
                             success = true;
-                            console.log(`Servidor local detectado en puerto ${port}`);
+                            console.log(`Servidor local detectado y respondió en puerto ${port}`);
                             break;
+                        } else {
+                            console.log(`Puerto ${port} respondió, pero no parece ser nuestra API (probablemente otro programa).`);
                         }
                     } catch (e) {
-                        console.log(`Puerto ${port} inactivo, probando siguiente...`);
+                        console.log(`Puerto ${port} inactivo o bloqueado por CORS, probando siguiente...`);
                     }
                 }
                 

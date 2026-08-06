@@ -17,6 +17,7 @@ interface SearchableSelectProps {
     label?: string;
     className?: string;
     disabled?: boolean;
+    name?: string;
 }
 
 export default function SearchableSelect({
@@ -27,7 +28,8 @@ export default function SearchableSelect({
     icon,
     label,
     className = "",
-    disabled = false
+    disabled = false,
+    name
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +75,7 @@ export default function SearchableSelect({
     };
 
     return (
-        <div className={`flex flex-col gap-1 w-full relative ${className}`} ref={containerRef}>
+        <div id={name} className={`flex flex-col gap-1 w-full relative ${className}`} ref={containerRef}>
             {label && <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{label}</label>}
             
             <div 

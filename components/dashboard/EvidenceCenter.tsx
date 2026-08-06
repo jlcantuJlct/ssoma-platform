@@ -216,12 +216,12 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
         const filesArray = Array.from(e.target.files || []);
         if (filesArray.length === 0) return;
 
-        // Validar datos antes de subir
-        if (!form.responsible || !form.activity || !form.location) {
-            alert("⚠️ Por favor completa RESPONSABLE, ACTIVIDAD y LUGAR antes de subir el archivo.\n\nEsto asegura que el archivo se nombre correctamente con sus prefijos en Google Drive.");
-            e.target.value = '';
-            return;
-        }
+        // Validar datos antes de subir (Validación eliminada a petición del usuario)
+        // if (!form.responsible || !form.activity || !form.location) {
+        //     alert("⚠️ Por favor completa RESPONSABLE, ACTIVIDAD y LUGAR antes de subir el archivo.\n\nEsto asegura que el archivo se nombre correctamente con sus prefijos en Google Drive.");
+        //     e.target.value = '';
+        //     return;
+        // }
 
         const validFiles = filesArray.filter(file => {
             const isImage = file.type.startsWith('image/');
@@ -307,11 +307,11 @@ export default function EvidenceCenter({ data }: EvidencePageProps) {
             return;
         }
 
-        // Validaciones generales
-        if (!form.responsible || !form.activity || !form.location) {
-            alert("Por favor completa Responsable, Actividad y Lugar.");
-            return;
-        }
+        // Validaciones generales (eliminadas a petición del usuario)
+        // if (!form.responsible || !form.activity || !form.location) {
+        //     alert("Por favor completa Responsable, Actividad y Lugar.");
+        //     return;
+        // }
 
         // Si es nuevo registro, archivo es obligatorio
         if (!editingId && uploadedFiles.length === 0) {
