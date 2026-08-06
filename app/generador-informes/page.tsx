@@ -987,6 +987,7 @@ export default function GeneradorInformesPage() {
             
             // Si es interno, enviamos el archivo dummy. El backend lee el .name y usa fs.readFileSync
             formData.append('template', templateFile);
+            formData.append('docType', templateFile.name);
             
             const textData: Record<string, string> = {};
             tags.filter(t => t.type === 'text').forEach(t => {
