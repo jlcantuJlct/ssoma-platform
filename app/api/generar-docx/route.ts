@@ -76,13 +76,13 @@ export async function POST(request: Request) {
                 originalName = 'PAD_SAN CLEMENTE ultimo.docx';
             } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
                 templateName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
-                originalName = 'PAD-CHINCHAYSULLO ultimo.docx';
+                originalName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
             } else if (docType === 'PAD_BARANDAS_INTERNAL.docx') {
                 templateName = 'PAD_BARANDAS_PLANTILLA.docx';
                 originalName = 'MP Barandas Mayo .docx';
             } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
                 templateName = 'PAD_JAHUAY_PLANTILLA.docx';
-                originalName = 'Peaje Jahuay Ultimo.docx';
+                originalName = 'PAD_JAHUAY_PLANTILLA.docx';
             } else if (docType === 'MP6_INTERNAL.docx') {
                 templateName = 'MP6_PLANTILLA.docx';
                 originalName = 'MP6 _ultimo.docx';
