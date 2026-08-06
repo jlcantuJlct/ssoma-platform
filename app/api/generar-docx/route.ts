@@ -181,13 +181,6 @@ export async function POST(request: Request) {
         const renderedZip = doc.getZip();
 
         // ── 2. Inyección de Imágenes directamente en ZIP ─────────────────────
-        const fallbackSvg = `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#f1f5f9" />
-            <rect width="96%" height="94%" x="2%" y="3%" fill="none" stroke="#f87171" stroke-width="12" stroke-dasharray="20, 20" rx="10" ry="10" />
-            <text x="50%" y="50%" font-family="sans-serif" font-size="50" font-weight="bold" fill="#f87171" text-anchor="middle" dominant-baseline="middle">Falta cargar foto</text>
-        </svg>`;
-        const fallbackBuffer = await sharp(Buffer.from(fallbackSvg)).png().toBuffer();
-
         let xmlString = renderedZip.file('word/document.xml').asText();
         const relsString = renderedZip.file('word/_rels/document.xml.rels').asText();
         let contentTypesString = renderedZip.file('[Content_Types].xml').asText();
@@ -198,6 +191,7 @@ export async function POST(request: Request) {
         const ignored = IGNORED_MAP[templateName] || [];
         let shapeCounter = 0;
         let tagCounter = 0;
+        const pendingWatermarks: string[] = [];
 
         // ── CORRECCIÓN: procesar TODOS los r:embed de cada párrafo ──────────
         // Word agrupa múltiples imágenes en un mismo <w:p> (párrafo).
@@ -249,7 +243,8 @@ export async function POST(request: Request) {
                             // Reemplazar el atributo en el XML para que apunte al NUEVO rId
                             return `${attrName}="${newRId}"`;
                         } else {
-                            // Si no hay foto, dejamos la imagen original de la plantilla
+                            // Si no hay foto, dejamos la imagen original pero la guardamos para ponerle marca de agua
+                            pendingWatermarks.push(`word/${target}`);
                             return match;
                         }
                     }
@@ -260,6 +255,34 @@ export async function POST(request: Request) {
             }
             return parrafo;
         });
+
+        // Aplicar marcas de agua a las imágenes originales que no fueron reemplazadas
+        for (const targetPath of pendingWatermarks) {
+            const file = renderedZip.file(targetPath);
+            if (file) {
+                try {
+                    const buf = Buffer.from(file.asUint8Array());
+                    const metadata = await sharp(buf).metadata();
+                    const w = metadata.width || 800;
+                    const h = metadata.height || 600;
+                    const fontSize = Math.floor(w / 10);
+                    
+                    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100%" height="100%" fill="rgba(255,255,255,0.7)" />
+                        <rect width="96%" height="94%" x="2%" y="3%" fill="none" stroke="#f87171" stroke-width="12" stroke-dasharray="20, 20" rx="10" ry="10" />
+                        <text x="50%" y="50%" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="#f87171" text-anchor="middle" dominant-baseline="middle">Falta cargar foto</text>
+                    </svg>`;
+                    
+                    const watermarked = await sharp(buf)
+                        .composite([{ input: Buffer.from(svg) }])
+                        .toBuffer();
+                        
+                    renderedZip.file(targetPath, watermarked);
+                } catch(e) {
+                    console.error("Error aplicando marca de agua a", targetPath, e);
+                }
+            }
+        }
 
         // GUARDAR EL XML PRINCIPAL ACTUALIZADO (antes esto faltaba)
         renderedZip.file('word/document.xml', xmlString);
