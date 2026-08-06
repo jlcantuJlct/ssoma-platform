@@ -76,19 +76,23 @@ export async function POST(request: Request) {
                 originalName = 'PAD_SAN CLEMENTE ultimo.docx';
             } else if (docType === 'PAD_CHINCHAYSULLO_INTERNAL.docx') {
                 templateName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
-                originalName = 'PAD_CHINCHAYSULLO_PLANTILLA.docx';
+                originalName = 'PAD-CHINCHAYSULLO ultimo.docx';
             } else if (docType === 'PAD_BARANDAS_INTERNAL.docx') {
                 templateName = 'PAD_BARANDAS_PLANTILLA.docx';
                 originalName = 'MP Barandas Mayo .docx';
             } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
                 templateName = 'PAD_JAHUAY_PLANTILLA.docx';
-                originalName = 'PAD_JAHUAY_PLANTILLA.docx';
+                originalName = 'Peaje Jahuay Ultimo.docx';
             } else if (docType === 'MP6_INTERNAL.docx') {
                 templateName = 'MP6_PLANTILLA.docx';
                 originalName = 'MP6 _ultimo.docx';
             }
             
-            const localPath = path.join(process.cwd(), 'plantillas', originalName);
+            let localPath = path.join(process.cwd(), 'plantillas', originalName);
+            if (!fs.existsSync(localPath)) {
+                // Fallback a la versión comprimida si el archivo original pesado no existe
+                localPath = path.join(process.cwd(), 'plantillas', templateName);
+            }
             templateBuffer = fs.readFileSync(localPath);
         } else {
             if (!templateFile) {
