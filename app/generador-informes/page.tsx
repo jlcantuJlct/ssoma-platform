@@ -239,6 +239,7 @@ export default function GeneradorInformesPage() {
     const [templatePermissions, setTemplatePermissions] = useState<Record<string, string[]>>({});
     const deletedFieldsRef = useRef<string[]>([]);
     const activeDocTypeRef = useRef<string | null>(null);
+    const [processingEngine, setProcessingEngine] = useState<'web' | 'local'>('local');
 
     // Cargar mapa estático y permisos al entrar a la página
     React.useEffect(() => {
@@ -1009,13 +1010,39 @@ export default function GeneradorInformesPage() {
             
             formData.append('imageTagsData', JSON.stringify(imageTagsData));
             
-            setStatus({ stage: 'generating', message: '📝 El servidor local está ensamblando tu informe... (Puede tardar unos segundos)', progress: 60 });
+            setStatus({ stage: 'generating', message: processingEngine === 'local' ? '📥 Buscando servidor local y ensamblando...' : '📝 Procesando en la nube (Vercel)...', progress: 60 });
             
-            // Importante: La web (Vercel) le da la orden directamente a tu plataforma local
-            const res = await fetch('http://localhost:3000/api/generar-docx', {
-                method: 'POST',
-                body: formData
-            });
+            let res;
+            if (processingEngine === 'local') {
+                const ports = [3000, 3001, 3002, 3003];
+                let success = false;
+                for (const port of ports) {
+                    try {
+                        res = await fetch(`http://localhost:${port}/api/generar-docx`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        // If it responded with anything, the server is there
+                        if (res.ok || res.status >= 400) {
+                            success = true;
+                            console.log(`Servidor local detectado en puerto ${port}`);
+                            break;
+                        }
+                    } catch (e) {
+                        console.log(`Puerto ${port} inactivo, probando siguiente...`);
+                    }
+                }
+                
+                if (!success || !res) {
+                    throw new Error('No se detectó el motor local encendido. Espera a que termine de iniciar al prender la PC, o verifica que la terminal esté abierta.');
+                }
+            } else {
+                // Web Engine
+                res = await fetch('/api/generar-docx', {
+                    method: 'POST',
+                    body: formData
+                });
+            }
 
             if (!res.ok) {
                 let errData;
@@ -1383,7 +1410,7 @@ export default function GeneradorInformesPage() {
 
                     {/* Resumen de campos */}
                     {tags.length > 0 && (
-                        <div className="rounded-xl p-4 space-y-2" style={{ background: 'hsl(222,47%,8%)', border: '1px solid hsl(222,47%,15%)' }}>
+                        <div className="rounded-xl p-4 space-y-2 mb-6" style={{ background: 'hsl(222,47%,8%)', border: '1px solid hsl(222,47%,15%)' }}>
                             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'hsl(215,20%,55%)' }}>Resumen</p>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm" style={{ color: 'hsl(215,20%,70%)' }}>📝 Campos de texto</span>
@@ -1392,6 +1419,29 @@ export default function GeneradorInformesPage() {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm" style={{ color: 'hsl(215,20%,70%)' }}>🖼️ Campos de imagen</span>
                                 <span className="text-sm font-bold text-white">{filledImages}/{imageTags.length}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Selector de Motor */}
+                    {isReadyToGenerate && tags.length > 0 && (
+                        <div className="rounded-xl p-4 space-y-3 mb-6" style={{ background: 'hsl(222,47%,10%)', border: '1px solid hsl(222,47%,20%)' }}>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Motor de Procesamiento</p>
+                            <div className="flex flex-col gap-2">
+                                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${processingEngine === 'web' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'}`}>
+                                    <input type="radio" name="engine" value="web" checked={processingEngine === 'web'} onChange={() => setProcessingEngine('web')} className="text-blue-500 bg-slate-900 border-slate-600 focus:ring-blue-500" />
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-200">Servidor Web (Vercel)</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Para informes rápidos y ligeros</p>
+                                    </div>
+                                </label>
+                                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${processingEngine === 'local' ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'}`}>
+                                    <input type="radio" name="engine" value="local" checked={processingEngine === 'local'} onChange={() => setProcessingEngine('local')} className="text-emerald-500 bg-slate-900 border-slate-600 focus:ring-emerald-500" />
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-200">Servidor Local (Mi PC)</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">Para plantillas pesadas (sin límites)</p>
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     )}
