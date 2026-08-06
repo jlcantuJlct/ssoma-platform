@@ -213,44 +213,46 @@ export async function POST(request: Request) {
                 const regex = /(r:embed|r:id)="([^"]+)"/g;
 
                 updatedParrafo = updatedParrafo.replace(regex, (match, attrName, rId) => {
-                    const target = getTargetFromRel(rId, relsElements);
-                    
                     // Si el rel apunta a una imagen en la carpeta media
+                    const target = getTargetFromRel(rId, relsElements);
                     if (target && (target.includes('media/') || target.includes('image'))) {
                         tagCounter++;
                         const tagName = `foto_${String(tagCounter).padStart(3, '0')}`;
                         
-                        // Si el usuario subió una imagen para este slot, o usamos el fallback si no hay
-                        const newBuf = imageBuffers[tagName] || fallbackBuffer;
-                        
-                        const { ext, mime } = getMimeTypeAndExt(newBuf);
-                        const newTarget = `media/${tagName}.${ext}`;
-                        const newRId = `rId_${tagName}_${Date.now()}`; // Forzar unicidad
-                        
-                        // Inyectar el nuevo archivo físico en el zip
-                        renderedZip.file(`word/${newTarget}`, newBuf);
-                        
-                        // Actualizar el ContentTypes si la extensión es nueva
-                        if (!contentTypesString.includes(`Extension="${ext}"`)) {
-                            contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
+                        // Si el usuario subió una imagen para este slot
+                        if (imageBuffers[tagName]) {
+                            const newBuf = imageBuffers[tagName];
+                            
+                            const { ext, mime } = getMimeTypeAndExt(newBuf);
+                            const newTarget = `media/${tagName}.${ext}`;
+                            const newRId = `rId_${tagName}_${Date.now()}`; // Forzar unicidad
+                            
+                            // Inyectar el nuevo archivo físico en el zip
+                            renderedZip.file(`word/${newTarget}`, newBuf);
+                            
+                            // Actualizar el ContentTypes si la extensión es nueva
+                            if (!contentTypesString.includes(`Extension="${ext}"`)) {
+                                contentTypesString = contentTypesString.replace('</Types>', `<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
+                            }
+                            
+                            // Crear un nuevo Relationship
+                            const relNode = relsDoc.createElement('Relationship');
+                            relNode.setAttribute('Id', newRId);
+                            relNode.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+                            relNode.setAttribute('Target', newTarget);
+                            
+                            const relationshipsNode = relsDoc.getElementsByTagName('Relationships')[0];
+                            if (relationshipsNode) {
+                                relationshipsNode.appendChild(relNode);
+                            }
+                            
+                            // Reemplazar el atributo en el XML para que apunte al NUEVO rId
+                            return `${attrName}="${newRId}"`;
+                        } else {
+                            // Si no hay foto, dejamos la imagen original de la plantilla
+                            return match;
                         }
-                        
-                        // Crear un nuevo Relationship
-                        const relNode = relsDoc.createElement('Relationship');
-                        relNode.setAttribute('Id', newRId);
-                        relNode.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
-                        relNode.setAttribute('Target', newTarget);
-                        
-                        const relationshipsNode = relsDoc.getElementsByTagName('Relationships')[0];
-                        if (relationshipsNode) {
-                            relationshipsNode.appendChild(relNode);
-                        }
-                        
-                        // Reemplazar el atributo en el XML para que apunte al NUEVO rId
-                        return `${attrName}="${newRId}"`;
                     }
-                    
-                    // Si no es imagen, dejamos el rId original
                     return match;
                 });
                 
