@@ -163,12 +163,17 @@ export async function POST(request: Request) {
         // pero docxtemplater ya lo hace si el usuario escribió la etiqueta.
         // Haremos un reemplazo rápido en texto para MAYO 2026 a mes_anio si no existe.
         if (textData['mes_anio']) {
-            let docXmlStr = zip.file('word/document.xml').asText();
-            // Buscar cualquier MES seguido de un año 202X (ej. MAYO 2026, JUNIO 2026) y reemplazarlo
-            docXmlStr = docXmlStr.replace(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)[\s\u00A0]*202[0-9]/gi, '{mes_anio}');
-            // Buscar también "mes año" genérico
-            docXmlStr = docXmlStr.replace(/mes[\s\u00A0]*año/gi, '{mes_anio}');
-            zip.file('word/document.xml', docXmlStr);
+            const xmlFiles = Object.keys(zip.files).filter(name => name.startsWith('word/') && name.endsWith('.xml'));
+            for (const fileName of xmlFiles) {
+                let xmlStr = zip.file(fileName).asText();
+                // Buscar cualquier MES seguido de un año 202X (ej. MAYO 2026, JUNIO 2026) y reemplazarlo
+                // Para lidiar con etiquetas XML intercaladas (ej. MAYO</w:t></w:r> <w:r><w:t>2026), 
+                // permitimos etiquetas XML entre el mes y el año.
+                xmlStr = xmlStr.replace(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)(?:<[^>]+>)*[\s\u00A0]+(?:<[^>]+>)*202[0-9]/gi, '{mes_anio}');
+                // Buscar también "mes año" genérico
+                xmlStr = xmlStr.replace(/mes(?:<[^>]+>)*[\s\u00A0]+(?:<[^>]+>)*a[ñn]o/gi, '{mes_anio}');
+                zip.file(fileName, xmlStr);
+            }
         }
 
         const doc = new Docxtemplater(zip, {
