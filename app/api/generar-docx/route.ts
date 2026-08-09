@@ -167,11 +167,11 @@ export async function POST(request: Request) {
             for (const fileName of xmlFiles) {
                 let xmlStr = zip.file(fileName).asText();
                 // Buscar cualquier MES seguido de un año 202X (ej. MAYO 2026, JUNIO 2026) y reemplazarlo
-                // Para lidiar con etiquetas XML intercaladas (ej. MAYO</w:t></w:r> <w:r><w:t>2026), 
-                // permitimos etiquetas XML, espacios, 'del', 'al', 'o' entre el mes y el año.
-                xmlStr = xmlStr.replace(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)(?:<[^>]+>|[\s\u00A0oO]|del|al)*202[0-9]/gi, '{mes_anio}');
+                // Para lidiar con etiquetas XML intercaladas (ej. MAYO</w:t></w:r> <w:r><w:t>202</w:t>...<w:t>6), 
+                // permitimos etiquetas XML, espacios, 'del', 'al', 'o' entre el mes y el año, Y DENTRO del año.
+                xmlStr = xmlStr.replace(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)(?:<[^>]+>|[\s\u00A0oO]|del|al)*2(?:<[^>]+>)*0(?:<[^>]+>)*2(?:<[^>]+>)*[0-9]/gi, '{mes_anio}');
                 // Buscar también "mes año" genérico
-                xmlStr = xmlStr.replace(/mes(?:<[^>]+>)*[\s\u00A0]+(?:<[^>]+>)*a[ñn]o/gi, '{mes_anio}');
+                xmlStr = xmlStr.replace(/m(?:<[^>]+>)*e(?:<[^>]+>)*s(?:<[^>]+>|[\s\u00A0])*a(?:<[^>]+>)*[ñn](?:<[^>]+>)*o/gi, '{mes_anio}');
                 zip.file(fileName, xmlStr);
             }
         }
