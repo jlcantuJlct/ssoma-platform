@@ -2153,11 +2153,16 @@ export function DashboardCharts({
     // --- HHC HOURS ACCUMULATION LOGIC (BREAKDOWN BY AREA) ---
     const hhcBreakdown = useMemo(() => {
         const breakdown = { 
+            'Seguridad': { hours: 0, people: 0, dates: new Set<string>() }, 
+            'Salud': { hours: 0, people: 0, dates: new Set<string>() }, 
+            'Medio Ambiente': { hours: 0, people: 0, dates: new Set<string>() } 
+        };
+        const emptyResult = {
             'Seguridad': { hours: 0, people: 0, count: 0 }, 
             'Salud': { hours: 0, people: 0, count: 0 }, 
             'Medio Ambiente': { hours: 0, people: 0, count: 0 } 
         };
-        if (!hhcRecords || hhcRecords.length === 0) return breakdown;
+        if (!hhcRecords || hhcRecords.length === 0) return emptyResult;
 
         hhcRecords.forEach(record => {
             if (!record.date) return;
@@ -2185,19 +2190,23 @@ export function DashboardCharts({
                 if (areaNormalized === 'seguridad') {
                     breakdown['Seguridad'].hours += hhcVal;
                     breakdown['Seguridad'].people += peopleVal;
-                    breakdown['Seguridad'].count += 1;
+                    breakdown['Seguridad'].dates.add(record.date);
                 } else if (areaNormalized === 'salud') {
                     breakdown['Salud'].hours += hhcVal;
                     breakdown['Salud'].people += peopleVal;
-                    breakdown['Salud'].count += 1;
+                    breakdown['Salud'].dates.add(record.date);
                 } else if (areaNormalized === 'ambiente' || areaNormalized === 'medio_ambiente') {
                     breakdown['Medio Ambiente'].hours += hhcVal;
                     breakdown['Medio Ambiente'].people += peopleVal;
-                    breakdown['Medio Ambiente'].count += 1;
+                    breakdown['Medio Ambiente'].dates.add(record.date);
                 }
             }
         });
-        return breakdown;
+        return {
+            'Seguridad': { hours: breakdown['Seguridad'].hours, people: breakdown['Seguridad'].people, count: breakdown['Seguridad'].dates.size },
+            'Salud': { hours: breakdown['Salud'].hours, people: breakdown['Salud'].people, count: breakdown['Salud'].dates.size },
+            'Medio Ambiente': { hours: breakdown['Medio Ambiente'].hours, people: breakdown['Medio Ambiente'].people, count: breakdown['Medio Ambiente'].dates.size }
+        };
     }, [hhcRecords, currentMonth, currentYear, selectedMonthsArray]);
 
     return (
