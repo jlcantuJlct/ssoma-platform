@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth, USER_LIST } from '@/lib/auth';
@@ -191,6 +191,100 @@ export default function SCSSTPage() {
             alert(`Error al eliminar: ${error.message}`);
         }
     };
+
+    const renderCard = (rec: any) => {
+        const fileCount = rec.fileUrls ? rec.fileUrls.length : (rec.fileUrl ? 1 : 0);
+        const hasFiles = fileCount > 0;
+        return (
+            <Card key={rec.id} className="bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden rounded-2xl">
+                <div className="p-4 space-y-4">
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-bold text-xs leading-tight mb-1 truncate group-hover:text-emerald-400 transition-colors">
+                                {rec.activity}
+                            </h3>
+                            <div className="flex items-center gap-2 text-slate-500 text-[10px]">
+                                <Calendar size={12} />
+                                <span>{rec.date}</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-1">
+                            <button 
+                                onClick={() => hasFiles && setViewingFile(rec)}
+                                className={`p-2 rounded-lg transition-all ${hasFiles ? 'bg-slate-800 hover:bg-emerald-500/20 text-emerald-500' : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'}`}
+                                title={hasFiles ? "Ver/Descargar Archivo(s)" : "Sin Archivo"}
+                            >
+                                <FileText size={14} />
+                            </button>
+                            {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
+                                <>
+                                    <button 
+                                        onClick={() => handleEdit(rec)}
+                                        className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all"
+                                        title="Editar Registro"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDelete(rec.id)}
+                                        className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                        title="Eliminar Registro"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/50">
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Responsable</p>
+                            <p className="text-[10px] text-slate-300 font-medium truncate">{rec.responsable || rec.responsible}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Zona / Ubicación</p>
+                            <p className="text-[10px] text-slate-300 font-medium truncate">{rec.zona || rec.location || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    {rec.description && (
+                        <div className="pt-2">
+                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Descripción</p>
+                            <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{rec.description}</p>
+                        </div>
+                    )}
+
+                    {hasFiles && (
+                        <div className="pt-2">
+                            <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Archivo Adjunto</p>
+                            <button 
+                                onClick={() => setViewingFile(rec)}
+                                className="w-full text-left p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center gap-2"
+                            >
+                                <FileText size={14} className="text-emerald-400" />
+                                <span className="text-[10px] text-emerald-400 font-bold truncate">
+                                    {generateFilename(rec.activity, rec.date, rec.responsable || rec.responsible, 'pdf', 'evidencia', rec.zona || rec.location, 'scsst').replace(/\.[^/.]+$/, "")}
+                                    {fileCount > 1 ? ` (+${fileCount-1})` : ''}
+                                </span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </Card>
+        );
+    };
+
+    const reuniones = filteredRecords.filter(r => r.activity.toLowerCase().includes('reuni'));
+    const capacitaciones = filteredRecords.filter(r => r.activity.toLowerCase().includes('capacitaci'));
+    const inspecciones = filteredRecords.filter(r => r.activity.toLowerCase().includes('inspecci'));
+    const informes = filteredRecords.filter(r => r.activity.toLowerCase().includes('informe'));
+    const otros = filteredRecords.filter(r => 
+        !r.activity.toLowerCase().includes('reuni') && 
+        !r.activity.toLowerCase().includes('capacitaci') && 
+        !r.activity.toLowerCase().includes('inspecci') && 
+        !r.activity.toLowerCase().includes('informe')
+    );
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
@@ -594,89 +688,29 @@ export default function SCSSTPage() {
                             <p className="text-xs text-slate-500 max-w-xs">Intente ajustando los filtros o cargue una nueva evidencia.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredRecords.map((rec) => {
-                                const fileCount = rec.fileUrls ? rec.fileUrls.length : (rec.fileUrl ? 1 : 0);
-                                const hasFiles = fileCount > 0;
-                                return (
-                                <Card key={rec.id} className="bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all group overflow-hidden rounded-2xl">
-                                    <div className="p-4 space-y-4">
-                                        <div className="flex justify-between items-start gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-white font-bold text-xs leading-tight mb-1 truncate group-hover:text-emerald-400 transition-colors">
-                                                    {rec.activity}
-                                                </h3>
-                                                <div className="flex items-center gap-2 text-slate-500 text-[10px]">
-                                                    <Calendar size={12} />
-                                                    <span>{rec.date}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                <button 
-                                                    onClick={() => hasFiles && setViewingFile(rec)}
-                                                    className={`p-2 rounded-lg transition-all ${hasFiles ? 'bg-slate-800 hover:bg-emerald-500/20 text-emerald-500' : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'}`}
-                                                    title={hasFiles ? "Ver/Descargar Archivo(s)" : "Sin Archivo"}
-                                                >
-                                                    <FileText size={14} />
-                                                </button>
-                                                {(user?.role === 'developer' || user?.role === 'manager' || user?.name === (rec.responsable || rec.responsible)) && (
-                                                    <>
-                                                        <button 
-                                                            onClick={() => handleEdit(rec)}
-                                                            className="p-2 bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 rounded-lg transition-all"
-                                                            title="Editar Registro"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(rec.id)}
-                                                            className="p-2 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
-                                                            title="Eliminar Registro"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/50">
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Responsable</p>
-                                                <p className="text-[10px] text-slate-300 font-medium truncate">{rec.responsable || rec.responsible}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Zona / Ubicación</p>
-                                                <p className="text-[10px] text-slate-300 font-medium truncate">{rec.zona || rec.location || 'N/A'}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        {rec.description && (
-                                            <div className="pt-2">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Descripción</p>
-                                                <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{rec.description}</p>
-                                            </div>
-                                        )}
-
-                                        {hasFiles && (
-                                            <div className="pt-2">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Archivo Adjunto</p>
-                                                <button 
-                                                    onClick={() => setViewingFile(rec)}
-                                                    className="w-full text-left p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors flex items-center gap-2"
-                                                >
-                                                    <FileText size={14} className="text-emerald-400" />
-                                                    <span className="text-[10px] text-emerald-400 font-bold truncate">
-                                                        {generateFilename(rec.activity, rec.date, rec.responsable || rec.responsible, 'pdf', 'evidencia', rec.zona || rec.location, 'scsst').replace(/\.[^/.]+$/, "")}
-                                                        {fileCount > 1 ? ` (+${fileCount-1})` : ''}
-                                                    </span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </Card>
-                                );
-                            })}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-black text-emerald-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-emerald-500">Reuniones</h2>
+                                {reuniones.map(renderCard)}
+                            </div>
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-black text-blue-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-blue-500">Capacitaciones</h2>
+                                {capacitaciones.map(renderCard)}
+                            </div>
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-black text-rose-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-rose-500">Inspecciones</h2>
+                                {inspecciones.map(renderCard)}
+                            </div>
+                            <div className="space-y-4">
+                                <h2 className="text-xs font-black text-amber-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-amber-500">Informes</h2>
+                                {informes.map(renderCard)}
+                                {otros.length > 0 && (
+                                    <>
+                                        <h2 className="text-xs font-black text-slate-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-slate-500 mt-8">Otros</h2>
+                                        {otros.map(renderCard)}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
