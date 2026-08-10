@@ -371,6 +371,18 @@ export default function ReporteACPage() {
         return matchesDate && matchesLocation && matchesActo && matchesMonth;
     });
 
+    const actoCounts = filteredRecords.reduce((acc, r) => {
+        if (r.acto) acc[r.acto] = (acc[r.acto] || 0) + r.cantidad;
+        return acc;
+    }, {} as Record<string, number>);
+    const sortedActos = Object.entries(actoCounts).sort((a, b) => b[1] - a[1]);
+
+    const condicionCounts = filteredRecords.reduce((acc, r) => {
+        if (r.condicion) acc[r.condicion] = (acc[r.condicion] || 0) + r.cantidad;
+        return acc;
+    }, {} as Record<string, number>);
+    const sortedCondiciones = Object.entries(condicionCounts).sort((a, b) => b[1] - a[1]);
+
     const MONTHS_LIST = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const getMonthCount = (m: string) => {
         return records.filter(r => {
@@ -716,7 +728,62 @@ export default function ReporteACPage() {
                     </div>
 
                     {/* Table Side */}
-                    <div className="lg:col-span-8 space-y-6">
+                    <div className="lg:col-span-7 space-y-6">
+
+                        {/* Ranking & Global Filters */}
+                        <div className="bg-slate-900 border border-slate-800 rounded-[2rem] shadow-xl overflow-hidden">
+                            <div className="p-6">
+                                <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
+                                    <BarChart3 size={20} className="text-orange-500" />
+                                    Ranking de Observaciones {filterMonth && <span className="text-orange-500 uppercase">({filterMonth})</span>}
+                                </h3>
+                                {/* Month Summary Bar */}
+                                <div className="grid grid-cols-6 md:grid-cols-12 gap-2 mb-6">
+                                    {MONTHS_LIST.map(m => {
+                                        const count = getMonthCount(m);
+                                        return (
+                                            <div 
+                                                key={m} 
+                                                onClick={() => setFilterMonth(filterMonth === m ? "" : m)}
+                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonth === m ? 'bg-orange-500 border-orange-400 text-black' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
+                                            >
+                                                <span className="text-[8px] font-black uppercase">{m}</span>
+                                                <span className="text-xs font-black">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Top Actos */}
+                                    <div>
+                                        <h4 className="text-xs font-black text-orange-500 uppercase mb-3">Top Actos Inseguros</h4>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                                            {sortedActos.map(([name, count]) => (
+                                                <div key={name} className="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                                    <span className="text-[10px] font-medium text-slate-300 truncate pr-2" title={name}>{name}</span>
+                                                    <span className="text-xs font-black text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md min-w-[30px] text-center">{count}</span>
+                                                </div>
+                                            ))}
+                                            {sortedActos.length === 0 && <p className="text-xs text-slate-500 text-center py-4 bg-slate-950 rounded-lg border border-slate-800 border-dashed">No hay datos</p>}
+                                        </div>
+                                    </div>
+                                    {/* Top Condiciones */}
+                                    <div>
+                                        <h4 className="text-xs font-black text-blue-500 uppercase mb-3">Top Condiciones Inseguras</h4>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                                            {sortedCondiciones.map(([name, count]) => (
+                                                <div key={name} className="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                                    <span className="text-[10px] font-medium text-slate-300 truncate pr-2" title={name}>{name}</span>
+                                                    <span className="text-xs font-black text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md min-w-[30px] text-center">{count}</span>
+                                                </div>
+                                            ))}
+                                            {sortedCondiciones.length === 0 && <p className="text-xs text-slate-500 text-center py-4 bg-slate-950 rounded-lg border border-slate-800 border-dashed">No hay datos</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="bg-slate-900 border border-slate-800 rounded-[2rem] shadow-xl overflow-hidden">
                             <div className="p-6 border-b border-slate-800 space-y-6">
                                 <div className="flex items-center justify-between">
@@ -746,23 +813,6 @@ export default function ReporteACPage() {
                                     >
                                         <FileText size={14} /> Descargar PDF
                                     </button>
-                                </div>
-
-                                {/* Month Summary Bar */}
-                                <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
-                                    {MONTHS_LIST.map(m => {
-                                        const count = getMonthCount(m);
-                                        return (
-                                            <div 
-                                                key={m} 
-                                                onClick={() => setFilterMonth(filterMonth === m ? "" : m)}
-                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonth === m ? 'bg-orange-500 border-orange-400 text-black' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
-                                            >
-                                                <span className="text-[8px] font-black uppercase">{m}</span>
-                                                <span className="text-xs font-black">{count}</span>
-                                            </div>
-                                        );
-                                    })}
                                 </div>
 
                                 {/* FILTERS */}
