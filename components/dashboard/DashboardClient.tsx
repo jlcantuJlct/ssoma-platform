@@ -667,7 +667,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                 </div>
 
             {/* Header Area (Toolbar) */}
-            <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800">
+            <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800 relative z-50">
                 {!showAnalytics && (
                     <div className="hidden md:flex items-center gap-4 border-r border-slate-700 pr-4 shrink-0">
                         <div className="p-2.5 bg-emerald-600 rounded-xl shadow-lg ring-2 ring-emerald-400/20">
