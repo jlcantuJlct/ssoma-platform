@@ -2153,9 +2153,9 @@ export function DashboardCharts({
     // --- HHC HOURS ACCUMULATION LOGIC (BREAKDOWN BY AREA) ---
     const hhcBreakdown = useMemo(() => {
         const breakdown = { 
-            'Seguridad': { hours: 0, people: 0 }, 
-            'Salud': { hours: 0, people: 0 }, 
-            'Medio Ambiente': { hours: 0, people: 0 } 
+            'Seguridad': { hours: 0, people: 0, count: 0 }, 
+            'Salud': { hours: 0, people: 0, count: 0 }, 
+            'Medio Ambiente': { hours: 0, people: 0, count: 0 } 
         };
         if (!hhcRecords || hhcRecords.length === 0) return breakdown;
 
@@ -2185,12 +2185,15 @@ export function DashboardCharts({
                 if (areaNormalized === 'seguridad') {
                     breakdown['Seguridad'].hours += hhcVal;
                     breakdown['Seguridad'].people += peopleVal;
+                    breakdown['Seguridad'].count += 1;
                 } else if (areaNormalized === 'salud') {
                     breakdown['Salud'].hours += hhcVal;
                     breakdown['Salud'].people += peopleVal;
+                    breakdown['Salud'].count += 1;
                 } else if (areaNormalized === 'ambiente' || areaNormalized === 'medio_ambiente') {
                     breakdown['Medio Ambiente'].hours += hhcVal;
                     breakdown['Medio Ambiente'].people += peopleVal;
+                    breakdown['Medio Ambiente'].count += 1;
                 }
             }
         });
@@ -2353,6 +2356,17 @@ export function DashboardCharts({
                                                             {((hhcBreakdown as any)[area.name]?.people || 0).toLocaleString()}
                                                         </span>
                                                         <span className="text-[8px] font-bold text-slate-500">PERS.</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mb-1">
+                                                        Eventos Impartidos
+                                                    </span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-lg font-black text-slate-400">
+                                                            {((hhcBreakdown as any)[area.name]?.count || 0).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-500">VECES</span>
                                                     </div>
                                                 </div>
                                             </div>
