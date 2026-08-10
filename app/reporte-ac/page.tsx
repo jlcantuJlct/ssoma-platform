@@ -169,7 +169,7 @@ export default function ReporteACPage() {
     const [filterDate, setFilterDate] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
     const [filterActo, setFilterActo] = useState("");
-    const [filterMonth, setFilterMonth] = useState("");
+    const [filterMonths, setFilterMonths] = useState<string[]>([]);
 
     // Dynamic Activities from Program (OBJ 04)
     const [programActivities, setProgramActivities] = useState<any[]>([]);
@@ -366,7 +366,7 @@ export default function ReporteACPage() {
         const matchesDate = !filterDate || (r.date && r.date.includes(filterDate));
         const matchesLocation = !filterLocation || (r.location && r.location === filterLocation);
         const matchesActo = !filterActo || (r.acto && r.acto === filterActo);
-        const matchesMonth = !filterMonth || (r.date && new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '') === filterMonth.toLowerCase());
+        const matchesMonth = filterMonths.length === 0 || (r.date && filterMonths.includes(new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '')));
         
         return matchesDate && matchesLocation && matchesActo && matchesMonth;
     });
@@ -735,17 +735,24 @@ export default function ReporteACPage() {
                             <div className="p-6">
                                 <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
                                     <BarChart3 size={20} className="text-orange-500" />
-                                    Ranking de Observaciones {filterMonth && <span className="text-orange-500 uppercase">({filterMonth})</span>}
+                                    Ranking de Observaciones {filterMonths.length > 0 && <span className="text-orange-500 uppercase">({filterMonths.join(', ')})</span>}
                                 </h3>
                                 {/* Month Summary Bar */}
                                 <div className="grid grid-cols-6 md:grid-cols-12 gap-2 mb-6">
                                     {MONTHS_LIST.map(m => {
                                         const count = getMonthCount(m);
+                                        const mLower = m.toLowerCase();
                                         return (
                                             <div 
                                                 key={m} 
-                                                onClick={() => setFilterMonth(filterMonth === m ? "" : m)}
-                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonth === m ? 'bg-orange-500 border-orange-400 text-black' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
+                                                onClick={() => {
+                                                    if (filterMonths.includes(mLower)) {
+                                                        setFilterMonths(filterMonths.filter(x => x !== mLower));
+                                                    } else {
+                                                        setFilterMonths([...filterMonths, mLower]);
+                                                    }
+                                                }}
+                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonths.includes(mLower) ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
                                             >
                                                 <span className="text-[8px] font-black uppercase">{m}</span>
                                                 <span className="text-xs font-black">{count}</span>
@@ -868,9 +875,9 @@ export default function ReporteACPage() {
                                         />
                                     </div>
                                     <div className="space-y-1 flex flex-col justify-end h-[53px]">
-                                        {(filterLocation || filterDate || filterActo || filterMonth) && (
+                                        {(filterLocation || filterDate || filterActo || filterMonths.length > 0) && (
                                             <button 
-                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterActo(''); setFilterMonth(''); }}
+                                                onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterActo(''); setFilterMonths([]); }}
                                                 className="w-full h-[33px] bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase transition-colors border border-red-500/20 flex items-center justify-center gap-2 active:scale-95"
                                             >
                                                 <X size={14} strokeWidth={3} /> Limpiar Filtros
