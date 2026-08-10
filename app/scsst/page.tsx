@@ -88,7 +88,7 @@ export default function SCSSTPage() {
         const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
         const matchZone = !filters.zona || (rec.zona || rec.location) === filters.zona;
         return matchDate && matchActivity && matchResp && matchZone;
-    });
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Derive filter options - ALWAYS show full lists so user can filter easily
     const filterOptions = {
@@ -702,7 +702,7 @@ export default function SCSSTPage() {
                                 {inspecciones.map(renderCard)}
                             </div>
                             <div className="space-y-4">
-                                <h2 className="text-xs font-black text-amber-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-amber-500">Informes</h2>
+                                <h2 className="text-xs font-black text-amber-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-amber-500">Informes Trimestrales</h2>
                                 {informes.map(renderCard)}
                                 {otros.length > 0 && (
                                     <>
