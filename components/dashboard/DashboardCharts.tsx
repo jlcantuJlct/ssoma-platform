@@ -2176,9 +2176,10 @@ export function DashboardCharts({
             }
 
             if (includeInSum) {
-                if (record.area === 'seguridad') breakdown['Seguridad'] += hhcVal;
-                else if (record.area === 'salud') breakdown['Salud'] += hhcVal;
-                else if (record.area === 'medio_ambiente') breakdown['Medio Ambiente'] += hhcVal;
+                const areaNormalized = (record.area || '').toLowerCase();
+                if (areaNormalized === 'seguridad') breakdown['Seguridad'] += hhcVal;
+                else if (areaNormalized === 'salud') breakdown['Salud'] += hhcVal;
+                else if (areaNormalized === 'ambiente' || areaNormalized === 'medio_ambiente') breakdown['Medio Ambiente'] += hhcVal;
             }
         });
         return breakdown;

@@ -273,7 +273,7 @@ export default function GeneradorInformesPage() {
     // --- Autoguardado Colaborativo ---
     const loadDraft = useCallback(async (docType: string, currentTags: DetectedTag[]) => {
         try {
-            const res = await fetch(`/api/draft?docType=${docType}`);
+            const res = await fetch(`/api/draft?docType=${docType}&t=${Date.now()}`, { cache: 'no-store' });
             let fields: any = {};
             if (res.ok) {
                 const data = await res.json();
@@ -410,7 +410,7 @@ export default function GeneradorInformesPage() {
             if (document.hidden) return; 
 
             const docType = templateFile.name;
-            fetch(`/api/draft?docType=${docType}`).then(r => r.json()).then(data => {
+            fetch(`/api/draft?docType=${docType}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).then(data => {
                 // PREVENCIÓN DE RACE CONDITION: Abortar si la plantilla cambió durante el fetch
                 if (activeDocTypeRef.current && activeDocTypeRef.current !== docType) return;
 
