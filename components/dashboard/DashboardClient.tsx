@@ -34,7 +34,9 @@ import {
     TrendingUp,
     Wrench,
     Leaf,
-    Clock
+    Clock,
+    Calendar,
+    ChevronDown
 } from "lucide-react";
 import { ReportCommandCenter } from "./ReportCommandCenter";
 
