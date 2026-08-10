@@ -2152,7 +2152,11 @@ export function DashboardCharts({
 
     // --- HHC HOURS ACCUMULATION LOGIC (BREAKDOWN BY AREA) ---
     const hhcBreakdown = useMemo(() => {
-        const breakdown = { 'Seguridad': 0, 'Salud': 0, 'Medio Ambiente': 0 };
+        const breakdown = { 
+            'Seguridad': { hours: 0, people: 0 }, 
+            'Salud': { hours: 0, people: 0 }, 
+            'Medio Ambiente': { hours: 0, people: 0 } 
+        };
         if (!hhcRecords || hhcRecords.length === 0) return breakdown;
 
         hhcRecords.forEach(record => {
@@ -2161,6 +2165,7 @@ export function DashboardCharts({
             const rYear = parseInt(yStr);
             const rMonth = parseInt(mStr) - 1; // 0-indexed
             const hhcVal = Number(record.hhc || 0);
+            const peopleVal = Number(record.hombres || 0) + Number(record.mujeres || 0);
 
             if (currentYear && rYear !== currentYear) return;
 
@@ -2177,9 +2182,16 @@ export function DashboardCharts({
 
             if (includeInSum) {
                 const areaNormalized = (record.area || '').toLowerCase();
-                if (areaNormalized === 'seguridad') breakdown['Seguridad'] += hhcVal;
-                else if (areaNormalized === 'salud') breakdown['Salud'] += hhcVal;
-                else if (areaNormalized === 'ambiente' || areaNormalized === 'medio_ambiente') breakdown['Medio Ambiente'] += hhcVal;
+                if (areaNormalized === 'seguridad') {
+                    breakdown['Seguridad'].hours += hhcVal;
+                    breakdown['Seguridad'].people += peopleVal;
+                } else if (areaNormalized === 'salud') {
+                    breakdown['Salud'].hours += hhcVal;
+                    breakdown['Salud'].people += peopleVal;
+                } else if (areaNormalized === 'ambiente' || areaNormalized === 'medio_ambiente') {
+                    breakdown['Medio Ambiente'].hours += hhcVal;
+                    breakdown['Medio Ambiente'].people += peopleVal;
+                }
             }
         });
         return breakdown;
@@ -2320,15 +2332,28 @@ export function DashboardCharts({
                                             </div>
 
                                             {/* --- HHC DATA INJECTED HERE --- */}
-                                            <div className="flex flex-col items-center mt-3 pt-3 border-t border-slate-800/50 w-full">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mb-1">
-                                                    {selectedMonthsArray.length > 0 ? 'HHC Sumatoria Sel.' : 'Horas HHC Acum.'}
-                                                </span>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-xl font-black text-white" style={{ textShadow: `0 0 10px ${area.color}40` }}>
-                                                        {((hhcBreakdown as any)[area.name] || 0).toLocaleString()}
+                                            <div className="flex flex-col items-center mt-3 pt-3 border-t border-slate-800/50 w-full gap-2">
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mb-1">
+                                                        {selectedMonthsArray.length > 0 ? 'HHC Sumatoria Sel.' : 'Horas HHC Acum.'}
                                                     </span>
-                                                    <span className="text-[8px] font-bold text-slate-500">HRS</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-xl font-black text-white" style={{ textShadow: `0 0 10px ${area.color}40` }}>
+                                                            {((hhcBreakdown as any)[area.name]?.hours || 0).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-500">HRS</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mb-1">
+                                                        Personas Capacitadas
+                                                    </span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-lg font-black text-slate-300">
+                                                            {((hhcBreakdown as any)[area.name]?.people || 0).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-500">PERS.</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
