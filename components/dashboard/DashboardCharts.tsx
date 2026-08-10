@@ -24,6 +24,7 @@ interface DashboardChartsProps {
     activeManagement?: string;
     currentMonth?: number;
     currentYear?: number;
+    selectedMonthsArray?: number[];
 }
 
 const FORMATION_DURATIONS: Record<string, number> = {
@@ -40,6 +41,7 @@ export function DashboardCharts({
     mode = 'general', 
     activeManagement = 'todos',
     currentMonth = -1, 
+    selectedMonthsArray = [],
     currentYear = 2026 
 }: DashboardChartsProps) {
 
@@ -2148,6 +2150,58 @@ export function DashboardCharts({
 
     // --- ACCIDENTABILITY STATS LOGIC ---
 
+    // --- HHC HOURS ACCUMULATION LOGIC ---
+    const { hhcMonthTotal, hhcAccumulatedTotal } = useMemo(() => {
+        if (!hhcRecords || hhcRecords.length === 0) return { hhcMonthTotal: 0, hhcAccumulatedTotal: 0 };
+        let monthSum = 0;
+        let accumSum = 0;
+        hhcRecords.forEach(record => {
+            if (!record.date) return;
+            const [yStr, mStr] = record.date.split('-');
+            const rYear = parseInt(yStr);
+            const rMonth = parseInt(mStr) - 1; // 0-indexed
+            const hhcVal = Number(record.hhc || 0);
+
+            if (currentYear && rYear !== currentYear) return;
+
+            // Area filter based on activeManagement
+            if (activeManagement !== 'todos') {
+                if (activeManagement === 'safety' && record.area !== 'seguridad') return;
+                if (activeManagement === 'health' && record.area !== 'salud') return;
+                if (activeManagement === 'environment' && record.area !== 'medio_ambiente') return;
+            } else {
+                // If 'todos', only include these 3 specific areas according to requirements (or all if not specified, but typically those 3)
+                if (record.area !== 'seguridad' && record.area !== 'salud' && record.area !== 'medio_ambiente') return;
+            }
+
+            // If selectedMonthsArray has items, sum only those selected months.
+            if (selectedMonthsArray.length > 0) {
+                // For "Accumulated (YTD)", we usually sum up to the maximum selected month, or maybe just sum the selected months.
+                // The user requested: "enero, febrero, marzo, y esos tres meses acumulados me los debe mostrar, o sea, la sumatoria de los tres meses"
+                // So both indicators might just show the sum of selected months, or we can distinguish.
+                // Let's make both show the precise sum of the selected months if array is used.
+                if (selectedMonthsArray.includes(rMonth)) {
+                    monthSum += hhcVal;
+                    accumSum += hhcVal; // In specific multi-selection, YTD means sum of selected
+                }
+            } else {
+                // Fallback to legacy single currentMonth logic or ALL if array is empty
+                if (currentMonth === -1 || currentMonth === undefined) {
+                    accumSum += hhcVal;
+                    monthSum += hhcVal; 
+                } else {
+                    if (rMonth <= currentMonth) {
+                        accumSum += hhcVal;
+                    }
+                    if (rMonth === currentMonth) {
+                        monthSum += hhcVal;
+                    }
+                }
+            }
+        });
+        return { hhcMonthTotal: monthSum, hhcAccumulatedTotal: accumSum };
+    }, [hhcRecords, currentMonth, currentYear, selectedMonthsArray, activeManagement]);
+
     return (
         <div className="space-y-8 p-2 md:p-6" >
 
@@ -2285,6 +2339,36 @@ export function DashboardCharts({
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- WIDGET DE HORAS HHC ACUMULADAS --- */}
+                    <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-blue-500/30 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none group-hover:bg-blue-500/20 transition-colors duration-700"></div>
+                        
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="p-4 bg-blue-500/20 rounded-2xl shadow-lg border border-blue-500/30">
+                                    <Clock size={28} className="text-blue-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-white tracking-tight">Horas Hombre Capacitación (HHC)</h3>
+                                    <p className="text-sm text-slate-400 font-bold">Control de HHC según filtro de mes</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-6 md:gap-12">
+                                <div className="text-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800 min-w-[140px]">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">{selectedMonthsArray.length > 0 ? 'Mes(es) Sel.' : (currentMonth === -1 ? 'Total Anual' : 'Mes Seleccionado')}</p>
+                                    <p className="text-4xl font-black text-white">{hhcMonthTotal.toLocaleString()}</p>
+                                    <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">Horas</p>
+                                </div>
+                                <div className="text-center bg-blue-950/30 p-4 rounded-2xl border border-blue-900/50 min-w-[140px]">
+                                    <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">{selectedMonthsArray.length > 0 ? 'Sumatoria Sel.' : 'Acumulado (YTD)'}</p>
+                                    <p className="text-4xl font-black text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">{hhcAccumulatedTotal.toLocaleString()}</p>
+                                    <p className="text-[9px] text-blue-500/70 font-bold uppercase mt-1">Horas</p>
+                                </div>
                             </div>
                         </div>
                     </div>

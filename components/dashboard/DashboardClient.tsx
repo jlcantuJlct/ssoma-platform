@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardData, Section, Activity, AuditLog, MONTHS } from "@/lib/types";
 import { ActivityTable } from "./ActivityList";
@@ -75,7 +75,8 @@ function DashboardContent({ initialData }: DashboardClientProps) {
     const [viewMode, setViewMode] = useState<'cards' | 'grid'>('cards');
 
     const [selectedYear, setSelectedYear] = useState(2026);
-    const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(-1);
+    const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+    const selectedMonthIndex = selectedMonths.length > 0 ? selectedMonths[0] : -1;
     const [evidenceModal, setEvidenceModal] = useState<{ activity: Activity, month: number } | null>(null);
 
     const [selectedObjectiveId, setSelectedObjectiveId] = useState<string>('todos');
@@ -681,7 +682,12 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                     {/* Periodo Filter Removed from here as it is in title, or we can keep it for double access. Let's remove to clean UI */}
                     {/* <FilterControl label="Periodo" value={selectedYear} options={[2026, 2027, 2028]} onChange={setSelectedYear} /> */}
 
-                    <FilterControl label="Mes" value={selectedMonthIndex} options={MONTHS_FULL.map((m, i) => ({ l: m, v: i - 1 }))} onChange={setSelectedMonthIndex} />
+                    <MultiMonthFilter 
+                        label="Meses (Selección Múltiple)" 
+                        selectedMonths={selectedMonths} 
+                        onChange={setSelectedMonths} 
+                        icon={<Calendar size={12} className="text-emerald-500" />}
+                    />
                     <FilterControl
                         label="Gestión"
                         value={activeManagement}
@@ -825,6 +831,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                             mode={searchParams.get('view') === 'control_hhc' ? 'hhc' : 'general'}
                             activeManagement={activeManagement}
                             currentMonth={selectedMonthIndex}
+                            selectedMonthsArray={selectedMonths}
                             currentYear={selectedYear}
                         />
                     </div>
@@ -1040,6 +1047,73 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                 </div>
             )}
             </div>
+        </div>
+    );
+}
+
+function MultiMonthFilter({ selectedMonths, onChange, label, icon }: any) {
+    const [isOpen, setIsOpen] = useState(false);
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const toggleMonth = (mIdx: number) => {
+        if (selectedMonths.includes(mIdx)) {
+            onChange(selectedMonths.filter((m: number) => m !== mIdx));
+        } else {
+            onChange([...selectedMonths, mIdx].sort((a: number, b: number) => a - b));
+        }
+    };
+
+    const toggleAll = () => {
+        if (selectedMonths.length === 12) onChange([]);
+        else onChange([0,1,2,3,4,5,6,7,8,9,10,11]);
+    };
+
+    return (
+        <div className="flex flex-col gap-0.5 relative" ref={dropdownRef}>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter leading-none mb-1">{label}</span>
+            <div 
+                className="flex items-center justify-between gap-2 bg-slate-800 rounded-xl px-4 py-2.5 ring-1 ring-slate-700 hover:ring-emerald-500 transition-all cursor-pointer min-w-[150px]"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-2">
+                    {icon}
+                    <span className="text-white text-[10px] font-black uppercase leading-none">
+                        {selectedMonths.length === 0 ? 'TODOS (ANUAL)' : `${selectedMonths.length} MES(ES)`}
+                    </span>
+                </div>
+                <ChevronDown size={12} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+            
+            {isOpen && (
+                <div className="absolute top-[calc(100%+0.5rem)] left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-[999] min-w-[280px] grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 text-[10px] text-white font-bold cursor-pointer col-span-2 pb-3 border-b border-slate-700 mb-1 hover:text-emerald-400 transition-colors">
+                        <input type="checkbox" checked={selectedMonths.length === 12} onChange={toggleAll} className="w-3.5 h-3.5 accent-emerald-500 rounded-sm cursor-pointer" />
+                        SELECCIONAR TODOS
+                    </label>
+                    {months.map((m, i) => (
+                        <label key={i} className="flex items-center gap-2 text-[10px] text-slate-300 font-bold cursor-pointer hover:text-white transition-colors">
+                            <input 
+                                type="checkbox" 
+                                checked={selectedMonths.includes(i)}
+                                onChange={() => toggleMonth(i)}
+                                className="w-3.5 h-3.5 accent-emerald-500 rounded-sm cursor-pointer"
+                            />
+                            {m.toUpperCase()}
+                        </label>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
