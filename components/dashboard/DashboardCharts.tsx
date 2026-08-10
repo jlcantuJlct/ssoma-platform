@@ -2150,10 +2150,10 @@ export function DashboardCharts({
 
     // --- ACCIDENTABILITY STATS LOGIC ---
 
-    // --- HHC HOURS ACCUMULATION LOGIC ---
-    const hhcPerArea = useMemo(() => {
-        const sums = { seguridad: 0, salud: 0, medio_ambiente: 0 };
-        if (!hhcRecords || hhcRecords.length === 0) return sums;
+    // --- HHC HOURS ACCUMULATION LOGIC (BREAKDOWN BY AREA) ---
+    const hhcBreakdown = useMemo(() => {
+        const breakdown = { 'Seguridad': 0, 'Salud': 0, 'Medio Ambiente': 0 };
+        if (!hhcRecords || hhcRecords.length === 0) return breakdown;
 
         hhcRecords.forEach(record => {
             if (!record.date) return;
@@ -2164,23 +2164,24 @@ export function DashboardCharts({
 
             if (currentYear && rYear !== currentYear) return;
 
-            // Area check
-            if (record.area !== 'seguridad' && record.area !== 'salud' && record.area !== 'medio_ambiente') return;
-
-            // Time filtering logic
+            let includeInSum = false;
             if (selectedMonthsArray.length > 0) {
-                if (selectedMonthsArray.includes(rMonth)) {
-                    sums[record.area as keyof typeof sums] += hhcVal;
-                }
+                if (selectedMonthsArray.includes(rMonth)) includeInSum = true;
             } else {
                 if (currentMonth === -1 || currentMonth === undefined) {
-                    sums[record.area as keyof typeof sums] += hhcVal;
+                    includeInSum = true;
                 } else if (rMonth <= currentMonth) {
-                    sums[record.area as keyof typeof sums] += hhcVal;
+                    includeInSum = true; // YTD accumulation
                 }
             }
+
+            if (includeInSum) {
+                if (record.area === 'seguridad') breakdown['Seguridad'] += hhcVal;
+                else if (record.area === 'salud') breakdown['Salud'] += hhcVal;
+                else if (record.area === 'medio_ambiente') breakdown['Medio Ambiente'] += hhcVal;
+            }
         });
-        return sums;
+        return breakdown;
     }, [hhcRecords, currentMonth, currentYear, selectedMonthsArray]);
 
     return (
@@ -2310,22 +2311,23 @@ export function DashboardCharts({
                                                 </div>
                                             </div>
 
-                                            {/* Progress Bar */}
                                             <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800 mt-2">
                                                 <div
                                                     className="h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_currentColor]"
                                                     style={{ width: `${area.value}%`, backgroundColor: area.color, color: area.color }}
                                                 ></div>
                                             </div>
-                                            
-                                            {/* HHC Display per Area */}
-                                            <div className="mt-4 pt-4 border-t border-slate-800 w-full flex flex-col items-center">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-1 flex items-center gap-1"><Clock size={10} className="text-blue-400" /> HHC {selectedMonthsArray.length > 0 ? 'MESES SEL.' : 'ACUMULADO'}</span>
+
+                                            {/* --- HHC DATA INJECTED HERE --- */}
+                                            <div className="flex flex-col items-center mt-3 pt-3 border-t border-slate-800/50 w-full">
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none mb-1">
+                                                    {selectedMonthsArray.length > 0 ? 'HHC Sumatoria Sel.' : 'Horas HHC Acum.'}
+                                                </span>
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-xl font-black text-blue-400" style={{ textShadow: `0 0 10px rgba(96,165,250,0.5)` }}>
-                                                        {idx === 0 ? hhcPerArea.seguridad.toLocaleString() : (idx === 1 ? hhcPerArea.salud.toLocaleString() : hhcPerArea.medio_ambiente.toLocaleString())}
+                                                    <span className="text-xl font-black text-white" style={{ textShadow: `0 0 10px ${area.color}40` }}>
+                                                        {((hhcBreakdown as any)[area.name] || 0).toLocaleString()}
                                                     </span>
-                                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Horas</span>
+                                                    <span className="text-[8px] font-bold text-slate-500">HRS</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -2335,7 +2337,7 @@ export function DashboardCharts({
                         </div>
                     </div>
 
-
+                    {/* --- WIDGET DE HORAS HHC ACUMULADAS MOVIDO DENTRO DE LAS TARJETAS --- */}
 
                     {/* --- SECCIÓN DE ESTADÍSTICAS DE ACCIDENTABILIDAD (KPIs) --- */}
                     <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-slate-700 relative overflow-hidden">
