@@ -31,7 +31,9 @@ import {
     Image as ImageIcon,
     Settings,
     Siren,
-    Users
+    Users,
+    Loader2,
+    Cloud
 } from 'lucide-react';
 import { useState, useEffect, Fragment, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -88,6 +90,8 @@ export default function ProgramPage() {
     const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
     const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
     const [reporteAcRecords, setReporteAcRecords] = useState<any[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<string | null>(null);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
     const [editingCell, setEditingCell] = useState<{ key: string, month: number, type: 'P' | 'E' } | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -368,21 +372,35 @@ export default function ProgramPage() {
         }
     };
 
-    // PERSIST DATA - Local + Cloud sync
-    useEffect(() => {
-        const hasDataInMemory = Object.keys(programData).length > 0;
+    // PERSIST DATA - Sincronización robusta con Base de Datos en la Nube y LocalStorage
+    const syncToCloud = async (newProgramData: Record<string, ProgramItem[]>, objId?: string, records?: ProgramItem[]) => {
+        try {
+            setIsSaving(true);
+            localStorage.setItem('annual_program_data', JSON.stringify(newProgramData));
 
-        if (hasDataInMemory) {
-            localStorage.setItem('annual_program_data', JSON.stringify(programData));
-            // Sync to cloud (fire and forget, but keepalive ensures it finishes if tab closes)
-            fetch('/api/annual-program', {
+            // Si se pasa un objetivo específico, enviamos actualización atómica directa
+            const payload = (objId && records)
+                ? { objectiveId: objId, records }
+                : { programData: newProgramData };
+
+            const res = await fetch('/api/annual-program', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ programData }),
-                keepalive: true
-            }).catch(e => console.warn('Annual program cloud sync failed:', e));
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            } else {
+                console.warn('Advertencia en sincronización con la nube:', data);
+            }
+        } catch (e) {
+            console.error('Error sincronizando programa con la nube:', e);
+        } finally {
+            setIsSaving(false);
         }
-    }, [programData]);
+    };
 
     // Listener para actualizaciones externas (Sincronización entre pestañas)
     useEffect(() => {
@@ -631,18 +649,17 @@ export default function ProgramPage() {
                 }
 
                 if (newRecords.length > 0) {
-                    setProgramData(prev => {
-                        if (autoReplace) {
-                            return { ...prev, [selectedObjId]: newRecords };
-                        } else {
-                            const current = prev[selectedObjId] || [];
-                            return { ...prev, [selectedObjId]: [...current, ...newRecords] };
-                        }
-                    });
+                    const current = programData[selectedObjId] || [];
+                    const finalRecords = autoReplace ? newRecords : [...current, ...newRecords];
+                    const nextProgram = { ...programData, [selectedObjId]: finalRecords };
+
+                    setProgramData(nextProgram);
+                    syncToCloud(nextProgram, selectedObjId, finalRecords);
+
                     const count = newRecords.length;
                     alert(autoReplace
-                        ? `✅ CARGA EXITOSA (REEMPLAZO): ${count} registros importados.`
-                        : `✅ CARGA EXITOSA (AGREGADO): ${count} registros importados.`);
+                        ? `✅ CARGA EXITOSA (REEMPLAZO): ${count} registros importados y sincronizados en la nube.`
+                        : `✅ CARGA EXITOSA (AGREGADO): ${count} registros importados y sincronizados en la nube.`);
                 } else {
                     const hint = isMatrix ? "Formato Matriz detectado pero 0 registros creados." : "No se detectó formato Matriz ni Lista.";
                     alert(`⚠️ ALERTA: ${hint}\nSugerencia: Revisar que el archivo contenga datos válidos.`);
@@ -660,7 +677,7 @@ export default function ProgramPage() {
         if (confirm('⚠️ ¿Estás seguro de eliminar TODOS los datos de este objetivo?')) {
             const emptyData = { ...programData, [selectedObjId]: [] };
             setProgramData(emptyData);
-            localStorage.setItem('annual_program_data', JSON.stringify(emptyData));
+            syncToCloud(emptyData, selectedObjId, []);
         }
     };
 
@@ -693,20 +710,32 @@ export default function ProgramPage() {
                 area: area
             });
         }
-        setProgramData(prev => ({
-            ...prev,
-            [selectedObjId]: [...others, ...newItems]
-        }));
+        const updatedList = [...others, ...newItems];
+        const updatedProgram = {
+            ...programData,
+            [selectedObjId]: updatedList
+        };
+        setProgramData(updatedProgram);
+        syncToCloud(updatedProgram, selectedObjId, updatedList);
         setEditingCell(null);
     };
 
     const handleManualAdd = () => {
         if (!newItem.date || !newItem.description) return;
         const record = { id: Date.now(), ...newItem, compliance: 0 };
-        setProgramData(prev => ({ ...prev, [selectedObjId]: [...(prev[selectedObjId] || []), record] }));
+        const updatedList = [...(programData[selectedObjId] || []), record];
+        const updatedProgram = { ...programData, [selectedObjId]: updatedList };
+        setProgramData(updatedProgram);
+        syncToCloud(updatedProgram, selectedObjId, updatedList);
         setNewItem({ ...newItem, description: '' });
     };
-    const handleDelete = (id: number) => setProgramData(prev => ({ ...prev, [selectedObjId]: prev[selectedObjId].filter(i => i.id !== id) }));
+
+    const handleDelete = (id: number) => {
+        const updatedList = (programData[selectedObjId] || []).filter(i => i.id !== id);
+        const updatedProgram = { ...programData, [selectedObjId]: updatedList };
+        setProgramData(updatedProgram);
+        syncToCloud(updatedProgram, selectedObjId, updatedList);
+    };
 
     const currentObj = OBJECTIVES.find(o => o.id === selectedObjId);
 
@@ -1214,35 +1243,49 @@ export default function ProgramPage() {
                                     {currentObj?.label ? currentObj.label.split(':')[1] : 'Seleccione Objetivo'}
                                 </h1>
                             </div>
-                            <div className="flex items-center gap-4">
-                                {/* Checkbox de Reemplazo */}
-                                <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
-                                    <input name="input_62888"
-                                        type="checkbox"
-                                        id="replace-mode"
-                                        checked={autoReplace}
-                                        onChange={e => setAutoReplace(e.target.checked)}
-                                        className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-offset-0 focus:ring-emerald-500 bg-slate-800 cursor-pointer"
-                                    />
-                                    <label htmlFor="replace-mode" className="text-xs text-slate-400 cursor-pointer select-none font-medium">
-                                        Reemplazar datos al cargar
-                                    </label>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Estado de sincronización en Nube */}
+                            {isSaving && (
+                                <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20 animate-pulse">
+                                    <Loader2 className="animate-spin" size={14} />
+                                    <span>Guardando en nube...</span>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleClearAll}
-                                        className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl font-bold text-xs border border-red-500/20 transition-all active:scale-95"
-                                    >
-                                        <RotateCcw size={16} />
-                                        Limpiar
-                                    </button>
-                                    <div className="relative">
-                                        <input name="input_68752" type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
-                                        <label htmlFor="excel-import-btn" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all border border-indigo-400/20 active:scale-95">
-                                            <Upload size={18} />
-                                            Cargar Excel
-                                        </label>
-                                    </div>
+                            )}
+                            {!isSaving && lastSaved && (
+                                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
+                                    <Cloud size={14} />
+                                    <span>Nube: {lastSaved}</span>
+                                </div>
+                            )}
+
+                            {/* Checkbox de Reemplazo */}
+                            <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
+                                <input name="input_62888"
+                                    type="checkbox"
+                                    id="replace-mode"
+                                    checked={autoReplace}
+                                    onChange={e => setAutoReplace(e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-offset-0 focus:ring-emerald-500 bg-slate-800 cursor-pointer"
+                                />
+                                <label htmlFor="replace-mode" className="text-xs text-slate-400 cursor-pointer select-none font-medium">
+                                    Reemplazar datos al cargar
+                                </label>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleClearAll}
+                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl font-bold text-xs border border-red-500/20 transition-all active:scale-95"
+                                >
+                                    <RotateCcw size={16} />
+                                    Limpiar
+                                </button>
+                                <div className="relative">
+                                    <input name="input_68752" type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
+                                    <label htmlFor="excel-import-btn" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all border border-indigo-400/20 active:scale-95">
+                                        <Upload size={18} />
+                                        Cargar Excel
+                                    </label>
                                 </div>
                             </div>
                         </div>

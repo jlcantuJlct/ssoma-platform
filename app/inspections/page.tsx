@@ -919,32 +919,7 @@ export default function InspectionsPage() {
                     }
                 }
             });
-            // ... Logic for Auto-Pilot & Dashboard Sync (Only on Create) ...
-            // --- AUTOPILOT: ACTUALIZAR PROGRAMA ANUAL (OBJ 3) ---
-            try {
-                let currentProgram = JSON.parse(localStorage.getItem('annual_program_data') || '{}');
-                let obj3Activities = currentProgram['obj3'] || [];
-
-                const recordMonth = new Date(newInspection.date).getMonth();
-                let foundIndex = obj3Activities.findIndex((act: any) => {
-                    const actDate = new Date(act.date);
-                    return actDate.getMonth() === recordMonth && (
-                        act.description.toLowerCase().includes(newInspection.inspectionType.toLowerCase()) ||
-                        newInspection.inspectionType.toLowerCase().includes(act.description.toLowerCase())
-                    );
-                });
-
-                if (foundIndex !== -1) {
-                    obj3Activities[foundIndex] = {
-                        ...obj3Activities[foundIndex],
-                        status: 'Realizado',
-                        compliance: 100,
-                        executedDate: newInspection.date
-                    };
-                    currentProgram['obj3'] = obj3Activities;
-                    localStorage.setItem('annual_program_data', JSON.stringify(currentProgram));
-                }
-            } catch (e) { console.error("Error sync Obj 3", e); }
+            // ... Logic for Dashboard Sync (Only on Create) ...
 
             // --- SINCRONIZACION DASHBOARD ---
             try {

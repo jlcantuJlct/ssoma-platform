@@ -37,36 +37,37 @@ export async function GET() {
     }
 }
 
-// POST - Guardar datos del programa anual
-// POST - Guardar datos del programa anual (Soporta actualizaciones parciales)
+// POST - Guardar datos del programa anual (Soporta actualizaciones parciales y atómicas)
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const { programData } = await req.json();
+        const body = await req.json();
 
-        if (!programData || typeof programData !== 'object') {
-            return NextResponse.json({ success: false, error: 'Invalid programData' }, { status: 400 });
+        let updateData: Record<string, any[]> = {};
+        if (body.objectiveId && Array.isArray(body.records)) {
+            updateData[body.objectiveId] = body.records;
+        } else if (body.programData && typeof body.programData === 'object') {
+            updateData = body.programData;
+        } else {
+            return NextResponse.json({ success: false, error: 'Formato de datos no válido' }, { status: 400 });
         }
 
-        const objIds = Object.keys(programData);
+        const objIds = Object.keys(updateData);
         if (objIds.length > 0) {
-            // 1. Borrar todas las versiones anteriores de estos objetivos específicos en un solo paso
-            const placeholders = objIds.map(() => '?').join(',');
-            await db.execute(`DELETE FROM annual_program WHERE objective_id IN (${placeholders})`, objIds);
-
-            // 2. Insertar nuevas versiones
-            const insertPromises = objIds.map(objId => {
-                return db.execute(
+            for (const objId of objIds) {
+                // Borrar anterior para este objetivo e insertar nuevo registro con updated_at
+                await db.execute(`DELETE FROM annual_program WHERE objective_id = ?`, [objId]);
+                await db.execute(
                     `INSERT INTO annual_program (objective_id, data_json) VALUES (?, ?)`,
-                    [objId, JSON.stringify(programData[objId])]
+                    [objId, JSON.stringify(updateData[objId] || [])]
                 );
-            });
-            await Promise.all(insertPromises);
+            }
         }
 
-        return NextResponse.json({ success: true, message: `Updated ${Object.keys(programData).length} objectives` });
+        return NextResponse.json({ success: true, message: `Actualizado(s) ${objIds.length} objetivo(s) con éxito` });
     } catch (error: any) {
         console.error('Error saving annual program:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
