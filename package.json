@@ -18,6 +18,7 @@
     "docx": "^9.6.1",
     "docxtemplater": "^3.68.5",
     "docxtemplater-image-module-free": "^1.1.1",
+    "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "fs-extra": "^11.3.3",
     "googleapis": "^170.1.0",
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/file-saver": "^2.0.7",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
