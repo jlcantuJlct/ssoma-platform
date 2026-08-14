@@ -33,7 +33,10 @@ import {
     Siren,
     Users,
     Loader2,
-    Cloud
+    Cloud,
+    Download,
+    FileUp,
+    FolderOpen
 } from 'lucide-react';
 import { useState, useEffect, Fragment, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -66,6 +69,7 @@ type ProgramItem = {
     compliance: number;
     responsible?: string;
     area?: string;
+    tipo?: 'capacitacion' | 'inspeccion' | 'otro';
 };
 
 type ExecutedInspection = {
@@ -97,6 +101,15 @@ export default function ProgramPage() {
     const [editValue, setEditValue] = useState("");
     const [autoReplace, setAutoReplace] = useState(false); // Default to APPEND as requested
     const [mobileView, setMobileView] = useState<'list' | 'content'>('list');
+    // --- Formatos Panel State ---
+    const [showFormatos, setShowFormatos] = useState(false);
+    const [templateStatus, setTemplateStatus] = useState<Record<string, string | null>>({ actividades: null, capacitacion: null, inspeccion: null });
+    const [uploadingTemplate, setUploadingTemplate] = useState<string | null>(null);
+    const [exportingType, setExportingType] = useState<string | null>(null);
+    const [previewTipo, setPreviewTipo] = useState<string | null>(null);
+    const [previewData, setPreviewData] = useState<{ sheetName: string; rows: any[][] }[] | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewSheet, setPreviewSheet] = useState(0);
     const [selectedRecords, setSelectedRecords] = useState<{ activity: string, month: string, records: any[] } | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [sendingObs, setSendingObs] = useState<number | null>(null); // Track which record index is being observed
@@ -744,7 +757,7 @@ export default function ProgramPage() {
         const currentList = (programData && programData[targetObjId]) || [];
         const currentObj = OBJECTIVES.find(o => o.id === targetObjId);
         const currentObjLabel = currentObj?.label || '';
-        const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]> }>> = {};
+        const grouped: Record<string, Record<string, { programmed: number[], executed: number[], executionRecords: Record<number, any[]>, tipo?: string }>> = {};
 
         // Helper para normalizar strings (elimina acentos, minúsculas, espacios)
         const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim();
@@ -821,7 +834,8 @@ export default function ProgramPage() {
                 grouped[key][item.description] = { 
                     programmed: new Array(12).fill(0), 
                     executed: new Array(12).fill(0),
-                    executionRecords: {}
+                    executionRecords: {},
+                    tipo: item.tipo || 'otro'
                 };
             }
 
@@ -1287,11 +1301,302 @@ export default function ProgramPage() {
                                         Cargar Excel
                                     </label>
                                 </div>
+                                {/* Botón Formatos */}
+                                <button
+                                    onClick={() => setShowFormatos(v => !v)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs border transition-all active:scale-95 ${
+                                        showFormatos
+                                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-500/40 hover:text-amber-300'
+                                    }`}
+                                    title="Gestionar plantillas y exportar programas Excel"
+                                >
+                                    <FolderOpen size={16} />
+                                    Formatos
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* VISTA MATRIZ UNIVERSAL - GRID LAYOUT */}
+                    {/* ── PANEL DE FORMATOS ─────────────────────────────────── */}
+                    {showFormatos && (
+                        <div className="mt-3 mb-1 bg-slate-900/80 border border-amber-500/20 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
+                            <div className="flex items-center gap-2 mb-4">
+                                <FolderOpen size={16} className="text-amber-400" />
+                                <h3 className="text-sm font-black text-white uppercase tracking-wider">Gestión de Formatos Excel</h3>
+                                <span className="text-xs text-slate-500 ml-2">Carga tus plantillas corporativas y descarga los programas anuales rellenos con datos reales</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* ── CARGAR PLANTILLAS ── */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <FileUp size={11} /> Cargar Plantillas Corporativas
+                                    </h4>
+                                    {[
+                                        { tipo: 'actividades', label: 'Programa de Actividades', code: 'F-SIG-023', color: 'emerald' },
+                                        { tipo: 'capacitacion', label: 'Programa de Capacitaciones', code: 'F-SIG-066', color: 'blue' },
+                                        { tipo: 'inspeccion', label: 'Programa de Inspecciones', code: 'F-SIG-067', color: 'purple' },
+                                    ].map(({ tipo, label, code }) => (
+                                        <div key={tipo} className="flex items-center gap-3 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 hover:border-slate-700 transition-all">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-white truncate">{label}</p>
+                                                <p className="text-[10px] text-slate-500 font-mono">{code}</p>
+                                                {templateStatus[tipo] && (
+                                                    <p className="text-[10px] text-emerald-400 mt-0.5 flex items-center gap-1">
+                                                        <Check size={9} /> {templateStatus[tipo]}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="relative flex-shrink-0">
+                                                <input
+                                                    type="file" accept=".xlsx,.xls"
+                                                    className="hidden"
+                                                    id={`tmpl-${tipo}`}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        setUploadingTemplate(tipo);
+                                                        try {
+                                                            const fd = new FormData();
+                                                            fd.append('tipo', tipo);
+                                                            fd.append('file', file);
+                                                            const res = await fetch('/api/program-templates', { method: 'POST', body: fd });
+                                                            const data = await res.json();
+                                                            if (data.success) {
+                                                                setTemplateStatus(prev => ({ ...prev, [tipo]: file.name }));
+                                                            } else {
+                                                                alert('Error: ' + data.error);
+                                                            }
+                                                        } catch {
+                                                            alert('Error al subir plantilla');
+                                                        } finally {
+                                                            setUploadingTemplate(null);
+                                                            e.target.value = '';
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={`tmpl-${tipo}`}
+                                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
+                                                        uploadingTemplate === tipo
+                                                            ? 'bg-slate-700 text-slate-400 border-slate-600 cursor-not-allowed'
+                                                            : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/20'
+                                                    }`}
+                                                >
+                                                    {uploadingTemplate === tipo ? <Loader2 size={12} className="animate-spin" /> : <FileUp size={12} />}
+                                                    {uploadingTemplate === tipo ? 'Subiendo...' : 'Cargar'}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* ── DESCARGAR / PREVISUALIZAR PROGRAMAS ── */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Download size={11} /> Programas Anuales
+                                    </h4>
+                                    {[
+                                        { tipo: 'actividades', label: 'Programa de Actividades', desc: 'Todos los objetivos y seguimientos', file: 'F-SIG-023' },
+                                        { tipo: 'capacitacion', label: 'Programa de Capacitaciones', desc: 'OBJ 02 · SEG 02 · SEG 04 · SEG 06 + OBJ01 Capacitación', file: 'F-SIG-066' },
+                                        { tipo: 'inspeccion', label: 'Programa de Inspecciones', desc: 'OBJ 03 · SEG 01 · SEG 03 + OBJ01 Inspección', file: 'F-SIG-067' },
+                                    ].map(({ tipo, label, desc, file }) => (
+                                        <div key={tipo} className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 hover:border-slate-700 transition-all">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-white">{label}</p>
+                                                <p className="text-[10px] text-slate-500 truncate">{desc}</p>
+                                                <p className="text-[9px] text-slate-600 font-mono mt-0.5">{file}</p>
+                                            </div>
+                                            <div className="flex gap-2 flex-shrink-0">
+                                                {/* Botón Ver - Desactivado temporalmente por limitaciones de renderizado web
+                                                <button
+                                                    onClick={async () => {
+                                                        setPreviewLoading(true);
+                                                        setPreviewTipo(tipo);
+                                                        setPreviewData(null);
+                                                        setPreviewSheet(0);
+                                                        try {
+                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                            const exportMatrixData: Record<string, any> = {};
+                                                            for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
+
+                                                            const res = await fetch(`/api/export-program-excel?tipo=${tipo}`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ matrixData: exportMatrixData })
+                                                            });
+                                                            if (!res.ok) { alert('Error al generar la vista previa'); setPreviewTipo(null); return; }
+                                                            const blob = await res.blob();
+                                                            const arrayBuffer = await blob.arrayBuffer();
+                                                            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+                                                            const sheets = wb.SheetNames.map(name => ({
+                                                                sheetName: name,
+                                                                rows: (XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' }) as any[][]).slice(0, 50)
+                                                            }));
+                                                            setPreviewData(sheets);
+                                                        } catch { alert('Error al cargar vista previa'); setPreviewTipo(null); }
+                                                        finally { setPreviewLoading(false); }
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 hover:text-white transition-all"
+                                                >
+                                                    {previewLoading && previewTipo === tipo ? <Loader2 size={12} className="animate-spin" /> : <FileSpreadsheet size={12} />}
+                                                    Ver
+                                                </button>
+                                                */}
+                                                {/* Botón Descargar */}
+                                                <button
+                                                    disabled={exportingType === tipo}
+                                                    onClick={async () => {
+                                                        setExportingType(tipo);
+                                                        try {
+                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                            const exportMatrixData: Record<string, any> = {};
+                                                            for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
+
+                                                            const res = await fetch(`/api/export-program-excel?tipo=${tipo}`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ matrixData: exportMatrixData })
+                                                            });
+                                                            if (!res.ok) { const err = await res.json(); alert('Error: ' + (err.error || 'Error al generar Excel')); return; }
+                                                            const blob = await res.blob();
+                                                            const url = URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = `Programa_Anual_${label.replace(/ /g,'_')}_2026.xlsx`;
+                                                            document.body.appendChild(a); a.click();
+                                                            document.body.removeChild(a);
+                                                            URL.revokeObjectURL(url);
+                                                        } catch { alert('Error al descargar el programa'); }
+                                                        finally { setExportingType(null); }
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {exportingType === tipo ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                                                    {exportingType === tipo ? 'Generando...' : 'Descargar'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                                        <p className="text-[10px] text-amber-300/70 leading-relaxed">
+                                            💡 <strong>OBJ 01 (SCSST):</strong> Asigna el tipo (Insp./Cap.) a cada actividad en la columna TIPO de la matriz para incluirla en el formato correcto.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── MODAL VISOR DE PLANTILLA ──────────────────────────── */}
+                    {previewData && previewTipo && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col">
+                                {/* Header */}
+                                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+                                    <div className="flex items-center gap-3">
+                                        <FileSpreadsheet size={18} className="text-emerald-400" />
+                                        <div>
+                                            <h3 className="text-sm font-black text-white">
+                                                Vista Previa — {previewTipo === 'actividades' ? 'F-SIG-023 Programa de Actividades' : previewTipo === 'capacitacion' ? 'F-SIG-066 Programa de Capacitaciones' : 'F-SIG-067 Programa de Inspecciones'}
+                                            </h3>
+                                            <p className="text-[10px] text-slate-500">Mostrando las primeras 30 filas de la plantilla guardada</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => { setPreviewData(null); setPreviewTipo(null); }} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                {/* Sheet Tabs */}
+                                {previewData.length > 1 && (
+                                    <div className="flex gap-1 px-5 pt-3 border-b border-slate-800 flex-wrap">
+                                        {previewData.map((sheet, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setPreviewSheet(idx)}
+                                                className={`px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
+                                                    previewSheet === idx
+                                                        ? 'text-emerald-400 border-emerald-400 bg-emerald-500/10'
+                                                        : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800'
+                                                }`}
+                                            >
+                                                {sheet.sheetName}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Table */}
+                                <div className="flex-1 overflow-auto p-4">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-[10px] border-collapse">
+                                            <tbody>
+                                                {previewData[previewSheet]?.rows.map((row, ri) => (
+                                                    <tr key={ri} className={ri === 0 ? 'bg-slate-800' : ri % 2 === 0 ? 'bg-slate-950/40' : ''}>
+                                                        <td className="px-2 py-1 text-slate-600 font-mono border border-slate-800/50 text-center w-8 sticky left-0 bg-slate-900">{ri + 1}</td>
+                                                        {row.map((cell, ci) => (
+                                                            <td
+                                                                key={ci}
+                                                                className={`px-2 py-1 border border-slate-800/50 max-w-[200px] truncate whitespace-nowrap ${
+                                                                    ri === 0 ? 'text-white font-bold bg-slate-800' :
+                                                                    cell !== '' ? 'text-slate-200' : 'text-slate-700'
+                                                                }`}
+                                                                title={String(cell)}
+                                                            >
+                                                                {String(cell || '')}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-950/50 rounded-b-2xl">
+                                    <p className="text-[10px] text-slate-500">
+                                        Hoja: <span className="text-slate-300 font-bold">{previewData[previewSheet]?.sheetName}</span> · {previewData[previewSheet]?.rows.length} filas mostradas
+                                    </p>
+                                    <button
+                                        disabled={exportingType === previewTipo}
+                                        onClick={async () => {
+                                            const tipo = previewTipo!;
+                                            const labels: Record<string,string> = { actividades: 'Programa de Actividades', capacitacion: 'Programa de Capacitaciones', inspeccion: 'Programa de Inspecciones' };
+                                            setExportingType(tipo);
+                                            try {
+                                                const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                const exportMatrixData: Record<string, any> = {};
+                                                for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
+
+                                                const res = await fetch(`/api/export-program-excel?tipo=${tipo}`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ matrixData: exportMatrixData })
+                                                });
+                                                if (!res.ok) { alert('Error al generar'); return; }
+                                                const blob = await res.blob();
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `Programa_Anual_${labels[tipo].replace(/ /g,'_')}_2026.xlsx`;
+                                                document.body.appendChild(a); a.click();
+                                                document.body.removeChild(a);
+                                                URL.revokeObjectURL(url);
+                                            } catch { alert('Error al descargar'); }
+                                            finally { setExportingType(null); }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                                    >
+                                        {exportingType === previewTipo ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                        Descargar con datos reales
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+
                     <div className="flex-1 overflow-auto px-6 md:px-8 pb-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden min-w-[1200px]">
                             {/* Grid Container ÚNICO */}
@@ -1320,7 +1625,35 @@ export default function ProgramPage() {
                                             </div>
 
                                             {/* Programmed Row */}
-                                            <div className="h-[32px] font-black text-center bg-slate-800/50 text-emerald-400 border-r border-b border-slate-800 flex items-center justify-center">P</div>
+                                            <div className="h-[32px] font-black text-center bg-slate-800/50 text-emerald-400 border-r border-b border-slate-800 flex items-center justify-center relative">
+                                                <span>P</span>
+                                                {selectedObjId === 'obj1' && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            const currentTipo = data.tipo || 'otro';
+                                                            const newVal = currentTipo === 'otro' ? 'capacitacion' : currentTipo === 'capacitacion' ? 'inspeccion' : 'otro';
+                                                            const currentList = programData[selectedObjId] || [];
+                                                            const updatedList = currentList.map((item: any) => {
+                                                                if (item.description === desc && (item.area || 'SEGURIDAD').toUpperCase().includes(area)) {
+                                                                    return { ...item, tipo: newVal };
+                                                                }
+                                                                return item;
+                                                            });
+                                                            const updatedProgram = { ...programData, [selectedObjId]: updatedList };
+                                                            setProgramData(updatedProgram);
+                                                            syncToCloud(updatedProgram, selectedObjId, updatedList);
+                                                        }}
+                                                        title={data.tipo === 'capacitacion' ? 'Clasificado como Capacitación' : data.tipo === 'inspeccion' ? 'Clasificado como Inspección' : 'Clasificado como Otro (Gestión)'}
+                                                        className={`w-4 h-4 rounded text-[9px] flex items-center justify-center transition-colors absolute right-1 cursor-pointer z-20 shadow-sm ${
+                                                            data.tipo === 'capacitacion' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50 hover:bg-blue-500/30' :
+                                                            data.tipo === 'inspeccion' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50 hover:bg-purple-500/30' :
+                                                            'bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-600/50'
+                                                        }`}
+                                                    >
+                                                        {data.tipo === 'capacitacion' ? 'C' : data.tipo === 'inspeccion' ? 'I' : 'O'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             {data.programmed.map((c, i) => {
                                                 const isEditing = editingCell?.key === desc + area && editingCell?.month === i && editingCell?.type === 'P';
                                                 return (
