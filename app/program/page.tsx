@@ -1600,15 +1600,18 @@ export default function ProgramPage() {
                     <div className="flex-1 overflow-auto px-6 md:px-8 pb-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden min-w-[1200px]">
                             {/* Grid Container ÚNICO */}
-                            <div className="grid grid-cols-[25%_4%_repeat(12,1fr)] bg-slate-900/50 text-xs">
+                            <div className="grid grid-cols-[25%_4%_repeat(12,1fr)_70px_70px_70px] bg-slate-900/50 text-xs min-w-[1200px]">
 
                                 {/* Header Row ÚNICO */}
-                                <div className="col-span-14 grid grid-cols-subgrid bg-slate-950 text-slate-400 font-bold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-800">
+                                <div className="col-span-[17] grid grid-cols-subgrid bg-slate-950 text-slate-400 font-bold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-800">
                                     <div className="px-4 py-2 border-r border-slate-800 flex items-center text-[10px] sticky left-0 z-20 bg-slate-950">ACTIVIDAD</div>
                                     <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px]">TIPO</div>
                                     {MONTHS.map(m => (
                                         <div key={m} className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[10px]">{m}</div>
                                     ))}
+                                    <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-emerald-400">P ANUAL</div>
+                                    <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-blue-400">E ANUAL</div>
+                                    <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-amber-400">% ANUAL</div>
                                 </div>
 
                                 {/* Body Rows */}
@@ -1616,7 +1619,14 @@ export default function ProgramPage() {
                                     const areaItems = matrixData[area];
                                     if (Object.keys(areaItems).length === 0) return null;
 
-                                    return Object.entries(areaItems).map(([desc, data], idx) => (
+                                    return Object.entries(areaItems).map(([desc, data], idx) => {
+                                        const totalP = data.programmed.reduce((sum: number, val: number) => sum + val, 0);
+                                        const totalE = data.executed.reduce((sum: number, val: number) => sum + val, 0);
+                                        let fulfilled = 0;
+                                        for (let i = 0; i < 12; i++) fulfilled += Math.min(data.programmed[i], data.executed[i]);
+                                        const percent = totalP > 0 ? Math.round((fulfilled / totalP) * 100) : 0;
+
+                                        return (
                                         <Fragment key={`${area}-${idx}`}>
                                             {/* Row Group: Programmed & Executed */}
                                             {/* Description Cell: Spans 2 Rows vertically */}
@@ -1679,23 +1689,24 @@ export default function ProgramPage() {
                                                 );
                                             })}
 
+                                            {/* Annual Totals (Span 2 Rows) */}
+                                            <div className="row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-emerald-400 bg-emerald-950/20">{totalP}</div>
+                                            <div className="row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-blue-400 bg-blue-950/20">{totalE}</div>
+                                            <div className="row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-amber-400 bg-amber-950/20">{percent}%</div>
+
                                             {/* Executed Row */}
                                             <div className="h-[32px] font-black text-center bg-slate-800/50 text-blue-400 border-r border-b border-slate-950 flex items-center justify-center">E</div>
                                             {data.executed.map((c, i) => (
                                                 <div 
                                                     key={`e-${i}`} 
-                                                    onClick={() => c > 0 && setSelectedRecords({ 
-                                                        activity: desc, 
-                                                        month: MONTHS[i], 
-                                                        records: data.executionRecords[i] || [] 
-                                                    })}
                                                     className={`h-[32px] border-r border-b border-slate-950 flex items-center justify-center font-bold transition-all ${c > 0 ? 'text-white bg-blue-500/20 hover:bg-blue-500/40 cursor-pointer' : 'text-slate-800'}`}
                                                 >
                                                     {c > 0 ? c : '-'}
                                                 </div>
                                             ))}
                                         </Fragment>
-                                    ));
+                                        );
+                                    });
                                 })}
                             </div>
 
@@ -1703,15 +1714,36 @@ export default function ProgramPage() {
                             {matrixData && Object.values(matrixData).some(g => Object.keys(g).length > 0) && (() => {
                                 const totalsP = new Array(12).fill(0);
                                 const totalsE = new Array(12).fill(0);
+                                const totalsA = new Array(12).fill(0);
+                                const totalsFulfilled = new Array(12).fill(0);
+                                let grandTotalP = 0;
+                                let grandTotalE = 0;
+                                let grandTotalA = 0;
+                                let grandTotalFulfilled = 0;
+
                                 Object.values(matrixData).forEach(area => {
                                     Object.values(area).forEach(data => {
-                                        data.programmed.forEach((p, i) => totalsP[i] += p);
-                                        data.executed.forEach((e, i) => totalsE[i] += e);
+                                        let actFulfilled = 0;
+                                        data.programmed.forEach((p, i) => {
+                                            const e = data.executed[i];
+                                            totalsP[i] += p;
+                                            totalsE[i] += e;
+                                            totalsA[i] += Math.max(0, e - p);
+                                            const f = Math.min(p, e);
+                                            totalsFulfilled[i] += f;
+                                            actFulfilled += f;
+                                            
+                                            grandTotalP += p;
+                                            grandTotalE += e;
+                                            grandTotalA += Math.max(0, e - p);
+                                            grandTotalFulfilled += f;
+                                        });
                                     });
                                 });
+
                                 return (
-                                    <div className="grid grid-cols-[25%_4%_repeat(12,1fr)] bg-slate-950 border-t-2 border-emerald-500/50 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] text-xs z-20 relative opacity-0 hover:opacity-100 transition-all duration-300">
-                                        <div className="row-span-2 px-4 py-2 border-r border-slate-800 font-black text-emerald-400 flex items-center justify-end bg-slate-950 sticky left-0 z-20">
+                                    <div className="col-span-[17] grid grid-cols-[25%_4%_repeat(12,1fr)_70px_70px_70px] bg-slate-950 border-t-2 border-emerald-500/50 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] text-xs z-20 relative transition-all duration-300">
+                                        <div className="row-span-4 px-4 py-2 border-r border-slate-800 font-black text-emerald-400 flex items-center justify-end bg-slate-950 sticky left-0 z-20">
                                             <div className="uppercase tracking-widest text-[12px] flex items-center gap-2">
                                                 <BarChart2 size={16} /> TOTAL {currentObj?.label?.split(':')[0]}
                                             </div>
@@ -1726,16 +1758,42 @@ export default function ProgramPage() {
                                                 {c}
                                             </div>
                                         ))}
+                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-emerald-400 bg-emerald-950/20 text-sm">{grandTotalP}</div>
+                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-blue-400 bg-blue-950/20 text-sm">{grandTotalE}</div>
+                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-amber-400 bg-amber-950/20 text-sm">{grandTotalP > 0 ? Math.round((grandTotalFulfilled / grandTotalP) * 100) : 0}%</div>
 
                                         {/* Total Executed Row */}
-                                        <div className="h-[40px] font-black text-center bg-blue-950/40 text-blue-500 border-r border-blue-900/50 flex items-center justify-center">
+                                        <div className="h-[40px] font-black text-center bg-blue-950/40 text-blue-500 border-r border-b border-blue-900/50 flex items-center justify-center">
                                             E
                                         </div>
                                         {totalsE.map((c, i) => (
-                                            <div key={`te-${i}`} className="h-[40px] font-black border-r border-blue-900/50 flex items-center justify-center bg-blue-950/20 text-blue-400 text-sm">
+                                            <div key={`te-${i}`} className="h-[40px] font-black border-r border-b border-blue-900/50 flex items-center justify-center bg-blue-950/20 text-blue-400 text-sm">
                                                 {c}
                                             </div>
                                         ))}
+
+                                        {/* Total Adicionales Row */}
+                                        <div className="h-[40px] font-black text-center bg-purple-950/40 text-purple-500 border-r border-b border-purple-900/50 flex items-center justify-center">
+                                            A
+                                        </div>
+                                        {totalsA.map((c, i) => (
+                                            <div key={`ta-${i}`} className="h-[40px] font-black border-r border-b border-purple-900/50 flex items-center justify-center bg-purple-950/20 text-purple-400 text-sm">
+                                                {c > 0 ? c : '-'}
+                                            </div>
+                                        ))}
+
+                                        {/* Total Percentage Row */}
+                                        <div className="h-[40px] font-black text-center bg-amber-950/40 text-amber-500 border-r border-amber-900/50 flex items-center justify-center">
+                                            %
+                                        </div>
+                                        {totalsP.map((p, i) => {
+                                            const pct = p > 0 ? Math.round((totalsFulfilled[i] / p) * 100) : 0;
+                                            return (
+                                                <div key={`tpct-${i}`} className="h-[40px] font-black border-r border-amber-900/50 flex items-center justify-center bg-amber-950/20 text-amber-400 text-sm">
+                                                    {p > 0 ? `${pct}%` : '-'}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 );
                             })()}
