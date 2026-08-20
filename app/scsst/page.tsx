@@ -10,6 +10,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getDriveViewerUrl, generateFilename, canDeleteRecord} from "@/lib/utils";
 import PreviewCarouselModal from "@/components/PreviewCarouselModal";
 import BatchDownloadZip from "@/components/BatchDownloadZip";
+import ActaGeneratorModal from "@/components/ActaGeneratorModal";
+import TemplateUploadModal from "@/components/TemplateUploadModal";
 
 // Activities from Annual Program OBJ 01 (Based on image)
 const SCSST_ACTIVITIES = [
@@ -34,6 +36,8 @@ export default function SCSSTPage() {
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [viewingFile, setViewingFile] = useState<any>(null);
+    const [isActaModalOpen, setIsActaModalOpen] = useState(false);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -277,7 +281,7 @@ export default function SCSSTPage() {
 
     const reuniones = filteredRecords.filter(r => r.activity.toLowerCase().includes('reuni'));
     const capacitaciones = filteredRecords.filter(r => r.activity.toLowerCase().includes('capacitaci'));
-    const inspecciones = filteredRecords.filter(r => r.activity.toLowerCase().includes('inspecci'));
+    const inspecciones = filteredRecords.filter(r => r.activity.toLowerCase().includes('inspecci') && !r.activity.toLowerCase().includes('capacitaci'));
     const informes = filteredRecords.filter(r => r.activity.toLowerCase().includes('informe'));
     const otros = filteredRecords.filter(r => 
         !r.activity.toLowerCase().includes('reuni') && 
@@ -288,6 +292,22 @@ export default function SCSSTPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
+            <PreviewCarouselModal 
+                isOpen={!!viewingFile}
+                onClose={() => setViewingFile(null)}
+                record={viewingFile}
+            />
+
+            <TemplateUploadModal
+                isOpen={isTemplateModalOpen}
+                onClose={() => setIsTemplateModalOpen(false)}
+            />
+
+            <ActaGeneratorModal 
+                isOpen={isActaModalOpen}
+                onClose={() => setIsActaModalOpen(false)}
+            />
+
             <div className="max-w-7xl mx-auto space-y-8">
                 
                 {/* Header */}
@@ -305,13 +325,19 @@ export default function SCSSTPage() {
                             </div>
                         </div>
                     </div>
-                    <button 
-                        onClick={() => setIsAdding(!isAdding)}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
-                    >
-                        {isAdding ? <X size={20} /> : <Plus size={20} />}
-                        {isAdding ? 'Cancelar' : 'Cargar Actividad'}
-                    </button>
+                    
+                    <div className="flex flex-wrap gap-3">
+                        {/* Cargar Formato removed */}
+                        {/* Elaboración de acta removed */}
+                        <BatchDownloadZip records={records} moduleName="SCSST" />
+                        <button 
+                            onClick={() => setIsAdding(!isAdding)}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                        >
+                            {isAdding ? <X size={20} /> : <Plus size={20} />}
+                            {isAdding ? 'Cancelar' : 'Cargar Actividad'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Form Section */}
@@ -728,3 +754,4 @@ export default function SCSSTPage() {
         </div>
     );
 }
+

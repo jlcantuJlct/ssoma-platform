@@ -235,8 +235,12 @@ export function canDeleteRecord(
 
     // Fallback: usar la fecha del documento (considerar creado al inicio del día)
     if (recordDate) {
-        const createdAt = new Date(recordDate + 'T00:00:00').getTime();
-        return (now - createdAt) <= HOURS_24;
+        const hasTime = recordDate.includes('T') || /\d{2}:\d{2}/.test(recordDate);
+        const dateStr = hasTime ? recordDate : recordDate + 'T00:00:00';
+        const createdAt = new Date(dateStr).getTime();
+        if (!isNaN(createdAt)) {
+            return (now - createdAt) <= HOURS_24;
+        }
     }
 
     // Si no hay manera de determinar la fecha, denegar por seguridad

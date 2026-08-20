@@ -14,8 +14,9 @@ export async function GET(request: Request) {
         let originalName = templateName;
         if (templateName.includes('INTERNAL')) {
             if (templateName.includes('CHINCHAYSULLO')) originalName = 'PAD-CHINCHAYSULLO ultimo.docx';
-            else if (templateName.includes('JAHUAY')) originalName = 'Peaje Jahuay Ultimo.docx';
+            else if (templateName.includes('JAHUAY')) originalName = 'Peaje Jahuay Mayo 2026.docx';
             else if (templateName.includes('BARANDAS')) originalName = 'MP Barandas Mayo .docx';
+            else if (templateName.includes('MP6')) originalName = 'MP6 _ultimo.docx';
             else originalName = 'PAD_SAN CLEMENTE ultimo.docx';
         }
 

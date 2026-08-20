@@ -1,5 +1,6 @@
 "use client";
 import { canDeleteRecord } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ interface SCTRMonthlyRecord {
     expiration_date: string;
     file_url: string;
     personnel_list: string;
+    created_at?: string;
 }
 
 const MONTHS = [
@@ -50,6 +52,7 @@ const SSOMA_LOCATIONS = ["GENERAL", "LIMA", "PROYECTOS", "PLANTA"];
 
 
 export default function SCTRPage() {
+    const { user } = useAuth();
     const [records, setRecords] = useState<SCTRMonthlyRecord[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [filterSearch, setFilterSearch] = useState('');
@@ -223,7 +226,7 @@ export default function SCTRPage() {
 
     const handleDelete = async (id: number) => {
         const record = records.find(r => r.id === id);
-        if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
+        if (!canDeleteRecord(id, user?.role || 'user', record?.created_at)) {
             alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
             return;
         }
@@ -251,42 +254,21 @@ export default function SCTRPage() {
         
         if (targetWords.length === 0) return [];
 
-        // ── SMART SPLIT ──────────────────────────────────────────────────────
-        // El PDF de SCTR puede tener dos formatos distintos según el mes:
-        //
-        // FORMATO A (ej. Mayo):  "59 DNI 22196407 CANCINO TUEROS JOSE LUIS 60 DNI..."
-        //   → número correlativo ANTES del DNI
-        //
-        // FORMATO B (ej. Junio): "BERROCAL RAMOS 42567685 DNI 42 BLANCO ROSAS..."
-        //   → número correlativo DESPUÉS del DNI, seguido del siguiente nombre
-        //
         let rawLines = record.personnel_list.split('\n');
 
-        const avgLen = record.personnel_list.length / Math.max(rawLines.length, 1);
+        // ── SMART SPLIT ──────────────────────────────────────────────────────
+        let textToSplit = record.personnel_list;
+        
+        // 1. Separar cuando hay correlativo: "1 DNI 12345678"
+        textToSplit = textToSplit.replace(/\s+(\d{1,4})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '\n$1 $2 $3');
+        
+        // 2. Separar cuando hay letra seguida de documento: "JUAN DNI 12345678"
+        textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '$1\n$2 $3');
 
-        if (avgLen > 200) {
-            // ── Intento A: número + DNI al inicio de cada persona ──
-            const attemptA = record.personnel_list
-                .replace(/\s+(\d{1,3})\s+(DNI|N°|Nro\.?|CIP|RUC|\d{7,9})/gi, '\n$1 $2')
-                .split('\n')
-                .map(l => l.trim())
-                .filter(l => l.length > 2);
+        // 3. Separar cuando el documento está al revés: "JUAN 12345678 DNI"
+        textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(\d{7,15})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)/gi, '$1\n$2 $3');
 
-            // ── Intento B: DNI + número correlativo + nombre siguiente ──
-            // Ej: "42567685 DNI 42 BLANCO" → split después de "DNI 42"
-            const attemptB = record.personnel_list
-                .replace(/(DNI\s+\d{1,3})\s+(?=[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúña-z])/g, '$1\n')
-                .split('\n')
-                .map(l => l.trim())
-                .filter(l => l.length > 2);
-
-            // Elegir el intento que logró más divisiones
-            const best = attemptA.length >= attemptB.length ? attemptA : attemptB;
-
-            if (best.length > rawLines.length) {
-                rawLines = best;
-            }
-        }
+        rawLines = textToSplit.split('\n').map(l => l.trim()).filter(l => l.length > 2);
         // ─────────────────────────────────────────────────────────────────────
 
         const matches: string[] = [];

@@ -1,0 +1,15 @@
+.whatsapp-session
+.wwebjs_cache
+ssoma.db
+ssoma.db-shm
+ssoma.db-wal
+debug_output.txt
+robot_output.txt
+verify_output.txt
+final_res.txt
+native_err.txt
+*.docx
+*.pdf
+*.xlsx
+temp_*
+backups

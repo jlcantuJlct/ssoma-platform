@@ -1,0 +1,42 @@
+[
+  {
+    "id": "54312c7a-f01b-46bd-b2a5-225599353bd6",
+    "user_name": "jose.cancino",
+    "action": "INICIO DE SESIÓN",
+    "module": "Auth",
+    "details": "Ingreso exitoso a la plataforma",
+    "timestamp": "2026-08-14T16:31:45.690Z"
+  },
+  {
+    "id": "9f8f437b-feeb-4e98-879a-a060776169d6",
+    "user_name": "jose.cancino",
+    "action": "INICIO DE SESIÓN",
+    "module": "Auth",
+    "details": "Ingreso exitoso a la plataforma",
+    "timestamp": "2026-08-14T15:44:53.883Z"
+  },
+  {
+    "id": "f4240e04-982e-48d4-91d2-b33087dd8b91",
+    "user_name": "jose.cancino",
+    "action": "INICIO DE SESIÓN",
+    "module": "Auth",
+    "details": "Ingreso exitoso a la plataforma",
+    "timestamp": "2026-08-14T15:44:46.737Z"
+  },
+  {
+    "id": "a0301f4e-838d-48b8-9c14-f34efc477a26",
+    "user_name": "jose.cancino",
+    "action": "INICIO DE SESIÓN",
+    "module": "Auth",
+    "details": "Ingreso exitoso a la plataforma",
+    "timestamp": "2026-08-13T17:56:55.975Z"
+  },
+  {
+    "id": "54156404-16a4-4c72-95c2-eb0e198f52f2",
+    "user_name": "jose.cancino",
+    "action": "INICIO DE SESIÓN",
+    "module": "Auth",
+    "details": "Ingreso exitoso a la plataforma",
+    "timestamp": "2026-07-30T19:01:35.188Z"
+  }
+]

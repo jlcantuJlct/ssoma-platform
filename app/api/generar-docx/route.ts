@@ -34,6 +34,8 @@ const IGNORED_MAP: Record<string, number[]> = {
     'PAD_BARANDAS_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 19],
     'PAD_JAHUAY_PLANTILLA.docx': [1, 2],
     'PAD_JAHUAY_INTERNAL.docx': [1, 2],
+    'Peaje Jahuay Mayo 2026.docx': [1, 2],
+    'Peaje Jahuay Ultimo.docx': [1, 2],
     'MP6_PLANTILLA.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
     'MP6_INTERNAL.docx': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 };
@@ -82,7 +84,7 @@ export async function POST(request: Request) {
                 originalName = 'MP Barandas Mayo .docx';
             } else if (docType === 'PAD_JAHUAY_INTERNAL.docx') {
                 templateName = 'PAD_JAHUAY_PLANTILLA.docx';
-                originalName = 'Peaje Jahuay Ultimo.docx';
+                originalName = 'Peaje Jahuay Mayo 2026.docx';
             } else if (docType === 'MP6_INTERNAL.docx') {
                 templateName = 'MP6_PLANTILLA.docx';
                 originalName = 'MP6 _ultimo.docx';
