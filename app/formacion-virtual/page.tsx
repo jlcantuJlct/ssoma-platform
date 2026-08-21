@@ -16,6 +16,27 @@ export default function FormacionVirtualLogin() {
     const [trainings, setTrainings] = useState<any[]>([]);
     const [failedTrainings, setFailedTrainings] = useState<any[]>([]);
 
+    const [isFetchingName, setIsFetchingName] = useState(false);
+
+    useEffect(() => {
+        const fetchNameByDni = async () => {
+            if (dni.length === 8) {
+                setIsFetchingName(true);
+                try {
+                    const res = await fetch(`/api/sctr-names/find-by-dni?dni=${dni}`);
+                    const data = await res.json();
+                    if (data.success && data.name) {
+                        setName(data.name);
+                    }
+                } catch (error) {
+                    console.error("Error fetching name:", error);
+                }
+                setIsFetchingName(false);
+            }
+        };
+        fetchNameByDni();
+    }, [dni]);
+
     const handleValidate = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -114,7 +135,7 @@ export default function FormacionVirtualLogin() {
                             <label className="block text-sm font-bold text-slate-700 mb-2">Apellidos y Nombres</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <UserCheck className="h-5 w-5 text-slate-400" />
+                                    {isFetchingName ? <Loader2 className="h-5 w-5 text-indigo-500 animate-spin" /> : <UserCheck className="h-5 w-5 text-slate-400" />}
                                 </div>
                                 <input name="name" 
                                     type="text" 
@@ -122,7 +143,8 @@ export default function FormacionVirtualLogin() {
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none uppercase"
-                                    placeholder="Ej: PEREZ GOMEZ JUAN"
+                                    placeholder={isFetchingName ? "Buscando nombre..." : "Ej: PEREZ GOMEZ JUAN"}
+                                    disabled={isFetchingName}
                                 />
                             </div>
                             <p className="text-xs text-slate-500 mt-2 mb-4">Debe coincidir con la lista oficial (SCTR).</p>
@@ -140,10 +162,16 @@ export default function FormacionVirtualLogin() {
                                 >
                                     <option value="Conductor operador">Conductor operador</option>
                                     <option value="Trabajador administrativo">Trabajador administrativo</option>
-                                    <option value="Trabajador de OC">Trabajador de OC</option>
+                                    <option value="Trabajador de obras de arte">Trabajador de obras de arte</option>
                                     <option value="Trabajador de Planta de concreto">Trabajador de Planta de concreto</option>
                                     <option value="Trabajador de planta de asfalto">Trabajador de planta de asfalto</option>
                                     <option value="Trabajador de Planta agregados">Trabajador de Planta agregados</option>
+                                    <option value="Trabajador de equipos">Trabajador de equipos</option>
+                                    <option value="Trabajador de maestranza">Trabajador de maestranza</option>
+                                    <option value="Trabajador de almacen">Trabajador de almacen</option>
+                                    <option value="Trabajador de laboratorio">Trabajador de laboratorio</option>
+                                    <option value="Trabajador de mantenimiento de campamento">Trabajador de mantenimiento de campamento</option>
+                                    <option value="Trabajador de SSOMA">Trabajador de SSOMA</option>
                                     <option value="Sub comite">Sub comite</option>
                                     <option value="Brigadistas">Brigadistas</option>
                                 </select>
