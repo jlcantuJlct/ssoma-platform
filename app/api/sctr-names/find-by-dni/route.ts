@@ -18,22 +18,23 @@ export async function GET(req: NextRequest) {
             
             const text = r.personnel_list.toUpperCase();
             
-            const attemptA = text
-                .replace(/\s+(\d{1,3})\s+(DNI|N°|Nro\.?|CIP|RUC|\d{7,9})/gi, '\n$1 $2')
-                .split('\n')
-                .map((l: string) => l.trim())
-                .filter((l: string) => l.length > 2);
+            let textToSplit = text;
+            
+            // 1. Separar cuando hay correlativo: "1 DNI 12345678"
+            textToSplit = textToSplit.replace(/\s+(\d{1,4})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '\n$1 $2 $3');
+            
+            // 2. Separar cuando hay letra seguida de documento: "JUAN DNI 12345678"
+            textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '$1\n$2 $3');
 
-            const attemptB = text
-                .replace(/(DNI\s+\d{1,3})\s+(?=[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúña-z])/g, '$1\n')
-                .split('\n')
-                .map((l: string) => l.trim())
-                .filter((l: string) => l.length > 2);
+            // 3. Separar cuando el documento está al revés: "JUAN 12345678 DNI"
+            textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(\d{7,15})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)/gi, '$1\n$2 $3');
 
-            const lines = attemptA.length >= attemptB.length ? attemptA : attemptB;
+            const lines = textToSplit.split('\n').map(l => l.trim()).filter(l => l.length > 2);
             
             for (const line of lines) {
-                if (line.includes(dni)) {
+                // Asegurarse de que el DNI coincida exactamente y no sea parte de un número más largo
+                const dniRegex = new RegExp(`\\b${dni}\\b`);
+                if (dniRegex.test(line)) {
                     let cleaned = line;
                     cleaned = cleaned.replace(/^\d+\s+/, '');
                     cleaned = cleaned.replace(new RegExp(`(DNI|CIP|RUC|NRO\\.?|N°)?\\s*${dni}\\b`, 'i'), '');
