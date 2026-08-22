@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash, Check, Video, List, X, Loader2, Edit } from "lucide-react";
+import { Plus, Trash, Check, Video, List, X, Loader2, Edit, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function AdminFormacionVirtual() {
     const [trainings, setTrainings] = useState<any[]>([]);
@@ -22,6 +25,13 @@ export default function AdminFormacionVirtual() {
     
     // Bulk Load State
     const [bulkText, setBulkText] = useState("");
+
+    // Results filter
+    const [selectedFilterTraining, setSelectedFilterTraining] = useState<string>('all');
+    
+    const filteredResults = selectedFilterTraining === 'all' 
+        ? results 
+        : results.filter(r => r.training_id.toString() === selectedFilterTraining);
 
     useEffect(() => {
         if (activeTab === 'list') {
@@ -221,6 +231,65 @@ export default function AdminFormacionVirtual() {
             setOriginUrl(window.location.origin + '/formacion-virtual');
         }
     }, []);
+
+    const exportToExcel = () => {
+        if (filteredResults.length === 0) {
+            alert("No hay resultados para exportar");
+            return;
+        }
+        
+        const dataToExport = filteredResults.map(r => ({
+            "Fecha": new Date(r.created_at).toLocaleDateString('es-PE'),
+            "Capacitación": r.training_title,
+            "DNI": r.user_dni || '-',
+            "Colaborador": r.user_name,
+            "Puesto de Trabajo": r.user_position || '-',
+            "Nota": `${r.score} / 20`,
+            "Estado": r.passed ? 'APROBADO' : 'DESAPROBADO'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+        XLSX.writeFile(wb, "Reporte_Evaluaciones.xlsx");
+    };
+
+    const exportToPDF = () => {
+        if (filteredResults.length === 0) {
+            alert("No hay resultados para exportar");
+            return;
+        }
+
+        const doc = new jsPDF();
+        
+        const tableColumn = ["Fecha", "Capacitación", "DNI", "Colaborador", "Puesto", "Nota", "Estado"];
+        const tableRows: any[] = [];
+
+        filteredResults.forEach(r => {
+            const rowData = [
+                new Date(r.created_at).toLocaleDateString('es-PE'),
+                r.training_title,
+                r.user_dni || '-',
+                r.user_name,
+                r.user_position || '-',
+                `${r.score} / 20`,
+                r.passed ? 'APROBADO' : 'DESAPROBADO'
+            ];
+            tableRows.push(rowData);
+        });
+
+        doc.text("Reporte de Evaluaciones", 14, 15);
+        
+        (doc as any).autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [79, 70, 229] }
+        });
+
+        doc.save("Reporte_Evaluaciones.pdf");
+    };
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
@@ -492,38 +561,73 @@ export default function AdminFormacionVirtual() {
             )}
 
             {!loading && activeTab === 'results' && (
-                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
-                                <th className="p-4 font-semibold border-b border-slate-200">Fecha</th>
-                                <th className="p-4 font-semibold border-b border-slate-200">Capacitación</th>
-                                <th className="p-4 font-semibold border-b border-slate-200">Colaborador</th>
-                                <th className="p-4 font-semibold border-b border-slate-200">Nota</th>
-                                <th className="p-4 font-semibold border-b border-slate-200">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.map((r, i) => (
-                                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                    <td className="p-4 text-sm text-slate-500">{new Date(r.created_at).toLocaleDateString('es-PE')}</td>
-                                    <td className="p-4 text-sm font-medium text-slate-800">{r.training_title}</td>
-                                    <td className="p-4 text-sm text-slate-600">{r.user_name}</td>
-                                    <td className="p-4 text-sm font-bold">{r.score} / 20</td>
-                                    <td className="p-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {r.passed ? 'APROBADO' : 'DESAPROBADO'}
-                                        </span>
-                                    </td>
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h2 className="text-xl font-bold">Reporte de Evaluaciones</h2>
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <select 
+                                value={selectedFilterTraining}
+                                onChange={(e) => setSelectedFilterTraining(e.target.value)}
+                                className="flex-1 md:w-64 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            >
+                                <option value="all">Todas las capacitaciones</option>
+                                {trainings.map(t => (
+                                    <option key={t.id} value={t.id.toString()}>{t.title}</option>
+                                ))}
+                            </select>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={exportToExcel}
+                                    className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 flex items-center text-sm"
+                                >
+                                    <Download className="w-4 h-4 mr-2" /> Excel
+                                </button>
+                                <button 
+                                    onClick={exportToPDF}
+                                    className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 flex items-center text-sm"
+                                >
+                                    <Download className="w-4 h-4 mr-2" /> PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                                    <th className="p-4 font-semibold border-b border-slate-200">Fecha</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">Capacitación</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">DNI</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">Colaborador</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">Puesto</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">Nota</th>
+                                    <th className="p-4 font-semibold border-b border-slate-200">Estado</th>
                                 </tr>
-                            ))}
-                            {results.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="p-6 text-center text-slate-500">No hay evaluaciones registradas aún.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredResults.map((r, i) => (
+                                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                                        <td className="p-4 text-sm text-slate-500 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString('es-PE')}</td>
+                                        <td className="p-4 text-sm font-medium text-slate-800">{r.training_title}</td>
+                                        <td className="p-4 text-sm text-slate-600 whitespace-nowrap">{r.user_dni || '-'}</td>
+                                        <td className="p-4 text-sm text-slate-600">{r.user_name}</td>
+                                        <td className="p-4 text-sm text-slate-600">{r.user_position || '-'}</td>
+                                        <td className="p-4 text-sm font-bold whitespace-nowrap">{r.score} / 20</td>
+                                        <td className="p-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${r.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {r.passed ? 'APROBADO' : 'DESAPROBADO'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredResults.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="p-6 text-center text-slate-500">No hay evaluaciones registradas para esta capacitación.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

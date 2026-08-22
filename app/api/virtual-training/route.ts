@@ -36,12 +36,26 @@ async function ensureTables() {
             id SERIAL PRIMARY KEY,
             training_id INTEGER,
             user_name VARCHAR(255) NOT NULL,
+            user_dni VARCHAR(20),
+            user_position VARCHAR(255),
             score INTEGER NOT NULL,
             passed BOOLEAN NOT NULL,
             selected_options TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    // Add columns if they don't exist (for existing tables)
+    try {
+        await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_dni VARCHAR(20);");
+    } catch (e) {
+        // Ignorar si ya existe
+    }
+    try {
+        await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_position VARCHAR(255);");
+    } catch (e) {
+        // Ignorar si ya existe
+    }
 }
 
 export async function GET(req: NextRequest) {

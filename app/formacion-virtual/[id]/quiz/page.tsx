@@ -68,6 +68,8 @@ export default function QuizPage({ params }: { params: { id: string } }) {
                 body: JSON.stringify({
                     trainingId: params.id,
                     userName,
+                    userDni: sessionStorage.getItem('vt_user_dni'),
+                    userPosition: sessionStorage.getItem('vt_user_role'),
                     answers
                 })
             });

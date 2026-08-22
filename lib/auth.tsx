@@ -142,7 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Proteger rutas (excepto login y rutas públicas)
     useEffect(() => {
-        if (!loading && !user && pathname !== '/login' && !pathname.startsWith('/public')) {
+        const isPublicRoute = 
+            pathname === '/login' || 
+            pathname.startsWith('/public') || 
+            pathname.startsWith('/formacion-virtual');
+
+        if (!loading && !user && !isPublicRoute) {
             router.push('/login');
         }
     }, [user, loading, pathname, router]);

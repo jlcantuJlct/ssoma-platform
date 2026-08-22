@@ -5,7 +5,7 @@ import db from '@/lib/db';
 export async function POST(req: NextRequest) {
     try {
         // answers es un objeto { questionId: optionId }
-        const { trainingId, userName, answers } = await req.json();
+        const { trainingId, userName, userDni, userPosition, answers } = await req.json();
 
         if (!trainingId || !userName || !answers) {
             return NextResponse.json({ success: false, error: 'Faltan datos' }, { status: 400 });
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
         // Guardar el resultado
         await db.execute(
-            'INSERT INTO virtual_training_results (training_id, user_name, score, passed, selected_options) VALUES (?, ?, ?, ?, ?)',
-            [trainingId, userName, score, passed ? 1 : 0, JSON.stringify(answers)]
+            'INSERT INTO virtual_training_results (training_id, user_name, user_dni, user_position, score, passed, selected_options) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [trainingId, userName, userDni, userPosition, score, passed ? 1 : 0, JSON.stringify(answers)]
         );
 
         return NextResponse.json({ success: true, score, passed });
