@@ -1700,6 +1700,15 @@ export default function ProgramPage() {
                                                 <div 
                                                     key={`e-${i}`} 
                                                     className={`h-[32px] border-r border-b border-slate-950 flex items-center justify-center font-bold transition-all ${c > 0 ? 'text-white bg-blue-500/20 hover:bg-blue-500/40 cursor-pointer' : 'text-slate-800'}`}
+                                                    onClick={() => {
+                                                        if (c > 0 && data.executionRecords && data.executionRecords[i]) {
+                                                            setSelectedRecords({
+                                                                activity: desc,
+                                                                month: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][i],
+                                                                records: data.executionRecords[i]
+                                                            });
+                                                        }
+                                                    }}
                                                 >
                                                     {c > 0 ? c : '-'}
                                                 </div>
