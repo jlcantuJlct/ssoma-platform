@@ -76,7 +76,7 @@ export function DashboardCharts({
     const [isSyncing, setIsSyncing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' });
+    const [filters, setFilters] = useState({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '', area: 'todos' });
     const [viewingImages, setViewingImages] = useState<{tema: string, imgs: string[]} | null>(null);
     const [programMonthFilter, setProgramMonthFilter] = useState<number>(new Date().getMonth());
 
@@ -1080,11 +1080,12 @@ export function DashboardCharts({
             const matchDateStart = !filters.startDate || (r.date || '') >= filters.startDate;
             const matchDateEnd = !filters.endDate || (r.date || '') <= filters.endDate;
             const matchType = filters.type === 'todos' || r.tipo === filters.type; // Nota: r.tipo no r.type based on table mapping
+            const matchArea = filters.area === 'todos' || (r.area || '').toLowerCase() === filters.area;
 
             // OCULTAR "ACTIVIDAD IMPORTADA" PARA OPTIMIZAR ESPACIO VISUAL
             const notImported = (r.tema || '') !== 'Actividad Importada';
 
-            return matchResp && matchLugar && matchTema && matchDateStart && matchDateEnd && matchType && notImported;
+            return matchResp && matchLugar && matchTema && matchDateStart && matchDateEnd && matchType && matchArea && notImported;
         });
     }, [filteredRecords, filters]);
 
@@ -3362,9 +3363,9 @@ export function DashboardCharts({
                                             <History size={18} className="text-blue-400" /> Rastro de Formación
                                         </h4>
                                         <div className="flex flex-col sm:flex-row gap-3 ml-auto w-full sm:w-auto">
-                                            {(filters.responsable || filters.lugar || filters.startDate || filters.endDate || filters.tema || filters.type !== 'todos') && (
+                                            {(filters.responsable || filters.lugar || filters.startDate || filters.endDate || filters.tema || filters.type !== 'todos' || filters.area !== 'todos') && (
                                                 <button 
-                                                    onClick={() => setFilters({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '' })}
+                                                    onClick={() => setFilters({ responsable: '', tema: '', startDate: '', endDate: '', type: 'todos', lugar: '', area: 'todos' })}
                                                     className="bg-slate-800/80 hover:bg-slate-700 text-red-400 text-[10px] font-black px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-700 hover:border-red-500/40 w-full sm:w-auto uppercase tracking-widest"
                                                 >
                                                     <X size={14} /> Limpiar Filtros
@@ -3390,7 +3391,7 @@ export function DashboardCharts({
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                             <div className="md:col-span-1">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <label className="text-[9px] text-slate-500 font-bold uppercase block">Responsable</label>
@@ -3408,6 +3409,22 @@ export function DashboardCharts({
                                                     placeholder="Buscar..."
                                                     className="w-full text-xs"
                                                 />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase block">Área</label>
+                                                    {filters.area !== 'todos' && (
+                                                        <button onClick={() => setFilters(prev => ({ ...prev, area: 'todos' }))} className="text-[9px] text-red-400 hover:text-red-300 transition-colors">
+                                                            <X size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <select value={filters.area} onChange={(e) => setFilters(prev => ({ ...prev, area: e.target.value }))} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-blue-500 outline-none">
+                                                    <option value="todos">TODOS</option>
+                                                    <option value="seguridad">SEGURIDAD</option>
+                                                    <option value="salud">SALUD</option>
+                                                    <option value="ambiente">MEDIO AMBIENTE</option>
+                                                </select>
                                             </div>
                                             <div className="md:col-span-1">
                                                 <div className="flex justify-between items-center mb-1">
