@@ -70,6 +70,7 @@ export function DashboardCharts({
     const [selectedArea, setSelectedArea] = useState<'todos' | 'seguridad' | 'salud' | 'ambiente'>('todos');
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [showProgramModal, setShowProgramModal] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
     const [trainingProgram, setTrainingProgram] = useState<any[]>([]);
     const [complianceGoal, setComplianceGoal] = useState(95);
 
@@ -1005,32 +1006,77 @@ export function DashboardCharts({
         }, 1800);
     };
 
-    const generateBulkHHCPDF = async () => {
+    const generateBulkHHCPDF = async (includeImages: boolean) => {
         if (finalFilteredHistory.length === 0) {
             alert("⚠️ No hay registros filtrados para exportar.");
             return;
         }
 
         const recordsWithPdf = finalFilteredHistory.filter(r => r.evidencePdf);
+        const recordsWithImgs = finalFilteredHistory.filter(r => r.evidenceImgs && r.evidenceImgs.length > 0);
         
-        if (recordsWithPdf.length === 0) {
-            alert("⚠️ Ninguno de los registros filtrados tiene un PDF adjunto.");
+        if (recordsWithPdf.length === 0 && (!includeImages || recordsWithImgs.length === 0)) {
+            alert("⚠️ Ninguno de los registros filtrados tiene evidencias adjuntas para exportar.");
             return;
         }
 
         setIsPdfExporting(true);
+        setShowExportModal(false);
         setPdfProgress(5);
-        setPdfExportStatus(`Preparando ${recordsWithPdf.length} documento(s)...`);
+        setPdfExportStatus('Preparando exportación...');
 
-        // Usaremos PDF-Lib como motor principal para el masivo para facilitar uniones constantes
         const finalPdfDoc = await PDFDocument.create();
 
-        // Anexar todos los PDFs de evidencia
+        // 1. Process Images if requested
+        if (includeImages && recordsWithImgs.length > 0) {
+             const doc = new jsPDF();
+             let y = 20;
+             doc.setFontSize(14);
+             doc.setTextColor(30, 64, 175);
+             doc.setFont("helvetica", "bold");
+             doc.text('EVIDENCIAS FOTOGRÁFICAS', 105, y, { align: "center" });
+             y += 15;
+
+             const totalImgs = recordsWithImgs.reduce((acc, r) => acc + (r.evidenceImgs?.length || 0), 0);
+             let imgLoaded = 0;
+             for (const record of recordsWithImgs) {
+                 doc.setFontSize(10);
+                 doc.setTextColor(0);
+                 doc.text(`Tema: ${record.tema} | Fecha: ${record.date}`, 20, y);
+                 y += 10;
+                 for (const imgUrl of record.evidenceImgs) {
+                    const driveIdMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                    const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : getDriveViewerUrl(imgUrl, true);
+                    const buffer = await fetchProxiedFile(fetchUrl);
+                    imgLoaded++;
+                    setPdfProgress(5 + Math.round((imgLoaded / totalImgs) * 40));
+                    setPdfExportStatus(`Procesando imagen ${imgLoaded} de ${totalImgs}...`);
+                    
+                    if (buffer) {
+                        try {
+                            const base64 = `data:image/jpeg;base64,${bufferToBase64(buffer)}`;
+                            if (y > 200) { doc.addPage(); y = 20; }
+                            doc.addImage(base64, 'JPEG', 40, y, 130, 75);
+                            y += 85;
+                        } catch (e) {}
+                    }
+                 }
+                 y += 5;
+                 if (y > 270) { doc.addPage(); y = 20; }
+             }
+
+             const pagePdfBytes = doc.output('arraybuffer');
+             const pagePdfDoc = await PDFDocument.load(pagePdfBytes);
+             const copiedPages = await finalPdfDoc.copyPages(pagePdfDoc, pagePdfDoc.getPageIndices());
+             copiedPages.forEach(p => finalPdfDoc.addPage(p));
+        }
+
+        // 2. Process PDFs
         for (let i = 0; i < recordsWithPdf.length; i++) {
             const record = recordsWithPdf[i];
-            const progressPct = 5 + Math.round(((i + 1) / recordsWithPdf.length) * 80);
+            const progressPct = (includeImages ? 45 : 5) + Math.round(((i + 1) / Math.max(recordsWithPdf.length, 1)) * (includeImages ? 45 : 80));
             setPdfProgress(progressPct);
-            setPdfExportStatus(`Procesando evidencia ${i + 1} de ${recordsWithPdf.length}...`);
+            setPdfExportStatus(`Procesando evidencia PDF ${i + 1} de ${recordsWithPdf.length}...`);
 
             const driveIdMatch = record.evidencePdf.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             const fetchUrl = driveIdMatch ? `https://drive.google.com/uc?export=download&id=${driveIdMatch[1]}` : record.evidencePdf;
@@ -3372,7 +3418,7 @@ export function DashboardCharts({
                                                 </button>
                                             )}
                                             <button
-                                                onClick={generateBulkHHCPDF}
+                                                onClick={() => setShowExportModal(true)}
                                                 disabled={isPdfExporting}
                                                 className={`text-white text-[10px] font-black px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl w-full sm:w-auto uppercase tracking-widest ${
                                                     isPdfExporting
@@ -3596,6 +3642,28 @@ export function DashboardCharts({
 
                             </div>
                         </div>
+                        {/* Modal de Exportacion PDF */}
+                        {showExportModal && (
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-sm w-full overflow-hidden flex flex-col">
+                                    <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+                                        <h3 className="text-lg font-black text-white">Exportar PDF</h3>
+                                        <button onClick={() => setShowExportModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+                                    </div>
+                                    <div className="p-6 flex flex-col gap-4">
+                                        <p className="text-sm text-slate-300">¿Deseas incluir las evidencias fotográficas en el reporte final?</p>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => generateBulkHHCPDF(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase">
+                                                Sin imágenes
+                                            </button>
+                                            <button onClick={() => generateBulkHHCPDF(true)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase flex items-center justify-center gap-2">
+                                                <ImageIcon size={14} /> Con imágenes
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {/* Modal de Programa Mensual */}
                         {showProgramModal && (
                             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
