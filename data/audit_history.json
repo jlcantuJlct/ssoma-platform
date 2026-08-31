@@ -1,5 +1,21 @@
 [
   {
+    "id": "654a378c-52b9-4c86-b5dd-83bd7fbbb4dd",
+    "user_name": "Admin",
+    "action": "BULK CREATE PROGRAMA: 26 items",
+    "module": "Formación",
+    "details": "",
+    "timestamp": "2026-08-31T22:50:34.816Z"
+  },
+  {
+    "id": "26d1c49e-3797-4d56-b994-8b8c1b81fbde",
+    "user_name": "Usuario",
+    "action": "BULK CREATE HHC/HHT: 31 items",
+    "module": "HHC",
+    "details": "",
+    "timestamp": "2026-08-31T22:49:31.849Z"
+  },
+  {
     "id": "54312c7a-f01b-46bd-b2a5-225599353bd6",
     "user_name": "jose.cancino",
     "action": "INICIO DE SESIÓN",
