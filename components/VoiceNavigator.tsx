@@ -33,60 +33,61 @@ export default function VoiceNavigator() {
     const lower = corrected.toLowerCase();
     let handled = false;
     
-    // Mapeo inteligente de comandos de voz a rutas principales (orden de prioridad)
-    if (lower.includes('generador') || lower.includes('dinámico')) {
-      setFeedback("Navegando a Generador Dinámico...");
-      router.push('/generador-informes');
-      handled = true;
-    } else if (lower.includes('inicio') || lower.includes('dashboard') || lower.includes('principal') || lower.includes('herramientas')) {
-      setFeedback("Navegando a Inicio...");
-      router.push('/');
-      handled = true;
-    } else if (lower.includes('ats')) {
-      setFeedback("Navegando a ATS...");
-      router.push('/ats');
-      handled = true;
-    } else if (lower.includes('petar')) {
-      setFeedback("Navegando a PETAR...");
-      router.push('/petar');
-      handled = true;
-    } else if (lower.includes('epp') || lower.includes('protección')) {
-      setFeedback("Navegando a EPP...");
-      router.push('/epp');
-      handled = true;
-    } else if (lower.includes('accidente')) {
-      setFeedback("Navegando a Accidentes...");
-      router.push('/accidentes');
-      handled = true;
-    } else if (lower.includes('top') || lower.includes('tarjeta')) {
-      setFeedback("Navegando a Tarjeta TOP...");
-      router.push('/reporte-ac');
-      handled = true;
-    } else if (lower.includes('simulacro')) {
-      setFeedback("Navegando a Simulacros...");
-      router.push('/simulacro');
-      handled = true;
-    } else if (lower.includes('inspección') || lower.includes('inspecciones')) {
-      setFeedback("Navegando a Inspecciones...");
-      router.push('/inspections');
-      handled = true;
-    } else if (lower.includes('emo') || lower.includes('médico')) {
-      setFeedback("Navegando a Control de EMO...");
-      router.push('/evidence');
-      handled = true;
-    } else if (lower.includes('ssoma') || lower.includes('programa')) {
-      setFeedback("Navegando a Programa SSOMA...");
-      router.push('/program');
-      handled = true;
-    } else if (lower.includes('jahuay') || lower.includes('chinchaysullo') || lower.includes('san clemente') || lower.includes('barandas') || lower.includes('mp6')) {
-      // Si menciona una plantilla pero NO estamos en el generador, lo enviamos allá y emitimos el evento con retraso
-      if (window.location.pathname !== '/generador-informes') {
-          setFeedback(`Navegando a Generador para cargar ${corrected}...`);
-          router.push('/generador-informes');
-          setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('voice-command-context', { detail: { transcript: corrected, lower } }));
-          }, 1500); // Dar tiempo a que cargue la página
-          handled = true;
+    // Mapeo inteligente de herramientas completas
+    const toolsMap = [
+      { keys: ['generador', 'dinámico'], route: '/generador-informes', name: 'Generador Dinámico' },
+      { keys: ['inicio', 'dashboard', 'principal', 'herramientas'], route: '/', name: 'Inicio' },
+      { keys: ['hhc'], route: '/analytics', name: 'Control HHC' },
+      { keys: ['formación', 'formacion'], route: '/formacion-virtual', name: 'Portal Formación' },
+      { keys: ['inspección', 'inspecciones', 'inspeccion'], route: '/inspections', name: 'Inspecciones' },
+      { keys: ['ats'], route: '/ats', name: 'ATS' },
+      { keys: ['petar'], route: '/petar', name: 'PETAR' },
+      { keys: ['epp', 'protección', 'proteccion'], route: '/epp', name: 'EPP' },
+      { keys: ['top', 'tarjeta'], route: '/reporte-ac', name: 'Tarjeta TOP' },
+      { keys: ['accidente', 'accidentes'], route: '/accidentes', name: 'Accidentes' },
+      { keys: ['sctr'], route: '/sctr', name: 'SCTR' },
+      { keys: ['scsst'], route: '/scsst', name: 'SCSST' },
+      { keys: ['risstma'], route: '/risstma', name: 'RISSTMA' },
+      { keys: ['simulacro', 'simulacros'], route: '/simulacro', name: 'Simulacros' },
+      { keys: ['desvío', 'desvio', 'desvíos'], route: '/desvio', name: 'Desvíos' },
+      { keys: ['emo', 'médico', 'medico'], route: '/evidence', name: 'Control de EMO' },
+      { keys: ['monitoreo', 'ocupacional'], route: '/monitoreos', name: 'Monitoreo Ocupacional' },
+      { keys: ['brigadista', 'brigadistas'], route: '/brigadistas', name: 'Brigadistas' },
+      { keys: ['pma'], route: '/pma', name: 'Fotos PMA' },
+      { keys: ['pesaje'], route: '/residuos', name: 'Pesaje de Residuos' },
+      { keys: ['gestión de residuos', 'gestion de residuos'], route: '/gestion-residuos', name: 'Gestión de Residuos' },
+      { keys: ['manifiesto', 'manifiestos'], route: '/manifiesto', name: 'Manifiestos' },
+      { keys: ['autorizaciones', 'auxiliares'], route: '/autorizaciones-auxiliares', name: 'Aut. Áreas Aux.' },
+      { keys: ['gestión sstma', 'gestion sstma', 'sstma docs'], route: '/sstma-docs', name: 'Doc. Gestión SSTMA' },
+      { keys: ['compras'], route: '/compras-locales', name: 'Compras Locales' },
+      { keys: ['informes'], route: '/informes', name: 'Control de Informes' },
+      { keys: ['accidentabilidad'], route: '/reports', name: 'Control de Accidentabilidad' },
+      { keys: ['actas', 'supervisión', 'supervision'], route: '/actas-supervision', name: 'Actas de Superv.' },
+      { keys: ['certificados', 'equipo', 'equipos'], route: '/equipment-certs', name: 'Certificados de Equipo' },
+      { keys: ['cliente'], route: '/cliente', name: 'Comunicación con Cliente' },
+      { keys: ['programa'], route: '/program', name: 'Programa Anual' },
+    ];
+
+    for (const tool of toolsMap) {
+        if (tool.keys.some(key => lower.includes(key))) {
+            setFeedback(`Navegando a ${tool.name}...`);
+            router.push(tool.route);
+            handled = true;
+            break;
+        }
+    }
+
+    if (!handled) {
+      if (lower.includes('jahuay') || lower.includes('chinchaysullo') || lower.includes('san clemente') || lower.includes('barandas') || lower.includes('mp6')) {
+        // Si menciona una plantilla pero NO estamos en el generador, lo enviamos allá y emitimos el evento con retraso
+        if (window.location.pathname !== '/generador-informes') {
+            setFeedback(`Navegando a Generador para cargar ${corrected}...`);
+            router.push('/generador-informes');
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('voice-command-context', { detail: { transcript: corrected, lower } }));
+            }, 1500); // Dar tiempo a que cargue la página
+            handled = true;
+        }
       }
     }
 
