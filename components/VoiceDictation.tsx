@@ -45,7 +45,11 @@ export default function VoiceDictation({ onResult, className = "" }: VoiceDictat
     };
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      let transcript = event.results[0][0].transcript;
+      
+      // Auto-corrector de palabras específicas del proyecto
+      transcript = transcript.replace(/\b(hawaii|hawai|jauy)\b/gi, 'Jahuay');
+      
       onResult(transcript);
     };
 

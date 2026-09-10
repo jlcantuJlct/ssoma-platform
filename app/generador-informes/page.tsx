@@ -639,7 +639,7 @@ export default function GeneradorInformesPage() {
     React.useEffect(() => {
         const handleVoiceContext = (e: any) => {
             const lower = e.detail?.lower || '';
-            if (lower.includes('jahuay') || lower.includes('jahuy') || lower.includes('jauy')) {
+            if (lower.includes('jahuay') || lower.includes('jahuy') || lower.includes('jauy') || lower.includes('hawaii') || lower.includes('hawai')) {
                 loadJahuay();
             } else if (lower.includes('chinchaysullo') || lower.includes('chinchay')) {
                 loadChinchaysullo();
