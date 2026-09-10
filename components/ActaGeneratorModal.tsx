@@ -155,7 +155,7 @@ export default function ActaGeneratorModal({ isOpen, onClose }: ActaGeneratorMod
                                 <Calendar size={14} /> 1. Parámetros y Fecha
                             </h3>
                             
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Año del Acta</label>
                                     <select value={year} onChange={e => setYear(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-emerald-500 outline-none">
@@ -170,7 +170,7 @@ export default function ActaGeneratorModal({ isOpen, onClose }: ActaGeneratorMod
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2 col-span-3 md:col-span-1">
                                     <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Fecha Reunión</label>
                                     <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-emerald-500 outline-none" />
@@ -298,7 +298,7 @@ export default function ActaGeneratorModal({ isOpen, onClose }: ActaGeneratorMod
                                     <div key={i} className="flex gap-2 items-start">
                                         <div className="flex-1 space-y-2">
                                             <textarea rows={4} placeholder={`Desarrollo o Acuerdo ${i+1}`} value={a.acuerdo} onChange={e => { const n = [...agreements]; n[i].acuerdo = e.target.value; setAgreements(n); }} className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none resize-none" />
-                                            <div className="grid grid-cols-2 gap-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                 <input type="text" placeholder="Responsable (Opcional)" value={a.responsable} onChange={e => { const n = [...agreements]; n[i].responsable = e.target.value; setAgreements(n); }} className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none" />
                                                 <input type="date" value={a.fecha} onChange={e => { const n = [...agreements]; n[i].fecha = e.target.value; setAgreements(n); }} className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none" />
                                             </div>

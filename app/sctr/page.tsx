@@ -342,7 +342,7 @@ export default function SCTRPage() {
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                                 {MONTHS.map(m => {
                                     const active = getMonthStatus(m);
                                     return (
@@ -525,7 +525,7 @@ export default function SCTRPage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vencimiento</label>
                                                     <input name="form_expiration_date" type="date" className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs outline-none" value={form.expiration_date} onChange={e => setForm({...form, expiration_date: e.target.value})} />

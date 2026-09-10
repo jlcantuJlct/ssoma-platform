@@ -411,7 +411,7 @@ export default function EPPPage() {
                     
                     {/* Header */}
                     <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-blue-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <ShieldCheck size={40} className="text-blue-500" />
@@ -795,7 +795,7 @@ export default function EPPPage() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase">Cantidad</label>
                                                 <input name="invForm_quantity" 

@@ -310,7 +310,7 @@ export default function ManifestPage() {
                     
                     {/* Header */}
                     <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-emerald-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <FileText size={40} className="text-emerald-500" />
@@ -376,7 +376,7 @@ export default function ManifestPage() {
                                 </h3>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="col-span-2 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Registro</label>
                                             <select name="documentType" value={documentType} onChange={e => setDocumentType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white font-bold focus:border-emerald-500 outline-none appearance-none cursor-pointer">
@@ -647,7 +647,7 @@ export default function ManifestPage() {
                                             Ver Gráficos
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-6 md:grid-cols-13 gap-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 md:grid-cols-13 gap-1">
                                         {MONTH_LABELS.map((m, i) => (
                                             <div key={m} className={`bg-slate-900 border ${quantitiesPerMonth[i] > 0 ? 'border-emerald-500/30' : 'border-slate-800'} rounded-lg p-2 text-center flex flex-col justify-center gap-1 transition-all`}>
                                                 <span className="text-[9px] font-black text-slate-500">{m}</span>

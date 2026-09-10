@@ -332,7 +332,7 @@ export default function ActasSupervisionPage() {
                                                 {actas.map(a => <option key={a.id} value={a.report_number}>{a.report_number} - {a.place}</option>)}
                                             </select>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fecha Levantamiento</label>
                                                 <input name="liftingForm_date"
@@ -379,7 +379,7 @@ export default function ActasSupervisionPage() {
                                         </div>
 
                                         {/* UPLOADS */}
-                                        <div className="grid grid-cols-2 gap-4 pt-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                                             <div className="relative group">
                                                 <input name="input_65782" type="file" accept="image/*" onChange={e => handleFileUpload(e, 'img')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                                                 <div className={`p-4 border-2 border-dashed rounded-2xl text-center transition-all ${files.img ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-950 hover:border-blue-500/50'}`}>

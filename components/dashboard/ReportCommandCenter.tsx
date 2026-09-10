@@ -234,7 +234,7 @@ export function ReportCommandCenter({ onClose, currentMonth, currentYear, locati
                                             <h3 className="text-white font-black uppercase text-sm mb-6 flex items-center gap-2 border-b border-white/5 pb-2">
                                                 <Activity size={16} className="text-indigo-400" /> Indicadores de Seguridad
                                             </h3>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Horas Hombre (HHT)</label>
                                                     <div className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 text-indigo-400 font-black cursor-not-allowed flex justify-between items-center">

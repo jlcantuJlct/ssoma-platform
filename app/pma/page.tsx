@@ -576,7 +576,7 @@ export default function PMAPage() {
 
                                 <form onSubmit={handleSubmit} className="space-y-5">
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
                                             <div className="relative group">
@@ -709,7 +709,7 @@ export default function PMAPage() {
 
                                     {/* File Previews */}
                                     {images.length > 0 && (
-                                        <div className="grid grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-40 overflow-y-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-40 overflow-y-auto">
                                             {images.map((img, idx) => {
                                                 const isPdf = img.toLowerCase().includes('.pdf');
                                                 return (

@@ -107,7 +107,7 @@ export default function ExportCenterPage() {
         <div className="p-4 md:p-8 bg-slate-950 min-h-screen flex-1 text-slate-200">
             <div className="max-w-6xl mx-auto space-y-8">
                 <header className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
+                    <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-indigo-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
                     <div className="relative z-10">
                         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter italic uppercase">Centro de Exportación <span className="text-indigo-400">SharePoint</span></h1>
                         <p className="text-slate-400 mt-2 font-medium">Organiza y descarga toda la evidencia mensual directamente en tu escritorio.</p>
@@ -167,7 +167,7 @@ export default function ExportCenterPage() {
 
                                 <div className="space-y-4">
                                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Seleccionar Mes a Exportar:</label>
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-4 gap-3">
                                         {months.map((name, idx) => (
                                             <button
                                                 key={name}
@@ -208,7 +208,7 @@ export default function ExportCenterPage() {
                                                 ></div>
                                             </div>
                                             
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                                 <div className={`h-1 rounded-full ${progress > 5 ? 'bg-indigo-500' : 'bg-slate-800'}`}></div>
                                                 <div className={`h-1 rounded-full ${progress > 20 ? 'bg-indigo-500' : 'bg-slate-800'}`}></div>
                                                 <div className={`h-1 rounded-full ${progress > 90 ? 'bg-indigo-500' : 'bg-slate-800'}`}></div>

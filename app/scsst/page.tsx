@@ -241,7 +241,7 @@ export default function SCSSTPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/50">
                         <div className="space-y-1">
                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Responsable</p>
                             <p className="text-[10px] text-slate-300 font-medium truncate">{rec.responsable || rec.responsible}</p>

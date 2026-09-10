@@ -240,7 +240,7 @@ export function ResponsibleProgress() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6 perspective-[1000px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6 perspective-[1000px]">
                 {Object.values(activeConfigs).map((config: any) => {
                     const stat = stats[config.name] || { percent: 0, executed: 0, total: 0 };
                     return (

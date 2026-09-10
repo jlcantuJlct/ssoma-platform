@@ -82,7 +82,7 @@ export default function ActivityItem({ activity }: { activity: Activity }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 Gap-2 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 Gap-2 md:gap-4">
                 {data.map((item) => (
                     <div key={item.month} className="bg-background/40 p-3 rounded-lg border border-white/5 flex flex-col items-center text-center">
                         <span className="text-xs font-bold uppercase text-muted-foreground mb-2">{item.name}</span>

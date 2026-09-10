@@ -204,7 +204,7 @@ export default function AccidentesPage() {
                     
                     {/* Header */}
                     <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-red-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
                         <div className="relative z-10">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <Siren size={40} className="text-red-500" />
@@ -250,7 +250,7 @@ export default function AccidentesPage() {
                                 </h3>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="col-span-1 space-y-1">
                                             <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
                                             <div className="relative">

@@ -442,7 +442,7 @@ export default function DetourPage() {
                                     </div>
 
                                     {images.length > 0 && (
-                                        <div className="grid grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                             {images.map((img, idx) => (
                                                 <div key={idx} className="relative aspect-square rounded-md overflow-hidden bg-slate-900">
                                                     <iframe src={Utils.getDriveViewerUrl(img, false)} className="w-full h-full border-0 pointer-events-none" />

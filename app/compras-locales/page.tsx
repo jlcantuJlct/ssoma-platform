@@ -508,7 +508,7 @@ export default function ComprasLocalesPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-800/50">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-800/50">
                                             <div>
                                                 <p className="text-[9px] font-black text-slate-600 uppercase">Responsable</p>
                                                 <p className="text-[10px] text-slate-300 truncate">{rec.responsable}</p>

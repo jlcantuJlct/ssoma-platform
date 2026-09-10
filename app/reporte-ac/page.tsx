@@ -490,7 +490,7 @@ export default function ReporteACPage() {
                 
                 {/* Header */}
                 <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
+                    <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-orange-500/10 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
@@ -664,7 +664,7 @@ export default function ReporteACPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
                                 {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                                     const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                                     return (
@@ -751,7 +751,7 @@ export default function ReporteACPage() {
                                     Ranking de Observaciones {filterMonths.length > 0 && <span className="text-orange-500 uppercase">({filterMonths.join(', ')})</span>}
                                 </h3>
                                 {/* Month Summary Bar */}
-                                <div className="grid grid-cols-6 md:grid-cols-12 gap-2 mb-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 md:grid-cols-12 gap-2 mb-6">
                                     {MONTHS_LIST.map(m => {
                                         const count = getMonthCount(m);
                                         const mLower = m.toLowerCase();
@@ -1035,7 +1035,7 @@ export default function ReporteACPage() {
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase">Fecha</label>
                                     <input name="editingRecord_date" 
@@ -1056,7 +1056,7 @@ export default function ReporteACPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase">Lugar</label>
                                     <SearchableSelect name="editingRecord_location" 

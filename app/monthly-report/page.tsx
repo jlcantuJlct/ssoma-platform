@@ -244,7 +244,7 @@ export default function MonthlyReportPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-slate-600 uppercase">HHT (Horas Hombre)</label>
                                     <input name="manualStats_HHT" type="number" value={manualStats.HHT} onChange={(e) => setManualStats({...manualStats, HHT: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm" />
@@ -255,7 +255,7 @@ export default function MonthlyReportPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                                 {['ATT', 'APP', 'ATP', 'AM'].map(key => (
                                     <div key={key} className="space-y-1">
                                         <label className="text-[8px] font-bold text-slate-700 uppercase">{key}</label>
@@ -264,7 +264,7 @@ export default function MonthlyReportPage() {
                                 ))}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2 border-t border-slate-800">
                                 {['RES_PEL', 'RES_NO_PEL', 'RES_APROV'].map(key => (
                                     <div key={key} className="space-y-1">
                                         <label className="text-[8px] font-bold text-slate-700 uppercase">{key.replace('RES_', '')}</label>

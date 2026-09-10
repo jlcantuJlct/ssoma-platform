@@ -1686,7 +1686,7 @@ export default function GeneradorInformesPage() {
                                             Arrastra o haz clic para subir cada fotografía
                                         </p>
                                     </div>
-                                    <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-5">
                                         {imageTags.map(tag => (
                                             <ImageDropZone
                                                 key={tag.name}

@@ -506,7 +506,7 @@ export default function InformesPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                             <div>
                                                 <p className="text-[9px] font-black text-slate-600 uppercase">Responsable</p>
                                                 <p className="text-[10px] text-slate-300 truncate">{rec.responsable}</p>

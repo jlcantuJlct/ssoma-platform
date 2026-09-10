@@ -853,7 +853,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8 bg-slate-900 px-8 py-5 rounded-2xl shadow-2xl ring-1 ring-white/10 shrink-0">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-900 px-8 py-5 rounded-2xl shadow-2xl ring-1 ring-white/10 shrink-0">
                                     <StatItem label="Meta" value="100%" color="text-blue-400" />
                                     <StatItem label="Logro" value={`${Math.round(activeSection.activities.reduce((a: number, b: any) => {
                                         const tp = b.data.plan.reduce((p: number, c: number) => p + c, 0);
@@ -1098,7 +1098,7 @@ function MultiMonthFilter({ selectedMonths, onChange, label, icon }: any) {
             </div>
             
             {isOpen && (
-                <div className="absolute top-[calc(100%+0.5rem)] left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-[999] min-w-[280px] grid grid-cols-2 gap-3">
+                <div className="absolute top-[calc(100%+0.5rem)] left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-[999] min-w-[280px] grid grid-cols-1 md:grid-cols-2 gap-3">
                     <label className="flex items-center gap-2 text-[10px] text-white font-bold cursor-pointer col-span-2 pb-3 border-b border-slate-700 mb-1 hover:text-emerald-400 transition-colors">
                         <input type="checkbox" checked={selectedMonths.length === 12} onChange={toggleAll} className="w-3.5 h-3.5 accent-emerald-500 rounded-sm cursor-pointer" />
                         SELECCIONAR TODOS

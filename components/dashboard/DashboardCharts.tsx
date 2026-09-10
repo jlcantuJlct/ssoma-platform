@@ -2816,7 +2816,7 @@ export function DashboardCharts({
                                                     pendingItems: modalData.allPending 
                                                 });
                                             }}
-                                            className={`w-full grid grid-cols-3 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
+                                            className={`w-full grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700/50 backdrop-blur-md relative z-10 cursor-pointer group/footer hover:border-indigo-500/50 transition-all ${isDeactivated ? 'bg-slate-900/80' : ''}`}
                                         >
                                             <div className="bg-slate-900/80 p-3 flex flex-col items-center justify-center gap-1 group-hover/footer:bg-slate-800 transition-colors">
                                                 <span className="text-[8px] text-blue-500/70 font-black uppercase tracking-tighter group-hover/footer:text-blue-400 transition-colors">Programado</span>

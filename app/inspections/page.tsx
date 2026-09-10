@@ -1070,7 +1070,7 @@ export default function InspectionsPage() {
                                     </button>
 
                                     {showImportMenu && (
-                                        <div className="absolute top-full left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="absolute top-full left-0 mt-2 w-full md:w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 flex flex-col animate-in fade-in zoom-in-95 duration-200">
 
                                             {/* Seguridad */}
                                             <div className="flex items-center border-b border-slate-800 p-1 group hover:bg-slate-800/50 transition-colors">
@@ -1340,7 +1340,7 @@ export default function InspectionsPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Área</label>
-                                            <div className="grid grid-cols-3 gap-1">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                                                 {AREAS.map(area => (
                                                     <button
                                                         type="button"
@@ -1396,7 +1396,7 @@ export default function InspectionsPage() {
                                         </div>
 
                                         {/* Evidencias */}
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Evidencia (PDF)</label>
                                                 <div 
@@ -1767,7 +1767,7 @@ export default function InspectionsPage() {
                                 </h3>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
                                 {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => {
                                     const stats = getProgressStats(resp);
 

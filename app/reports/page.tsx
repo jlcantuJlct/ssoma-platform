@@ -502,7 +502,7 @@ export default function ReportsPage() {
 
                 {/* SECCIÓN: CARGA DE DOCUMENTOS DE ACCIDENTES */}
                 <div className="mt-12 bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
+                    <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-emerald-600/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
                     
                     <div className="flex flex-col lg:flex-row items-center justify-between mb-10 gap-6 relative z-10">
                         <div className="flex items-center gap-4">
@@ -726,7 +726,7 @@ export default function ReportsPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                             <div>
                                                 <p className="text-[9px] font-black text-slate-600 uppercase">Responsable</p>
                                                 <p className="text-[10px] text-slate-300 truncate">{rec.responsable}</p>

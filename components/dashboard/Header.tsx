@@ -18,7 +18,7 @@ export function Header() {
                     <input 
                         type="text" 
                         placeholder="Buscar en la plataforma..." 
-                        className="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-9 pr-4 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 w-64 transition-all"
+                        className="bg-slate-800/50 border border-slate-700 rounded-full py-1.5 pl-9 pr-4 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 w-full md:w-64 transition-all"
                     />
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest md:hidden">

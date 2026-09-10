@@ -345,7 +345,7 @@ export default function SettingsPage() {
                         </CardHeader>
                         <CardContent className="pt-6 space-y-6">
                             {/* Inputs */}
-                            <div className="grid grid-cols-2 gap-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
                                 <div className="col-span-2 md:col-span-1 space-y-1">
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Usuario (ID Login)</label>
                                     <input name="username"

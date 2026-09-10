@@ -305,7 +305,7 @@ export default function PublicReporteACPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
                         {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                             const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                             return (

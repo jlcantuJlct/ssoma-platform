@@ -511,7 +511,7 @@ export default function SSOMAAssistant() {
                                         </div>
                                     )}
                                     {msg.type === 'gallery' && msg.results && (
-                                        <div className="grid grid-cols-2 gap-2 mt-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
                                             {msg.results.map((item, idx) => (
                                                 <a 
                                                     key={idx} 

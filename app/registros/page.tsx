@@ -179,7 +179,7 @@ export default function StatisticsPage() {
                     
                     {/* Header with Filters */}
                     <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 blur-[100px] -mr-48 -mt-48 rounded-full"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-96 h-96 bg-purple-500/10 blur-[100px] -mr-48 -mt-48 rounded-full"></div>
                         <div className="relative z-10 flex-1">
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
                                 <BarChart2 size={40} className="text-purple-500" />

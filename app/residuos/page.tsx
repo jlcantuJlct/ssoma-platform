@@ -339,7 +339,7 @@ export default function WasteManagementPage() {
                     
                     {/* Header */}
                     <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-emerald-500/10 blur-3xl -mr-32 -mt-32 rounded-full"></div>
                         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                             <div>
                                 <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">

@@ -46,7 +46,7 @@ export function UpdateActivityModal({ activity, onClose, onSave }: UpdateActivit
                         <h3 className="font-bold text-slate-800 text-sm leading-tight line-clamp-2">{activity.name}</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mes</label>
                             <select

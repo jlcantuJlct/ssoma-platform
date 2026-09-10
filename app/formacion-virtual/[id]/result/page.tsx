@@ -93,7 +93,7 @@ export default function QuizResultPage({ params }: { params: { id: string } }) {
 
                     {/* Datos del Participante */}
                     <div className="p-8 border-b border-slate-100">
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Participante</p>
                                 <p className="text-xl font-bold text-slate-800">{userName}</p>

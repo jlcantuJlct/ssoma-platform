@@ -153,7 +153,7 @@ export default function OsitranReportPage() {
                                             <MapPin className="w-4 h-4 text-amber-500" />
                                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Sede / Ubicación del Informe:</label>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-3 gap-3">
                                             {SSOMA_LOCATIONS.map((loc) => (
                                                 <button
                                                     key={loc}
@@ -179,7 +179,7 @@ export default function OsitranReportPage() {
                                     {/* SELECCIÓN DE MES */}
                                     <div className="space-y-4">
                                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1 block mb-2">Mes del Informe:</label>
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                             {months.map((name, idx) => (
                                                 <button
                                                     key={name}
@@ -230,12 +230,12 @@ export default function OsitranReportPage() {
                                                 </div>
                                                 
                                                 {/* Steps indicators */}
-                                                <div className="grid grid-cols-3 gap-2">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                                     <div className={`h-1.5 rounded-full transition-colors ${progress > 5 ? 'bg-amber-500' : 'bg-slate-800'}`}></div>
                                                     <div className={`h-1.5 rounded-full transition-colors ${progress > 30 ? 'bg-amber-500' : 'bg-slate-800'}`}></div>
                                                     <div className={`h-1.5 rounded-full transition-colors ${progress > 90 ? 'bg-amber-500' : 'bg-slate-800'}`}></div>
                                                 </div>
-                                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
                                                     <span className={`text-[8px] font-black uppercase text-center ${progress > 5 ? 'text-amber-500' : 'text-slate-600'}`}>Estructura</span>
                                                     <span className={`text-[8px] font-black uppercase text-center ${progress > 30 ? 'text-amber-500' : 'text-slate-600'}`}>Descarga</span>
                                                     <span className={`text-[8px] font-black uppercase text-center ${progress > 90 ? 'text-amber-500' : 'text-slate-600'}`}>Verificación</span>

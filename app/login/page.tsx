@@ -284,7 +284,7 @@ export default function LoginPage() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <button
                                             onClick={() => { setIsRecoveryMode(false); setPassword(recoveredPassword || ''); }}
                                             className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-xs"

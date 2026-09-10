@@ -236,7 +236,7 @@ export default function GestionResiduosPage() {
                     
                     {/* Header Premium Glassmorphism */}
                     <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] border border-slate-800 p-8 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
+                        <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-emerald-500/5 blur-[120px] rounded-full -mr-32 -mt-32"></div>
                         
                         <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
                             <div className="flex items-center gap-4">
