@@ -1340,7 +1340,7 @@ export default function InspectionsPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Área</label>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+                                            <div className="grid grid-cols-3 gap-1">
                                                 {AREAS.map(area => (
                                                     <button
                                                         type="button"
@@ -1396,7 +1396,7 @@ export default function InspectionsPage() {
                                         </div>
 
                                         {/* Evidencias */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Evidencia (PDF)</label>
                                                 <div 

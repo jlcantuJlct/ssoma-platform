@@ -3142,7 +3142,7 @@ export function DashboardCharts({
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
                                             <select name="reg_area" value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
@@ -3241,7 +3241,7 @@ export function DashboardCharts({
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
                                         <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Hombres</label>
                                             <div className="relative group">
@@ -3685,7 +3685,7 @@ export function DashboardCharts({
                                         {isDeveloper && (
                                             <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
                                                 <h4 className="text-sm font-bold text-emerald-400 mb-3">Agregar Actividad Programada</h4>
-                                                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     <div>
                                                         <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Fecha</label>
                                                         <input
@@ -3733,7 +3733,7 @@ export function DashboardCharts({
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                                <div className="grid grid-cols-2 gap-3 mt-3">
                                                     <div>
                                                         <input
                                                             type="file"
