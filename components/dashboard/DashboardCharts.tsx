@@ -2447,7 +2447,7 @@ export function DashboardCharts({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 relative z-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 relative z-10">
                             {[
                                 { label: 'HHT Acumuladas', val: accidentabilityStats.totalHHT.toLocaleString(), color: 'text-indigo-400', sub: 'Horas Hombre Totales' },
                                 { label: 'Índice Frecuencia (IF)', val: accidentabilityStats.IF, color: 'text-emerald-400', sub: 'Accidentes / Horas Hombre' },
@@ -2514,7 +2514,7 @@ export function DashboardCharts({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 w-full">
                             {USER_LIST.filter(u => u.username !== 'jose.cancino' && u.username !== 'gerencia').map((userObj, idx) => {
                                 const user = userObj.name;
                                 const isDeactivated = deactivatedUsers.has(userObj.username);
@@ -2868,7 +2868,7 @@ export function DashboardCharts({
                         </div>
 
                     {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4 relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4 relative z-10">
                             
                             {/* Card 1: Total HHC (EMERALD) */}
                             <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-emerald-500/5">
@@ -2889,7 +2889,7 @@ export function DashboardCharts({
                                 </div>
                                 <div className="mt-4">
                                     <div className="flex items-end gap-2">
-                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">{totalHHCMonth}</span>
+                                        <span className="text-4xl md:text-5xl font-black text-white tracking-tighter drop-shadow-md">{totalHHCMonth}</span>
                                         <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">Horas</span>
                                     </div>
                                     <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
@@ -2941,7 +2941,7 @@ export function DashboardCharts({
                                 </div>
                                 <div className="mt-4">
                                     <div className="flex items-end gap-2">
-                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
+                                        <span className="text-4xl md:text-5xl font-black text-white tracking-tighter drop-shadow-md">
                                             {(Number(monthlyEmpleadosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0) + 
                                              (Number(monthlyObrerosInputs[`${currentYear}-${hhcMonthFilter}`]) || 0)}
                                         </span>
@@ -2978,7 +2978,7 @@ export function DashboardCharts({
                                 </div>
                                 <div className="mt-4">
                                     <div className="flex items-center gap-6">
-                                        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
+                                        <span className="text-4xl md:text-5xl font-black text-white tracking-tighter drop-shadow-md">
                                             {monthlyHHCStats.totalHHTAccumulated || 0}
                                         </span>
                                         <div className="flex-1">
@@ -3017,7 +3017,7 @@ export function DashboardCharts({
                                 </div>
                                 <div className="mt-4">
                                     <div className="flex items-end gap-2">
-                                        <span className={`text-5xl font-black tracking-tighter drop-shadow-md ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
+                                        <span className={`text-4xl md:text-5xl font-black tracking-tighter drop-shadow-md ${Number(monthlyIndex) >= complianceGoal ? 'text-emerald-400' : 'text-blue-400'}`}>{monthlyIndex}%</span>
                                         <span className="text-[10px] text-slate-500 mb-2 font-bold uppercase">{MONTHS[hhcMonthFilter].substring(0,3)}</span>
                                     </div>
                                     <div className="w-full bg-slate-950 h-2 mt-4 rounded-full overflow-hidden border border-white/5 p-[1px]">
@@ -3142,7 +3142,7 @@ export function DashboardCharts({
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Area</label>
                                             <select name="reg_area" value={newHHC.area} onChange={(e) => updateStat('area', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500">
@@ -3241,7 +3241,7 @@ export function DashboardCharts({
                                         <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">H. Cap (Auto)</label>
                                         <input type="number" readOnly placeholder="HHC" value={newHHC.hhc} className="w-full bg-slate-950/50 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 text-xs font-black outline-none cursor-not-allowed" />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[9px] text-slate-400 font-black uppercase block mb-1 tracking-widest">Hombres</label>
                                             <div className="relative group">
@@ -3685,7 +3685,7 @@ export function DashboardCharts({
                                         {isDeveloper && (
                                             <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
                                                 <h4 className="text-sm font-bold text-emerald-400 mb-3">Agregar Actividad Programada</h4>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-3">
                                                     <div>
                                                         <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Fecha</label>
                                                         <input
@@ -3733,7 +3733,7 @@ export function DashboardCharts({
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                                                     <div>
                                                         <input
                                                             type="file"
