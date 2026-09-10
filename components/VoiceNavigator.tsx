@@ -28,7 +28,9 @@ export default function VoiceNavigator() {
   }, []);
 
   const handleVoiceCommand = useCallback((transcript: string) => {
-    const lower = transcript.toLowerCase();
+    // Aplicamos el auto-corrector en el navegador global también
+    let corrected = transcript.replace(/\b(hawaii|hawai|jauy)\b/gi, 'Jahuay');
+    const lower = corrected.toLowerCase();
     let handled = false;
     
     // Mapeo inteligente de comandos de voz a rutas principales (orden de prioridad)
@@ -76,15 +78,25 @@ export default function VoiceNavigator() {
       setFeedback("Navegando a Programa SSOMA...");
       router.push('/program');
       handled = true;
+    } else if (lower.includes('jahuay') || lower.includes('chinchaysullo') || lower.includes('san clemente') || lower.includes('barandas') || lower.includes('mp6')) {
+      // Si menciona una plantilla pero NO estamos en el generador, lo enviamos allá y emitimos el evento con retraso
+      if (window.location.pathname !== '/generador-informes') {
+          setFeedback(`Navegando a Generador para cargar ${corrected}...`);
+          router.push('/generador-informes');
+          setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('voice-command-context', { detail: { transcript: corrected, lower } }));
+          }, 1500); // Dar tiempo a que cargue la página
+          handled = true;
+      }
     }
 
     if (!handled) {
       // Si no es una ruta principal, despachamos un evento para que la página actual (contexto)
       // decida si este comando aplica a alguna de sus sub-herramientas (ej: "Peaje Jahuy")
-      setFeedback(`Buscando contexto para: "${transcript}"...`);
+      setFeedback(`Buscando contexto para: "${corrected}"...`);
       
       const event = new CustomEvent('voice-command-context', { 
-        detail: { transcript, lower } 
+        detail: { transcript: corrected, lower } 
       });
       window.dispatchEvent(event);
     }
