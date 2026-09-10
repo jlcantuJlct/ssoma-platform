@@ -86,7 +86,7 @@ export default function RootPage() {
               <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">
                 {section.category}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {section.items.map((item, itemIdx) => (
                   <Link 
                     key={itemIdx} 
