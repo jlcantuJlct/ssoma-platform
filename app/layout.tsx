@@ -7,6 +7,7 @@ import AlertaBanner from "@/components/AlertaBanner";
 import SSOMAAssistant from "@/components/SSOMAAssistant";
 import UserMenu from "@/components/UserMenu";
 import ActivityTracker from "@/components/ActivityTracker";
+import VoiceNavigator from "@/components/VoiceNavigator";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -45,6 +46,7 @@ export default function RootLayout({
             <AlertaBanner />
             <SSOMAAssistant />
             <UserMenu />
+            <VoiceNavigator />
           </ErrorBoundary>
         </Providers>
       </body>

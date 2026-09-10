@@ -1,0 +1,6 @@
+# Reglas Automáticas de Cline para SSOMA
+
+1. **Contexto Obligatorio:** Antes de proponer o realizar cualquier cambio importante en la plataforma (nuevas funciones, base de datos, refactorizaciones), debes leer obligatoriamente el archivo `00_ANALISIS_SSOMA.md` para entender la arquitectura y no romper el sistema.
+2. **Actualización Automática del Mapa:** Si durante tu trabajo realizas un cambio que altere la estructura de la plataforma, agregas módulos nuevos o cambias lógica importante, TIENES LA OBLIGACIÓN de actualizar el archivo `00_ANALISIS_SSOMA.md` para que siempre refleje la realidad actual del proyecto.
+3. **Idioma:** Todas tus interacciones con el usuario, explicaciones y comentarios en el código deben ser estrictamente en español.
+4. **Precaución:** Nunca elimines archivos masivamente sin pedir permiso expreso al usuario.

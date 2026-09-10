@@ -635,6 +635,26 @@ export default function GeneradorInformesPage() {
         }, 300);
     }, [loadDraft]);
 
+    // ─── Escuchador de Voz Contextual ────────────────────────────────────────
+    React.useEffect(() => {
+        const handleVoiceContext = (e: any) => {
+            const lower = e.detail?.lower || '';
+            if (lower.includes('jahuay') || lower.includes('jahuy') || lower.includes('jauy')) {
+                loadJahuay();
+            } else if (lower.includes('chinchaysullo') || lower.includes('chinchay')) {
+                loadChinchaysullo();
+            } else if (lower.includes('san clemente') || lower.includes('clemente')) {
+                loadSanClemente();
+            } else if (lower.includes('barandas') || lower.includes('baranda')) {
+                loadBarandas();
+            } else if (lower.includes('mp6') || lower.includes('mp 6')) {
+                loadMp6();
+            }
+        };
+        window.addEventListener('voice-command-context', handleVoiceContext);
+        return () => window.removeEventListener('voice-command-context', handleVoiceContext);
+    }, [loadJahuay, loadChinchaysullo, loadSanClemente, loadBarandas, loadMp6]);
+
     // ─── Drop de plantilla ───────────────────────────────────────────────────
     const handleTemplateDrop = (e: React.DragEvent) => {
         e.preventDefault();
