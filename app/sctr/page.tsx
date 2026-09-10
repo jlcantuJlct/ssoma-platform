@@ -3,6 +3,7 @@ import { canDeleteRecord } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 
 import { useState, useEffect } from 'react';
+import VoiceDictation from '@/components/VoiceDictation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { 
     ShieldCheck, 
@@ -365,10 +366,14 @@ export default function SCTRPage() {
                             <div className="relative group">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                 <input name="input_95949" 
-                                    className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:border-blue-500 outline-none transition-all"
+                                    className="w-full bg-slate-900 border-2 border-slate-800 rounded-2xl py-4 pl-12 pr-12 text-sm font-bold focus:border-blue-500 outline-none transition-all"
                                     placeholder="Ingrese DNI o Nombre..."
-                                     onChange={e => setFilterSearch(e.target.value)}
+                                    value={filterSearch}
+                                    onChange={e => setFilterSearch(e.target.value)}
                                 />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <VoiceDictation onResult={(text) => setFilterSearch(filterSearch ? filterSearch + ' ' + text : text)} />
+                                </div>
                             </div>
 
                             {filterSearch.length >= 3 && (() => {
