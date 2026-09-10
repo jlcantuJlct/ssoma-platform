@@ -25,7 +25,7 @@ export function ComparisonChart({ activity, selectedMonthIndex = -1 }: Compariso
 
     return (
         <div className="w-full">
-            <div className={`grid gap-4 ${selectedMonthIndex === -1 ? 'grid-cols-1 md:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12' : 'grid-cols-1'}`}>
+            <div className={`grid gap-4 ${selectedMonthIndex === -1 ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12' : 'grid-cols-1'}`}>
                 {displayData.map((item, idx) => {
                     const donutData = [
                         { name: 'Ejecutado', value: item.percent, fill: item.percent >= 100 ? '#10b981' : (item.percent > 0 ? '#3b82f6' : '#94a3b8') },
