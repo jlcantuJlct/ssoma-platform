@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import VoiceDictation from "@/components/VoiceDictation";
 import { useRouter } from "next/navigation";
 import { BookOpen, UserCheck, ShieldAlert, ChevronRight, Loader2, IdCard, Briefcase } from "lucide-react";
 
@@ -127,9 +128,15 @@ export default function FormacionVirtualLogin() {
                                     value={dni}
                                     onChange={e => setDni(e.target.value.replace(/[^0-9]/g, ''))}
                                     maxLength={8}
-                                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none"
+                                    className="block w-full pl-10 pr-20 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none"
                                     placeholder="Ej: 72345678"
                                 />
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                    <VoiceDictation 
+                                        onResult={(text) => setDni(text.replace(/[^0-9]/g, ''))} 
+                                        onClear={() => setDni('')}
+                                    />
+                                </div>
                             </div>
 
                             <label className="block text-sm font-bold text-slate-700 mb-2">Apellidos y Nombres</label>
@@ -142,10 +149,16 @@ export default function FormacionVirtualLogin() {
                                     required
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none uppercase"
+                                    className="block w-full pl-10 pr-20 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none uppercase"
                                     placeholder={isFetchingName ? "Buscando nombre..." : "Ej: PEREZ GOMEZ JUAN"}
                                     disabled={isFetchingName}
                                 />
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                    <VoiceDictation 
+                                        onResult={(text) => setName(name ? name + ' ' + text : text)} 
+                                        onClear={() => setName('')}
+                                    />
+                                </div>
                             </div>
                             <p className="text-xs text-slate-500 mt-2 mb-4">Debe coincidir con la lista oficial (SCTR).</p>
 
