@@ -372,7 +372,10 @@ export default function SCTRPage() {
                                     onChange={e => setFilterSearch(e.target.value)}
                                 />
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <VoiceDictation onResult={(text) => setFilterSearch(filterSearch ? filterSearch + ' ' + text : text)} />
+                                    <VoiceDictation 
+                                        onResult={(text) => setFilterSearch(filterSearch ? filterSearch + ' ' + text : text)} 
+                                        onClear={() => setFilterSearch('')}
+                                    />
                                 </div>
                             </div>
 

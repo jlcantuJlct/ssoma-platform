@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Mic, Loader2 } from 'lucide-react';
+import { Mic, Loader2, Eraser } from 'lucide-react';
 
 interface VoiceDictationProps {
   onResult: (text: string) => void;
+  onClear?: () => void;
   className?: string;
 }
 
-export default function VoiceDictation({ onResult, className = "" }: VoiceDictationProps) {
+export default function VoiceDictation({ onResult, onClear, className = "" }: VoiceDictationProps) {
   const [isListening, setIsListening] = useState(false);
   const [supportSpeech, setSupportSpeech] = useState(true);
 
@@ -45,7 +46,21 @@ export default function VoiceDictation({ onResult, className = "" }: VoiceDictat
     };
 
     recognition.onresult = (event: any) => {
-      let transcript = event.results[0][0].transcript;
+      let transcript = event.results[0][0].transcript.trim();
+      const lower = transcript.toLowerCase();
+      
+      // Comandos de borrado por voz
+      if (
+        lower === 'eliminar texto' || 
+        lower === 'borrar todo' || 
+        lower === 'elimina el texto' ||
+        lower === 'elimina el texto redactado' ||
+        lower === 'borrar texto' ||
+        lower === 'eliminar'
+      ) {
+          if (onClear) onClear();
+          return;
+      }
       
       // Auto-corrector de palabras específicas del proyecto
       transcript = transcript.replace(/\b(hawaii|hawai|jauy)\b/gi, 'Jahuay');
@@ -68,21 +83,34 @@ export default function VoiceDictation({ onResult, className = "" }: VoiceDictat
   if (!supportSpeech) return null;
 
   return (
-    <button
-      onClick={toggleListen}
-      type="button"
-      className={`p-2 rounded-full transition-all flex items-center justify-center ${
-        isListening 
-          ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-pulse" 
-          : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-      } ${className}`}
-      title={isListening ? "Escuchando..." : "Dictado por voz"}
-    >
-      {isListening ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Mic className="w-4 h-4" />
+    <div className={`flex items-center gap-1 ${className}`}>
+      <button
+        onClick={toggleListen}
+        type="button"
+        className={`p-2 rounded-full transition-all flex items-center justify-center ${
+          isListening 
+            ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-pulse" 
+            : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+        }`}
+        title={isListening ? "Escuchando..." : "Dictado por voz"}
+      >
+        {isListening ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Mic className="w-4 h-4" />
+        )}
+      </button>
+      
+      {onClear && (
+        <button
+          onClick={(e) => { e.preventDefault(); onClear(); }}
+          type="button"
+          className="p-2 rounded-full transition-all flex items-center justify-center bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+          title="Borrar texto"
+        >
+          <Eraser className="w-4 h-4" />
+        </button>
       )}
-    </button>
+    </div>
   );
 }

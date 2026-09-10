@@ -695,7 +695,10 @@ export default function ReporteACPage() {
                             <div className="border border-[#b35922] rounded-xl p-4 bg-transparent relative group">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="text-xs text-slate-400">Descripción detallada de la observación...</label>
-                                    <VoiceDictation onResult={(text) => setForm({...form, descripcion: form.descripcion ? form.descripcion + ' ' + text : text})} />
+                                    <VoiceDictation 
+                                        onResult={(text) => setForm({...form, descripcion: form.descripcion ? form.descripcion + ' ' + text : text})} 
+                                        onClear={() => setForm({...form, descripcion: ''})}
+                                    />
                                 </div>
                                 <textarea name="form_descripcion" value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
                             </div>
@@ -703,7 +706,10 @@ export default function ReporteACPage() {
                             <div className="border border-[#b35922] rounded-xl p-4 bg-transparent mt-4 relative group">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="text-xs text-slate-400">Acción Inmediata (Opcional)</label>
-                                    <VoiceDictation onResult={(text) => setForm({...form, accion_inmediata: form.accion_inmediata ? form.accion_inmediata + ' ' + text : text})} />
+                                    <VoiceDictation 
+                                        onResult={(text) => setForm({...form, accion_inmediata: form.accion_inmediata ? form.accion_inmediata + ' ' + text : text})} 
+                                        onClear={() => setForm({...form, accion_inmediata: ''})}
+                                    />
                                 </div>
                                 <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                             </div>
