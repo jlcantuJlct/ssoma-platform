@@ -1169,7 +1169,8 @@ export default function ProgramPage() {
                     </h2>
                     <p className="text-xs text-slate-500 px-2 mt-1">Selecciona un objetivo estratégico</p>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
+                <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700">
+                    <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
                     {OBJECTIVES.map(obj => {
                         const ItemIcon = obj.icon;
                         const isSelected = selectedObjId === obj.id;
@@ -1185,13 +1186,13 @@ export default function ProgramPage() {
                                 }}
                                 className={`w-full text-left p-3 rounded-xl transition-all border group relative overflow-hidden ${isSelected ? 'bg-slate-800 border-emerald-500/50 shadow-lg' : 'bg-slate-950/50 border-transparent hover:bg-slate-800 text-slate-400'}`}
                             >
-                                <div className="flex items-start gap-3 relative z-10">
-                                    <div className={`p-2 rounded-lg ${isSelected ? obj.bg + ' ' + obj.color : 'bg-slate-900 text-slate-500'}`}><ItemIcon size={18} /></div>
-                                    <div className="flex-1">
-                                        <h3 className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${isSelected ? 'text-white' : ''}`}>{obj.label.split(':')[0]}</h3>
-                                        <p className={`text-[11px] font-medium leading-tight ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{obj.label.split(':')[1]}</p>
+                                <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 relative z-10">
+                                    <div className={`p-2 rounded-lg flex-shrink-0 ${isSelected ? obj.bg + ' ' + obj.color : 'bg-slate-900 text-slate-500'}`}><ItemIcon size={18} /></div>
+                                    <div className="flex-1 min-w-0 text-center md:text-left">
+                                        <h3 className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isSelected ? 'text-white' : ''}`}>{obj.label.split(':')[0]}</h3>
+                                        <p className={`text-[10px] font-medium leading-tight hidden md:block ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{obj.label.split(':')[1]}</p>
                                     </div>
-                                    <div className="flex flex-col gap-1 items-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                                    <div className="hidden md:flex flex-col gap-1 items-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
                                         <div className="flex items-center gap-1">
                                             <span className="text-[9px] text-slate-500 font-bold">P:</span>
                                             <span className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded text-emerald-500">{pTotal}</span>
@@ -1206,7 +1207,9 @@ export default function ProgramPage() {
                             </button>
                         );
                     })}
+                    </div>
                 </div>
+
                 
                 {/* Summary Panel */}
                 <div className="p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm z-10">
