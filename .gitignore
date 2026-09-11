@@ -47,3 +47,28 @@ service-account.json
 # Heavy local files - DO NOT upload to Vercel
 plantillas/
 .whatsapp-session/
+.wwebjs_cache/
+temp_unzip/
+temp_pma.pdf
+temp_barandas/
+tmp/
+backups/
+scratch/
+.data/
+
+# Heavy binary files
+public/pma_temp.pdf
+public/referencias_chincha/
+public/referencias_barandas/
+test_foto.jpg
+test_output_generated.docx
+*.sqlite
+database.sqlite
+
+# Dev scripts and debug output
+*.log
+debug_output.txt
+robot_output.txt
+verify_output.txt
+final_res.txt
+native_err.txt

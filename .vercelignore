@@ -1,15 +1,136 @@
+# ============================================================
+# .vercelignore - Reducir tamaño del deploy
+# Solo sube lo necesario para producción
+# ============================================================
+
+# --- Sesiones y cache local (NO se usan en Vercel) ---
 .whatsapp-session
 .wwebjs_cache
+.next
+.data
+.git
+
+# --- Bases de datos locales ---
 ssoma.db
 ssoma.db-shm
 ssoma.db-wal
+database.sqlite
+*.sqlite
+
+# --- Plantillas pesadas locales (no se usan en producción) ---
+plantillas
+
+# --- Carpetas temporales ---
+tmp
+temp_*
+temp_barandas
+temp_unzip
+backups
+scratch
+data
+
+# --- Logs y archivos de debug ---
+*.log
 debug_output.txt
 robot_output.txt
 verify_output.txt
 final_res.txt
 native_err.txt
-*.docx
-*.pdf
-*.xlsx
-temp_*
-backups
+dev.log
+errors.log
+build.log
+
+# --- Archivos binarios pesados (de prueba/desarrollo) ---
+*.jpg
+*.emf
+test_foto.jpg
+test_output_generated.docx
+programa_formacion_test.xlsx
+temp_pma.pdf
+
+# --- Scripts de Windows (solo desarrollo local) ---
+*.bat
+*.vbs
+*.lnk
+
+# --- Scripts de Python (solo desarrollo local) ---
+*.py
+
+# --- JSON de debug/backup/desarrollo ---
+all_blobs.json
+blobs_backup.json
+recent_blobs2.json
+debug-program.json
+chinchaysullo_*.json
+rescate_*.json
+recovered_fields*.json
+draft.json
+test.json
+
+# --- Scripts sueltos JS/TS de desarrollo (raíz) ---
+check_*.js
+check_*.ts
+fix*.js
+fix*.py
+patch*.js
+dump*.js
+dump*.py
+dump*.ts
+restore_*.js
+restore_*.mjs
+detect_*.js
+add_*.js
+add_*.ts
+mapeo*.js
+match_*.js
+find_*.js
+recover-*.js
+smarter-*.js
+perfect-*.js
+clear_*.js
+setup_*.js
+setup_*.ts
+get_all_*.js
+compress_*.js
+generate_*.js
+generate_template.js
+generate_casa_template.js
+push-env.js
+read_log.js
+enable_rls.js
+write_route.js
+inspect-*.js
+diagnostico-*.js
+list_*.js
+search_*.js
+analyze_*.js
+backup_all.js
+extract_*.ts
+test_*.js
+test_*.ts
+test-*.js
+
+# --- Archivos de configuración no necesarios en producción ---
+service-account.json
+.clinerules
+tsconfig.tsbuildinfo
+bridge_debug.html
+vercel.html
+00_ANALISIS_SSOMA.md
+*.txt
+*.md
+!README.md
+
+# --- Archivos de inspecciones viejas ---
+inspections_old.tsx
+inspections_with_metas.tsx
+
+# --- IMPORTANTE: NO excluir estos (los necesita producción) ---
+# public/templates/*.docx    → plantillas de actas y reportes Word
+# public/referencias_*/      → fotos guía del generador de informes
+# app/                       → código de la aplicación
+# components/                → componentes UI
+# lib/                       → utilidades compartidas
+# package.json               → dependencias
+# next.config.ts             → configuración de Next.js
+# vercel.json                → configuración de crons
