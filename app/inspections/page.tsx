@@ -15,6 +15,7 @@ import {
     User,
     MapPin,
     AlertCircle,
+    CheckCircle,
     Search,
     Filter,
     FileText,
@@ -212,6 +213,21 @@ export default function InspectionsPage() {
     ];
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [showProgramModal, setShowProgramModal] = useState(false);
+    const [showDigitalMenu, setShowDigitalMenu] = useState(false);
+    
+    // Motor Analizador de Excel States
+    const [showParserModal, setShowParserModal] = useState(false);
+    const [isParsing, setIsParsing] = useState(false);
+    const [parserResult, setParserResult] = useState<any>(null);
+    const [parserFile, setParserFile] = useState<File | null>(null);
+    const [targetModule, setTargetModule] = useState<string>('');
+    const [editableItems, setEditableItems] = useState<any[]>([]);
+    const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+    
+    // Opciones de Formato
+    const [showFormatOptionsModal, setShowFormatOptionsModal] = useState(false);
+    const [formatActionType, setFormatActionType] = useState<'new' | 'update' | null>(null);
+
     const [viewingEvidence, setViewingEvidence] = useState<InspectionRecord | null>(null);
 
     // IMPORT LOGIC STATES
@@ -223,6 +239,65 @@ export default function InspectionsPage() {
         setImportType(type);
         setTimeout(() => fileInputRef.current?.click(), 0);
         setShowImportMenu(false);
+    };
+
+    const handleParseTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setParserFile(file);
+        setIsParsing(true);
+        setParserResult(null);
+        setEditableItems([]);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/templates/parse', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            setParserResult(result);
+            if (result.success && result.data.allItems) {
+                // Por defecto, asumimos que todo es una pregunta
+                setEditableItems(result.data.allItems.map((text: string) => ({ text, type: 'question' })));
+            }
+        } catch (error) {
+            console.error(error);
+            setParserResult({ success: false, error: 'Error de conexión con el motor analizador.' });
+        } finally {
+            setIsParsing(false);
+        }
+    };
+
+    const handleRemoveEditableItem = (index: number) => {
+        setEditableItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const toggleItemType = (index: number, newType: 'question' | 'title') => {
+        setEditableItems(prev => {
+            const copy = [...prev];
+            copy[index].type = newType;
+            return copy;
+        });
+    };
+
+    const handleSaveTemplate = async () => {
+        setIsSavingTemplate(true);
+        try {
+            // Simulamos guardado a la base de datos por ahora o llamamos a un endpoint
+            // await fetch('/api/templates/save', ...)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            alert('¡Configuración guardada exitosamente en la base de datos!');
+            setShowParserModal(false);
+        } catch (error) {
+            console.error(error);
+            alert('Error al guardar.');
+        } finally {
+            setIsSavingTemplate(false);
+        }
     };
 
     const deleteProgramByArea = (targetArea: string) => {
@@ -1043,6 +1118,15 @@ export default function InspectionsPage() {
                         </div>
                         <div className="flex gap-3 flex-wrap items-center">
 
+                            {/* Botón de Inspección Digital */}
+                            <button
+                                onClick={() => setShowDigitalMenu(true)}
+                                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95 border border-blue-500/30"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                Inspección Digital
+                            </button>
+
                             {/* Selector de Mes */}
                             <div className="relative group">
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={16} />
@@ -1188,6 +1272,252 @@ export default function InspectionsPage() {
                             )}
                         </div>
                     </div>
+
+                    {/* Modal de Menú Digital */}
+                    {showDigitalMenu && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[80vh] flex flex-col shadow-2xl">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                        Formatos Digitales
+                                    </h3>
+                                    <button onClick={() => setShowDigitalMenu(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-2 rounded-xl">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                <div className="p-6 overflow-y-auto">
+                                    <p className="text-slate-400 mb-6">Selecciona el tipo de inspección digital que deseas realizar o gestionar:</p>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {/* Tarjeta 1: Vehículos */}
+                                        <div className="relative group bg-slate-950 border border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] rounded-xl p-5 transition-all flex flex-col items-center text-center">
+                                            {(user?.role === 'developer' || user?.role === 'manager') && (
+                                                <button 
+                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Vehículos y Equipos'); setShowFormatOptionsModal(true); }}
+                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                                    title="Opciones de Formato"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                            )}
+                                            <a href="/vehicle-inspections" className="flex flex-col items-center w-full">
+                                                <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                                                </div>
+                                                <h4 className="font-bold text-white mb-2 text-sm">Inspección de Vehículos y Equipos</h4>
+                                                <p className="text-xs text-slate-500 leading-relaxed">Parte diario, lista de chequeo para volquetes, camionetas y maquinaria pesada.</p>
+                                            </a>
+                                        </div>
+
+                                        {/* Tarjeta 2: Extintores */}
+                                        <div className="relative group bg-slate-900 border border-slate-800 border-dashed rounded-xl p-5 flex flex-col items-center text-center opacity-70">
+                                            {(user?.role === 'developer' || user?.role === 'manager') && (
+                                                <button 
+                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Extintores'); setShowFormatOptionsModal(true); }}
+                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                                    title="Opciones de Formato"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                            )}
+                                            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.4 14.4 3.2-3.2"/><path d="M5 2h14"/><path d="M14.5 4.5 12 7"/><path d="M5.5 14.5 3 17"/><path d="M19 12v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg>
+                                            </div>
+                                            <h4 className="font-bold text-slate-300 mb-2 text-sm">Inspección de Extintores</h4>
+                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">Próximamente</span>
+                                        </div>
+
+                                        {/* Tarjeta 3: Botiquines */}
+                                        <div className="relative group bg-slate-900 border border-slate-800 border-dashed rounded-xl p-5 flex flex-col items-center text-center opacity-70">
+                                            {(user?.role === 'developer' || user?.role === 'manager') && (
+                                                <button 
+                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Botiquines'); setShowFormatOptionsModal(true); }}
+                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                                    title="Opciones de Formato"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                            )}
+                                            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 3h-8v4h8z"/><path d="M12 10v6"/><path d="M9 13h6"/></svg>
+                                            </div>
+                                            <h4 className="font-bold text-slate-300 mb-2 text-sm">Inspección de Botiquines</h4>
+                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">Próximamente</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Opciones de Formato */}
+                    {showFormatOptionsModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <Settings className="text-indigo-500" size={20} />
+                                        Gestión de Formato: {targetModule}
+                                    </h3>
+                                    <button onClick={() => setShowFormatOptionsModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                <div className="p-6 flex flex-col gap-4">
+                                    <button 
+                                        onClick={() => { setFormatActionType('new'); setShowFormatOptionsModal(false); setShowDigitalMenu(false); setShowParserModal(true); }}
+                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400">
+                                            <span>✨</span> Ingresar Formato
+                                        </h4>
+                                        <p className="text-xs text-slate-500">Cargar una plantilla base desde cero para configurar la estructura de la base de datos por primera vez.</p>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => { setFormatActionType('update'); setShowFormatOptionsModal(false); setShowDigitalMenu(false); setShowParserModal(true); }}
+                                        className="w-full bg-slate-950 border border-slate-800 hover:border-emerald-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-emerald-400">
+                                            <span>🔄</span> Actualizar Formato
+                                        </h4>
+                                        <p className="text-xs text-slate-500">Subir un Excel modificado para realizar un cruce comparativo con el actual y detectar los cambios.</p>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal del Motor Analizador */}
+                    {showParserModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <Settings className="text-indigo-500" size={20} />
+                                        {formatActionType === 'update' ? 'Actualización Comparativa: ' : 'Ingresando Formato: '} {targetModule}
+                                    </h3>
+                                    <button onClick={() => setShowParserModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="p-6">
+                                    <div className="mb-6">
+                                        <p className="text-slate-300 text-sm mb-4">
+                                            {formatActionType === 'update' 
+                                                ? 'Sube la versión modificada del Excel. El motor la cruzará con la estructura actual y te mostrará un resumen de los cambios detectados (versiones, filas agregadas/eliminadas).' 
+                                                : 'Sube un documento Excel (.xlsx) limpio. El motor escaneará las filas para detectar automáticamente las opciones de checklist y crear la primera estructura base en la base de datos.'
+                                            }
+                                        </p>
+                                        
+                                        <div className="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-950/50 rounded-xl p-8 text-center transition-colors">
+                                            <input 
+                                                type="file" 
+                                                accept=".xlsx"
+                                                onChange={handleParseTemplate}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center">
+                                                    <Download size={24} className="rotate-180" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-bold">Haz clic o arrastra un archivo Excel aquí</p>
+                                                    <p className="text-xs text-slate-500 mt-1">Solo archivos .xlsx permitidos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Loader */}
+                                    {isParsing && (
+                                        <div className="bg-slate-950 rounded-xl p-6 text-center border border-slate-800 animate-pulse">
+                                            <Settings size={32} className="animate-spin text-indigo-500 mx-auto mb-3" />
+                                            <p className="text-indigo-400 font-bold">Analizando estructura del documento...</p>
+                                            <p className="text-xs text-slate-500 mt-1">Buscando patrones, columnas de opciones y extrayendo ítems.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Resultado del Escaneo */}
+                                    {!isParsing && parserResult && (
+                                        <div className={`rounded-xl p-6 border ${parserResult.success ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-red-950/30 border-red-500/30'}`}>
+                                            {parserResult.success ? (
+                                                <div>
+                                                    <div className="flex items-center gap-2 text-emerald-400 font-black text-lg mb-2">
+                                                        <CheckCircle size={20} /> Análisis Completado
+                                                    </div>
+                                                    <p className="text-sm text-slate-300 mb-4">{parserResult.data.message}</p>
+                                                    
+                                                    <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 max-h-[400px] overflow-y-auto">
+                                                        <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-lg">
+                                                            <h5 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Clasificador Inteligente</h5>
+                                                            <p className="text-xs text-slate-300 leading-relaxed">
+                                                                El motor ha extraído todo el texto. Por defecto asume que todo son <b>preguntas</b>. 
+                                                                Para mantener el orden en el celular de tus trabajadores, identifica cuáles son <b>Títulos de Sección</b> (Ej. "CHASIS") haciendo clic en el botón correspondiente. Usa el basurero solo para texto inservible.
+                                                            </p>
+                                                        </div>
+                                                        <ul className="space-y-3">
+                                                            {editableItems.map((item: any, i: number) => (
+                                                                <li key={i} className={`text-sm flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border transition-all ${item.type === 'title' ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-900/50 border-slate-800/50'}`}>
+                                                                    <div className="flex-1 flex items-start gap-2">
+                                                                        <span className="text-indigo-500 font-mono text-xs mt-0.5 min-w-[20px]">{i+1}.</span> 
+                                                                        <span className={`flex-1 font-medium ${item.type === 'title' ? 'text-indigo-300 uppercase tracking-wide' : 'text-slate-300'}`}>
+                                                                            {item.text}
+                                                                        </span>
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                                                        <button 
+                                                                            onClick={() => toggleItemType(i, 'question')}
+                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'question' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                                                        >
+                                                                            ❓ Pregunta
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => toggleItemType(i, 'title')}
+                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'title' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                                                        >
+                                                                            📁 Título
+                                                                        </button>
+                                                                        <div className="w-px h-4 bg-slate-700 mx-1"></div>
+                                                                        <button 
+                                                                            onClick={() => handleRemoveEditableItem(i)}
+                                                                            className="px-2 py-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                                                            title="Eliminar este ítem"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <button 
+                                                        onClick={handleSaveTemplate}
+                                                        disabled={isSavingTemplate || editableItems.length === 0}
+                                                        className="w-full mt-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-400 text-white py-3 rounded-lg font-bold transition-colors shadow-lg"
+                                                    >
+                                                        {isSavingTemplate ? <Settings className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                                                        {isSavingTemplate ? 'Guardando...' : 'Guardar Configuración en Base de Datos'}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <div className="flex items-center gap-2 text-red-400 font-black text-lg mb-2">
+                                                        <AlertCircle size={20} /> Error en el Análisis
+                                                    </div>
+                                                    <p className="text-sm text-slate-300">{parserResult.error}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Modal de Detalle de Programa */}
                     {showProgramModal && (

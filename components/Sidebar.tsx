@@ -178,6 +178,7 @@ export default function Sidebar() {
                             <SidebarItem icon={<Settings size={16} className="text-indigo-600 group-hover:text-indigo-400 transition-colors" />} label="Admin Formación" href="/admin/formacion-virtual" active={pathname === '/admin/formacion-virtual'} />
                         )}
                         <SidebarItem hasAlert={alerts['/inspections']} icon={<Search size={16} className="text-cyan-500 group-hover:text-cyan-300 transition-colors" />} label="Control de Inspección" href="/inspections" active={pathname === '/inspections'} />
+                        <SidebarItem icon={<Truck size={16} className="text-blue-400 group-hover:text-blue-300 transition-colors" />} label="Inspección de Vehículos" href="/vehicle-inspections" active={pathname === '/vehicle-inspections'} />
                         <SidebarItem hasAlert={alerts['/ats']} icon={<ClipboardList size={16} className="text-amber-500 group-hover:text-amber-300 transition-colors" />} label="Control de ATS" href="/ats" active={pathname === '/ats'} />
                         <SidebarItem hasAlert={alerts['/petar']} icon={<FileSignature size={16} className="text-red-500 group-hover:text-red-300 transition-colors" />} label="Control de PETAR" href="/petar" active={pathname === '/petar'} />
                         <SidebarItem hasAlert={alerts['/epp']} icon={<HardHat size={16} className="text-blue-500 group-hover:text-blue-300 transition-colors" />} label="Control de EPP" href="/epp" active={pathname === '/epp'} />
