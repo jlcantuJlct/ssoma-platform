@@ -94,11 +94,31 @@ export default function FillDigitalInspection() {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    setTemplate(data.items);
+                    let itemsToUse = data.items;
+                    
+                    // Parche temporal para formatos de Almacén subidos antes de la actualización del parser
+                    if (moduleName.toLowerCase().includes('almac')) {
+                        const hasFecha = itemsToUse.some((i: any) => i.text.toLowerCase().includes('fecha'));
+                        if (!hasFecha) {
+                            // Insertar campos después de Proyecto (asumiendo que Proyecto es el primero)
+                            const headerInjection = [
+                                { text: 'Fecha', type: 'item' },
+                                { text: 'Área de inspección específica', type: 'item' },
+                                { text: 'Cargo', type: 'item' }
+                            ];
+                            itemsToUse = [
+                                itemsToUse[0], // Proyecto
+                                ...headerInjection,
+                                ...itemsToUse.slice(1)
+                            ];
+                        }
+                    }
+
+                    setTemplate(itemsToUse);
                     setVersion(data.version);
                     // Init answers state with defaults
                     const initAns: any = {};
-                    data.items.forEach((item: any, idx: number) => {
+                    itemsToUse.forEach((item: any, idx: number) => {
                         let defaultText = '';
                         const t = item.text.toUpperCase();
                         if (t.includes('RAZON SOCIAL') || t.includes('RAZÓN SOCIAL')) defaultText = 'Construccion y Administracion S.A.';
@@ -217,7 +237,8 @@ export default function FillDigitalInspection() {
 
     const isMetadataField = (text: string) => {
         const t = text.toLowerCase().trim();
-        const keywords = ['proyecto', 'inspector', 'responsable', 'ubicación', 'ubicacion', 'área', 'area', 'observaciones', 'razón social', 'razon social', 'domicilio', 'cargo', 'fecha', 'hora', 'código', 'codigo', 'versión', 'version', 'conductor', 'placa', 'kilometraje', 'turno', 'empresa'];
+        if (t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion')) return true;
+        const keywords = ['proyecto', 'inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'razón social', 'razon social', 'domicilio', 'cargo', 'fecha', 'hora', 'código', 'codigo', 'versión', 'version', 'conductor', 'placa', 'kilometraje', 'turno', 'empresa'];
         return keywords.some(kw => t.includes(kw));
     };
 
@@ -252,11 +273,11 @@ export default function FillDigitalInspection() {
                     <p className="text-slate-400 text-sm mt-1">Versión de Formato: V{version}</p>
                 </div>
                 
-                <div className="p-4 md:p-6 flex flex-wrap gap-x-4">
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {template.map((item, idx) => {
                         if (item.type === 'title') {
                             return (
-                                <div key={idx} className="w-full bg-slate-800 text-white rounded-t-xl px-4 py-3 mt-6 shadow-md border-b-4 border-blue-500 flex items-center gap-2">
+                                <div key={idx} className="col-span-1 md:col-span-2 bg-slate-800 text-white rounded-t-xl px-4 py-3 mt-4 shadow-md border-b-4 border-blue-500 flex items-center gap-2">
                                     <h3 className="text-sm font-black tracking-wider uppercase">{item.text}</h3>
                                 </div>
                             );
@@ -281,14 +302,13 @@ export default function FillDigitalInspection() {
                         else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
 
                         const isObservaciones = item.text.toLowerCase().includes('observaciones');
-                        const isFirma = item.text.toLowerCase().includes('cargo') || item.text.toLowerCase().includes('responsable');
                         
                         // Solo el checklist, los C/NC y Observaciones ocuparán todo el ancho
                         const isFullWidth = isChecklistField || requiresConforme || isObservaciones;
-                        const widthClass = isFullWidth ? 'w-full' : 'w-full md:w-[calc(50%-0.5rem)]';
+                        const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
 
                         return (
-                            <div key={idx} className={`${widthClass} bg-white ${isChecklistField ? 'border-x border-b border-slate-200 hover:bg-slate-50 transition-colors py-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3' : isCheckbox ? 'border border-slate-200 shadow-sm rounded-xl p-4 my-2 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3' : 'border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative my-2'}`}>
+                            <div key={idx} className={`${widthClass} bg-white ${isChecklistField ? 'border-x border-b border-slate-200 hover:bg-slate-50 transition-colors py-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3' : isCheckbox ? 'border border-slate-200 shadow-sm rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3' : 'border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative'}`}>
                                 {isCheckbox ? (
                                     <>
                                         <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
@@ -393,7 +413,7 @@ export default function FillDigitalInspection() {
                                                 </div>
                                             </div>
                                         )}
-                                        { (item.text.toLowerCase().includes('cargo') || item.text.toLowerCase().includes('responsable')) && (
+                                        { (item.text.toLowerCase().includes('cargo') || item.text.toLowerCase().includes('responsable') || item.text.toLowerCase().includes('inspector')) && (
                                             <div className="mt-4 pt-4 border-t border-slate-200">
                                                 <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
                                                 <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />

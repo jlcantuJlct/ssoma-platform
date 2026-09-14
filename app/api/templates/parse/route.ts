@@ -77,7 +77,7 @@ export async function POST(req: Request) {
                     val = val.replace(/\(Incluir firma\)/gi, '').trim();
                     
                     // Si termina en ":" o es una etiqueta conocida
-                    if (val.endsWith(':') || lower.includes('inspector') || lower.includes('responsable') || lower.includes('ubicación') || lower.includes('planificada') || lower === 'otro') {
+                    if (val.endsWith(':') || lower.includes('inspector') || lower.includes('responsable') || lower.includes('ubicación') || lower.includes('planificada') || lower === 'otro' || lower.includes('fecha') || lower.includes('cargo') || lower.includes('área de') || lower.includes('area de')) {
                         if (!detectedItems.includes(val)) {
                             detectedItems.push(val);
                         }
