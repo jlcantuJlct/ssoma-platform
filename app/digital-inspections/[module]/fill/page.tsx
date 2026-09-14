@@ -291,6 +291,14 @@ export default function FillDigitalInspection() {
                             );
                         }
 
+                        if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('responsable'))) {
+                            const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector'));
+                            if (hasInspector) {
+                                // El cargo normal se renderizará dentro del panel del inspector
+                                return null;
+                            }
+                        }
+
                         const ans = answers[idx];
 
                         const requiresConforme = isConformeField(item.text);
@@ -313,9 +321,48 @@ export default function FillDigitalInspection() {
                         const isProyecto = item.text.toLowerCase().includes('proyecto');
                         const isResponsable = item.text.toLowerCase().includes('responsable');
                         
-                        // Solo el checklist, los C/NC, Observaciones, Proyecto y Responsable ocuparán todo el ancho
-                        const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto || isResponsable;
+                        // Solo el checklist, los C/NC, Observaciones y Proyecto ocuparán todo el ancho
+                        // Responsable ahora será de la mitad del ancho para que empate con Inspector
+                        const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto;
                         const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
+
+                        if (item.text.toLowerCase().includes('inspector')) {
+                            const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || (i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('responsable')));
+                            const cargoAns = cargoIdx !== -1 ? answers[cargoIdx] : null;
+
+                            return (
+                                <div key={idx} className={`${widthClass} bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative`}>
+                                    <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
+                                    <div className="relative">
+                                        <textarea 
+                                            value={ans?.text || ''}
+                                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                            placeholder="Nombre del inspector..."
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                        />
+                                    </div>
+                                    
+                                    {cargoIdx !== -1 && (
+                                        <>
+                                            <h4 className="font-semibold text-slate-700 text-sm mt-2">Cargo</h4>
+                                            <div className="relative">
+                                                <textarea 
+                                                    value={cargoAns?.text || ''}
+                                                    onChange={(e) => handleAnswerChange(cargoIdx, 'text', e.target.value)}
+                                                    placeholder="Escribe el cargo..."
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="mt-4 pt-4 border-t border-slate-200">
+                                        <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
+                                        <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
+                                    </div>
+                                </div>
+                            );
+                        }
 
                         return (
                             <div key={idx} className={`${widthClass} bg-white ${isChecklistField ? 'border-x border-b border-slate-200 hover:bg-slate-50 transition-colors py-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3' : isCheckbox ? 'border border-slate-200 shadow-sm rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3' : 'border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative'}`}>
@@ -423,7 +470,7 @@ export default function FillDigitalInspection() {
                                                 </div>
                                             </div>
                                         )}
-                                        { (item.text.toLowerCase().includes('cargo') || item.text.toLowerCase().includes('responsable') || item.text.toLowerCase().includes('inspector')) && (
+                                        { (item.text.toLowerCase().includes('responsable') || (item.text.toLowerCase().includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector')))) && (
                                             <div className="mt-4 pt-4 border-t border-slate-200">
                                                 <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
                                                 <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
