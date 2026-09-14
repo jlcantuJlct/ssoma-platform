@@ -1,68 +1,104 @@
 const fs = require('fs');
-let file = fs.readFileSync('app/inspections/page.tsx', 'utf8');
+let c = fs.readFileSync('app/digital-inspections/[module]/fill/page.tsx', 'utf8');
 
-// 1. Change state
-file = file.replace(
-  "const [observedArea, setObservedArea] = useState('');",
-  "const [observedAreas, setObservedAreas] = useState<string[]>([]);"
-);
+const targetStart = c.indexOf('return (\n                            <div key={idx}');
+const targetEnd = c.indexOf('}\n                            </div>\n                        );\n                    })}\n                </div>');
 
-// 2. Change clear state calls
-file = file.replace(/setObservedArea\(''\)/g, "setObservedAreas([])");
+if (targetStart > -1 && targetEnd > -1) {
+    const replacement = `return (
+                            <div key={idx} className={\`bg-white border-b border-slate-200 shadow-sm \${isChecklistField ? 'py-3 px-4 flex flex-col sm:flex-row sm:items-center gap-3' : 'rounded-xl p-5 flex flex-col gap-4 relative'}\`}>
+                                {isChecklistField ? (
+                                    <>
+                                        <div className="flex-1 flex justify-between items-center gap-2">
+                                            <h4 className="font-semibold text-slate-700 text-sm leading-snug">{displayText}</h4>
+                                            {requiresPhoto && (
+                                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
+                                                    <Camera size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0 bg-slate-100 p-1 rounded-lg">
+                                            <button 
+                                                onClick={() => handleAnswerChange(idx, 'text', 'C')}
+                                                className={\`px-3 py-1.5 rounded font-bold text-xs transition-all \${ans?.text === 'C' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}\`}
+                                            >C</button>
+                                            <button 
+                                                onClick={() => handleAnswerChange(idx, 'text', 'NC')}
+                                                className={\`px-3 py-1.5 rounded font-bold text-xs transition-all \${ans?.text === 'NC' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}\`}
+                                            >NC</button>
+                                            <button 
+                                                onClick={() => handleAnswerChange(idx, 'text', 'N/A')}
+                                                className={\`px-3 py-1.5 rounded font-bold text-xs transition-all \${ans?.text === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}\`}
+                                            >N/A</button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex justify-between items-start gap-4">
+                                            <h4 className="font-bold text-slate-800 text-sm leading-relaxed">{displayText}</h4>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                {requiresPhoto && (
+                                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
+                                                        <Camera size={18} />
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => {
+                                                        handleAnswerChange(idx, 'text', '');
+                                                        handleAnswerChange(idx, 'isConforme', null);
+                                                    }} 
+                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                                                    title="Borrar respuesta"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
 
-// 3. Change payload 'area: observedArea' to 'areas: observedAreas'
-file = file.replace(
-  "area: observedArea,",
-  "areas: observedAreas,"
-);
-
-// 4. Update the UI for the select
-const uiOld = `<select 
-                                                            value={observedArea} 
-                                                            onChange={e => setObservedArea(e.target.value)}
-                                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white focus:border-emerald-500 appearance-none text-sm"
-                                                            required={hasObservations}
-                                                        >
-                                                            <option value="">Seleccionar Área...</option>
-                                                            <option value="Equipos">Equipos</option>
-                                                            <option value="Almacén">Almacén</option>
-                                                            <option value="Mantenimiento Rutinario">Mantenimiento Rutinario</option>
-                                                            <option value="Mantenimiento Periódico">Mantenimiento Periódico</option>
-                                                            <option value="PAD San Clemente">PAD San Clemente</option>
-                                                            <option value="Chancadora">Chancadora</option>
-                                                            <option value="DME">DME</option>
-                                                            <option value="Otros">Otros (Escribir)</option>
-                                                        </select>`;
-
-const uiNew = `<div className="flex flex-wrap gap-2">
-                                                            {["Equipos", "Almacén", "Mantenimiento Rutinario", "Mantenimiento Periódico", "PAD San Clemente", "Chancadora", "DME", "SSTMA", "Prevención SSOMA", "Señalización", "Otros"].map(area => (
-                                                                <button
-                                                                    key={area}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (observedAreas.includes(area)) {
-                                                                            setObservedAreas(observedAreas.filter(a => a !== area));
-                                                                        } else {
-                                                                            setObservedAreas([...observedAreas, area]);
-                                                                        }
-                                                                    }}
-                                                                    className={\`px-3 py-1.5 rounded-full text-xs font-bold transition-colors \${observedAreas.includes(area) ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-700'}\`}
-                                                                >
-                                                                    {area}
-                                                                </button>
-                                                            ))}
-                                                        </div>`;
-
-file = file.replace(uiOld, uiNew);
-
-// 5. Update conditional for 'Otros'
-file = file.replace(
-  "observedArea === 'Otros'",
-  "observedAreas.includes('Otros')"
-);
-file = file.replace(
-  "observedArea === 'Otros'",
-  "observedAreas.includes('Otros')"
-);
-
-fs.writeFileSync('app/inspections/page.tsx', file);
+                                        {requiresConforme ? (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button 
+                                                    onClick={() => handleAnswerChange(idx, 'isConforme', true)}
+                                                    className={\`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all \${ans?.isConforme === true ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}\`}
+                                                >
+                                                    <CheckCircle size={18} /> CONFORME
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleAnswerChange(idx, 'isConforme', false)}
+                                                    className={\`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all \${ans?.isConforme === false ? 'bg-red-50 border-red-500 text-red-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}\`}
+                                                >
+                                                    <AlertCircle size={18} /> NO CONFORME
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="relative">
+                                                <textarea 
+                                                    value={ans?.text || ''}
+                                                    onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                                    placeholder="Escribe o dicta tu respuesta..."
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 min-h-[100px] text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y"
+                                                />
+                                                <button 
+                                                    onClick={() => toggleVoiceRecording(idx)}
+                                                    className={\`absolute bottom-3 right-3 p-2 rounded-full transition-colors \${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}\`}
+                                                    title="Dictar por voz"
+                                                >
+                                                    {isRecording === idx ? <MicOff size={16} /> : <Mic size={16} />}
+                                                </button>
+                                            </div>
+                                        )}
+                                        { (item.text.toLowerCase().includes('cargo') || item.text.toLowerCase().includes('responsable')) && (
+                                            <div className="mt-4 pt-4 border-t border-slate-100">
+                                                <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
+                                                <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+`;
+    const newContent = c.substring(0, targetStart) + replacement + c.substring(targetEnd);
+    fs.writeFileSync('app/digital-inspections/[module]/fill/page.tsx', newContent);
+    console.log('Success!');
+} else {
+    console.log('Targets not found');
+}

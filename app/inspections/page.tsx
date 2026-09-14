@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ClipboardList, Plus, FileSpreadsheet, ListTodo, Edit3 } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 import { uploadEvidence } from '@/lib/uploadClient';
 import Sidebar from '@/components/Sidebar';
@@ -214,6 +214,44 @@ export default function InspectionsPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [showProgramModal, setShowProgramModal] = useState(false);
     const [showDigitalMenu, setShowDigitalMenu] = useState(false);
+
+    // Dynamic Modules States
+    const [inspectionModules, setInspectionModules] = useState<any[]>([]);
+    const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
+    const [newModuleData, setNewModuleData] = useState({ name: '', description: '' });
+
+    useEffect(() => {
+        const fetchModules = async () => {
+            try {
+                const res = await fetch('/api/modules');
+                const data = await res.json();
+                if (data.success) {
+                    setInspectionModules(data.modules);
+                }
+            } catch (error) {
+                console.error("Error fetching modules:", error);
+            }
+        };
+        fetchModules();
+    }, []);
+
+    const handleCreateModule = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/modules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newModuleData)
+            });
+            const data = await res.json();
+            if (data.success) {
+                setShowCreateModuleModal(false);
+                setInspectionModules([...inspectionModules, data.module]);
+            }
+        } catch(err) {
+            console.error(err);
+        }
+    };
     
     // Motor Analizador de Excel States
     const [showParserModal, setShowParserModal] = useState(false);
@@ -262,7 +300,7 @@ export default function InspectionsPage() {
             setParserResult(result);
             if (result.success && result.data.allItems) {
                 // Por defecto, asumimos que todo es una pregunta
-                setEditableItems(result.data.allItems.map((text: string) => ({ text, type: 'question' })));
+                setEditableItems(result.data.allItems.map((item: any) => typeof item === 'string' ? { text: item, type: 'question' } : { text: item.text, type: 'question', qty: item.qty }));
             }
         } catch (error) {
             console.error(error);
@@ -287,11 +325,26 @@ export default function InspectionsPage() {
     const handleSaveTemplate = async () => {
         setIsSavingTemplate(true);
         try {
-            // Simulamos guardado a la base de datos por ahora o llamamos a un endpoint
-            // await fetch('/api/templates/save', ...)
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            alert('¡Configuración guardada exitosamente en la base de datos!');
-            setShowParserModal(false);
+            const response = await fetch('/api/templates/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    moduleName: targetModule,
+                    actionType: formatActionType,
+                    items: editableItems
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('¡Configuración guardada exitosamente en la base de datos!');
+                setShowParserModal(false);
+                const res = await fetch('/api/modules');
+                const mods = await res.json();
+                if (mods.success) setInspectionModules(mods.modules);
+            } else {
+                alert('Error al guardar: ' + data.error);
+            }
         } catch (error) {
             console.error(error);
             alert('Error al guardar.');
@@ -1290,68 +1343,58 @@ export default function InspectionsPage() {
                                     <p className="text-slate-400 mb-6">Selecciona el tipo de inspección digital que deseas realizar o gestionar:</p>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {/* Tarjeta 1: Vehículos */}
-                                        <div className="relative group bg-slate-950 border border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] rounded-xl p-5 transition-all flex flex-col items-center text-center">
-                                            {(user?.role === 'developer' || user?.role === 'manager') && (
-                                                <button 
-                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Vehículos y Equipos'); setShowFormatOptionsModal(true); }}
-                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
-                                                    title="Opciones de Formato"
-                                                >
-                                                    <Settings size={16} />
-                                                </button>
-                                            )}
-                                            <a href="/vehicle-inspections" className="flex flex-col items-center w-full">
-                                                <div className="w-16 h-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-                                                </div>
-                                                <h4 className="font-bold text-white mb-2 text-sm">Inspección de Vehículos y Equipos</h4>
-                                                <p className="text-xs text-slate-500 leading-relaxed">Parte diario, lista de chequeo para volquetes, camionetas y maquinaria pesada.</p>
-                                            </a>
-                                        </div>
-
-                                        {/* Tarjeta 2: Extintores */}
-                                        <div className="relative group bg-slate-900 border border-slate-800 border-dashed rounded-xl p-5 flex flex-col items-center text-center opacity-70">
-                                            {(user?.role === 'developer' || user?.role === 'manager') && (
-                                                <button 
-                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Extintores'); setShowFormatOptionsModal(true); }}
-                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
-                                                    title="Opciones de Formato"
-                                                >
-                                                    <Settings size={16} />
-                                                </button>
-                                            )}
-                                            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.4 14.4 3.2-3.2"/><path d="M5 2h14"/><path d="M14.5 4.5 12 7"/><path d="M5.5 14.5 3 17"/><path d="M19 12v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/></svg>
-                                            </div>
-                                            <h4 className="font-bold text-slate-300 mb-2 text-sm">Inspección de Extintores</h4>
-                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">Próximamente</span>
-                                        </div>
-
-                                        {/* Tarjeta 3: Botiquines */}
-                                        <div className="relative group bg-slate-900 border border-slate-800 border-dashed rounded-xl p-5 flex flex-col items-center text-center opacity-70">
-                                            {(user?.role === 'developer' || user?.role === 'manager') && (
-                                                <button 
-                                                    onClick={(e) => { e.preventDefault(); setTargetModule('Botiquines'); setShowFormatOptionsModal(true); }}
-                                                    className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
-                                                    title="Opciones de Formato"
-                                                >
-                                                    <Settings size={16} />
-                                                </button>
-                                            )}
-                                            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-4">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 3h-8v4h8z"/><path d="M12 10v6"/><path d="M9 13h6"/></svg>
-                                            </div>
-                                            <h4 className="font-bold text-slate-300 mb-2 text-sm">Inspección de Botiquines</h4>
-                                            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">Próximamente</span>
-                                        </div>
-                                    </div>
+        {inspectionModules.map((mod, idx) => {
+            if (!mod) return null;
+            return (
+            <div key={idx} className={`relative group ${mod.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-800 border-dashed opacity-70'} border rounded-xl p-5 flex flex-col items-center text-center transition-all`}>
+                {(user?.role === 'developer' || user?.role === 'manager') && (
+                    <button 
+                        onClick={(e) => { e.preventDefault(); setTargetModule(mod.name); setFormatActionType(mod.status === 'active' ? 'update' : 'new'); setShowFormatOptionsModal(true); }}
+                        className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                        title="Opciones de Formato"
+                    >
+                        <Settings size={16} />
+                    </button>
+                )}
+                <a href={mod.status === 'active' ? (mod.name.includes('Vehículo') ? "/vehicle-inspections" : `/digital-inspections/${encodeURIComponent(mod.name)}`) : "#"} className="flex flex-col items-center w-full">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}`}>
+                        <ClipboardList size={32} />
+                    </div>
+                    <h4 className={`font-bold mb-2 text-sm ${mod.status === 'active' ? 'text-white' : 'text-slate-300'}`}>{mod.name}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{mod.description}</p>
+                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">En Configuración</span>}
+                </a>
+            </div>
+            );
+        })}
+        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-900 border border-slate-800 border-dashed hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px]">
+            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors"><Plus size={32} /></div>
+            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-white transition-colors">Crear Nuevo Módulo</h4>
+            <p className="text-xs text-slate-500">Añadir otra inspección (Arneses, Escaleras, etc.)</p>
+        </button>
+    </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Modal Opciones de Formato */}
+                    {showCreateModuleModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-white">Crear Módulo</h3>
+                                    <button onClick={() => setShowCreateModuleModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+                                </div>
+                                <form onSubmit={handleCreateModule} className="flex flex-col gap-4">
+                                    <input type="text" placeholder="Nombre" required value={newModuleData.name} onChange={e => setNewModuleData({...newModuleData, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
+                                    <input type="text" placeholder="Descripción" required value={newModuleData.description} onChange={e => setNewModuleData({...newModuleData, description: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
+                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg">Guardar Módulo</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+{/* Modal Opciones de Formato */}
                     {showFormatOptionsModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
                             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">

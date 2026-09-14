@@ -34,36 +34,115 @@ export async function POST(req: Request) {
             return String(cell.value).trim();
         };
 
-        // --- MOTOR DE ESCANEO BÁSICO (MVP) ---
-        // 1. Rastrear buscando patrones de encabezados típicos de inspección
+        // --- MOTOR DE ESCANEO UNIVERSAL ---
+        // 1. Rastrear buscando patrones de encabezados típicos en formatos de seguridad
+        const evalKeywords = ['OK', 'R', 'M', 'F', 'N/A', 'MALO', 'BUENO', 'SI', 'NO', 'C', 'NC', 'CUMPLE', 'OPERATIVO', 'INOPERATIVO', 'B', 'REGULAR'];
+        
         worksheet.eachRow((row, rowNumber) => {
             const textValues: string[] = [];
             row.eachCell({ includeEmpty: false }, (cell) => {
                 textValues.push(getSafeText(cell).toUpperCase());
             });
             
-            // Si la fila contiene OK y alguna otra (R, M, F, MALO, BUENO), y AÚN no hemos encontrado el encabezado
-            if (checklistStartRow === -1 && textValues.includes('OK') && (textValues.includes('R') || textValues.includes('M') || textValues.includes('F') || textValues.includes('MALO') || textValues.includes('N/A'))) {
+            // Contar cuántas columnas coinciden con palabras de evaluación (OK, Malo, Bueno, SI, NO, etc)
+            const matchCount = textValues.filter(v => evalKeywords.includes(v)).length;
+            const hasDescHeader = textValues.some(v => v.includes('ITEM') || v.includes('DESCRIPCI') || v.includes('INSPECC') || v.includes('DETALLE'));
+            
+            if (checklistStartRow === -1 && (matchCount >= 2 || (hasDescHeader && matchCount >= 1))) {
                 checklistStartRow = rowNumber + 1; // Los ítems empiezan en la siguiente fila
                 detectedHeaders = textValues.filter(v => v !== '');
             }
         });
 
-        // 2. Extraer los ítems de la lista de chequeo si encontramos el encabezado
+        // FALLBACK UNIVERSAL: Si el formato es tan raro que no tiene las palabras típicas (Ej. Extintores horizontales)
+        const isFallback = checklistStartRow === -1;
+        if (isFallback) {
+            checklistStartRow = 5;
+        }
+
+        // --- FASE PREVIA: EXTRAER METADATOS DE LA CABECERA ---
+        // Extraemos campos típicos como Proyecto, Inspector, Ubicación, etc.
+        const headerLimit = checklistStartRow !== -1 ? checklistStartRow : 15;
+        for (let i = 1; i < headerLimit; i++) {
+            const row = worksheet.getRow(i);
+            row.eachCell((cell) => {
+                let val = getSafeText(cell);
+                if (val && val.length > 3 && val.length < 80) {
+                    const lower = val.toLowerCase();
+                    // Omitir campos estáticos que ya gestiona la plataforma
+                    if (lower.includes('código') || lower.includes('versión') || lower === 'c' || lower === 'nc') {
+                        return;
+                    }
+                    // Limpiar basura como "(Incluir firma)"
+                    val = val.replace(/\(Incluir firma\)/gi, '').trim();
+                    
+                    // Si termina en ":" o es una etiqueta conocida
+                    if (val.endsWith(':') || lower.includes('inspector') || lower.includes('responsable') || lower.includes('ubicación') || lower.includes('planificada') || lower === 'otro') {
+                        if (!detectedItems.includes(val)) {
+                            detectedItems.push(val);
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Extraer los ítems principales
         if (checklistStartRow !== -1) {
             for (let i = checklistStartRow; i <= worksheet.rowCount; i++) {
                 const row = worksheet.getRow(i);
-                // Asumimos que el ítem de inspección suele estar en las primeras 3 columnas y es un texto largo
-                const possibleItem = getSafeText(row.getCell(1)) || getSafeText(row.getCell(2)) || getSafeText(row.getCell(3));
                 
-                // FRENOS DEL MOTOR: Si encontramos la palabra observaciones o notas al pie, nos detenemos.
-                if (possibleItem.toUpperCase().includes('OBSERVACIONES') || possibleItem.startsWith('(*)')) {
-                    break;
-                }
+                if (isFallback) {
+                    // Modo aspiradora: Extraemos todas las celdas de texto de la fila (útil para formatos horizontales)
+                    row.eachCell((cell) => {
+                        const val = getSafeText(cell);
+                        if (val.length > 3 && val.length < 50 && isNaN(Number(val)) && !val.toLowerCase().includes('firma') && !val.toLowerCase().includes('fecha')) {
+                            if (!detectedItems.includes(val)) {
+                                detectedItems.push(val);
+                            }
+                        }
+                    });
+                } else {
+                    // Modo Vertical Clásico (Ej. Vehículos, Botiquines)
+                    // Buscar la primera celda en las columnas 1 a 6 que tenga texto real descriptivo
+                    let possibleItem = '';
+                    let foundCol = -1;
+                    for (let col = 1; col <= 6; col++) {
+                        const val = getSafeText(row.getCell(col));
+                        if (val && val.length > 4 && isNaN(Number(val))) {
+                            possibleItem = val;
+                            foundCol = col;
+                            break;
+                        }
+                    }
+                    
+                    if (possibleItem.startsWith('(*) NOTA') || possibleItem.startsWith('NOTA:')) {
+                        break;
+                    }
 
-                // Ignoramos celdas pequeñas (ej. solo números de enumeración) o celdas de firmas, o párrafos enormes
-                if (possibleItem && possibleItem.length > 4 && possibleItem.length < 100 && !possibleItem.toLowerCase().includes('firma')) { 
-                    detectedItems.push(possibleItem);
+                    if (possibleItem && possibleItem.length > 4 && possibleItem.length < 150 && !possibleItem.toLowerCase().includes('firma')) { 
+                        // Buscar cantidad en las columnas inmediatas a la derecha
+                        let possibleQuantity = '';
+                        if (foundCol !== -1) {
+                            for (let c = foundCol + 1; c <= foundCol + 5; c++) {
+                                const qVal = getSafeText(row.getCell(c));
+                                // Validar si es un número corto (Ej: "02", "1", "10")
+                                if (qVal && qVal.length <= 3 && !isNaN(Number(qVal))) {
+                                    possibleQuantity = qVal;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Verificamos si ya existe el ítem (para no duplicar) comparando el texto
+                        const exists = detectedItems.some((item: any) => typeof item === 'string' ? item === possibleItem : item.text === possibleItem);
+                        if (!exists) {
+                            if (possibleQuantity) {
+                                detectedItems.push({ text: possibleItem, qty: possibleQuantity });
+                            } else {
+                                detectedItems.push(possibleItem);
+                            }
+                        }
+                    }
                 }
             }
         }

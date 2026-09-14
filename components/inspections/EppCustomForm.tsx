@@ -1,8 +1,9 @@
-const fs = require('fs');
-const file = 'app/digital-inspections/[module]/fill/page.tsx';
-let code = fs.readFileSync(file, 'utf8');
+"use client";
 
-const eppComponent = \`
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Trash2, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft } from 'lucide-react';
+
 const EPP_GROUPS = [
     { name: 'CABEZA', items: ['Casco', 'Barbiquejo'] },
     { name: 'CARA', items: ['Careta de esmerilar', 'Careta de soldador'] },
@@ -14,7 +15,7 @@ const EPP_GROUPS = [
     { name: 'PIES', items: ['Botines punta de acero', 'Botines dieléctricos', 'Botas de jebe'] }
 ];
 
-const EppCustomForm = ({ moduleName, version }: { moduleName: string, version: number }) => {
+export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
     const [isSaving, setIsSaving] = useState(false);
     
@@ -128,7 +129,7 @@ const EppCustomForm = ({ moduleName, version }: { moduleName: string, version: n
                         <input type="text" placeholder="Nombre y Puesto" value={meta.responsable} onChange={e => setMeta({...meta, responsable: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-blue-500 outline-none bg-slate-50 rounded mb-3" />
                         
                         <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Firma del Responsable</label>
-                        <SignaturePad onSave={(val) => setMeta({...meta, firmaResponsable: val})} />
+                        <SignaturePad onSave={(val: string) => setMeta({...meta, firmaResponsable: val})} />
                     </div>
                 </div>
 
@@ -140,7 +141,7 @@ const EppCustomForm = ({ moduleName, version }: { moduleName: string, version: n
                             onClick={() => updateWorker(wIdx, 'expanded', !worker.expanded)}
                         >
                             <div className="flex-1">
-                                <h3 className="font-bold text-blue-900">{worker.name || \`Trabajador #\${wIdx + 1}\`}</h3>
+                                <h3 className="font-bold text-blue-900">{worker.name || ('Trabajador #' + (wIdx + 1))}</h3>
                                 <p className="text-xs text-blue-600">{worker.role || 'Sin puesto especificado'}</p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -176,7 +177,7 @@ const EppCustomForm = ({ moduleName, version }: { moduleName: string, version: n
                                                             <button
                                                                 key={epp}
                                                                 onClick={() => toggleEpp(wIdx, epp)}
-                                                                className={\`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all \${isBad ? 'bg-red-500/20 text-red-400 border-red-500/50 scale-105 shadow-lg shadow-red-900/20' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'}\`}
+                                                                className={"px-3 py-1.5 text-xs font-bold rounded-lg border transition-all " + (isBad ? 'bg-red-500/20 text-red-400 border-red-500/50 scale-105 shadow-lg shadow-red-900/20' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700')}
                                                             >
                                                                 {epp} {isBad && ' ❌'}
                                                             </button>
@@ -220,21 +221,3 @@ const EppCustomForm = ({ moduleName, version }: { moduleName: string, version: n
         </div>
     );
 };
-\`;
-
-const insertIndex = code.indexOf('export default function FillDigitalInspection(');
-const newCode = code.slice(0, insertIndex) + eppComponent + '\\n' + code.slice(insertIndex);
-
-fs.writeFileSync(file, newCode, 'utf8');
-
-// Inject the condition
-let modifiedFileCode = fs.readFileSync(file, 'utf8');
-const renderStartIdx = modifiedFileCode.indexOf('if (loading) {');
-const conditionStr = \`
-    if (!loading && decodeURIComponent(params.module as string).toLowerCase().includes('epp')) {
-        return <EppCustomForm moduleName={params.module as string} version={version} />;
-    }
-\`;
-modifiedFileCode = modifiedFileCode.slice(0, renderStartIdx) + conditionStr + '\\n    ' + modifiedFileCode.slice(renderStartIdx);
-
-fs.writeFileSync(file, modifiedFileCode, 'utf8');
