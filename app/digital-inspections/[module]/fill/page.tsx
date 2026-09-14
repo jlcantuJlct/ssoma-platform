@@ -100,16 +100,24 @@ export default function FillDigitalInspection() {
                     if (moduleName.toLowerCase().includes('almac')) {
                         const hasFecha = itemsToUse.some((i: any) => i.text.toLowerCase().includes('fecha'));
                         if (!hasFecha) {
-                            // Insertar campos después de Proyecto (asumiendo que Proyecto es el primero)
-                            const headerInjection = [
-                                { text: 'Fecha', type: 'item' },
-                                { text: 'Área de inspección específica', type: 'item' },
-                                { text: 'Cargo', type: 'item' }
-                            ];
+                            // Extraer los ítems conocidos
+                            const proyecto = itemsToUse.find((i: any) => i.text.toLowerCase().includes('proyecto')) || itemsToUse[0];
+                            const inspector = itemsToUse.find((i: any) => i.text.toLowerCase().includes('inspector')) || { text: 'Inspector', type: 'item' };
+                            const responsable = itemsToUse.find((i: any) => i.text.toLowerCase().includes('responsable')) || { text: 'Responsable de área', type: 'item' };
+                            
+                            // Filtrar los demás ítems (el checklist, etc)
+                            const restOfItems = itemsToUse.filter((i: any) => 
+                                i !== proyecto && i !== inspector && i !== responsable
+                            );
+
                             itemsToUse = [
-                                itemsToUse[0], // Proyecto
-                                ...headerInjection,
-                                ...itemsToUse.slice(1)
+                                proyecto,
+                                { text: 'Área de inspección específica', type: 'item' },
+                                { text: 'Fecha', type: 'item' },
+                                inspector,
+                                { text: 'Cargo', type: 'item' },
+                                responsable,
+                                ...restOfItems
                             ];
                         }
                     }
@@ -302,9 +310,11 @@ export default function FillDigitalInspection() {
                         else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
 
                         const isObservaciones = item.text.toLowerCase().includes('observaciones');
+                        const isProyecto = item.text.toLowerCase().includes('proyecto');
+                        const isResponsable = item.text.toLowerCase().includes('responsable');
                         
-                        // Solo el checklist, los C/NC y Observaciones ocuparán todo el ancho
-                        const isFullWidth = isChecklistField || requiresConforme || isObservaciones;
+                        // Solo el checklist, los C/NC, Observaciones, Proyecto y Responsable ocuparán todo el ancho
+                        const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto || isResponsable;
                         const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
 
                         return (
