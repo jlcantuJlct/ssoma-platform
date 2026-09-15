@@ -288,6 +288,34 @@ export default function InspectionsPage() {
         setShowImportMenu(false);
     };
 
+        const handleMasterTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>, moduleName: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('moduleName', moduleName);
+
+        try {
+            alert(`Subiendo plantilla maestra para ${moduleName}...`);
+            const response = await fetch('/api/templates/upload-master', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('¡Plantilla Maestra guardada exitosamente! Ya puedes generar Excels.');
+            } else {
+                alert('Error al subir: ' + result.error);
+            }
+        } catch(e) {
+            alert('Error de red al subir la plantilla.');
+        }
+        
+        // Reset input
+        e.target.value = '';
+    };
+
     const handleParseTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -2246,4 +2274,5 @@ export default function InspectionsPage() {
         </div >
     );
 }
+
 
