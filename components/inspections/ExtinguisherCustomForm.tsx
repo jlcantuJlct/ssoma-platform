@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -154,7 +154,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         setExtinguishers(copy);
     };
 
-    const handleSave = async () => {
+    const handleSaveAndDownload = async () => {
         if (extinguishers.length === 0) {
             alert('Añade al menos un equipo de emergencia evaluado.');
             return;
@@ -162,30 +162,68 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
 
         setIsSaving(true);
         try {
-            const res = await fetch('/api/inspections/save', {
+            const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    moduleName: decodeURIComponent(moduleName),
-                    version,
-                    data: {
-                        meta,
-                        extinguishers,
-                        isExtinguisherMatrix: true
-                    }
+                    moduleName: 'Extintores',
+                    isExtinguisherMatrix: true,
+                    meta,
+                    extinguishers,
+                    saveToDrive: true
                 })
             });
+
             if (res.ok) {
-                alert('¡Inspección guardada con éxito!');
+                const data = await res.json();
+
+                if (data.fileBase64) {
+                    const byteCharacters = atob(data.fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INSP_Extintores_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+
+                await fetch('/api/inspections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create',
+                        data: {
+                            date: meta.fecha || new Date().toISOString().split('T')[0],
+                            responsible: meta.inspector || 'Supervisor SSOMA',
+                            inspectionType: 'Extintores',
+                            area: meta.proyecto || 'RED VIAL 6',
+                            zone: meta.ubicacionProyecto || 'Inspección Digital',
+                            status: 'Completado',
+                            observations: `${extinguishers.length} equipos de emergencia inspeccionados.`,
+                            evidencePdf: data.driveUrl || '',
+                            evidenceImgs: []
+                        }
+                    })
+                });
+
+                alert('¡Inspección de Extintores guardada exitosamente en Drive y Base de Datos!');
                 router.push('/inspections?openDigital=true');
             } else {
-                alert('Error al guardar.');
+                const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                alert('Error al generar la inspección: ' + errorData.error);
             }
         } catch(e) {
             console.error(e);
-            alert('Error al guardar.');
+            alert('Error de conexión al procesar la inspección.');
+        } finally {
+            setIsSaving(false);
         }
-        setIsSaving(false);
     };
 
     return (
@@ -400,9 +438,9 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     </div>
                 </div>
 
-                <button onClick={handleSave} disabled={isSaving} className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-transform active:scale-95 mt-8 disabled:opacity-50">
+                <button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-transform active:scale-95 mt-8 disabled:opacity-50">
                     {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                    {isSaving ? 'Guardando...' : 'Guardar Inspección'}
+                    {isSaving ? 'Generando Excel y Guardando en Drive...' : 'Finalizar y Descargar Excel'}
                 </button>
             </div>
         </div>

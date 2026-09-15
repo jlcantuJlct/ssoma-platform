@@ -178,36 +178,74 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
         }));
     };
 
-    const handleSave = async () => {
+    const handleSaveAndDownload = async () => {
         setIsSaving(true);
         try {
-            const res = await fetch('/api/inspections/save', {
+            const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    moduleName: decodeURIComponent(moduleName),
-                    version,
-                    data: {
-                        meta,
-                        checklist,
-                        observaciones,
-                        firmas,
-                        fotos: fotosDefectos, // Enviar las fotos por defecto mapeadas
-                        isMachineryMatrix: true
-                    }
+                    moduleName: 'Maquinaria',
+                    isMachineryMatrix: true,
+                    meta,
+                    checklist,
+                    observaciones,
+                    firmas,
+                    fotosDefectos,
+                    saveToDrive: true
                 })
             });
+
             if (res.ok) {
-                alert('¡Inspección de Maquinaria guardada con éxito!');
-                router.push('/inspections');
+                const data = await res.json();
+
+                if (data.fileBase64) {
+                    const byteCharacters = atob(data.fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INSP_Maquinaria_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+
+                await fetch('/api/inspections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create',
+                        data: {
+                            date: meta.fecha || new Date().toISOString().split('T')[0],
+                            responsible: meta.chofer || meta.operador || 'Operador',
+                            inspectionType: 'Maquinaria',
+                            area: meta.proyecto || 'RED VIAL 6',
+                            zone: meta.equipo || 'Inspección Digital',
+                            status: 'Completado',
+                            observations: observaciones || 'Pre-uso de maquinaria generado.',
+                            evidencePdf: data.driveUrl || '',
+                            evidenceImgs: []
+                        }
+                    })
+                });
+
+                alert('¡Inspección de Maquinaria guardada exitosamente en Drive y Base de Datos!');
+                router.push('/inspections?openDigital=true');
             } else {
-                alert('Error al guardar.');
+                const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                alert('Error al generar la inspección: ' + errorData.error);
             }
         } catch(e) {
             console.error(e);
-            alert('Error al guardar.');
+            alert('Error de conexión al procesar la inspección.');
+        } finally {
+            setIsSaving(false);
         }
-        setIsSaving(false);
     };
 
     const renderRadioGroup = (item: string, options: string[]) => {
@@ -472,9 +510,9 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                     )}
                 </div>
 
-                <button onClick={handleSave} disabled={isSaving} className="w-full bg-slate-800 hover:bg-slate-700 text-yellow-400 font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 mt-8 disabled:opacity-50 border border-slate-700">
+                <button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 transition-transform active:scale-95 mt-8 disabled:opacity-50">
                     {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                    {isSaving ? 'Guardando...' : 'Guardar Inspección de Maquinaria'}
+                    {isSaving ? 'Generando Excel y Guardando en Drive...' : 'Finalizar y Descargar Excel'}
                 </button>
             </div>
         </div>
