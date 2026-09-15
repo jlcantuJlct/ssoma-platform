@@ -32,12 +32,11 @@ export async function POST(req: Request) {
             return idx !== -1 ? (answers[idx]?.signature || '') : '';
         };
 
-        if (moduleName.toLowerCase().includes('botiquin')) {
-            // Mapeo F-SIG-030 basado en la imagen del usuario
+                        if (moduleName.toLowerCase().includes('botiquin')) {
             worksheet.getCell('C4').value = getVal('proyecto');
             worksheet.getCell('C5').value = getVal('fecha');
             worksheet.getCell('I5').value = getVal('hora');
-                                    worksheet.getCell('D6').value = getVal('inspector');
+            worksheet.getCell('D6').value = getVal('inspector');
             worksheet.getCell('D7').value = getVal('responsable');
             worksheet.getCell('D8').value = getVal('ubicación');
             
@@ -46,11 +45,8 @@ export async function POST(req: Request) {
                 try {
                     const base64Data = inspSig.replace(/^data:image\/\w+;base64,/, "");
                     const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
-                    worksheet.addImage(imageId, {
-                        tl: { col: 9, row: 5 }, // Columna J, Fila 6
-                        ext: { width: 120, height: 40 }
-                    });
-                } catch(e) { console.error('Error adding inspector signature', e); }
+                    worksheet.addImage(imageId, { tl: { col: 9, row: 5 }, ext: { width: 120, height: 40 } });
+                } catch(e) { console.error(e); }
             }
 
             const respSig = getSignature('responsable');
@@ -58,17 +54,20 @@ export async function POST(req: Request) {
                 try {
                     const base64Data = respSig.replace(/^data:image\/\w+;base64,/, "");
                     const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
-                    worksheet.addImage(imageId, {
-                        tl: { col: 9, row: 6 }, // Columna J, Fila 7
-                        ext: { width: 120, height: 40 }
-                    });
-                } catch(e) { console.error('Error adding responsable signature', e); }
+                    worksheet.addImage(imageId, { tl: { col: 9, row: 6 }, ext: { width: 120, height: 40 } });
+                } catch(e) { console.error(e); }
             }
             
-            // Inspección planificada (A10, A11, D12) - Mapearemos con X si tenemos la data
+            // Inspección planificada (A10, A11) 
+            const isPlanificada = template.findIndex((t: any) => t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
+            const isNoPlanificada = template.findIndex((t: any) => t.text.toLowerCase().includes('no planificada') || t.text.toLowerCase().includes('inopinada'));
+
+            if (isPlanificada !== -1 && answers[isPlanificada]?.text === 'true') worksheet.getCell('A10').value = 'X';
+            if (isNoPlanificada !== -1 && answers[isNoPlanificada]?.text === 'true') worksheet.getCell('A11').value = 'X';
             
-            // Llenar Items
-            // La fila 15 es el primer ítem en el formato F-SIG-030
+            let hallazgosText = '';
+            let observacionesPrincipales = '';
+            
             let itemStartRow = 15;
             
             template.forEach((item: any, idx: number) => {
@@ -76,19 +75,11 @@ export async function POST(req: Request) {
                 if (['proyecto', 'fecha', 'hora', 'inspector', 'cargo', 'responsable', 'ubicación', 'planificada'].some(k => text.includes(k))) return;
                 
                 if (text.includes('observaciones') || text.includes('comentario')) {
-                    // Colocar observaciones en la fila 36 (o la que corresponda, buscaremos la palabra Observaciones)
-                    let obsRow = 36;
-                    for (let i = 25; i <= 45; i++) {
-                        const cellText = worksheet.getCell(`A${i}`).value?.toString().toLowerCase() || '';
-                        const cellB = worksheet.getCell(`B${i}`).value?.toString().toLowerCase() || '';
-                        if (cellText.includes('observaciones') || cellB.includes('observaciones')) {
-                            obsRow = i + 1;
-                            break;
-                        }
-                    }
-                    worksheet.getCell(`A${obsRow}`).value = answers[idx]?.text || '';
-                } else if (answers[idx]?.text === 'C' || answers[idx]?.text === 'NC' || answers[idx]?.text === 'N/A') {
-                    // Buscar la fila correcta para este ítem buscando su texto en la columna B
+                    observacionesPrincipales = answers[idx]?.text || '';
+                    return;
+                }
+                
+                if (answers[idx]?.text === 'C' || answers[idx]?.text === 'NC' || answers[idx]?.text === 'N/A') {
                     let foundRow = -1;
                     for(let r = 14; r <= 35; r++) {
                         const bVal = worksheet.getCell(`B${r}`).value?.toString().toLowerCase() || '';
@@ -97,24 +88,68 @@ export async function POST(req: Request) {
                             break;
                         }
                     }
-                    
                     const targetRow = foundRow !== -1 ? foundRow : itemStartRow++;
-                    
                     const ans = answers[idx]?.text;
                     const qty = answers[idx]?.qty;
-                    
-                    // Cantidad en la columna J
                     if (qty) worksheet.getCell(`J${targetRow}`).value = qty;
-                    
-                    // X en la columna K, L, M
                     if (ans === 'C') worksheet.getCell(`K${targetRow}`).value = 'X';
-                    if (ans === 'NC') worksheet.getCell(`L${targetRow}`).value = 'X';
+                    if (ans === 'NC') {
+                        worksheet.getCell(`L${targetRow}`).value = 'X';
+                        hallazgosText += `- ${item.text}: NO CONFORME\n`;
+                    }
                     if (ans === 'N/A') worksheet.getCell(`M${targetRow}`).value = 'X';
                 }
             });
-        }
 
-                const buffer = await workbook.xlsx.writeBuffer();
+            // Combinar observaciones y hallazgos
+            const finalObs = [observacionesPrincipales, hallazgosText ? `HALLAZGOS:\n${hallazgosText}` : ''].filter(Boolean).join('\n\n');
+            if (finalObs) {
+                // Escribir en la celda A35 que está dentro del cuadro de observaciones
+                worksheet.getCell('A36').value = finalObs;
+                worksheet.getCell('A36').alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+            }
+
+            // Añadir Fotos en la fila 48
+            let currentPhotoRow = 48;
+            if (data.fotosDefectos) {
+                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
+                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
+                currentPhotoRow += 2;
+
+                Object.keys(data.fotosDefectos).forEach(itemName => {
+                    const fotos = data.fotosDefectos[itemName];
+                    if (fotos && fotos.length > 0) {
+                        worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${itemName}`;
+                        currentPhotoRow += 1;
+                        
+                        let colCursor = 1; // A=1
+                        
+                        fotos.forEach((fotoB64: string) => {
+                            try {
+                                const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
+                                const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
+                                
+                                worksheet.addImage(imageId, {
+                                    tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
+                                    ext: { width: 300, height: 220 }
+                                });
+                                
+                                colCursor += 5; // Move right for the next photo
+                                if (colCursor > 10) {
+                                    colCursor = 1;
+                                    currentPhotoRow += 13;
+                                }
+                            } catch(e) { console.error('Error attaching photo:', e); }
+                        });
+                        
+                        if (colCursor > 1) {
+                            currentPhotoRow += 13;
+                        }
+                    }
+                });
+            }
+        }
+const buffer = await workbook.xlsx.writeBuffer();
 
         if (data.saveToDrive) {
             const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
@@ -168,6 +203,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+
+
+
+
 
 
 

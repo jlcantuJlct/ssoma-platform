@@ -66,7 +66,7 @@ export default function FillDigitalInspection() {
     // Estado para las fotos de cada hallazgo (NC o NO CONFORME)
     const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
 
-    const handlePhotoUploadDefecto = (itemName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const handlePhotoUploadDefecto = (itemName: string, e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
@@ -74,15 +74,36 @@ export default function FillDigitalInspection() {
             const reader = new FileReader();
             reader.onload = (event) => {
                 if (event.target?.result) {
-                    setFotosDefectos(prev => ({
-                        ...prev,
-                        [itemName]: [...(prev[itemName] || []), event.target!.result as string]
-                    }));
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 800; // Resize to max 800px to avoid 413 error
+                        if (width > height && width > maxDim) {
+                            height *= maxDim / width;
+                            width = maxDim;
+                        } else if (height > maxDim) {
+                            width *= maxDim / height;
+                            height = maxDim;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0, width, height);
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% JPEG
+                        
+                        setFotosDefectos(prev => ({
+                            ...prev,
+                            [itemName]: [...(prev[itemName] || []), compressedBase64]
+                        }));
+                    };
+                    img.src = event.target.result as string;
                 }
             };
             reader.readAsDataURL(file);
         });
-    };
+    };;
 
     const removePhotoDefecto = (itemName: string, index: number) => {
         setFotosDefectos(prev => ({
@@ -202,7 +223,7 @@ export default function FillDigitalInspection() {
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template, saveToDrive: true })
+                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template, saveToDrive: true, fotosDefectos })
             });
 
             if (res.ok) {
@@ -804,6 +825,8 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
+
 
 
 
