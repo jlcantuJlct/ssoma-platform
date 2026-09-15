@@ -246,7 +246,9 @@ export default function FillDigitalInspection() {
         const t = text.toLowerCase().trim();
         if (t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica')) return true;
         if (t === 'proyecto' || t === 'proyecto:' || t === 'empresa' || t === 'empresa:' || t.startsWith('empresa contratista') || t.startsWith('empresa subcontratista')) return true;
-        if (t === 'conductor' || t === 'conductor:' || t === 'fecha' || t === 'fecha:' || t === 'fecha actual' || t === 'fecha de inspección' || t === 'fecha de inspeccion') return true;
+        if (t === 'conductor' || t === 'conductor:') return true;
+        if (t.includes('fecha de caducidad')) return false; // tratar como checklist C/NC/N/A
+        if (t === 'fecha' || t === 'fecha:' || t === 'fecha actual' || t === 'fecha de inspección' || t === 'fecha de inspeccion') return true;
         const keywords = ['inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'hora', 'código', 'codigo', 'versión', 'version', 'placa', 'kilometraje', 'turno'];
         return keywords.some(kw => t.includes(kw));
     };
@@ -266,13 +268,211 @@ export default function FillDigitalInspection() {
         .filter(({ ans }) => ans?.text === 'NC' || ans?.isConforme === false)
         .map(({ text, ans }) => ({ text, val: ans?.text === 'NC' ? 'NC' : 'NO CONFORME' }));
 
-    return (
-        <div className="p-4 md:p-8 max-w-3xl mx-auto">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 font-semibold">
-                <ArrowLeft size={16} /> Volver
-            </button>
+    const renderField = (item: any, idx: number) => {
+        if (item.type === 'title' && !item.text.toLowerCase().includes('comentario') && !item.text.toLowerCase().includes('observaciones')) {
+            return (
+                <div key={idx} className="col-span-1 md:col-span-2 bg-slate-800 text-white rounded-t-xl px-4 py-3 mt-4 shadow-md border-b-4 border-blue-500 flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-wider uppercase">{item.text}</h3>
+                </div>
+            );
+        }
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('responsable'))) {
+            const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector'));
+            if (hasInspector) return null;
+        }
+
+        const ans = answers[idx];
+
+        const requiresConforme = isConformeField(item.text);
+        const isCheckbox = isCheckboxField(item.text);
+        const isChecklistField = !isMetadataField(item.text) && !requiresConforme && !isCheckbox;
+        
+        const isUbicacion = item.text.toLowerCase().includes('ubicación') || item.text.toLowerCase().includes('ubicacion');
+        const isCodigo = item.text.toLowerCase().includes('código') || item.text.toLowerCase().includes('codigo');
+        
+        const requiresPhoto = isCodigo || (isUbicacion && idx > 5);
+
+        let displayText = item.text;
+        const upperText = displayText.toUpperCase().trim();
+        if (upperText === 'ACTUAL' || upperText === 'FECHA ACTUAL') displayText = 'FECHA ACTUAL DE RECARGA';
+        else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
+
+        const isObservaciones = item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario');
+        const isProyecto = item.text.toLowerCase().includes('proyecto');
+        
+        const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto;
+        const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
+
+        if (item.text.toLowerCase().includes('inspector')) {
+            const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || (i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('responsable')));
+            const cargoAns = cargoIdx !== -1 ? answers[cargoIdx] : null;
+
+            return (
+                <div key={idx} className={`${widthClass} bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative`}>
+                    <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
+                    <div className="relative">
+                        <textarea 
+                            value={ans?.text || ''}
+                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                            placeholder="Nombre del inspector..."
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                        />
+                    </div>
+                    
+                    {cargoIdx !== -1 && (
+                        <>
+                            <h4 className="font-semibold text-slate-700 text-sm mt-2">Cargo</h4>
+                            <div className="relative">
+                                <textarea 
+                                    value={cargoAns?.text || ''}
+                                    onChange={(e) => handleAnswerChange(cargoIdx, 'text', e.target.value)}
+                                    placeholder="Escribe el cargo..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                        <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
+                        <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div key={idx} className={`${widthClass} bg-white ${isChecklistField ? 'border-x border-b border-slate-200 hover:bg-slate-50 transition-colors py-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3' : isCheckbox ? 'border border-slate-200 shadow-sm rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3' : 'border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative'}`}>
+                {isCheckbox ? (
+                    <>
+                        <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
+                        <button 
+                            onClick={() => handleAnswerChange(idx, 'text', ans?.text === 'X' ? '' : 'X')}
+                            className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-all ${ans?.text === 'X' ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 text-transparent hover:border-blue-400'}`}
+                        >
+                            <X size={20} className={ans?.text === 'X' ? 'text-white' : 'text-transparent'} />
+                        </button>
+                    </>
+                ) : isChecklistField ? (
+                    <>
+                        <div className="flex-1 flex justify-between items-center gap-2">
+                            <h4 className="font-semibold text-slate-700 text-sm leading-snug">{displayText}</h4>
+                            {requiresPhoto && (
+                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
+                                    <Camera size={18} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'text', 'C')}
+                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'C' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                                >C</button>
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'text', 'NC')}
+                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'NC' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                                >NC</button>
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'text', 'N/A')}
+                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                                >N/A</button>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex justify-between items-start gap-4">
+                            <h4 className="font-bold text-slate-800 text-sm leading-relaxed">{displayText}</h4>
+                            <div className="flex items-center gap-1 shrink-0">
+                                {requiresPhoto && (
+                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
+                                        <Camera size={18} />
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => {
+                                        handleAnswerChange(idx, 'text', '');
+                                        handleAnswerChange(idx, 'isConforme', null);
+                                    }} 
+                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                                    title="Borrar respuesta"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {requiresConforme ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'isConforme', true)}
+                                    className={`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all ${ans?.isConforme === true ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                >
+                                    <CheckCircle size={18} /> CONFORME
+                                </button>
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'isConforme', false)}
+                                    className={`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all ${ans?.isConforme === false ? 'bg-red-50 border-red-500 text-red-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                >
+                                    <AlertCircle size={18} /> NO CONFORME
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="relative flex flex-col gap-2">
+                                {(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) && badItems.length > 0 && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                        <h5 className="font-bold text-red-800 text-xs mb-2">HALLAZGOS REGISTRADOS:</h5>
+                                        <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
+                                            {badItems.map((b, i) => (
+                                                <li key={i}><strong>{b.text}</strong> ({b.val})</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                <div className="relative">
+                                    <textarea 
+                                        value={ans?.text || ''}
+                                        onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                        placeholder="Escribe o dicta tu respuesta..."
+                                        className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
+                                    />
+                                    <button 
+                                        onClick={() => toggleVoiceRecording(idx)}
+                                        className={`absolute bottom-3 right-3 p-2 rounded-full transition-colors ${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
+                                        title="Dictar por voz"
+                                    >
+                                        {isRecording === idx ? <MicOff size={16} /> : <Mic size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        { (item.text.toLowerCase().includes('responsable') || (item.text.toLowerCase().includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector')))) && (
+                            <div className="mt-4 pt-4 border-t border-slate-200">
+                                <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
+                                <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        );
+    };
+
+    if (loading) return <div className="min-h-screen bg-slate-50 p-6 flex justify-center items-center"><div className="animate-spin text-blue-600"><Loader2 size={32} /></div></div>;
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 font-sans">
+            <div className="max-w-4xl mx-auto">
+                <button 
+                    onClick={() => router.push('/dashboard/digital-inspections')} 
+                    className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                >
+                    <ArrowLeft size={18} /> Volver
+                </button>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
                 <div className="bg-slate-900 p-6 text-white">
                     <h1 className="text-xl font-bold">
                         {moduleName.toLowerCase().startsWith('inspección') || moduleName.toLowerCase().startsWith('inspeccion') 
@@ -282,205 +482,31 @@ export default function FillDigitalInspection() {
                     <p className="text-slate-400 text-sm mt-1">Versión de Formato: V{version}</p>
                 </div>
                 
-                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-b border-slate-200">
                     {template.map((item, idx) => {
-                        if (item.type === 'title' && !item.text.toLowerCase().includes('comentario') && !item.text.toLowerCase().includes('observaciones')) {
-                            return (
-                                <div key={idx} className="col-span-1 md:col-span-2 bg-slate-800 text-white rounded-t-xl px-4 py-3 mt-4 shadow-md border-b-4 border-blue-500 flex items-center gap-2">
-                                    <h3 className="text-sm font-black tracking-wider uppercase">{item.text}</h3>
-                                </div>
-                            );
-                        }
+                        const t = item.text.toLowerCase().trim();
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('área') || t.includes('area') || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        if (!isHeader) return null;
+                        return renderField(item, idx);
+                    })}
+                </div>
 
-                        if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('responsable'))) {
-                            const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector'));
-                            if (hasInspector) {
-                                // El cargo normal se renderizará dentro del panel del inspector
-                                return null;
-                            }
-                        }
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    {template.map((item, idx) => {
+                        const t = item.text.toLowerCase().trim();
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('área') || t.includes('area') || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('responsable') || t.includes('observaciones') || t.includes('comentario') || isCheckboxField(item.text);
+                        if (isHeader || isFooter) return null;
+                        return renderField(item, idx);
+                    })}
+                </div>
 
-                        const ans = answers[idx];
-
-                        const requiresConforme = isConformeField(item.text);
-                        const isCheckbox = isCheckboxField(item.text);
-                        const isChecklistField = !isMetadataField(item.text) && !requiresConforme && !isCheckbox;
-                        
-                        const isUbicacion = item.text.toLowerCase().includes('ubicación') || item.text.toLowerCase().includes('ubicacion');
-                        const isCodigo = item.text.toLowerCase().includes('código') || item.text.toLowerCase().includes('codigo');
-                        
-                        // Solo mostramos cámara en "código" o en "ubicación"
-                        const requiresPhoto = isCodigo || (isUbicacion && idx > 5);
-
-                        // Interceptar nombres
-                        let displayText = item.text;
-                        const upperText = displayText.toUpperCase().trim();
-                        if (upperText === 'ACTUAL' || upperText === 'FECHA ACTUAL') displayText = 'FECHA ACTUAL DE RECARGA';
-                        else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
-
-                        const isObservaciones = item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario');
-                        const isProyecto = item.text.toLowerCase().includes('proyecto');
-                        const isResponsable = item.text.toLowerCase().includes('responsable');
-                        
-                        // Solo el checklist, los C/NC, Observaciones y Proyecto ocuparán todo el ancho
-                        // Responsable ahora será de la mitad del ancho para que empate con Inspector
-                        const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto;
-                        const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
-
-                        if (item.text.toLowerCase().includes('inspector')) {
-                            const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || (i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('responsable')));
-                            const cargoAns = cargoIdx !== -1 ? answers[cargoIdx] : null;
-
-                            return (
-                                <div key={idx} className={`${widthClass} bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative`}>
-                                    <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
-                                    <div className="relative">
-                                        <textarea 
-                                            value={ans?.text || ''}
-                                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                                            placeholder="Nombre del inspector..."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
-                                        />
-                                    </div>
-                                    
-                                    {cargoIdx !== -1 && (
-                                        <>
-                                            <h4 className="font-semibold text-slate-700 text-sm mt-2">Cargo</h4>
-                                            <div className="relative">
-                                                <textarea 
-                                                    value={cargoAns?.text || ''}
-                                                    onChange={(e) => handleAnswerChange(cargoIdx, 'text', e.target.value)}
-                                                    placeholder="Escribe el cargo..."
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
-                                                />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    <div className="mt-4 pt-4 border-t border-slate-200">
-                                        <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
-                                        <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div key={idx} className={`${widthClass} bg-white ${isChecklistField ? 'border-x border-b border-slate-200 hover:bg-slate-50 transition-colors py-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3' : isCheckbox ? 'border border-slate-200 shadow-sm rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3' : 'border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative'}`}>
-                                {isCheckbox ? (
-                                    <>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
-                                        <button 
-                                            onClick={() => handleAnswerChange(idx, 'text', ans?.text === 'X' ? '' : 'X')}
-                                            className={`w-8 h-8 rounded-md border-2 flex items-center justify-center transition-all ${ans?.text === 'X' ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 text-transparent hover:border-blue-400'}`}
-                                        >
-                                            <X size={20} className={ans?.text === 'X' ? 'text-white' : 'text-transparent'} />
-                                        </button>
-                                    </>
-                                ) : isChecklistField ? (
-                                    <>
-                                        <div className="flex-1 flex justify-between items-center gap-2">
-                                            <h4 className="font-semibold text-slate-700 text-sm leading-snug">{displayText}</h4>
-                                            {requiresPhoto && (
-                                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
-                                                    <Camera size={18} />
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                                                <button 
-                                                    onClick={() => handleAnswerChange(idx, 'text', 'C')}
-                                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'C' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                                                >C</button>
-                                                <button 
-                                                    onClick={() => handleAnswerChange(idx, 'text', 'NC')}
-                                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'NC' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                                                >NC</button>
-                                                <button 
-                                                    onClick={() => handleAnswerChange(idx, 'text', 'N/A')}
-                                                    className={`px-3 py-1.5 rounded font-bold text-xs transition-all ${ans?.text === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                                                >N/A</button>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="flex justify-between items-start gap-4">
-                                            <h4 className="font-bold text-slate-800 text-sm leading-relaxed">{displayText}</h4>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                {requiresPhoto && (
-                                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Adjuntar foto">
-                                                        <Camera size={18} />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => {
-                                                        handleAnswerChange(idx, 'text', '');
-                                                        handleAnswerChange(idx, 'isConforme', null);
-                                                    }} 
-                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                                                    title="Borrar respuesta"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {requiresConforme ? (
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <button 
-                                                    onClick={() => handleAnswerChange(idx, 'isConforme', true)}
-                                                    className={`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all ${ans?.isConforme === true ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                                                >
-                                                    <CheckCircle size={18} /> CONFORME
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleAnswerChange(idx, 'isConforme', false)}
-                                                    className={`p-3 rounded-lg border-2 font-bold flex items-center justify-center gap-2 transition-all ${ans?.isConforme === false ? 'bg-red-50 border-red-500 text-red-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                                                >
-                                                    <AlertCircle size={18} /> NO CONFORME
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="relative flex flex-col gap-2">
-                                                {(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) && badItems.length > 0 && (
-                                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                                        <h5 className="font-bold text-red-800 text-xs mb-2">HALLAZGOS REGISTRADOS:</h5>
-                                                        <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
-                                                            {badItems.map((b, i) => (
-                                                                <li key={i}><strong>{b.text}</strong> ({b.val})</li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
-                                                <div className="relative">
-                                                    <textarea 
-                                                        value={ans?.text || ''}
-                                                        onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                                                        placeholder="Escribe o dicta tu respuesta..."
-                                                        className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
-                                                    />
-                                                    <button 
-                                                        onClick={() => toggleVoiceRecording(idx)}
-                                                        className={`absolute bottom-3 right-3 p-2 rounded-full transition-colors ${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
-                                                        title="Dictar por voz"
-                                                    >
-                                                        {isRecording === idx ? <MicOff size={16} /> : <Mic size={16} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        { (item.text.toLowerCase().includes('responsable') || (item.text.toLowerCase().includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector')))) && (
-                                            <div className="mt-4 pt-4 border-t border-slate-200">
-                                                <h5 className="font-bold text-slate-700 text-sm mb-2">Firma Digital:</h5>
-                                                <SignaturePad onSave={(data) => handleAnswerChange(idx, 'signature', data)} />
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        );
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-t border-slate-200">
+                    {template.map((item, idx) => {
+                        const t = item.text.toLowerCase().trim();
+                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('responsable') || t.includes('observaciones') || t.includes('comentario') || isCheckboxField(item.text);
+                        if (!isFooter) return null;
+                        return renderField(item, idx);
                     })}
                 </div>
             </div>
