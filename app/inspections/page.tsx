@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown, ClipboardList, Plus, FileSpreadsheet, ListTodo, Edit3 } from 'lucide-react';
@@ -214,6 +214,15 @@ export default function InspectionsPage() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [showProgramModal, setShowProgramModal] = useState(false);
     const [showDigitalMenu, setShowDigitalMenu] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('openDigital') === 'true') {
+                setShowDigitalMenu(true);
+            }
+        }
+    }, []);
 
     // Dynamic Modules States
     const [inspectionModules, setInspectionModules] = useState<any[]>([]);

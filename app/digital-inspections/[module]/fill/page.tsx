@@ -466,7 +466,7 @@ export default function FillDigitalInspection() {
         <div className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8 font-sans">
             <div className="max-w-4xl mx-auto">
                 <button 
-                    onClick={() => router.push('/dashboard/digital-inspections')} 
+                    onClick={() => router.push('/inspections?openDigital=true')} 
                     className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
                 >
                     <ArrowLeft size={18} /> Volver
