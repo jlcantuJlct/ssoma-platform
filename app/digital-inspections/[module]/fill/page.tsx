@@ -559,6 +559,7 @@ export default function FillDigitalInspection() {
             <button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-transform active:scale-95">
                 <Save size={20} /> Guardar Inspección Final
             </button>
+            </div>
         </div>
     );
 }
