@@ -59,6 +59,7 @@ export default function FillDigitalInspection() {
     const [version, setVersion] = useState(1);
     
     const [answers, setAnswers] = useState<any>({});
+    const [isSaving, setIsSaving] = useState(false);
     const [isRecording, setIsRecording] = useState<number | null>(null);
     const recognitionRef = useRef<any>(null);
 
@@ -674,6 +675,7 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
 
 
 
