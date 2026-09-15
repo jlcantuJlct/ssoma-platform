@@ -205,12 +205,20 @@ export async function POST(req: Request) {
                 // 1. Datos Generales (Cabecera)
                 if (meta.registro) worksheet.getCell('B4').value = meta.registro;
                 if (meta.fecha) worksheet.getCell('E4').value = meta.fecha;
-                if (meta.actividadEconomica) worksheet.getCell('I4').value = meta.actividadEconomica;
+                if (meta.actividadEconomica) {
+                    const c = worksheet.getCell('J4');
+                    c.value = meta.actividadEconomica;
+                    c.font = { ...c.font, color: { argb: 'FF000000' } };
+                }
 
                 if (meta.razonSocial) worksheet.getCell('A6').value = meta.razonSocial;
                 if (meta.ruc) worksheet.getCell('C6').value = meta.ruc;
                 if (meta.domicilio) worksheet.getCell('E6').value = meta.domicilio;
-                if (meta.nTrabajadores) worksheet.getCell('I6').value = meta.nTrabajadores;
+                if (meta.nTrabajadores) {
+                    const c = worksheet.getCell('J6');
+                    c.value = meta.nTrabajadores;
+                    c.font = { ...c.font, color: { argb: 'FF000000' } };
+                }
 
                 if (meta.proyecto) worksheet.getCell('B8').value = meta.proyecto;
                 if (meta.ubicacionProyecto) worksheet.getCell('G8').value = meta.ubicacionProyecto;

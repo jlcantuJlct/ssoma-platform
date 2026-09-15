@@ -213,6 +213,22 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         setExtinguishers(copy);
     };
 
+    const handleStatusChange = (idx: number, field: string, val: string) => {
+        const copy = [...extinguishers];
+        copy[idx][field] = val;
+        
+        const labels: Record<string, string> = { senalizacion: 'Señalización', acceso: 'Acceso', estado: 'Estado' };
+        const prefix = `[${labels[field]}: ${val}]`;
+        
+        let obs = copy[idx].observaciones || '';
+        const regex = new RegExp(`\\[${labels[field]}:.*?\\]\\s*`, 'g');
+        obs = obs.replace(regex, '');
+        
+        obs = `${prefix} ${obs}`.trim();
+        copy[idx].observaciones = obs;
+        setExtinguishers(copy);
+    };
+
     const removeExtinguisher = (idx: number, e: React.MouseEvent) => {
         e.stopPropagation();
         setExtinguishers(extinguishers.filter((_, i) => i !== idx));
@@ -284,7 +300,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                 });
 
                 alert('¡Inspección de Extintores guardada exitosamente en Drive y Base de Datos!');
-                router.push('/inspections?openDigital=true');
+                // Permanece en el panel actual en lugar de redirigir al control de inspecciones
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
@@ -431,8 +447,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                     {['C', 'NC', 'N/A'].map(opt => (
                                                         <button 
                                                             key={opt}
-                                                            onClick={() => updateExtinguisher(idx, 'senalizacion', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.senalizacion === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            onClick={() => handleStatusChange(idx, 'senalizacion', opt)}
+                                                            className={`flex-1 py-1.5 text-xs font-black rounded-md transition-colors ${ext.senalizacion === opt ? (opt === 'C' ? 'bg-green-400 text-slate-900 shadow-md border border-green-600' : opt === 'NC' ? 'bg-red-500 text-slate-900 shadow-md border border-red-700' : 'bg-yellow-400 text-slate-900 shadow-md border border-yellow-600') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -445,8 +461,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                     {['C', 'NC', 'N/A'].map(opt => (
                                                         <button 
                                                             key={opt}
-                                                            onClick={() => updateExtinguisher(idx, 'acceso', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.acceso === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            onClick={() => handleStatusChange(idx, 'acceso', opt)}
+                                                            className={`flex-1 py-1.5 text-xs font-black rounded-md transition-colors ${ext.acceso === opt ? (opt === 'C' ? 'bg-green-400 text-slate-900 shadow-md border border-green-600' : opt === 'NC' ? 'bg-red-500 text-slate-900 shadow-md border border-red-700' : 'bg-yellow-400 text-slate-900 shadow-md border border-yellow-600') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -459,8 +475,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                     {['C', 'NC', 'N/A'].map(opt => (
                                                         <button 
                                                             key={opt}
-                                                            onClick={() => updateExtinguisher(idx, 'estado', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.estado === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            onClick={() => handleStatusChange(idx, 'estado', opt)}
+                                                            className={`flex-1 py-1.5 text-xs font-black rounded-md transition-colors ${ext.estado === opt ? (opt === 'C' ? 'bg-green-400 text-slate-900 shadow-md border border-green-600' : opt === 'NC' ? 'bg-red-500 text-slate-900 shadow-md border border-red-700' : 'bg-yellow-400 text-slate-900 shadow-md border border-yellow-600') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
