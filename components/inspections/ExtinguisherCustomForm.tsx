@@ -1,8 +1,83 @@
 ﻿"use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame } from 'lucide-react';
+import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff } from 'lucide-react';
+
+const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    const toggleRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('El dictado por voz no está soportado en este navegador.');
+            return;
+        }
+        
+        if (isRecording) {
+            recognitionRef.current?.stop();
+            setIsRecording(false);
+        } else {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.lang = 'es-ES';
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            
+            let finalTranscriptAtStart = value || '';
+            
+            recognitionRef.current.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscriptChunk = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscriptChunk += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                if (finalTranscriptChunk) {
+                    finalTranscriptAtStart = (finalTranscriptAtStart + ' ' + finalTranscriptChunk).trim();
+                }
+                
+                onChange((finalTranscriptAtStart + ' ' + interimTranscript).trim());
+            };
+            
+            recognitionRef.current.onend = () => {
+                setIsRecording(false);
+            };
+            
+            recognitionRef.current.start();
+            setIsRecording(true);
+        }
+    };
+
+    return (
+        <div className={`relative w-full ${className || ''}`}>
+            <input 
+                type={type}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className={`${inputClass} ${type === 'text' ? 'pr-16' : ''}`}
+            />
+            {type === 'text' && (
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+                    {value && (
+                        <button onClick={() => onChange('')} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 rounded-md transition-colors" title="Limpiar">
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                    <button onClick={toggleRecording} className={`p-1.5 rounded-md transition-colors ${isRecording ? 'text-red-500 bg-red-100 animate-pulse' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-200'}`} title="Dictado por voz">
+                        {isRecording ? <MicOff size={14} /> : <Mic size={14} />}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
@@ -13,11 +88,11 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         registro: '',
         fecha: new Date().toISOString().split('T')[0],
         actividadEconomica: '',
-        razonSocial: '',
-        ruc: '',
-        domicilio: '',
+        razonSocial: 'Construcción y Administración S.A.',
+        ruc: '20109565017',
+        domicilio: 'Avenida Javier Prado Este No. 4109. Santiago de Surco. Lima 33, Perú',
         nTrabajadores: '',
-        proyecto: '',
+        proyecto: 'RED VIAL 6',
         ubicacionProyecto: '',
         inspector: '',
         cargoInspector: '',
@@ -134,39 +209,39 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">Registro N°</label>
-                            <input type="text" value={meta.registro} onChange={e => setMeta({...meta, registro: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.registro} onChange={(val: string) => setMeta({...meta, registro: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
-                            <input type="date" value={meta.fecha} onChange={e => setMeta({...meta, fecha: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput type="date" value={meta.fecha} onChange={(val: string) => setMeta({...meta, fecha: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">Actividad Económica</label>
-                            <input type="text" value={meta.actividadEconomica} onChange={e => setMeta({...meta, actividadEconomica: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.actividadEconomica} onChange={(val: string) => setMeta({...meta, actividadEconomica: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">Razón Social</label>
-                            <input type="text" value={meta.razonSocial} onChange={e => setMeta({...meta, razonSocial: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.razonSocial} onChange={(val: string) => setMeta({...meta, razonSocial: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">RUC</label>
-                            <input type="text" value={meta.ruc} onChange={e => setMeta({...meta, ruc: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.ruc} onChange={(val: string) => setMeta({...meta, ruc: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase">Domicilio</label>
-                            <input type="text" value={meta.domicilio} onChange={e => setMeta({...meta, domicilio: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.domicilio} onChange={(val: string) => setMeta({...meta, domicilio: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">N° Trabajadores en el Centro</label>
-                            <input type="number" value={meta.nTrabajadores} onChange={e => setMeta({...meta, nTrabajadores: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput type="number" value={meta.nTrabajadores} onChange={(val: string) => setMeta({...meta, nTrabajadores: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                         <div>
                             <label className="text-[10px] font-black text-slate-400 uppercase">Proyecto (Si aplica)</label>
-                            <input type="text" value={meta.proyecto} onChange={e => setMeta({...meta, proyecto: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.proyecto} onChange={(val: string) => setMeta({...meta, proyecto: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase">Ubicación del Proyecto</label>
-                            <input type="text" value={meta.ubicacionProyecto} onChange={e => setMeta({...meta, ubicacionProyecto: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                            <VoiceInput value={meta.ubicacionProyecto} onChange={(val: string) => setMeta({...meta, ubicacionProyecto: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                         </div>
                     </div>
                 </div>
@@ -180,9 +255,9 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
 
                     <div className="space-y-4">
                         {extinguishers.map((ext, idx) => (
-                            <div key={ext.id} className={`bg-white border shadow-sm rounded-xl overflow-hidden transition-all ${ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'border-red-300' : 'border-slate-200'}`}>
+                            <div key={ext.id} className={`bg-white border shadow-sm rounded-xl overflow-hidden transition-all ${'${'}ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'border-red-300' : 'border-slate-200'}`}>
                                 <div 
-                                    className={`p-4 flex justify-between items-center cursor-pointer ${ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'bg-red-50' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                    className={`p-4 flex justify-between items-center cursor-pointer ${'${'}ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'bg-red-50' : 'bg-slate-50 hover:bg-slate-100'}`}
                                     onClick={() => toggleExpand(idx)}
                                 >
                                     <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
@@ -213,30 +288,30 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Tipo de Equipo</label>
-                                                <input type="text" placeholder="Ej: Extintor, Botiquín..." value={ext.tipo} onChange={e => updateExtinguisher(idx, 'tipo', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                                <VoiceInput placeholder="Ej: Extintor, Botiquín..." value={ext.tipo} onChange={(val: string) => updateExtinguisher(idx, 'tipo', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">N° / Código</label>
-                                                <input type="text" placeholder="Ej: EXT-01" value={ext.codigo} onChange={e => updateExtinguisher(idx, 'codigo', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                                <VoiceInput placeholder="Ej: EXT-01" value={ext.codigo} onChange={(val: string) => updateExtinguisher(idx, 'codigo', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Ubicación</label>
-                                                <input type="text" placeholder="Ubicación exacta" value={ext.ubicacion} onChange={e => updateExtinguisher(idx, 'ubicacion', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                                <VoiceInput placeholder="Ubicación exacta" value={ext.ubicacion} onChange={(val: string) => updateExtinguisher(idx, 'ubicacion', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Clase de agente</label>
-                                                <input type="text" placeholder="Ej: PQS, CO2..." value={ext.agente} onChange={e => updateExtinguisher(idx, 'agente', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                                <VoiceInput placeholder="Ej: PQS, CO2..." value={ext.agente} onChange={(val: string) => updateExtinguisher(idx, 'agente', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 p-4 bg-slate-50 rounded-xl border border-slate-100">
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Fecha Recarga Actual</label>
-                                                <input type="month" value={ext.fechaActual} onChange={e => updateExtinguisher(idx, 'fechaActual', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-white outline-none focus:border-red-500" />
+                                                <VoiceInput type="month" value={ext.fechaActual} onChange={(val: string) => updateExtinguisher(idx, 'fechaActual', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-white outline-none focus:border-red-500" />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Fecha Recarga Próxima</label>
-                                                <input type="month" value={ext.fechaProxima} onChange={e => updateExtinguisher(idx, 'fechaProxima', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-white outline-none focus:border-red-500" />
+                                                <VoiceInput type="month" value={ext.fechaProxima} onChange={(val: string) => updateExtinguisher(idx, 'fechaProxima', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-white outline-none focus:border-red-500" />
                                             </div>
                                         </div>
 
@@ -248,7 +323,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                         <button 
                                                             key={opt}
                                                             onClick={() => updateExtinguisher(idx, 'senalizacion', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${ext.senalizacion === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.senalizacion === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -262,7 +337,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                         <button 
                                                             key={opt}
                                                             onClick={() => updateExtinguisher(idx, 'acceso', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${ext.acceso === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.acceso === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -276,7 +351,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                                         <button 
                                                             key={opt}
                                                             onClick={() => updateExtinguisher(idx, 'estado', opt)}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${ext.estado === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
+                                                            className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${'${'}ext.estado === opt ? (opt === 'NC' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white shadow') : 'text-slate-500 hover:bg-slate-200'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -287,7 +362,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
 
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones / Acciones</label>
-                                            <input type="text" placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={e => updateExtinguisher(idx, 'observaciones', e.target.value)} className="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                            <VoiceInput placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={(val: string) => updateExtinguisher(idx, 'observaciones', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                         </div>
                                     </div>
                                 )}
@@ -307,15 +382,15 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Nombres y Apellidos</label>
-                                <input type="text" value={meta.inspector} onChange={e => setMeta({...meta, inspector: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                                <VoiceInput value={meta.inspector} onChange={(val: string) => setMeta({...meta, inspector: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Cargo</label>
-                                <input type="text" value={meta.cargoInspector} onChange={e => setMeta({...meta, cargoInspector: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                                <VoiceInput value={meta.cargoInspector} onChange={(val: string) => setMeta({...meta, cargoInspector: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Fecha de Firma</label>
-                                <input type="date" value={meta.fechaFirma} onChange={e => setMeta({...meta, fechaFirma: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                                <VoiceInput type="date" value={meta.fechaFirma} onChange={(val: string) => setMeta({...meta, fechaFirma: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
                             </div>
                         </div>
                         <div>
