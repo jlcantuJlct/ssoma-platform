@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -511,20 +511,38 @@ export default function FillDigitalInspection() {
                                         </ul>
                                     </div>
                                 )}
-                                <div className="relative">
-                                    <textarea 
-                                        value={ans?.text || ''}
-                                        onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                                        placeholder="Escribe o dicta tu respuesta..."
-                                        className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
-                                    />
-                                    <button 
-                                        onClick={() => toggleVoiceRecording(idx)}
-                                        className={`absolute bottom-3 right-3 p-2 rounded-full transition-colors ${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
-                                        title="Dictar por voz"
-                                    >
-                                        {isRecording === idx ? <MicOff size={16} /> : <Mic size={16} />}
-                                    </button>
+                                <div className="relative flex flex-col w-full">
+                                    {item.text.toLowerCase().includes('fecha') ? (
+                                        <input 
+                                            type="date"
+                                            value={ans?.text || ''}
+                                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                        />
+                                    ) : (item.text.toLowerCase() === 'hora' || item.text.toLowerCase().includes('hora:')) ? (
+                                        <input 
+                                            type="time"
+                                            value={ans?.text || ''}
+                                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                        />
+                                    ) : (
+                                        <>
+                                            <textarea 
+                                                value={ans?.text || ''}
+                                                onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                                placeholder="Escribe o dicta tu respuesta..."
+                                                className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
+                                            />
+                                            <button 
+                                                onClick={() => toggleVoiceRecording(idx)}
+                                                className={`absolute bottom-3 right-3 p-2 rounded-full transition-colors ${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
+                                                title="Dictar por voz"
+                                            >
+                                                {isRecording === idx ? <MicOff size={16} /> : <Mic size={16} />}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -675,6 +693,7 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
 
 
 
