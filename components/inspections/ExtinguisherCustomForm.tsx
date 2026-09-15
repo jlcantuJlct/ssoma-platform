@@ -87,7 +87,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [meta, setMeta] = useState({
         registro: '',
         fecha: new Date().toISOString().split('T')[0],
-        actividadEconomica: '',
+        actividadEconomica: 'Construccion',
         razonSocial: 'Construcción y Administración S.A.',
         ruc: '20109565017',
         domicilio: 'Avenida Javier Prado Este No. 4109. Santiago de Surco. Lima 33, Perú',
