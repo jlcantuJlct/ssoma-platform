@@ -322,7 +322,7 @@ export default function FillDigitalInspection() {
             );
         }
 
-        if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('responsable'))) {
+                if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('inspector') && !item.text.toLowerCase().includes('nombre y apellido') && !item.text.toLowerCase().includes('responsable'))) {
             const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido'));
             if (hasInspector) return null;
         }
@@ -350,7 +350,8 @@ export default function FillDigitalInspection() {
         const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
 
         if (item.text.toLowerCase().includes('inspector') || item.text.toLowerCase().includes('nombre y apellido')) {
-            const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || (i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('responsable')));
+            const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || 
+(i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('inspector') && !i.text.toLowerCase().includes('nombre y apellido') && !i.text.toLowerCase().includes('responsable')));
             const cargoAns = cargoIdx !== -1 ? answers[cargoIdx] : null;
 
             return (
@@ -597,7 +598,7 @@ export default function FillDigitalInspection() {
                         {template.map((item, idx) => {
                             const t = item.text.toLowerCase().trim();
                             if (!t.includes('inspector') && !t.includes('nombre y apellido') && !t.includes('responsable') && !(t.includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')))) return null;
-                            if (t === 'cargo' || (t.includes('cargo') && !t.includes('responsable') && template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')))) return null; // El cargo normal va dentro del inspector
+                            if (t === 'cargo' || (t.includes('cargo') && !t.includes('inspector') && !t.includes('nombre y apellido') && !t.includes('responsable') && template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')))) return null; // El cargo normal va dentro del inspector
                             return renderField(item, idx);
                         })}
                     </div>
@@ -693,6 +694,9 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
+
+
 
 
 
