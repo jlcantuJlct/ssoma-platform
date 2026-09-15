@@ -46,6 +46,7 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 };
 
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
+import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
 
 export default function FillDigitalInspection() {
@@ -262,6 +263,10 @@ export default function FillDigitalInspection() {
 
     if (moduleName.toLowerCase().includes('maquinaria') || moduleName.toLowerCase().includes('máquina') || moduleName.toLowerCase().includes('maquina')) {
         return <MachineryCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('extintor') || moduleName.toLowerCase().includes('equipos de seguridad') || moduleName.toLowerCase().includes('equipo de seguridad') || moduleName.toLowerCase().includes('emergencia')) {
+        return <ExtinguisherCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
     }
 
     const badItems = template
