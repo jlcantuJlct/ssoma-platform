@@ -108,7 +108,7 @@ export async function POST(req: Request) {
                     // Modo aspiradora: Extraemos todas las celdas de texto de la fila (útil para formatos horizontales)
                     row.eachCell((cell) => {
                         const val = getSafeText(cell);
-                        if (val.length > 3 && val.length < 50 && isNaN(Number(val)) && !val.toLowerCase().includes('firma') && !val.toLowerCase().includes('fecha')) {
+                        if (val.length > 3 && val.length < 50 && isNaN(Number(val))  ) {
                             if (!detectedItems.includes(val)) {
                                 detectedItems.push(val);
                             }
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
                         break;
                     }
 
-                    if (possibleItem && possibleItem.length > 4 && possibleItem.length < 150 && !possibleItem.toLowerCase().includes('firma')) { 
+                    if (possibleItem && possibleItem.length > 4 && possibleItem.length < 150 ) { 
                         // Buscar cantidad en las columnas inmediatas a la derecha
                         let possibleQuantity = '';
                         if (foundCol !== -1) {
@@ -189,4 +189,6 @@ export async function POST(req: Request) {
         }, { status: 500 });
     }
 }
+
+
 
