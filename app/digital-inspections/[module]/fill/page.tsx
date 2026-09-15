@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -188,6 +188,79 @@ export default function FillDigitalInspection() {
             ...prev,
             [idx]: { ...prev[idx], [field]: value }
         }));
+    };
+
+        const handleSaveAndDownload = async () => {
+        setIsSaving(true);
+        try {
+            const lightAnswers = JSON.parse(JSON.stringify(answers));
+            Object.keys(lightAnswers).forEach(k => {
+                if (lightAnswers[k].photos) delete lightAnswers[k].photos;
+            });
+
+            // 1. Generar Excel y Guardar en Drive
+            const res = await fetch('/api/export-excel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template, saveToDrive: true })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                
+                // 2. Descargar el archivo localmente
+                if (data.fileBase64) {
+                    const byteCharacters = atob(data.fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INSP_${decodeURIComponent(moduleName as string)}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+
+                // 3. Guardar en Base de Datos
+                const inspector = lightAnswers[template.findIndex(t => t.text.toLowerCase().includes('inspector'))]?.text || '';
+                const proyecto = lightAnswers[template.findIndex(t => t.text.toLowerCase().includes('proyecto'))]?.text || '';
+                const fecha = lightAnswers[template.findIndex(t => t.text.toLowerCase().includes('fecha'))]?.text || new Date().toISOString().split('T')[0];
+                
+                await fetch('/api/inspections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create',
+                        data: {
+                            date: fecha,
+                            responsible: inspector,
+                            inspectionType: decodeURIComponent(moduleName as string),
+                            area: proyecto,
+                            zone: 'Inspección Digital',
+                            status: 'Completado',
+                            observations: 'Generado desde formulario web digital.',
+                            evidencePdf: data.driveUrl || '',
+                            evidenceImgs: []
+                        }
+                    })
+                });
+
+                alert('¡Inspección guardada exitosamente en Base de Datos y Drive!');
+                window.location.href = '/inspections?openDigital=true';
+
+            } else {
+                const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                alert('Error al generar la inspección: ' + errorData.error);
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Error de conexión.');
+        }
+        setIsSaving(false);
     };
 
     const handlePreview = async () => {
@@ -722,18 +795,17 @@ export default function FillDigitalInspection() {
                 )}
             </div>
 
-                        <div className="flex gap-4">
-                <button onClick={handlePreview} disabled={isSaving} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-transform active:scale-95 disabled:opacity-50">
-                    <Save size={20} /> Vista Previa Excel
-                </button>
-                <button onClick={handleSave} disabled={isSaving} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-transform active:scale-95 disabled:opacity-50">
-                    <CheckCircle size={20} /> Guardar Definitivo
+                                                <div className="flex gap-4">
+                <button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-transform active:scale-95 disabled:opacity-50">
+                    <Save size={20} /> Finalizar y Descargar Excel
                 </button>
             </div>
             </div>
         </div>
     );
 }
+
+
 
 
 

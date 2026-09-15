@@ -85,7 +85,46 @@ export async function POST(req: Request) {
             });
         }
 
-        const buffer = await workbook.xlsx.writeBuffer();
+                const buffer = await workbook.xlsx.writeBuffer();
+
+        if (data.saveToDrive) {
+            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
+            const base64 = buffer.toString('base64');
+            const fileName = `INSP_${moduleName}_${new Date().getTime()}.xlsx`;
+            const folderPath = `INSPECCIONES/${new Date().getFullYear()}/${moduleName.toUpperCase()}`;
+            
+            const payload = {
+                filename: fileName,
+                mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                fileBase64: base64,
+                folderId: "1j6wEqCN3zU9lsGthKeRCo_a6X4UH6NU5",
+                folderPath: folderPath,
+                folderName: folderPath
+            };
+
+            const driveRes = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'text/plain' },
+                redirect: 'follow'
+            });
+
+            let driveUrl = '';
+            if (driveRes.ok) {
+                const text = await driveRes.text();
+                const driveData = JSON.parse(text);
+                if (driveData.result === 'success') {
+                    driveUrl = driveData.url || driveData.viewLink || '';
+                }
+            }
+
+            return NextResponse.json({
+                success: true,
+                driveUrl,
+                fileBase64: base64
+            });
+        }
 
         return new NextResponse(buffer, {
             status: 200,
@@ -100,5 +139,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
 
 
