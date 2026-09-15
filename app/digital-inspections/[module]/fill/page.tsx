@@ -48,6 +48,7 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
 import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
+import { BotiquinCustomForm } from '@/components/inspections/BotiquinCustomForm';
 
 export default function FillDigitalInspection() {
     const params = useParams();
@@ -395,6 +396,10 @@ export default function FillDigitalInspection() {
     };
 
     if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
+
+    if (moduleName.toLowerCase().includes('botiquin')) {
+        return <BotiquinCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
 
     if (moduleName.toLowerCase().includes('epp')) {
         return <EppCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;

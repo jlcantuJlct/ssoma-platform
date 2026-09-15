@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
@@ -288,13 +288,42 @@ export default function InspectionsPage() {
         setShowImportMenu(false);
     };
 
-        const handleMasterTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>, moduleName: string) => {
+    const [botiquinAuthKey, setBotiquinAuthKey] = useState<string>('');
+
+    const checkBotiquinAuthorization = (actionLabel: string = 'realizar cambios'): string | null => {
+        if (!targetModule || !targetModule.toLowerCase().includes('botiquin')) {
+            return '';
+        }
+        if (botiquinAuthKey === '161976') {
+            return botiquinAuthKey;
+        }
+        const entered = prompt(`🔒 Formato Blindado (Botiquines)\nPara ${actionLabel}, ingresa la clave de autorización (161976):`);
+        if (entered !== '161976') {
+            alert('⛔ Clave incorrecta o cancelada. El formato de Botiquines está protegido contra modificaciones no autorizadas.');
+            return null;
+        }
+        setBotiquinAuthKey(entered);
+        return entered;
+    };
+
+    const handleMasterTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>, moduleName: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        let auth = botiquinAuthKey;
+        if (moduleName.toLowerCase().includes('botiquin')) {
+            const key = checkBotiquinAuthorization('cargar una plantilla maestra');
+            if (!key) {
+                e.target.value = '';
+                return;
+            }
+            auth = key;
+        }
 
         const formData = new FormData();
         formData.append('file', file);
         formData.append('moduleName', moduleName);
+        if (auth) formData.append('authKey', auth);
 
         try {
             alert(`Subiendo plantilla maestra para ${moduleName}...`);
@@ -320,6 +349,16 @@ export default function InspectionsPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        let auth = botiquinAuthKey;
+        if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+            const key = checkBotiquinAuthorization('procesar o refactorizar el formato');
+            if (!key) {
+                e.target.value = '';
+                return;
+            }
+            auth = key;
+        }
+
         setParserFile(file);
         setIsParsing(true);
         setParserResult(null);
@@ -328,6 +367,7 @@ export default function InspectionsPage() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('moduleName', targetModule || '');
+        if (auth) formData.append('authKey', auth);
 
         try {
             const response = await fetch('/api/templates/parse', {
@@ -361,6 +401,13 @@ export default function InspectionsPage() {
     };
 
     const handleSaveTemplate = async () => {
+        let auth = botiquinAuthKey;
+        if (targetModule && targetModule.toLowerCase().includes('botiquin') && auth !== '161976') {
+            const key = checkBotiquinAuthorization('guardar cambios en el formato');
+            if (!key) return;
+            auth = key;
+        }
+
         setIsSavingTemplate(true);
         try {
             const response = await fetch('/api/templates/save', {
@@ -369,7 +416,8 @@ export default function InspectionsPage() {
                 body: JSON.stringify({
                     moduleName: targetModule,
                     actionType: formatActionType,
-                    items: editableItems
+                    items: editableItems,
+                    authKey: auth
                 })
             });
             const data = await response.json();
@@ -1447,7 +1495,16 @@ export default function InspectionsPage() {
                                 </div>
                                 <div className="p-6 flex flex-col gap-4">
                                     <button 
-                                        onClick={() => { setFormatActionType('new'); setShowFormatOptionsModal(false); setShowDigitalMenu(false); setShowParserModal(true); }}
+                                        onClick={() => { 
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('ingresar formato');
+                                                if (!key) return;
+                                            }
+                                            setFormatActionType('new'); 
+                                            setShowFormatOptionsModal(false); 
+                                            setShowDigitalMenu(false); 
+                                            setShowParserModal(true); 
+                                        }}
                                         className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
                                     >
                                         <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400">
@@ -1460,6 +1517,10 @@ export default function InspectionsPage() {
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('cargar una plantilla maestra');
+                                                if (!key) return;
+                                            }
                                             const fileInput = document.createElement('input');
                                             fileInput.type = 'file';
                                             fileInput.accept = '.xlsx';
@@ -1475,7 +1536,16 @@ export default function InspectionsPage() {
                                     </button>
 
                                     <button 
-                                        onClick={() => { setFormatActionType('update'); setShowFormatOptionsModal(false); setShowDigitalMenu(false); setShowParserModal(true); }}
+                                        onClick={() => { 
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('refactorizar el formulario');
+                                                if (!key) return;
+                                            }
+                                            setFormatActionType('update'); 
+                                            setShowFormatOptionsModal(false); 
+                                            setShowDigitalMenu(false); 
+                                            setShowParserModal(true); 
+                                        }}
                                         className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
                                     >
                                         <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400 text-sm">

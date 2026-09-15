@@ -1,5 +1,45 @@
 [
   {
+    "id": "b084d2bc-3261-4aa9-ac85-f680696733dd",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1789495181102",
+    "timestamp": "2026-09-15T18:23:35.572Z"
+  },
+  {
+    "id": "d80162b1-3518-4fbf-880b-d359c54297a0",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1789495672613",
+    "timestamp": "2026-09-15T18:23:33.850Z"
+  },
+  {
+    "id": "1b51876a-58db-472d-922b-20fbc3b266e2",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1789494253581",
+    "timestamp": "2026-09-15T18:23:31.442Z"
+  },
+  {
+    "id": "76dd8607-434d-4c12-b9b4-430b6d1dbbe6",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1789496143345",
+    "timestamp": "2026-09-15T18:23:29.364Z"
+  },
+  {
+    "id": "2ea5ee4c-e843-44dc-a6b8-bcaac6d5accb",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1789148156785",
+    "timestamp": "2026-09-15T18:23:27.177Z"
+  },
+  {
     "id": "654a378c-52b9-4c86-b5dd-83bd7fbbb4dd",
     "user_name": "Admin",
     "action": "BULK CREATE PROGRAMA: 26 items",

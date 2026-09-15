@@ -4,7 +4,14 @@ import db from '@/lib/db';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { moduleName, actionType, items } = body;
+        const { moduleName, actionType, items, authKey } = body;
+        
+        if (moduleName && moduleName.toLowerCase().includes('botiquin') && authKey !== '161976') {
+            return NextResponse.json({ 
+                success: false, 
+                error: '🔒 Formato blindado: Se requiere la clave de autorización (161976) para guardar cambios en Botiquines.' 
+            }, { status: 403 });
+        }
         
         // actionType = 'new' (V1) or 'update' (V2, V3...)
         const idConfig = process.env.POSTGRES_URL ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';

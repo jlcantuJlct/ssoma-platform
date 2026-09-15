@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 
 export async function POST(req: Request) {
@@ -6,9 +6,17 @@ export async function POST(req: Request) {
         const formData = await req.formData();
                 const file = formData.get('file') as File;
         const moduleName = formData.get('moduleName') as string;
+        const authKey = formData.get('authKey') as string;
 
         if (!file) {
             return NextResponse.json({ success: false, error: 'No se encontró el archivo Excel.' }, { status: 400 });
+        }
+
+        if (moduleName && moduleName.toLowerCase().includes('botiquin') && authKey !== '161976') {
+            return NextResponse.json({ 
+                success: false, 
+                error: '🔒 Formato blindado: Se requiere la clave de autorización (161976) para refactorizar o alterar Botiquines.' 
+            }, { status: 403 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
