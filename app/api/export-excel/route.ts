@@ -27,14 +27,35 @@ export async function POST(req: Request) {
             return idx !== -1 ? (answers[idx]?.text || '') : '';
         };
 
+                const getSignature = (kw: string) => {
+            const idx = template.findIndex((t: any) => t.text.toLowerCase().includes(kw));
+            return idx !== -1 ? (answers[idx]?.signature || '') : '';
+        };
+
         if (moduleName.toLowerCase().includes('botiquin')) {
             // Mapeo F-SIG-030 basado en la imagen del usuario
             worksheet.getCell('C4').value = getVal('proyecto');
             worksheet.getCell('C5').value = getVal('fecha');
             worksheet.getCell('I5').value = getVal('hora');
-            worksheet.getCell('C6').value = getVal('inspector');
-            worksheet.getCell('C7').value = getVal('responsable');
-            worksheet.getCell('C8').value = getVal('ubicación');
+                        worksheet.getCell('D6').value = getVal('inspector');
+            worksheet.getCell('D7').value = getVal('responsable');
+            worksheet.getCell('D8').value = getVal('ubicación');
+            
+            const inspSig = getSignature('inspector');
+            if (inspSig) {
+                try {
+                    const base64Data = inspSig.replace(/^data:image\/\w+;base64,/, "");
+                    const imageId = workbook.addImage({
+                        base64: base64Data,
+                        extension: 'png',
+                    });
+                    // Insertar la firma cerca del inspector (ej. F6 o similar, o al final)
+                    worksheet.addImage(imageId, {
+                        tl: { col: 5, row: 5 }, // Columna F, Fila 6 (0-indexed base, so col 5 = F, row 5 = 6)
+                        ext: { width: 150, height: 40 }
+                    });
+                } catch(e) { console.error('Error adding signature', e); }
+            }
             
             // Inspección planificada (A10, A11, D12) - Mapearemos con X si tenemos la data
             
@@ -139,6 +160,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+
+
 
 
 
