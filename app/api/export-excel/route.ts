@@ -9,7 +9,16 @@ export async function POST(req: Request) {
         const data = await req.json();
         const { moduleName, answers, template } = data;
 
-        const templatePath = path.join(process.cwd(), 'public', 'templates', 'digital', `${moduleName}.xlsx`);
+        let templatePath = path.join(process.cwd(), 'public', 'templates', 'digital', `${moduleName}.xlsx`);
+        if (!fs.existsSync(templatePath)) {
+            if (moduleName && (moduleName.toLowerCase().includes('extintor') || moduleName.toLowerCase().includes('emergencia'))) {
+                const alt = path.join(process.cwd(), 'public', 'templates', 'digital', 'Extintores.xlsx');
+                if (fs.existsSync(alt)) templatePath = alt;
+            } else if (moduleName && moduleName.toLowerCase().includes('botiquin')) {
+                const alt = path.join(process.cwd(), 'public', 'templates', 'digital', 'Botiquines.xlsx');
+                if (fs.existsSync(alt)) templatePath = alt;
+            }
+        }
         let workbook = new ExcelJS.Workbook();
         
         const isBotiquin = moduleName && moduleName.toLowerCase().includes('botiquin');
@@ -187,49 +196,168 @@ export async function POST(req: Request) {
                 { width: 6 }, { width: 32 }, { width: 14 }, { width: 22 }, { width: 40 }, { width: 16 }, { width: 16 }
             ];
         }
-        // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA ---
+        // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA (Calibrado a F-SIG-058) ---
         else if (isExtintor) {
             const meta = data.meta || {};
             const extinguishers = data.extinguishers || [];
 
-            worksheet.mergeCells('A1:H2');
-            const titleCell = worksheet.getCell('A1');
-            titleCell.value = 'REGISTRO DE INSPECCIÓN DE EXTINTORES Y EQUIPOS DE EMERGENCIA (F-SIG-058)';
-            titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF991B1B' } };
+            if (fs.existsSync(templatePath)) {
+                // 1. Datos Generales (Cabecera)
+                if (meta.registro) worksheet.getCell('B4').value = meta.registro;
+                if (meta.fecha) worksheet.getCell('E4').value = meta.fecha;
+                if (meta.actividadEconomica) worksheet.getCell('I4').value = meta.actividadEconomica;
 
-            worksheet.getCell('A4').value = 'Razón Social:'; worksheet.getCell('B4').value = meta.razonSocial || 'Construccion y Administracion S.A.';
-            worksheet.getCell('D4').value = 'Fecha:'; worksheet.getCell('E4').value = meta.fecha || new Date().toISOString().split('T')[0];
-            worksheet.getCell('A5').value = 'Proyecto:'; worksheet.getCell('B5').value = meta.proyecto || 'RED VIAL 6';
-            worksheet.getCell('D5').value = 'Inspector:'; worksheet.getCell('E5').value = meta.inspector || '';
-            ['A4', 'D4', 'A5', 'D5'].forEach(c => worksheet.getCell(c).font = { bold: true });
+                if (meta.razonSocial) worksheet.getCell('A6').value = meta.razonSocial;
+                if (meta.ruc) worksheet.getCell('C6').value = meta.ruc;
+                if (meta.domicilio) worksheet.getCell('E6').value = meta.domicilio;
+                if (meta.nTrabajadores) worksheet.getCell('I6').value = meta.nTrabajadores;
 
-            const headers = ['N°', 'Ubicación / Área', 'Tipo / Capacidad', 'Manómetro', 'Precinto', 'Manguera', 'F. Recarga', 'Estado'];
-            const headerRow = worksheet.getRow(7);
-            headers.forEach((h, idx) => {
-                const cell = headerRow.getCell(idx + 1);
-                cell.value = h;
-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDC2626' } };
-                cell.alignment = { horizontal: 'center' };
-            });
+                if (meta.proyecto) worksheet.getCell('B8').value = meta.proyecto;
+                if (meta.ubicacionProyecto) worksheet.getCell('G8').value = meta.ubicacionProyecto;
 
-            extinguishers.forEach((ext: any, idx: number) => {
-                const r = worksheet.getRow(8 + idx);
-                r.getCell(1).value = idx + 1;
-                r.getCell(2).value = ext.ubicacion || ext.codigo || '';
-                r.getCell(3).value = `${ext.tipo || ''} ${ext.capacidad || ''}`;
-                r.getCell(4).value = ext.manometro || 'C';
-                r.getCell(5).value = ext.precinto || 'C';
-                r.getCell(6).value = ext.manguera || 'C';
-                r.getCell(7).value = ext.fechaVencimiento || '';
-                r.getCell(8).value = ext.operativo === false ? 'INOPERATIVO' : 'OPERATIVO';
-            });
+                // 2. Equipos de Emergencia (Filas 11 en adelante)
+                const totalExtinguishers = extinguishers.length;
+                let sigDataRow = 23;
 
-            worksheet.columns = [
-                { width: 6 }, { width: 30 }, { width: 20 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 16 }
-            ];
+                // Si hay más de 10 extintores, insertamos filas adicionales manteniendo estilo
+                if (totalExtinguishers > 10) {
+                    const extraCount = totalExtinguishers - 10;
+                    worksheet.spliceRows(21, 0, ...Array(extraCount).fill([]));
+                    const baseRow = worksheet.getRow(20);
+                    for (let r = 21; r < 21 + extraCount; r++) {
+                        const newRow = worksheet.getRow(r);
+                        newRow.height = 27;
+                        for (let c = 1; c <= 10; c++) {
+                            newRow.getCell(c).style = JSON.parse(JSON.stringify(baseRow.getCell(c).style || {}));
+                        }
+                    }
+
+                    const sigRow = 21 + extraCount;
+                    try { worksheet.mergeCells(`A${sigRow}:J${sigRow}`); } catch(e){}
+                    try { worksheet.mergeCells(`A${sigRow+1}:C${sigRow+1}`); } catch(e){}
+                    try { worksheet.mergeCells(`D${sigRow+1}:E${sigRow+1}`); } catch(e){}
+                    try { worksheet.mergeCells(`G${sigRow+1}:H${sigRow+1}`); } catch(e){}
+                    try { worksheet.mergeCells(`I${sigRow+1}:J${sigRow+1}`); } catch(e){}
+                    try { worksheet.mergeCells(`A${sigRow+2}:C${sigRow+2}`); } catch(e){}
+                    try { worksheet.mergeCells(`D${sigRow+2}:E${sigRow+2}`); } catch(e){}
+                    try { worksheet.mergeCells(`G${sigRow+2}:H${sigRow+2}`); } catch(e){}
+                    try { worksheet.mergeCells(`I${sigRow+2}:J${sigRow+2}`); } catch(e){}
+
+                    sigDataRow = 23 + extraCount;
+                }
+
+                extinguishers.forEach((ext: any, idx: number) => {
+                    const r = 11 + idx;
+                    worksheet.getCell(`A${r}`).value = ext.tipo || '';
+                    worksheet.getCell(`B${r}`).value = ext.codigo || '';
+                    worksheet.getCell(`C${r}`).value = ext.ubicacion || '';
+                    worksheet.getCell(`D${r}`).value = ext.agente || '';
+                    worksheet.getCell(`E${r}`).value = ext.fechaActual || '';
+                    worksheet.getCell(`F${r}`).value = ext.fechaProxima || '';
+                    worksheet.getCell(`G${r}`).value = ext.senalizacion || 'C';
+                    worksheet.getCell(`H${r}`).value = ext.acceso || 'C';
+                    worksheet.getCell(`I${r}`).value = ext.estado || ext.estadoGeneral || 'C';
+                    worksheet.getCell(`J${r}`).value = ext.observaciones || '';
+
+                    ['B', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
+                        worksheet.getCell(`${col}${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
+                    });
+                });
+
+                // 3. Responsable del Registro (Firmas)
+                worksheet.getCell(`A${sigDataRow}`).value = meta.inspector || '';
+                worksheet.getCell(`D${sigDataRow}`).value = meta.cargoInspector || '';
+                worksheet.getCell(`G${sigDataRow}`).value = meta.fechaFirma || meta.fecha || '';
+
+                worksheet.getCell(`A${sigDataRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+                worksheet.getCell(`D${sigDataRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+                worksheet.getCell(`G${sigDataRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+
+                if (meta.firmaInspector) {
+                    try {
+                        const base64Data = meta.firmaInspector.replace(/^data:image\/\w+;base64,/, "");
+                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
+                        worksheet.addImage(imageId, {
+                            tl: { col: 8, row: sigDataRow - 1 },
+                            ext: { width: 140, height: 50 }
+                        });
+                    } catch(e) {
+                        console.error('Error al insertar firma de extintores:', e);
+                    }
+                }
+
+                // 4. Registro Fotográfico de Evidencias (si existen)
+                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
+                    let currentPhotoRow = sigDataRow + 3;
+                    worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS / INSPECCIÓN:";
+                    worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
+                    currentPhotoRow += 2;
+
+                    Object.keys(data.fotosDefectos).forEach(itemName => {
+                        const fotos = data.fotosDefectos[itemName];
+                        if (fotos && fotos.length > 0) {
+                            worksheet.getCell(`A${currentPhotoRow}`).value = `Equipo / Hallazgo: ${itemName}`;
+                            currentPhotoRow += 1;
+                            let colCursor = 1;
+                            fotos.forEach((fotoB64: string) => {
+                                try {
+                                    const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
+                                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
+                                    worksheet.addImage(imageId, {
+                                        tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
+                                        ext: { width: 300, height: 220 }
+                                    });
+                                    colCursor += 5;
+                                    if (colCursor > 10) { colCursor = 1; currentPhotoRow += 13; }
+                                } catch(e) { console.error('Error attaching photo:', e); }
+                            });
+                            if (colCursor > 1) currentPhotoRow += 13;
+                        }
+                    });
+                }
+            } else {
+                worksheet.mergeCells('A1:H2');
+                const titleCell = worksheet.getCell('A1');
+                titleCell.value = 'REGISTRO DE INSPECCIÓN DE EXTINTORES Y EQUIPOS DE EMERGENCIA (F-SIG-058)';
+                titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+                titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF991B1B' } };
+
+                worksheet.getCell('A4').value = 'Razón Social:'; worksheet.getCell('B4').value = meta.razonSocial || 'Construcción y Administración S.A.';
+                worksheet.getCell('D4').value = 'Fecha:'; worksheet.getCell('E4').value = meta.fecha || new Date().toISOString().split('T')[0];
+                worksheet.getCell('A5').value = 'Proyecto:'; worksheet.getCell('B5').value = meta.proyecto || 'RED VIAL 6';
+                worksheet.getCell('D5').value = 'Inspector:'; worksheet.getCell('E5').value = meta.inspector || '';
+                ['A4', 'D4', 'A5', 'D5'].forEach(c => worksheet.getCell(c).font = { bold: true });
+
+                const headers = ['N°', 'Tipo', 'Código', 'Ubicación', 'Agente', 'F. Actual', 'F. Próxima', 'Señaliz.', 'Acceso', 'Estado', 'Observaciones'];
+                const headerRow = worksheet.getRow(7);
+                headers.forEach((h, idx) => {
+                    const cell = headerRow.getCell(idx + 1);
+                    cell.value = h;
+                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDC2626' } };
+                    cell.alignment = { horizontal: 'center' };
+                });
+
+                extinguishers.forEach((ext: any, idx: number) => {
+                    const r = worksheet.getRow(8 + idx);
+                    r.getCell(1).value = idx + 1;
+                    r.getCell(2).value = ext.tipo || '';
+                    r.getCell(3).value = ext.codigo || '';
+                    r.getCell(4).value = ext.ubicacion || '';
+                    r.getCell(5).value = ext.agente || '';
+                    r.getCell(6).value = ext.fechaActual || '';
+                    r.getCell(7).value = ext.fechaProxima || '';
+                    r.getCell(8).value = ext.senalizacion || 'C';
+                    r.getCell(9).value = ext.acceso || 'C';
+                    r.getCell(10).value = ext.estado || 'C';
+                    r.getCell(11).value = ext.observaciones || '';
+                });
+
+                worksheet.columns = [
+                    { width: 6 }, { width: 22 }, { width: 14 }, { width: 26 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 30 }
+                ];
+            }
         }
         // --- MANEJADOR 4: MAQUINARIA Y EQUIPO PESADO ---
         else if (isMachinery) {

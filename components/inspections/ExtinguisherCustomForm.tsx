@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff } from 'lucide-react';
+import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X } from 'lucide-react';
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -87,7 +87,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [meta, setMeta] = useState({
         registro: '',
         fecha: new Date().toISOString().split('T')[0],
-        actividadEconomica: 'Construccion',
+        actividadEconomica: 'Construcción',
         razonSocial: 'Construcción y Administración S.A.',
         ruc: '20109565017',
         domicilio: 'Avenida Javier Prado Este No. 4109. Santiago de Surco. Lima 33, Perú',
@@ -101,15 +101,81 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     });
 
     // Extinguisher items
-    const [extinguishers, setExtinguishers] = useState<any[]>([]);
+    const [extinguishers, setExtinguishers] = useState<any[]>([
+        {
+            id: 'init-1',
+            tipo: 'Extintor PQS',
+            codigo: 'EXT-01',
+            ubicacion: '',
+            agente: 'ABC',
+            fechaActual: '',
+            fechaProxima: '',
+            senalizacion: 'C',
+            acceso: 'C',
+            estado: 'C',
+            observaciones: '',
+            expanded: true
+        }
+    ]);
+
+    // Fotos de hallazgos/evidencias
+    const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
+
+    const handlePhotoUpload = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result) {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 800;
+                        if (width > height && width > maxDim) {
+                            height *= maxDim / width;
+                            width = maxDim;
+                        } else if (height > maxDim) {
+                            width *= maxDim / height;
+                            height = maxDim;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0, width, height);
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                        setFotosDefectos(prev => ({
+                            ...prev,
+                            [key]: [...(prev[key] || []), compressedBase64]
+                        }));
+                    };
+                    img.src = event.target.result as string;
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removePhoto = (key: string, photoIdx: number) => {
+        setFotosDefectos(prev => ({
+            ...prev,
+            [key]: prev[key].filter((_, i) => i !== photoIdx)
+        }));
+    };
 
     const addExtinguisher = () => {
+        const nextNum = extinguishers.length + 1;
+        const nextCode = `EXT-${nextNum < 10 ? '0' + nextNum : nextNum}`;
         setExtinguishers([...extinguishers, {
             id: Date.now().toString(),
-            tipo: '',
-            codigo: '',
+            tipo: 'Extintor PQS',
+            codigo: nextCode,
             ubicacion: '',
-            agente: 'PQS',
+            agente: 'ABC',
             fechaActual: '',
             fechaProxima: '',
             senalizacion: 'C',
@@ -127,6 +193,10 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         let newCode = itemToCopy.codigo + ' (Copia)';
         if (/^\d+$/.test(itemToCopy.codigo)) {
             newCode = (parseInt(itemToCopy.codigo, 10) + 1).toString().padStart(itemToCopy.codigo.length, '0');
+        } else if (/^EXT-(\d+)$/i.test(itemToCopy.codigo)) {
+            const m = itemToCopy.codigo.match(/^EXT-(\d+)$/i);
+            const nextNum = parseInt(m[1], 10) + 1;
+            newCode = `EXT-${nextNum < 10 ? '0' + nextNum : nextNum}`;
         }
 
         setExtinguishers([...extinguishers, {
@@ -170,6 +240,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     isExtinguisherMatrix: true,
                     meta,
                     extinguishers,
+                    fotosDefectos,
                     saveToDrive: true
                 })
             });
@@ -401,6 +472,43 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones / Acciones</label>
                                             <VoiceInput placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={(val: string) => updateExtinguisher(idx, 'observaciones', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                        </div>
+
+                                        {/* FOTOS / EVIDENCIAS */}
+                                        <div className="mt-4 pt-3 border-t border-slate-100">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                                                    <Camera size={14} className="text-slate-500" /> Fotos / Evidencias Fotográficas
+                                                </label>
+                                                <label className="cursor-pointer text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg border border-red-200 transition-colors flex items-center gap-1.5">
+                                                    <Camera size={14} /> Tomar / Subir Foto
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        capture="environment" 
+                                                        multiple 
+                                                        className="hidden" 
+                                                        onChange={(e) => handlePhotoUpload(ext.codigo || `Equipo ${idx + 1}`, e)} 
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            {(fotosDefectos[ext.codigo || `Equipo ${idx + 1}`] || []).length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {(fotosDefectos[ext.codigo || `Equipo ${idx + 1}`] || []).map((photoB64, pIdx) => (
+                                                        <div key={pIdx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shadow-sm group">
+                                                            <img src={photoB64} alt="Evidencia" className="w-full h-full object-cover" />
+                                                            <button 
+                                                                onClick={() => removePhoto(ext.codigo || `Equipo ${idx + 1}`, pIdx)} 
+                                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700 transition-colors shadow"
+                                                                title="Eliminar foto"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
