@@ -482,31 +482,56 @@ export default function FillDigitalInspection() {
                     <p className="text-slate-400 text-sm mt-1">Versión de Formato: V{version}</p>
                 </div>
                 
-                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-b border-slate-200">
+                {/* CABECERA - CAMPOS GENERALES */}
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50">
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
                         const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
-                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
-                        if (!isHeader || t.includes('responsable')) return null;
+                        const isGeneralHeader = item.type !== 'title' && (t === 'cargo' || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        if (!isGeneralHeader || t.includes('inspector') || t.includes('responsable')) return null;
                         return renderField(item, idx);
                     })}
                 </div>
 
-                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* CABECERA - FIRMAS (Inspector y Responsable siempre juntos) */}
+                {(template.some(i => i.text.toLowerCase().includes('inspector')) || template.some(i => i.text.toLowerCase().includes('responsable'))) && (
+                    <div className="px-4 md:px-6 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50">
+                        {template.map((item, idx) => {
+                            const t = item.text.toLowerCase().trim();
+                            if (!t.includes('inspector') && !t.includes('responsable') && !(t.includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector')))) return null;
+                            if (t === 'cargo' || (t.includes('cargo') && !t.includes('responsable') && template.some(i => i.text.toLowerCase().includes('inspector')))) return null; // El cargo normal va dentro del inspector
+                            return renderField(item, idx);
+                        })}
+                    </div>
+                )}
+
+                {/* CABECERA - TIPO DE INSPECCIÓN (Planificadas) */}
+                {template.some(i => isCheckboxField(i.text)) && (
+                    <div className="px-4 md:px-6 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-b border-slate-200">
+                        {template.map((item, idx) => {
+                            if (!isCheckboxField(item.text)) return null;
+                            return renderField(item, idx);
+                        })}
+                    </div>
+                )}
+                
+                {/* CHECKLIST PRINCIPAL */}
+                <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start border-t border-slate-200">
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
                         const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
-                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión')) && !t.includes('responsable');
-                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('responsable') || t.includes('observaciones') || t.includes('comentario') || isCheckboxField(item.text);
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión') || t.includes('responsable') || isCheckboxField(item.text));
+                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('observaciones') || t.includes('comentario');
                         if (isHeader || isFooter) return null;
                         return renderField(item, idx);
                     })}
                 </div>
 
+                {/* FOOTER - OBSERVACIONES */}
                 <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-t border-slate-200">
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
-                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('responsable') || t.includes('observaciones') || t.includes('comentario') || isCheckboxField(item.text);
+                        const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('observaciones') || t.includes('comentario');
                         if (!isFooter) return null;
                         return renderField(item, idx);
                     })}
