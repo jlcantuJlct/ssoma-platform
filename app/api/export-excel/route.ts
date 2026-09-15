@@ -1,4 +1,4 @@
-﻿export const maxDuration = 60;
+export const maxDuration = 60;
 import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import path from 'path';
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
                 try {
                     const base64Data = inspSig.replace(/^data:image\/\w+;base64,/, "");
                     const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
-                    worksheet.addImage(imageId, { tl: { col: 9, row: 5 }, ext: { width: 120, height: 40 } });
+                    worksheet.addImage(imageId, { tl: { col: 10, row: 5 }, ext: { width: 120, height: 40 } });
                 } catch(e) { console.error(e); }
             }
 
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
                 try {
                     const base64Data = respSig.replace(/^data:image\/\w+;base64,/, "");
                     const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
-                    worksheet.addImage(imageId, { tl: { col: 9, row: 6 }, ext: { width: 120, height: 40 } });
+                    worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 40 } });
                 } catch(e) { console.error(e); }
             }
             
