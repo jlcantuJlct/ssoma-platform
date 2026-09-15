@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -190,13 +190,19 @@ export default function FillDigitalInspection() {
         }));
     };
 
-        const handlePreview = async () => {
+    const handlePreview = async () => {
         setIsSaving(true);
         try {
+            // Quitar fotos en base64 para evitar el error 413 Payload Too Large del servidor
+            const lightAnswers = JSON.parse(JSON.stringify(answers));
+            Object.keys(lightAnswers).forEach(k => {
+                if (lightAnswers[k].photos) delete lightAnswers[k].photos;
+            });
+
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers, template })
+                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template })
             });
             if (res.ok) {
                 const blob = await res.blob();
@@ -728,6 +734,7 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
 
 
 

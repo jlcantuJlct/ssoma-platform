@@ -1,4 +1,5 @@
-﻿import { NextResponse } from 'next/server';
+﻿export const maxDuration = 60;
+import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
@@ -95,6 +96,9 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
+        console.error('EXPORT EXCEL ERROR:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+
