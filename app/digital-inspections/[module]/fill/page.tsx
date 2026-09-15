@@ -485,8 +485,9 @@ export default function FillDigitalInspection() {
                 <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50 border-b border-slate-200">
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
-                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('área') || t.includes('area') || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
-                        if (!isHeader) return null;
+                        const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        if (!isHeader || t.includes('responsable')) return null;
                         return renderField(item, idx);
                     })}
                 </div>
@@ -494,7 +495,8 @@ export default function FillDigitalInspection() {
                 <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
-                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('área') || t.includes('area') || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión')) && !t.includes('responsable');
                         const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('responsable') || t.includes('observaciones') || t.includes('comentario') || isCheckboxField(item.text);
                         if (isHeader || isFooter) return null;
                         return renderField(item, idx);
