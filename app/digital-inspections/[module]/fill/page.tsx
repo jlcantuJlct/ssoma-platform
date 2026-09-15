@@ -233,9 +233,8 @@ export default function FillDigitalInspection() {
     };
 
     const isConformeField = (text: string) => {
-        const t = text.toLowerCase();
-        if (t.includes('señalización de seguridad') || t.includes('señales de seguridad') || t.includes('delimitación')) return false;
-        return t.includes('señalización') || t.includes('acceso al extintor') || t.includes('estado general');
+        const t = text.toLowerCase().trim();
+        return t === 'señalización' || t === 'señalizacion' || t.includes('acceso al extintor') || t.includes('estado general');
     };
 
     const isCheckboxField = (text: string) => {
@@ -246,7 +245,8 @@ export default function FillDigitalInspection() {
     const isMetadataField = (text: string) => {
         const t = text.toLowerCase().trim();
         if (t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion')) return true;
-        const keywords = ['proyecto', 'inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'razón social', 'razon social', 'domicilio', 'cargo', 'fecha', 'hora', 'código', 'codigo', 'versión', 'version', 'conductor', 'placa', 'kilometraje', 'turno', 'empresa'];
+        if (t === 'proyecto' || t === 'proyecto:') return true;
+        const keywords = ['inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'fecha', 'hora', 'código', 'codigo', 'versión', 'version', 'conductor', 'placa', 'kilometraje', 'turno', 'empresa'];
         return keywords.some(kw => t.includes(kw));
     };
 
@@ -317,7 +317,7 @@ export default function FillDigitalInspection() {
                         if (upperText === 'ACTUAL' || upperText === 'FECHA ACTUAL') displayText = 'FECHA ACTUAL DE RECARGA';
                         else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
 
-                        const isObservaciones = item.text.toLowerCase().includes('observaciones');
+                        const isObservaciones = item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario');
                         const isProyecto = item.text.toLowerCase().includes('proyecto');
                         const isResponsable = item.text.toLowerCase().includes('responsable');
                         
@@ -443,7 +443,7 @@ export default function FillDigitalInspection() {
                                             </div>
                                         ) : (
                                             <div className="relative flex flex-col gap-2">
-                                                {item.text.toLowerCase().includes('observaciones') && badItems.length > 0 && (
+                                                {(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) && badItems.length > 0 && (
                                                     <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                                                         <h5 className="font-bold text-red-800 text-xs mb-2">HALLAZGOS REGISTRADOS:</h5>
                                                         <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
@@ -458,7 +458,7 @@ export default function FillDigitalInspection() {
                                                         value={ans?.text || ''}
                                                         onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
                                                         placeholder="Escribe o dicta tu respuesta..."
-                                                        className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${item.text.toLowerCase().includes('observaciones') ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
+                                                        className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
                                                     />
                                                     <button 
                                                         onClick={() => toggleVoiceRecording(idx)}
