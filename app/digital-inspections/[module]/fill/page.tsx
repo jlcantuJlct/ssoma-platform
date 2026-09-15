@@ -233,8 +233,9 @@ export default function FillDigitalInspection() {
     };
 
     const isConformeField = (text: string) => {
-        const t = text.toLowerCase().trim();
-        return t === 'señalización' || t === 'señalizacion' || t.includes('acceso al extintor') || t.includes('estado general');
+        // En extintores, señalización, acceso y estado general deben ser C/NC/N/A
+        // Si hay otros módulos que requieran Conforme/No Conforme se pueden añadir aquí
+        return false;
     };
 
     const isCheckboxField = (text: string) => {
@@ -247,9 +248,9 @@ export default function FillDigitalInspection() {
         if (t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica')) return true;
         if (t === 'proyecto' || t === 'proyecto:' || t === 'empresa' || t === 'empresa:' || t.startsWith('empresa contratista') || t.startsWith('empresa subcontratista')) return true;
         if (t === 'conductor' || t === 'conductor:') return true;
-        if (t.includes('fecha de caducidad')) return false; // tratar como checklist C/NC/N/A
-        if (t === 'fecha' || t === 'fecha:' || t === 'fecha actual' || t === 'fecha de inspección' || t === 'fecha de inspeccion') return true;
-        const keywords = ['inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'hora', 'código', 'codigo', 'versión', 'version', 'placa', 'kilometraje', 'turno'];
+        if (t.includes('fecha de caducidad')) return false;
+        if (t === 'fecha' || t === 'fecha:' || t.includes('fecha actual') || t.includes('fecha próxima') || t.includes('fecha proxima') || t === 'fecha de inspección' || t === 'fecha de inspeccion') return true;
+        const keywords = ['inspector', 'nombre y apellido', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'hora', 'código', 'codigo', 'versión', 'version', 'placa', 'kilometraje', 'turno'];
         return keywords.some(kw => t.includes(kw));
     };
 
@@ -278,7 +279,7 @@ export default function FillDigitalInspection() {
         }
 
         if (item.text.toLowerCase() === 'cargo' || (item.text.toLowerCase().includes('cargo') && !item.text.toLowerCase().includes('responsable'))) {
-            const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector'));
+            const hasInspector = template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido'));
             if (hasInspector) return null;
         }
 
@@ -295,8 +296,8 @@ export default function FillDigitalInspection() {
 
         let displayText = item.text;
         const upperText = displayText.toUpperCase().trim();
-        if (upperText === 'ACTUAL' || upperText === 'FECHA ACTUAL') displayText = 'FECHA ACTUAL DE RECARGA';
-        else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO') displayText = 'FECHA PRÓXIMA DE RECARGA';
+        if (upperText === 'ACTUAL' || upperText === 'FECHA ACTUAL' || upperText.includes('FECHA ACTUAL DE RECARGA')) displayText = 'FECHA ACTUAL DE RECARGA';
+        else if (upperText === 'PRÓXIMA' || upperText === 'PROXIMA' || upperText === 'PRÓXIMO' || upperText.includes('FECHA PRÓXIMA DE RECARGA') || upperText.includes('FECHA PROXIMA DE RECARGA')) displayText = 'FECHA PRÓXIMA DE RECARGA';
 
         const isObservaciones = item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario');
         const isProyecto = item.text.toLowerCase().includes('proyecto');
@@ -304,7 +305,7 @@ export default function FillDigitalInspection() {
         const isFullWidth = isChecklistField || requiresConforme || isObservaciones || isProyecto;
         const widthClass = isFullWidth ? 'col-span-1 md:col-span-2' : 'col-span-1';
 
-        if (item.text.toLowerCase().includes('inspector')) {
+        if (item.text.toLowerCase().includes('inspector') || item.text.toLowerCase().includes('nombre y apellido')) {
             const cargoIdx = template.findIndex(i => i.text.toLowerCase() === 'cargo' || (i.text.toLowerCase().includes('cargo') && !i.text.toLowerCase().includes('responsable')));
             const cargoAns = cargoIdx !== -1 ? answers[cargoIdx] : null;
 
@@ -487,19 +488,19 @@ export default function FillDigitalInspection() {
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
                         const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
-                        const isGeneralHeader = item.type !== 'title' && (t === 'cargo' || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
-                        if (!isGeneralHeader || t.includes('inspector') || t.includes('responsable')) return null;
+                        const isGeneralHeader = item.type !== 'title' && (t === 'cargo' || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('fecha actual') || t.includes('fecha próxima') || t.includes('fecha proxima') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión'));
+                        if (!isGeneralHeader || t.includes('inspector') || t.includes('nombre y apellido') || t.includes('responsable')) return null;
                         return renderField(item, idx);
                     })}
                 </div>
 
                 {/* CABECERA - FIRMAS (Inspector y Responsable siempre juntos) */}
-                {(template.some(i => i.text.toLowerCase().includes('inspector')) || template.some(i => i.text.toLowerCase().includes('responsable'))) && (
+                {(template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')) || template.some(i => i.text.toLowerCase().includes('responsable'))) && (
                     <div className="px-4 md:px-6 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-start bg-slate-50">
                         {template.map((item, idx) => {
                             const t = item.text.toLowerCase().trim();
-                            if (!t.includes('inspector') && !t.includes('responsable') && !(t.includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector')))) return null;
-                            if (t === 'cargo' || (t.includes('cargo') && !t.includes('responsable') && template.some(i => i.text.toLowerCase().includes('inspector')))) return null; // El cargo normal va dentro del inspector
+                            if (!t.includes('inspector') && !t.includes('nombre y apellido') && !t.includes('responsable') && !(t.includes('cargo') && !template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')))) return null;
+                            if (t === 'cargo' || (t.includes('cargo') && !t.includes('responsable') && template.some(i => i.text.toLowerCase().includes('inspector') || i.text.toLowerCase().includes('nombre y apellido')))) return null; // El cargo normal va dentro del inspector
                             return renderField(item, idx);
                         })}
                     </div>
@@ -520,7 +521,7 @@ export default function FillDigitalInspection() {
                     {template.map((item, idx) => {
                         const t = item.text.toLowerCase().trim();
                         const isArea = t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica');
-                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión') || t.includes('responsable') || isCheckboxField(item.text));
+                        const isHeader = item.type !== 'title' && (t === 'cargo' || t.includes('inspector') || t.includes('nombre y apellido') || t.includes('proyecto') || t === 'fecha' || t.includes('fecha:') || t.includes('fecha actual') || t.includes('fecha próxima') || t.includes('fecha proxima') || isArea || t.includes('empresa') || t.includes('ubicación') || t.includes('ubicacion') || t.includes('hora') || t.includes('turno') || t.includes('conductor') || t.includes('placa') || t.includes('kilometraje') || t.includes('código') || t.includes('codigo') || t.includes('versión') || t.includes('responsable') || isCheckboxField(item.text));
                         const isFooter = (item.type === 'title' && (t.includes('comentario') || t.includes('observaciones'))) || t.includes('observaciones') || t.includes('comentario');
                         if (isHeader || isFooter) return null;
                         return renderField(item, idx);
