@@ -1456,15 +1456,34 @@ export default function InspectionsPage() {
                                         <p className="text-xs text-slate-500">Cargar una plantilla base desde cero para configurar la estructura de la base de datos por primera vez.</p>
                                     </button>
 
+                                                                    <div className="flex flex-col gap-2 mt-4">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const fileInput = document.createElement('input');
+                                            fileInput.type = 'file';
+                                            fileInput.accept = '.xlsx';
+                                            fileInput.onchange = (ev: any) => handleMasterTemplateUpload(ev, targetModule);
+                                            fileInput.click();
+                                        }}
+                                        className="w-full bg-emerald-950/40 border border-emerald-800/50 hover:border-emerald-500 hover:bg-emerald-900/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-emerald-400 font-bold flex items-center gap-2 mb-1 text-sm">
+                                            <span>📥</span> Cargar Plantilla Maestra
+                                        </h4>
+                                        <p className="text-[10px] text-emerald-600/80">Sube el Excel base para usarlo como molde de la inspección.</p>
+                                    </button>
+
                                     <button 
                                         onClick={() => { setFormatActionType('update'); setShowFormatOptionsModal(false); setShowDigitalMenu(false); setShowParserModal(true); }}
-                                        className="w-full bg-slate-950 border border-slate-800 hover:border-emerald-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
+                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
                                     >
-                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-emerald-400">
-                                            <span>🔄</span> Actualizar Formato
+                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400 text-sm">
+                                            <span>🔄</span> Refactorizar Formulario
                                         </h4>
-                                        <p className="text-xs text-slate-500">Subir un Excel modificado para realizar un cruce comparativo con el actual y detectar los cambios.</p>
+                                        <p className="text-[10px] text-slate-500">Sube un Excel para que el motor reestructure las preguntas del formulario web.</p>
                                     </button>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -2274,5 +2293,7 @@ export default function InspectionsPage() {
         </div >
     );
 }
+
+
 
 
