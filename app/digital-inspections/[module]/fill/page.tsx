@@ -246,8 +246,8 @@ export default function FillDigitalInspection() {
         const t = text.toLowerCase().trim();
         if (t === 'área' || t === 'area' || t === 'área:' || t.includes('área de inspección') || t.includes('area de inspeccion') || t.includes('área específica') || t.includes('area especifica')) return true;
         if (t === 'proyecto' || t === 'proyecto:' || t === 'empresa' || t === 'empresa:' || t.startsWith('empresa contratista') || t.startsWith('empresa subcontratista')) return true;
-        if (t === 'conductor' || t === 'conductor:') return true;
-        const keywords = ['inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'fecha', 'hora', 'código', 'codigo', 'versión', 'version', 'placa', 'kilometraje', 'turno'];
+        if (t === 'conductor' || t === 'conductor:' || t === 'fecha' || t === 'fecha:' || t === 'fecha actual' || t === 'fecha de inspección' || t === 'fecha de inspeccion') return true;
+        const keywords = ['inspector', 'responsable', 'ubicación', 'ubicacion', 'observaciones', 'comentario', 'comentarios', 'razón social', 'razon social', 'domicilio', 'cargo', 'hora', 'código', 'codigo', 'versión', 'version', 'placa', 'kilometraje', 'turno'];
         return keywords.some(kw => t.includes(kw));
     };
 
