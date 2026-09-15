@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -358,13 +358,30 @@ export default function FillDigitalInspection() {
                 <div key={idx} className={`${widthClass} bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-2 relative`}>
                     <h4 className="font-semibold text-slate-700 text-sm">{displayText}</h4>
                     <div className="relative">
-                        <textarea 
-                            value={ans?.text || ''}
-                            onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                            placeholder="Nombre del inspector..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
-                        />
-                    </div>
+                        <div className="relative">
+                            <textarea 
+                                value={ans?.text || ''}
+                                onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
+                                placeholder="Nombre del inspector..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                            />
+                            <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                                <button 
+                                    onClick={() => handleAnswerChange(idx, 'text', '')}
+                                    className="p-1.5 rounded-full bg-slate-200 text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                    title="Borrar texto"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                                <button 
+                                    onClick={() => toggleVoiceRecording(idx)}
+                                    className={`p-1.5 rounded-full transition-colors ${isRecording === idx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
+                                    title="Dictar por voz"
+                                >
+                                    {isRecording === idx ? <MicOff size={14} /> : <Mic size={14} />}
+                                </button>
+                            </div>
+                        </div>
                     
                     {cargoIdx !== -1 && (
                         <>
@@ -374,8 +391,24 @@ export default function FillDigitalInspection() {
                                     value={cargoAns?.text || ''}
                                     onChange={(e) => handleAnswerChange(cargoIdx, 'text', e.target.value)}
                                     placeholder="Escribe el cargo..."
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
                                 />
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                                    <button 
+                                        onClick={() => handleAnswerChange(cargoIdx, 'text', '')}
+                                        className="p-1.5 rounded-full bg-slate-200 text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                        title="Borrar texto"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                    <button 
+                                        onClick={() => toggleVoiceRecording(cargoIdx)}
+                                        className={`p-1.5 rounded-full transition-colors ${isRecording === cargoIdx ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
+                                        title="Dictar por voz"
+                                    >
+                                        {isRecording === cargoIdx ? <MicOff size={14} /> : <Mic size={14} />}
+                                    </button>
+                                </div>
                             </div>
                         </>
                     )}
