@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -694,6 +694,7 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
 
 
 
