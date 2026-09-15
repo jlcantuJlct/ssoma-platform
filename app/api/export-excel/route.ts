@@ -37,7 +37,7 @@ export async function POST(req: Request) {
             worksheet.getCell('C4').value = getVal('proyecto');
             worksheet.getCell('C5').value = getVal('fecha');
             worksheet.getCell('I5').value = getVal('hora');
-                        worksheet.getCell('D6').value = getVal('inspector');
+                                    worksheet.getCell('D6').value = getVal('inspector');
             worksheet.getCell('D7').value = getVal('responsable');
             worksheet.getCell('D8').value = getVal('ubicación');
             
@@ -45,16 +45,24 @@ export async function POST(req: Request) {
             if (inspSig) {
                 try {
                     const base64Data = inspSig.replace(/^data:image\/\w+;base64,/, "");
-                    const imageId = workbook.addImage({
-                        base64: base64Data,
-                        extension: 'png',
-                    });
-                    // Insertar la firma cerca del inspector (ej. F6 o similar, o al final)
+                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
                     worksheet.addImage(imageId, {
-                        tl: { col: 5, row: 5 }, // Columna F, Fila 6 (0-indexed base, so col 5 = F, row 5 = 6)
-                        ext: { width: 150, height: 40 }
+                        tl: { col: 9, row: 5 }, // Columna J, Fila 6
+                        ext: { width: 120, height: 40 }
                     });
-                } catch(e) { console.error('Error adding signature', e); }
+                } catch(e) { console.error('Error adding inspector signature', e); }
+            }
+
+            const respSig = getSignature('responsable');
+            if (respSig) {
+                try {
+                    const base64Data = respSig.replace(/^data:image\/\w+;base64,/, "");
+                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
+                    worksheet.addImage(imageId, {
+                        tl: { col: 9, row: 6 }, // Columna J, Fila 7
+                        ext: { width: 120, height: 40 }
+                    });
+                } catch(e) { console.error('Error adding responsable signature', e); }
             }
             
             // Inspección planificada (A10, A11, D12) - Mapearemos con X si tenemos la data
@@ -160,6 +168,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
 
 
 
