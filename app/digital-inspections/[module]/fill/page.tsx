@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -360,7 +360,7 @@ export default function FillDigitalInspection() {
                             <X size={20} className={ans?.text === 'X' ? 'text-white' : 'text-transparent'} />
                         </button>
                     </>
-                ) : isChecklistField ? (
+                                ) : isChecklistField ? (
                     <>
                         <div className="flex-1 flex justify-between items-center gap-2">
                             <h4 className="font-semibold text-slate-700 text-sm leading-snug">{displayText}</h4>
@@ -371,6 +371,41 @@ export default function FillDigitalInspection() {
                             )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                            {moduleName.toLowerCase().includes('botiquin') && (
+                                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 mr-2">
+                                    <span className="text-[10px] text-slate-400 font-bold mr-1">CANT:</span>
+                                    <input 
+                                        type="number" 
+                                        value={ans?.qty !== undefined ? ans.qty : (
+                                            (() => {
+                                                const tLow = displayText.toLowerCase();
+                                                if (tLow.includes('guantes')) return '2';
+                                                if (tLow.includes('yodopovidoma')) return '1';
+                                                if (tLow.includes('agua oxigenada')) return '1';
+                                                if (tLow.includes('alcohol')) return '1';
+                                                if (tLow.includes('gasas esterilizadas')) return '5';
+                                                if (tLow.includes('apósitos')) return '8';
+                                                if (tLow.includes('esparadrapo')) return '1';
+                                                if (tLow.includes('venda elástica de 3') || tLow.includes('venda elastica de 3')) return '2';
+                                                if (tLow.includes('venda elástica de 4') || tLow.includes('venda elastica de 4')) return '2';
+                                                if (tLow.includes('algodón')) return '1';
+                                                if (tLow.includes('venda triangular')) return '1';
+                                                if (tLow.includes('paletas') || tLow.includes('baja lengua')) return '10';
+                                                if (tLow.includes('cloruro')) return '1';
+                                                if (tLow.includes('jelonet')) return '2';
+                                                if (tLow.includes('colirio')) return '2';
+                                                if (tLow.includes('tijera')) return '1';
+                                                if (tLow.includes('pinza')) return '1';
+                                                if (tLow.includes('jabón') || tLow.includes('jabon')) return '1';
+                                                if (tLow.includes('curitas')) return '10';
+                                                return '';
+                                            })()
+                                        )}
+                                        onChange={(e) => handleAnswerChange(idx, 'qty', e.target.value)}
+                                        className="w-12 h-8 bg-transparent text-sm font-bold text-center outline-none text-slate-700"
+                                    />
+                                </div>
+                            )}
                             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
                                 <button 
                                     onClick={() => handleAnswerChange(idx, 'text', 'C')}
@@ -596,3 +631,4 @@ export default function FillDigitalInspection() {
         </div>
     );
 }
+
