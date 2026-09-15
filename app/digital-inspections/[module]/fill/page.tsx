@@ -283,7 +283,7 @@ export default function FillDigitalInspection() {
                 
                 <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {template.map((item, idx) => {
-                        if (item.type === 'title') {
+                        if (item.type === 'title' && !item.text.toLowerCase().includes('comentario') && !item.text.toLowerCase().includes('observaciones')) {
                             return (
                                 <div key={idx} className="col-span-1 md:col-span-2 bg-slate-800 text-white rounded-t-xl px-4 py-3 mt-4 shadow-md border-b-4 border-blue-500 flex items-center gap-2">
                                     <h3 className="text-sm font-black tracking-wider uppercase">{item.text}</h3>
