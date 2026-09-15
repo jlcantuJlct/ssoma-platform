@@ -1,16 +1,29 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 
 export async function POST(req: Request) {
     try {
         const formData = await req.formData();
-        const file = formData.get('file') as File;
+                const file = formData.get('file') as File;
+        const moduleName = formData.get('moduleName') as string;
 
         if (!file) {
             return NextResponse.json({ success: false, error: 'No se encontró el archivo Excel.' }, { status: 400 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
+        
+        // Guardar el Excel físicamente si tenemos moduleName
+        if (moduleName) {
+            const fs = require('fs');
+            const path = require('path');
+            const dir = path.join(process.cwd(), 'public', 'templates', 'digital');
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(path.join(dir, `${moduleName}.xlsx`), buffer);
+        }
+
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(buffer);
 
@@ -176,3 +189,4 @@ export async function POST(req: Request) {
         }, { status: 500 });
     }
 }
+

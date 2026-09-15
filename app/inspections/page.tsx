@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
@@ -299,6 +299,7 @@ export default function InspectionsPage() {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('moduleName', targetModule || '');
 
         try {
             const response = await fetch('/api/templates/parse', {
@@ -2245,3 +2246,4 @@ export default function InspectionsPage() {
         </div >
     );
 }
+
