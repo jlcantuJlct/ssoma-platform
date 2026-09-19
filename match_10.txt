@@ -1,0 +1,1 @@
+Task Description: findstr /S /M /C:\"export function InternasCustomForm\" C:\\Users\\jlcan\\.gemini\\antigravity\\brain\\*.jsonl

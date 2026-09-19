@@ -140,7 +140,7 @@ export async function POST(req: Request) {
                         break;
                     }
 
-                    if (possibleItem && possibleItem.length > 4 && possibleItem.length < 150 ) { 
+                    if (possibleItem && possibleItem.length > 4 && possibleItem.length < 500 ) { 
                         // Buscar cantidad en las columnas inmediatas a la derecha
                         let possibleQuantity = '';
                         if (foundCol !== -1) {

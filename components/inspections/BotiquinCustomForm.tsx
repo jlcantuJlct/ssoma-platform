@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
-import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle , Mail} from 'lucide-react';
+import { generateBotiquinPDF } from '@/lib/pdfGenerator';
 
 interface BotiquinCustomFormProps {
     moduleName: string;
@@ -72,13 +74,16 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
     );
 
     // Fotos de hallazgos (NC)
-    const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
+    const [fotoGeneral, setFotoGeneral] = useState<string[]>([]);
 
     // Observaciones
     const [observaciones, setObservaciones] = useState('');
 
     // Estado de guardado y voz
     const [isSaving, setIsSaving] = useState(false);
+    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailData, setEmailData] = useState<any>(null);
     const [activeRecordingField, setActiveRecordingField] = useState<string | null>(null);
     const recognitionRef = useRef<any>(null);
 
@@ -133,14 +138,25 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
     };
 
     const handleStatusChange = (id: number, status: 'C' | 'NC' | 'N/A') => {
-        setItems(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+        const item = items.find(i => i.id === id);
+        if (item && status === 'NC' && item.status !== 'NC') {
+            const missing = window.prompt(`¿Cuántos faltan o están defectuosos de "${item.name}"? (Req: ${item.qty})`);
+            if (missing) {
+                const textToAppend = `- Falta/Defectuoso: ${missing} de ${item.name}`;
+                setObservaciones(prevObs => {
+                    if (prevObs.includes(textToAppend)) return prevObs;
+                    return prevObs ? prevObs + '\n' + textToAppend : textToAppend;
+                });
+            }
+        }
+        setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
     };
 
     const handleQtyChange = (id: number, qty: string) => {
         setItems(prev => prev.map(item => item.id === id ? { ...item, qty } : item));
     };
 
-    const handlePhotoUpload = (itemName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGeneralPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
@@ -166,11 +182,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                         const ctx = canvas.getContext('2d');
                         ctx?.drawImage(img, 0, 0, width, height);
                         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                        setFotosDefectos(prev => ({
-                            ...prev,
-                            [itemName]: [...(prev[itemName] || []), compressedBase64]
-                        }));
+                        setFotoGeneral(prev => [...prev, compressedBase64]);
                     };
                     img.src = event.target.result as string;
                 }
@@ -179,16 +191,13 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         });
     };
 
-    const removePhoto = (itemName: string, photoIdx: number) => {
-        setFotosDefectos(prev => ({
-            ...prev,
-            [itemName]: prev[itemName].filter((_, i) => i !== photoIdx)
-        }));
+    const removeGeneralPhoto = (photoIdx: number) => {
+        setFotoGeneral(prev => prev.filter((_, i) => i !== photoIdx));
     };
 
     const badItems = items.filter(i => i.status === 'NC');
 
-    const handleSaveAndDownload = async () => {
+    const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
         if (!inspector.trim()) {
             alert('Por favor, indica el nombre del Inspector.');
             return;
@@ -240,8 +249,9 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     moduleName: 'Botiquines',
                     answers: answersObj,
                     template: templateItems,
+                    observaciones,
                     saveToDrive: true,
-                    fotosDefectos
+                    fotosDefectos: fotoGeneral.length > 0 ? { 'Evidencia General': fotoGeneral } : {}
                 })
             });
 
@@ -249,19 +259,57 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                 const data = await res.json();
 
                 if (data.fileBase64) {
+                    setCachedDriveUrl(data.driveUrl);
                     const byteCharacters = atob(data.fileBase64);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
+                    
+                    if (isEmailing && customEmailData) {
+                        try {
+                            // Agregar enlace de Drive al cuerpo del mensaje
+                            const driveLink = data.driveUrl || '';
+                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                ? customEmailData.message.replace(
+                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                                )
+                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: bodyWithLink,
+                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
+                                        /(https?:\/\/[^\s]+)/g,
+                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
+                                    ),
+                                    fromEmail: customEmailData.fromEmail,
+                                    fromName: customEmailData.fromName
+                                    // sin adjunto — el archivo está en Drive
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                            alert('✅ Correo enviado correctamente con el enlace de Drive.');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se guardó en Drive.');
+                        }
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
                     a.download = `INSP_Botiquines_${fecha}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
-                    a.remove();
+                        a.remove();
+                    }
                 }
 
                 await fetch('/api/inspections', {
@@ -283,8 +331,12 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     })
                 });
 
-                alert('¡Inspección de Botiquín guardada exitosamente en Drive y Base de Datos!');
-                window.location.href = '/inspections?openDigital=true';
+                if (!isEmailing) {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                        setShowEmailModal(true);
+                    }
+                }
+                
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
@@ -594,57 +646,39 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                 </div>
             </div>
 
-            {/* SECCIÓN 3: EVIDENCIA FOTOGRÁFICA DE HALLAZGOS (NC) */}
+            {/* SECCIÓN 3: EVIDENCIA FOTOGRÁFICA GENERAL */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
                 <h3 className="font-bold text-slate-800 text-sm border-b pb-2 flex items-center gap-2 mb-4">
                     <Camera size={18} className="text-blue-500" />
-                    3. Evidencia Fotográfica de Hallazgos (Se inserta a partir de la fila 48 en Excel)
+                    3. Evidencia Fotográfica General (Se inserta a partir de la fila 48 en Excel)
                 </h3>
-
-                {badItems.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-4 italic">
-                        No hay insumos marcados como "NC" (No Conforme) actualmente.
-                    </p>
-                ) : (
-                    <div className="space-y-4">
-                        {badItems.map((b) => (
-                            <div key={b.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="font-bold text-sm text-red-700">{b.name}</span>
-                                    <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">NO CONFORME</span>
-                                </div>
-
-                                <div className="flex flex-wrap gap-3">
-                                    {(fotosDefectos[b.name] || []).map((foto, fIdx) => (
-                                        <div key={fIdx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
-                                            <img src={foto} alt={b.name} className="w-full h-full object-cover" />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => removePhoto(b.name, fIdx)}
-                                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 cursor-pointer transition-colors bg-white">
-                                        <Camera size={20} className="mb-1" />
-                                        <span className="text-[10px] font-bold">+ Foto</span>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            capture="environment" 
-                                            multiple 
-                                            onChange={(e) => handlePhotoUpload(b.name, e)} 
-                                            className="hidden" 
-                                        />
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <p className="text-xs text-slate-500 mb-3 italic">Adjunta una o más fotos generales del botiquín inspeccionado.</p>
+                <div className="flex flex-wrap gap-3">
+                    {fotoGeneral.map((foto, fIdx) => (
+                        <div key={fIdx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
+                            <img src={foto} alt={`Foto ${fIdx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                                type="button"
+                                onClick={() => removeGeneralPhoto(fIdx)}
+                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Trash2 size={12} />
+                            </button>
+                        </div>
+                    ))}
+                    <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 cursor-pointer transition-colors bg-white">
+                        <Camera size={20} className="mb-1" />
+                        <span className="text-[10px] font-bold">+ Foto</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            multiple
+                            onChange={handleGeneralPhotoUpload}
+                            className="hidden"
+                        />
+                    </label>
+                </div>
             </div>
 
             {/* SECCIÓN 4: OBSERVACIONES */}
@@ -698,14 +732,55 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
 
             {/* BOTÓN FINALIZAR */}
             <div className="sticky bottom-4 z-40">
-                <button 
-                    onClick={handleSaveAndDownload} 
-                    disabled={isSaving} 
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base"
-                >
-                    {isSaving ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
-                    {isSaving ? 'Generando Excel y Guardando en Drive...' : 'Finalizar y Descargar Excel'}
-                </button>
+                
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                      <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
+                          {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
+                      </button>
+                      <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
+                          {isSaving && showEmailModal ? 'Preparando...' : 'Enviar por Correo'}
+                      </button>
+                  </div>
+                  
+                  <EmailReportModal
+            initialObservations={observaciones}
+                      isOpen={showEmailModal} 
+                      onClose={() => setShowEmailModal(false)}
+                      isSending={isSaving}
+                      onSend={async (data) => {
+                          if (cachedDriveUrl) {
+                              setIsSaving(true);
+                              try {
+                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
+                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
+                                  
+                                  const emailRes = await fetch('/api/send-email', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          to: data.to, cc: data.cc, subject: data.subject,
+                                          text: bodyWithLink,
+                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
+                                          fromEmail: data.fromEmail, fromName: data.fromName
+                                      })
+                                  });
+                                  if (!emailRes.ok) throw new Error('Error enviando correo');
+                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
+                              } catch(e) {
+                                  alert('Error al enviar el correo.');
+                              } finally {
+                                  setIsSaving(false);
+                                  setShowEmailModal(false);
+                              }
+                          } else {
+                              await handleSaveAndDownload(true, data);
+                              setShowEmailModal(false);
+                          }
+                      }}
+                  />
             </div>
         </div>
     );

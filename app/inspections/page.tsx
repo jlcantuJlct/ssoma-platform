@@ -213,13 +213,13 @@ export default function InspectionsPage() {
     ];
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [showProgramModal, setShowProgramModal] = useState(false);
-    const [showDigitalMenu, setShowDigitalMenu] = useState(false);
+    const [viewMode, setViewMode] = useState<'menu' | 'fisica' | 'digital'>('menu');
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             if (params.get('openDigital') === 'true') {
-                setShowDigitalMenu(true);
+                setViewMode('digital');
             }
         }
     }, []);
@@ -1243,8 +1243,29 @@ export default function InspectionsPage() {
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200">
 
-            <main className="flex-1 overflow-auto p-4 md:p-8">
-                <div className="max-w-[1600px] mx-auto space-y-6">
+
+            {viewMode === 'menu' && (
+                <main className="flex-1 overflow-auto p-4 md:p-8">
+                    <div className="max-w-[1600px] mx-auto space-y-6">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <button onClick={() => setViewMode('fisica')} className="group p-8 bg-slate-900 border border-slate-700 rounded-3xl hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/20 transition-all text-center flex flex-col items-center">
+                                <div className="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-6 group-hover:scale-110 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                                </div>
+                                <h2 className="text-2xl font-black text-white mb-2">Inspección Física</h2>
+                                <p className="text-slate-400">Registrar y subir reportes escaneados de inspecciones físicas.</p>
+                            </button>
+
+                            <button onClick={() => setViewMode('digital')} className="group p-8 bg-slate-900 border border-slate-700 rounded-3xl hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-900/20 transition-all text-center flex flex-col items-center">
+                                <div className="w-24 h-24 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                </div>
+                                <h2 className="text-2xl font-black text-white mb-2">Inspección Digital</h2>
+                                <p className="text-slate-400">Llenado directo de formatos inteligentes desde la plataforma web.</p>
+                            </button>
+                        </div>
+
 
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm shadow-xl">
@@ -1259,7 +1280,7 @@ export default function InspectionsPage() {
 
                             {/* Botón de Inspección Digital */}
                             <button
-                                onClick={() => setShowDigitalMenu(true)}
+                                onClick={() => setViewMode('digital')}
                                 className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95 border border-blue-500/30"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
@@ -1413,381 +1434,297 @@ export default function InspectionsPage() {
                     </div>
 
                     {/* Modal de Menú Digital */}
-                    {showDigitalMenu && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[80vh] flex flex-col shadow-2xl">
-                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                                        Formatos Digitales
-                                    </h3>
-                                    <button onClick={() => setShowDigitalMenu(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-2 rounded-xl">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                <div className="p-6 overflow-y-auto">
-                                    <p className="text-slate-400 mb-6">Selecciona el tipo de inspección digital que deseas realizar o gestionar:</p>
-                                    
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {inspectionModules.map((mod, idx) => {
-            if (!mod) return null;
-            return (
-            <div key={idx} className={`relative group ${mod.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-800 border-dashed opacity-70'} border rounded-xl p-5 flex flex-col items-center text-center transition-all`}>
-                {(user?.role === 'developer' || user?.role === 'manager') && (
-                    <button 
-                        onClick={(e) => { e.preventDefault(); setTargetModule(mod.name); setFormatActionType(mod.status === 'active' ? 'update' : 'new'); setShowFormatOptionsModal(true); }}
-                        className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
-                        title="Opciones de Formato"
-                    >
-                        <Settings size={16} />
-                    </button>
-                )}
-                <a href={mod.status === 'active' ? (mod.name.includes('Vehículo') ? "/vehicle-inspections" : `/digital-inspections/${encodeURIComponent(mod.name)}`) : "#"} className="flex flex-col items-center w-full">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}`}>
-                        <ClipboardList size={32} />
-                    </div>
-                    <h4 className={`font-bold mb-2 text-sm ${mod.status === 'active' ? 'text-white' : 'text-slate-300'}`}>{mod.name}</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{mod.description}</p>
-                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">En Configuración</span>}
-                </a>
-            </div>
-            );
-        })}
-        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-900 border border-slate-800 border-dashed hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px]">
-            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors"><Plus size={32} /></div>
-            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-white transition-colors">Crear Nuevo Módulo</h4>
-            <p className="text-xs text-slate-500">Añadir otra inspección (Arneses, Escaleras, etc.)</p>
-        </button>
-    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {showCreateModuleModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-white">Crear Módulo</h3>
-                                    <button onClick={() => setShowCreateModuleModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
-                                </div>
-                                <form onSubmit={handleCreateModule} className="flex flex-col gap-4">
-                                    <input type="text" placeholder="Nombre" required value={newModuleData.name} onChange={e => setNewModuleData({...newModuleData, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
-                                    <input type="text" placeholder="Descripción" required value={newModuleData.description} onChange={e => setNewModuleData({...newModuleData, description: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
-                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg">Guardar Módulo</button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-                    
-{/* Modal Opciones de Formato */}
-                    {showFormatOptionsModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
-                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                        <Settings className="text-indigo-500" size={20} />
-                                        Gestión de Formato: {targetModule}
-                                    </h3>
-                                    <button onClick={() => setShowFormatOptionsModal(false)} className="text-slate-400 hover:text-white transition-colors">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                <div className="p-6 flex flex-col gap-4">
-                                    <button 
-                                        onClick={() => { 
-                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
-                                                const key = checkBotiquinAuthorization('ingresar formato');
-                                                if (!key) return;
-                                            }
-                                            setFormatActionType('new'); 
-                                            setShowFormatOptionsModal(false); 
-                                            setShowDigitalMenu(false); 
-                                            setShowParserModal(true); 
-                                        }}
-                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
-                                    >
-                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400">
-                                            <span>✨</span> Ingresar Formato
-                                        </h4>
-                                        <p className="text-xs text-slate-500">Cargar una plantilla base desde cero para configurar la estructura de la base de datos por primera vez.</p>
-                                    </button>
 
-                                                                    <div className="flex flex-col gap-2 mt-4">
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
-                                                const key = checkBotiquinAuthorization('cargar una plantilla maestra');
-                                                if (!key) return;
-                                            }
-                                            const fileInput = document.createElement('input');
-                                            fileInput.type = 'file';
-                                            fileInput.accept = '.xlsx';
-                                            fileInput.onchange = (ev: any) => handleMasterTemplateUpload(ev, targetModule);
-                                            fileInput.click();
-                                        }}
-                                        className="w-full bg-emerald-950/40 border border-emerald-800/50 hover:border-emerald-500 hover:bg-emerald-900/50 p-4 rounded-xl text-left transition-all group"
-                                    >
-                                        <h4 className="text-emerald-400 font-bold flex items-center gap-2 mb-1 text-sm">
-                                            <span>📥</span> Cargar Plantilla Maestra
-                                        </h4>
-                                        <p className="text-[10px] text-emerald-600/80">Sube el Excel base para usarlo como molde de la inspección.</p>
-                                    </button>
 
-                                    <button 
-                                        onClick={() => { 
-                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
-                                                const key = checkBotiquinAuthorization('refactorizar el formulario');
-                                                if (!key) return;
-                                            }
-                                            setFormatActionType('update'); 
-                                            setShowFormatOptionsModal(false); 
-                                            setShowDigitalMenu(false); 
-                                            setShowParserModal(true); 
-                                        }}
-                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
-                                    >
-                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400 text-sm">
-                                            <span>🔄</span> Refactorizar Formulario
-                                        </h4>
-                                        <p className="text-[10px] text-slate-500">Sube un Excel para que el motor reestructure las preguntas del formulario web.</p>
-                                    </button>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Modal del Motor Analizador */}
-                    {showParserModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
-                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                        <Settings className="text-indigo-500" size={20} />
-                                        {formatActionType === 'update' ? 'Actualización Comparativa: ' : 'Ingresando Formato: '} {targetModule}
-                                    </h3>
-                                    <button onClick={() => setShowParserModal(false)} className="text-slate-400 hover:text-white transition-colors">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                
-                                <div className="p-6">
-                                    <div className="mb-6">
-                                        <p className="text-slate-300 text-sm mb-4">
-                                            {formatActionType === 'update' 
-                                                ? 'Sube la versión modificada del Excel. El motor la cruzará con la estructura actual y te mostrará un resumen de los cambios detectados (versiones, filas agregadas/eliminadas).' 
-                                                : 'Sube un documento Excel (.xlsx) limpio. El motor escaneará las filas para detectar automáticamente las opciones de checklist y crear la primera estructura base en la base de datos.'
-                                            }
-                                        </p>
-                                        
-                                        <div className="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-950/50 rounded-xl p-8 text-center transition-colors">
-                                            <input 
-                                                type="file" 
-                                                accept=".xlsx"
-                                                onChange={handleParseTemplate}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center">
-                                                    <Download size={24} className="rotate-180" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-white font-bold">Haz clic o arrastra un archivo Excel aquí</p>
-                                                    <p className="text-xs text-slate-500 mt-1">Solo archivos .xlsx permitidos</p>
-                                                </div>
-                                            </div>
-                                        </div>
+
+
+
+                        {/* HISTORIAL Y TABLA (4 Columnas) */}
+                        <div className={`space-y-6 ${user?.role === 'manager' ? 'w-full' : 'w-full'}`}>
+
+                            {/* Panel Superior de Filtros */}
+                            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                                    {/* Filtro Responsable */}
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select name="filterResponsible"
+                                            value={filterResponsible}
+                                            onChange={(e) => setFilterResponsible(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                        >
+                                            <option value="">Todo Responsable</option>
+                                            {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                        </select>
                                     </div>
 
-                                    {/* Loader */}
-                                    {isParsing && (
-                                        <div className="bg-slate-950 rounded-xl p-6 text-center border border-slate-800 animate-pulse">
-                                            <Settings size={32} className="animate-spin text-indigo-500 mx-auto mb-3" />
-                                            <p className="text-indigo-400 font-bold">Analizando estructura del documento...</p>
-                                            <p className="text-xs text-slate-500 mt-1">Buscando patrones, columnas de opciones y extrayendo ítems.</p>
-                                        </div>
-                                    )}
+                                    {/* Filtro Zona */}
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select name="filterZone"
+                                            value={filterZone}
+                                            onChange={(e) => setFilterZone(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
+                                        >
+                                            <option value="">Toda Zona</option>
+                                            {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+                                        </select>
+                                    </div>
 
-                                    {/* Resultado del Escaneo */}
-                                    {!isParsing && parserResult && (
-                                        <div className={`rounded-xl p-6 border ${parserResult.success ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-red-950/30 border-red-500/30'}`}>
-                                            {parserResult.success ? (
-                                                <div>
-                                                    <div className="flex items-center gap-2 text-emerald-400 font-black text-lg mb-2">
-                                                        <CheckCircle size={20} /> Análisis Completado
-                                                    </div>
-                                                    <p className="text-sm text-slate-300 mb-4">{parserResult.data.message}</p>
-                                                    
-                                                    <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 max-h-[400px] overflow-y-auto">
-                                                        <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-lg">
-                                                            <h5 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Clasificador Inteligente</h5>
-                                                            <p className="text-xs text-slate-300 leading-relaxed">
-                                                                El motor ha extraído todo el texto. Por defecto asume que todo son <b>preguntas</b>. 
-                                                                Para mantener el orden en el celular de tus trabajadores, identifica cuáles son <b>Títulos de Sección</b> (Ej. "CHASIS") haciendo clic en el botón correspondiente. Usa el basurero solo para texto inservible.
-                                                            </p>
-                                                        </div>
-                                                        <ul className="space-y-3">
-                                                            {editableItems.map((item: any, i: number) => (
-                                                                <li key={i} className={`text-sm flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border transition-all ${item.type === 'title' ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-900/50 border-slate-800/50'}`}>
-                                                                    <div className="flex-1 flex items-start gap-2">
-                                                                        <span className="text-indigo-500 font-mono text-xs mt-0.5 min-w-[20px]">{i+1}.</span> 
-                                                                        <span className={`flex-1 font-medium ${item.type === 'title' ? 'text-indigo-300 uppercase tracking-wide' : 'text-slate-300'}`}>
-                                                                            {item.text}
-                                                                        </span>
-                                                                    </div>
-                                                                    
-                                                                    <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950 p-1 rounded-lg border border-slate-800">
-                                                                        <button 
-                                                                            onClick={() => toggleItemType(i, 'question')}
-                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'question' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                    {/* Filtro Tipo */}
+                                    <div className="relative">
+                                        <SearchableSelect name="filterType_Todo_Tipo"
+                                            options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
+                                            value={filterType || "Todo Tipo"}
+                                            onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
+                                            placeholder="Todo Tipo"
+                                            icon={<AlertCircle className="text-slate-500" size={16} />}
+                                            className="h-[42px]"
+                                        />
+                                    </div>
+
+                                    {/* Filtro Fecha */}
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <input name="filterDate"
+                                            type="date"
+                                            value={filterDate}
+                                            onChange={(e) => setFilterDate(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
+                                        />
+                                    </div>
+
+                                    {/* Filtro Area (reset button if needed or just Area select) */}
+                                    <div className="relative">
+                                        <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
+                                        <select name="filterArea"
+                                            value={filterArea}
+                                            onChange={(e) => setFilterArea(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
+                                        >
+                                            <option value="Todas">Todas las Áreas</option>
+                                            {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* PANEL DE HISTORIAL (Tabla) */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-280px)]">
+                                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                                    <h2 className="font-bold text-lg text-white flex items-center gap-2">
+                                        <ClipboardCheck className="text-emerald-500" />
+                                        Rastro de Registros
+                                    </h2>
+                                    <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                                        Total: {filteredInspections.length}
+                                    </span>
+                                </div>
+
+                                <div className="overflow-auto flex-1">
+                                    <table className="w-full text-left text-sm text-slate-400">
+                                        <thead className="bg-slate-950 text-xs uppercase font-black text-slate-500 sticky top-0 z-10">
+                                            <tr>
+                                                <th className="px-3 py-3 tracking-wider text-xs">Fecha</th>
+                                                <th className="px-3 py-3 tracking-wider text-xs">Responsable</th>
+                                                <th className="px-3 py-3 tracking-wider text-xs">Tipo de Inspección</th>
+                                                <th className="px-3 py-3 tracking-wider text-xs">Área / Zona</th>
+                                                <th className="px-3 py-3 tracking-wider text-center text-xs">Estado</th>
+                                                <th className="px-3 py-3 tracking-wider text-left text-xs">Archivo</th>
+                                                <th className="px-3 py-3 tracking-wider text-center text-xs">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800/50">
+                                            {filteredInspections.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-600 italic">
+                                                        No se encontraron registros
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                filteredInspections.map(item => (
+                                                    <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
+                                                        <td className="px-3 py-3 whitespace-nowrap font-mono text-white text-xs">
+                                                            {item.date}
+                                                        </td>
+                                                        <td className="px-3 py-3 max-w-[150px] truncate text-xs">
+                                                            <div className="flex items-center gap-2 text-slate-300">
+                                                                <User size={14} className="text-emerald-500" />
+                                                                {getInitials(item.responsible)}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 font-medium text-slate-200 text-xs text-wrap max-w-[200px]">
+                                                            {item.inspectionType}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-xs">
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className={`text-[9px] font-black uppercase w-fit px-2 py-0.5 rounded ${item.area === 'Seguridad' ? 'bg-blue-500/20 text-blue-400' :
+                                                                    item.area === 'Salud' ? 'bg-rose-500/20 text-rose-400' :
+                                                                        'bg-emerald-500/20 text-emerald-400'
+                                                                    }`}>
+                                                                    {item.area}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-500 flex items-center gap-1 truncate max-w-[120px]">
+                                                                    <MapPin size={10} /> {item.zone}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.status === 'Completado' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                                'bg-amber-500/10 text-amber-500'
+                                                                }`}>
+                                                                {item.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-left">
+                                                            <div className="flex flex-col gap-1">
+                                                                {item.evidencePdf ? (
+                                                                    <span className="text-[10px] text-slate-400 truncate max-w-[100px] block" title={generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area)}>
+                                                                        {generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area)}
+                                                                    </span>
+                                                                ) : item.evidenceImgs && item.evidenceImgs.length > 0 ? (
+                                                                    <span className="text-[10px] text-slate-400 truncate max-w-[100px] block" title={generateFilename(item.inspectionType, item.date, item.responsible, 'jpg', 'inspeccion', undefined, item.area)}>
+                                                                        {generateFilename(item.inspectionType, item.date, item.responsible, 'jpg', 'inspeccion', undefined, item.area)} (Img)
+                                                                    </span>
+                                                                ) : <span className="text-slate-600">-</span>}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <div className="flex justify-center gap-2">
+                                                                {/* EVIDENCE BUTTONS */}
+                                                                {item.evidencePdf && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const link = document.createElement('a');
+                                                                            link.href = item.evidencePdf!;
+                                                                            link.download = generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area);
+                                                                            document.body.appendChild(link);
+                                                                            link.click();
+                                                                            document.body.removeChild(link);
+                                                                        }}
+                                                                        className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                                                                        title="Descargar PDF Adjunto"
+                                                                    >
+                                                                        <FileText size={16} />
+                                                                    </button>
+                                                                )}
+
+                                                                {item.evidenceImgs && item.evidenceImgs.length > 0 && (
+                                                                    <button
+                                                                        onClick={() => setViewingEvidence(item)}
+                                                                        className="text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors flex items-center gap-1"
+                                                                        title="Ver Imágenes"
+                                                                    >
+                                                                        <ImageIcon size={16} />
+                                                                        <span className="text-[10px] font-bold">{item.evidenceImgs.length}</span>
+                                                                    </button>
+                                                                )}
+
+                                                                <button
+                                                                    onClick={() => generateInspectionPDF(item)}
+                                                                    className="text-slate-500 hover:text-emerald-400 transition-colors p-2 hover:bg-emerald-500/10 rounded-lg"
+                                                                    title="Exportar PDF Individual"
+                                                                >
+                                                                    <Download size={16} />
+                                                                </button>
+
+                                                                {(user?.role === 'developer' || (user?.role === 'user' && user?.name === item.responsible) || user?.role === 'manager') && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleEdit(item)}
+                                                                            className="text-slate-500 hover:text-blue-400 transition-colors p-2 hover:bg-blue-500/10 rounded-lg"
+                                                                            title="Editar registro"
                                                                         >
-                                                                            ❓ Pregunta
+                                                                            <Pencil size={16} />
                                                                         </button>
-                                                                        <button 
-                                                                            onClick={() => toggleItemType(i, 'title')}
-                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'title' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                                                                        >
-                                                                            📁 Título
-                                                                        </button>
-                                                                        <div className="w-px h-4 bg-slate-700 mx-1"></div>
-                                                                        <button 
-                                                                            onClick={() => handleRemoveEditableItem(i)}
-                                                                            className="px-2 py-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                                                                            title="Eliminar este ítem"
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => deleteInspection(item.id)}
+                                                                            className="text-slate-500 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                                                                            title="Eliminar registro"
                                                                         >
                                                                             <Trash2 size={16} />
                                                                         </button>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    
-                                                    <button 
-                                                        onClick={handleSaveTemplate}
-                                                        disabled={isSavingTemplate || editableItems.length === 0}
-                                                        className="w-full mt-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-400 text-white py-3 rounded-lg font-bold transition-colors shadow-lg"
-                                                    >
-                                                        {isSavingTemplate ? <Settings className="animate-spin" size={20} /> : <CheckCircle size={20} />}
-                                                        {isSavingTemplate ? 'Guardando...' : 'Guardar Configuración en Base de Datos'}
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="flex items-center gap-2 text-red-400 font-black text-lg mb-2">
-                                                        <AlertCircle size={20} /> Error en el Análisis
-                                                    </div>
-                                                    <p className="text-sm text-slate-300">{parserResult.error}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Modal de Detalle de Programa */}
-                    {showProgramModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                        <Calendar size={20} className="text-indigo-500" />
-                                        Programa Mensual Importado
-                                    </h3>
-                                    <button onClick={() => setShowProgramModal(false)} className="text-slate-400 hover:text-white transition-colors">
-                                        <X size={24} />
-                                    </button>
-                                </div>
-                                <div className="p-0 overflow-auto flex-1">
-                                    {monthlyProgram.length === 0 ? (
-                                        <div className="p-8 text-center text-slate-500">
-                                            No hay datos importados. Sube un archivo Excel.
-                                        </div>
-                                    ) : (
-                                        <table className="w-full text-left text-sm text-slate-300">
-                                            <thead className="bg-slate-950 text-slate-500 uppercase text-xs sticky top-0">
-                                                <tr>
-                                                    <th className="px-4 py-3">Responsable</th>
-                                                    <th className="px-4 py-3">Mes</th>
-                                                    <th className="px-4 py-3 text-right">Cantidad</th>
-                                                    <th className="px-4 py-3">Tipo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-800">
-                                                {monthlyProgram.map((item, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-800/50">
-                                                        <td className="px-4 py-2">{item.responsible}</td>
-                                                        <td className="px-4 py-2 text-indigo-400">
-                                                            {item.month >= 0 ? MONTH_NAMES[item.month] : 'Todos (Genérico)'}
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </td>
-                                                        <td className="px-4 py-2 text-right font-mono text-emerald-400 font-bold">{item.quantity}</td>
-                                                        <td className="px-4 py-2 text-slate-500 text-xs">{item.type}</td>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </div>
-                                <div className="p-4 border-t border-slate-800 bg-slate-900/50 rounded-b-2xl flex justify-end">
-                                    <button
-                                        onClick={() => setMonthlyProgram([])}
-                                        className="text-xs text-red-400 hover:text-red-300 underline mr-auto"
-                                    >
-                                        Limpiar Datos
-                                    </button>
-                                    <button onClick={() => setShowProgramModal(false)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-bold transition-colors">
-                                        Cerrar
-                                    </button>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* SECTION: CONFIGURACIÓN DE METAS (Panel Desplegable) */}
-                    {showQuotaSettings && user?.role === 'developer' && (
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 animate-in slide-in-from-top-4 duration-300 shadow-2xl mb-6">
-                            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                                <Settings size={18} className="text-emerald-500" />
-                                Configuración Manual de Metas (Fallback)
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
-                                    <div key={resp} className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                        <span className="text-sm text-slate-300 font-medium">{resp}</span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => updateQuota(resp, false)}
-                                                className="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-slate-400 transition-colors"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="w-8 text-center font-mono font-bold text-white">
-                                                {userQuotas[resp] !== undefined ? userQuotas[resp] : 4}
-                                            </span>
-                                            <button
-                                                onClick={() => updateQuota(resp, true)}
-                                                className="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 rounded-lg text-slate-400 transition-colors"
-                                            >
-                                                +
-                                            </button>
+                    {/* SECTION: METAS Y AVANCE (3D Gauges) - REPOSICIONADO */}
+                    {showGoals && (
+                        <div className="animate-in slide-in-from-top-4 duration-500 hidden md:block">
+                            <div className="flex items-center justify-between mb-4 px-2">
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp className="text-emerald-500" />
+                                    Avance Mensual (Objetivo 3)
+                                </h3>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
+                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => {
+                                    const stats = getProgressStats(resp);
+
+                                    // Determinar Color NEON según reglas de usuario:
+                                    // 0% - 80%  -> Rojo Neon (#ef4444)
+                                    // 81% - 95% -> Naranja Neon (#f97316)
+                                    // 96% - 100%-> Verde Neon (#22c55e)
+                                    let gaugeColor = '#ef4444';
+                                    if (stats.percent >= 96) {
+                                        gaugeColor = '#22c55e';
+                                    } else if (stats.percent >= 81) {
+                                        gaugeColor = '#f97316';
+                                    }
+
+                                    return (
+                                        <div key={resp} className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-[2rem] p-4 border border-slate-700/50 shadow-2xl flex flex-col items-center justify-between group hover:scale-105 transition-transform duration-300 relative overflow-hidden">
+                                            {/* Spotlight Effect */}
+                                            <div className="absolute top-0 left-0 w-full h-1/2 bg-white/5 blur-xl pointer-events-none"></div>
+
+                                            <ComplianceGauge
+                                                title={resp}
+                                                value={stats.executed}
+                                                max={stats.planned}
+                                                width={130}
+                                                height={90}
+                                                color={gaugeColor}
+                                            />
+                                            <div className="mt-3 w-full flex justify-between px-2 text-[10px] font-mono font-bold text-slate-500 border-t border-slate-800/50 pt-2">
+                                                <span className="flex items-center gap-1">E: <span style={{ color: gaugeColor }} className="text-xs drop-shadow-md">{stats.executed}</span></span>
+                                                <span className="flex items-center gap-1">P: <span className="text-slate-300 text-xs">{stats.planned}</span></span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
+                </div>
 
+                </main>
+            )}
 
-
-                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-
-                        {/* FORMULARIO DE REGISTRO (1 Columna) */}
+            {viewMode === 'fisica' && (
+                <main className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center">
+                    <div className="max-w-3xl w-full space-y-6">
+                        <button onClick={() => setViewMode('menu')} className="text-slate-400 hover:text-white flex items-center gap-2 font-medium mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            Volver al Menú
+                        </button>
+                                                {/* FORMULARIO DE REGISTRO (1 Columna) */}
                         {user?.role !== 'manager' && (
-                            <Card className="bg-slate-900 border-slate-800 xl:col-span-1 h-fit shadow-2xl">
+                            <Card className="bg-slate-900 border-slate-800 w-full h-fit shadow-2xl">
                                 <CardHeader className="border-b border-slate-800 pb-4">
                                     <CardTitle className="text-emerald-400 flex flex-wrap items-center gap-2 text-xl">
                                         <FileText size={24} />
@@ -2034,279 +1971,10 @@ export default function InspectionsPage() {
                                 </CardContent>
                             </Card>
                         )}
-
-                        {/* HISTORIAL Y TABLA (4 Columnas) */}
-                        <div className={`space-y-6 ${user?.role === 'manager' ? 'xl:col-span-5' : 'xl:col-span-4'}`}>
-
-                            {/* Panel Superior de Filtros */}
-                            <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-
-                                    {/* Filtro Responsable */}
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select name="filterResponsible"
-                                            value={filterResponsible}
-                                            onChange={(e) => setFilterResponsible(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                        >
-                                            <option value="">Todo Responsable</option>
-                                            {RESPONSIBLES.map(r => <option key={r} value={r}>{r}</option>)}
-                                        </select>
-                                    </div>
-
-                                    {/* Filtro Zona */}
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select name="filterZone"
-                                            value={filterZone}
-                                            onChange={(e) => setFilterZone(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none truncate"
-                                        >
-                                            <option value="">Toda Zona</option>
-                                            {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
-                                        </select>
-                                    </div>
-
-                                    {/* Filtro Tipo */}
-                                    <div className="relative">
-                                        <SearchableSelect name="filterType_Todo_Tipo"
-                                            options={["Todo Tipo", ...Object.values(INSPECTION_TYPES_BY_AREA).flat().sort()]}
-                                            value={filterType || "Todo Tipo"}
-                                            onChange={(val) => setFilterType(val === "Todo Tipo" ? "" : val)}
-                                            placeholder="Todo Tipo"
-                                            icon={<AlertCircle className="text-slate-500" size={16} />}
-                                            className="h-[42px]"
-                                        />
-                                    </div>
-
-                                    {/* Filtro Fecha */}
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <input name="filterDate"
-                                            type="date"
-                                            value={filterDate}
-                                            onChange={(e) => setFilterDate(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
-                                        />
-                                    </div>
-
-                                    {/* Filtro Area (reset button if needed or just Area select) */}
-                                    <div className="relative">
-                                        <Filter className="absolute left-3 top-3 text-slate-500" size={16} />
-                                        <select name="filterArea"
-                                            value={filterArea}
-                                            onChange={(e) => setFilterArea(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-300 focus:outline-none focus:border-emerald-500 appearance-none"
-                                        >
-                                            <option value="Todas">Todas las Áreas</option>
-                                            {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* PANEL DE HISTORIAL (Tabla) */}
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-280px)]">
-                                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                                    <h2 className="font-bold text-lg text-white flex items-center gap-2">
-                                        <ClipboardCheck className="text-emerald-500" />
-                                        Rastro de Registros
-                                    </h2>
-                                    <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
-                                        Total: {filteredInspections.length}
-                                    </span>
-                                </div>
-
-                                <div className="overflow-auto flex-1">
-                                    <table className="w-full text-left text-sm text-slate-400">
-                                        <thead className="bg-slate-950 text-xs uppercase font-black text-slate-500 sticky top-0 z-10">
-                                            <tr>
-                                                <th className="px-3 py-3 tracking-wider text-xs">Fecha</th>
-                                                <th className="px-3 py-3 tracking-wider text-xs">Responsable</th>
-                                                <th className="px-3 py-3 tracking-wider text-xs">Tipo de Inspección</th>
-                                                <th className="px-3 py-3 tracking-wider text-xs">Área / Zona</th>
-                                                <th className="px-3 py-3 tracking-wider text-center text-xs">Estado</th>
-                                                <th className="px-3 py-3 tracking-wider text-left text-xs">Archivo</th>
-                                                <th className="px-3 py-3 tracking-wider text-center text-xs">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-800/50">
-                                            {filteredInspections.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-600 italic">
-                                                        No se encontraron registros
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                filteredInspections.map(item => (
-                                                    <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
-                                                        <td className="px-3 py-3 whitespace-nowrap font-mono text-white text-xs">
-                                                            {item.date}
-                                                        </td>
-                                                        <td className="px-3 py-3 max-w-[150px] truncate text-xs">
-                                                            <div className="flex items-center gap-2 text-slate-300">
-                                                                <User size={14} className="text-emerald-500" />
-                                                                {getInitials(item.responsible)}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-3 font-medium text-slate-200 text-xs text-wrap max-w-[200px]">
-                                                            {item.inspectionType}
-                                                        </td>
-                                                        <td className="px-3 py-3 text-xs">
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className={`text-[9px] font-black uppercase w-fit px-2 py-0.5 rounded ${item.area === 'Seguridad' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    item.area === 'Salud' ? 'bg-rose-500/20 text-rose-400' :
-                                                                        'bg-emerald-500/20 text-emerald-400'
-                                                                    }`}>
-                                                                    {item.area}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-500 flex items-center gap-1 truncate max-w-[120px]">
-                                                                    <MapPin size={10} /> {item.zone}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-3 text-center">
-                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.status === 'Completado' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                                'bg-amber-500/10 text-amber-500'
-                                                                }`}>
-                                                                {item.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-3 py-3 text-left">
-                                                            <div className="flex flex-col gap-1">
-                                                                {item.evidencePdf ? (
-                                                                    <span className="text-[10px] text-slate-400 truncate max-w-[100px] block" title={generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area)}>
-                                                                        {generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area)}
-                                                                    </span>
-                                                                ) : item.evidenceImgs && item.evidenceImgs.length > 0 ? (
-                                                                    <span className="text-[10px] text-slate-400 truncate max-w-[100px] block" title={generateFilename(item.inspectionType, item.date, item.responsible, 'jpg', 'inspeccion', undefined, item.area)}>
-                                                                        {generateFilename(item.inspectionType, item.date, item.responsible, 'jpg', 'inspeccion', undefined, item.area)} (Img)
-                                                                    </span>
-                                                                ) : <span className="text-slate-600">-</span>}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-3 text-center">
-                                                            <div className="flex justify-center gap-2">
-                                                                {/* EVIDENCE BUTTONS */}
-                                                                {item.evidencePdf && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const link = document.createElement('a');
-                                                                            link.href = item.evidencePdf!;
-                                                                            link.download = generateFilename(item.inspectionType, item.date, item.responsible, 'pdf', 'inspeccion', undefined, item.area);
-                                                                            document.body.appendChild(link);
-                                                                            link.click();
-                                                                            document.body.removeChild(link);
-                                                                        }}
-                                                                        className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                                                                        title="Descargar PDF Adjunto"
-                                                                    >
-                                                                        <FileText size={16} />
-                                                                    </button>
-                                                                )}
-
-                                                                {item.evidenceImgs && item.evidenceImgs.length > 0 && (
-                                                                    <button
-                                                                        onClick={() => setViewingEvidence(item)}
-                                                                        className="text-emerald-400 hover:bg-emerald-500/10 p-2 rounded-lg transition-colors flex items-center gap-1"
-                                                                        title="Ver Imágenes"
-                                                                    >
-                                                                        <ImageIcon size={16} />
-                                                                        <span className="text-[10px] font-bold">{item.evidenceImgs.length}</span>
-                                                                    </button>
-                                                                )}
-
-                                                                <button
-                                                                    onClick={() => generateInspectionPDF(item)}
-                                                                    className="text-slate-500 hover:text-emerald-400 transition-colors p-2 hover:bg-emerald-500/10 rounded-lg"
-                                                                    title="Exportar PDF Individual"
-                                                                >
-                                                                    <Download size={16} />
-                                                                </button>
-
-                                                                {(user?.role === 'developer' || (user?.role === 'user' && user?.name === item.responsible) || user?.role === 'manager') && (
-                                                                    <>
-                                                                        <button
-                                                                            onClick={() => handleEdit(item)}
-                                                                            className="text-slate-500 hover:text-blue-400 transition-colors p-2 hover:bg-blue-500/10 rounded-lg"
-                                                                            title="Editar registro"
-                                                                        >
-                                                                            <Pencil size={16} />
-                                                                        </button>
-
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => deleteInspection(item.id)}
-                                                                            className="text-slate-500 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
-                                                                            title="Eliminar registro"
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
                     </div>
+                </main>
+            )}
 
-                    {/* SECTION: METAS Y AVANCE (3D Gauges) - REPOSICIONADO */}
-                    {showGoals && (
-                        <div className="animate-in slide-in-from-top-4 duration-500 hidden md:block">
-                            <div className="flex items-center justify-between mb-4 px-2">
-                                <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp className="text-emerald-500" />
-                                    Avance Mensual (Objetivo 3)
-                                </h3>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-6">
-                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => {
-                                    const stats = getProgressStats(resp);
-
-                                    // Determinar Color NEON según reglas de usuario:
-                                    // 0% - 80%  -> Rojo Neon (#ef4444)
-                                    // 81% - 95% -> Naranja Neon (#f97316)
-                                    // 96% - 100%-> Verde Neon (#22c55e)
-                                    let gaugeColor = '#ef4444';
-                                    if (stats.percent >= 96) {
-                                        gaugeColor = '#22c55e';
-                                    } else if (stats.percent >= 81) {
-                                        gaugeColor = '#f97316';
-                                    }
-
-                                    return (
-                                        <div key={resp} className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-[2rem] p-4 border border-slate-700/50 shadow-2xl flex flex-col items-center justify-between group hover:scale-105 transition-transform duration-300 relative overflow-hidden">
-                                            {/* Spotlight Effect */}
-                                            <div className="absolute top-0 left-0 w-full h-1/2 bg-white/5 blur-xl pointer-events-none"></div>
-
-                                            <ComplianceGauge
-                                                title={resp}
-                                                value={stats.executed}
-                                                max={stats.planned}
-                                                width={130}
-                                                height={90}
-                                                color={gaugeColor}
-                                            />
-                                            <div className="mt-3 w-full flex justify-between px-2 text-[10px] font-mono font-bold text-slate-500 border-t border-slate-800/50 pt-2">
-                                                <span className="flex items-center gap-1">E: <span style={{ color: gaugeColor }} className="text-xs drop-shadow-md">{stats.executed}</span></span>
-                                                <span className="flex items-center gap-1">P: <span className="text-slate-300 text-xs">{stats.planned}</span></span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </main >
 
             {/* MODAL DE EVIDENCIA DE INSPECCIÓN */}
             {
@@ -2360,6 +2028,364 @@ export default function InspectionsPage() {
                     </div>
                 )
             }
+            {viewMode === 'digital' && (
+                <main className="flex-1 overflow-auto p-4 md:p-8">
+                    <div className="max-w-[1200px] mx-auto space-y-6">
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm">
+                                <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                    Control de Inspecciones (Digitales)
+                                </h2>
+                                <button onClick={() => setViewMode('menu')} className="text-slate-400 hover:text-white flex items-center gap-2 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                    Volver al Menú
+                                </button>
+                            </div>
+                            <div className="p-6 overflow-y-auto">
+                                <p className="text-slate-400 mb-6">Selecciona el tipo de inspección digital que deseas realizar o gestionar:</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {inspectionModules.map((mod, idx) => {
+            if (!mod) return null;
+            return (
+            <div key={idx} className={`relative group ${mod.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-800 border-dashed opacity-70'} border rounded-xl p-5 flex flex-col items-center text-center transition-all`}>
+                {(user?.role === 'developer' || user?.role === 'manager') && (
+                    <button 
+                        onClick={(e) => { e.preventDefault(); setTargetModule(mod.name); setFormatActionType(mod.status === 'active' ? 'update' : 'new'); setShowFormatOptionsModal(true); }}
+                        className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                        title="Opciones de Formato"
+                    >
+                        <Settings size={16} />
+                    </button>
+                )}
+                <a href={mod.status === 'active' ? (mod.name.includes('Vehículo') ? "/vehicle-inspections" : (mod.name.includes('Vehículo') ? '/vehicle-inspections' : `/digital-inspections/${encodeURIComponent(mod.name)}/fill`)) : "#"} className="flex flex-col items-center w-full">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}`}>
+                        <ClipboardList size={32} />
+                    </div>
+                    <h4 className={`font-bold mb-2 text-sm ${mod.status === 'active' ? 'text-white' : 'text-slate-300'}`}>{mod.name}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{mod.description}</p>
+                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">En Configuración</span>}
+                </a>
+            </div>
+            );
+        })}
+        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-900 border border-slate-800 border-dashed hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px]">
+            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors"><Plus size={32} /></div>
+            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-white transition-colors">Crear Nuevo Módulo</h4>
+            <p className="text-xs text-slate-500">Añadir otra inspección (Arneses, Escaleras, etc.)</p>
+        </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            )}
+                    {showCreateModuleModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-white">Crear Módulo</h3>
+                                    <button onClick={() => setShowCreateModuleModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+                                </div>
+                                <form onSubmit={handleCreateModule} className="flex flex-col gap-4">
+                                    <input type="text" placeholder="Nombre" required value={newModuleData.name} onChange={e => setNewModuleData({...newModuleData, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
+                                    <input type="text" placeholder="Descripción" required value={newModuleData.description} onChange={e => setNewModuleData({...newModuleData, description: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
+                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg">Guardar Módulo</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+{/* Modal Opciones de Formato */}
+                    {showFormatOptionsModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <Settings className="text-indigo-500" size={20} />
+                                        Gestión de Formato: {targetModule}
+                                    </h3>
+                                    <button onClick={() => setShowFormatOptionsModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                <div className="p-6 flex flex-col gap-4">
+                                    <button 
+                                        onClick={() => { 
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('ingresar formato');
+                                                if (!key) return;
+                                            }
+                                            setFormatActionType('new'); 
+                                            setShowFormatOptionsModal(false); 
+                                            setViewMode('menu'); 
+                                            setShowParserModal(true); 
+                                        }}
+                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400">
+                                            <span>✨</span> Ingresar Formato
+                                        </h4>
+                                        <p className="text-xs text-slate-500">Cargar una plantilla base desde cero para configurar la estructura de la base de datos por primera vez.</p>
+                                    </button>
+
+                                                                    <div className="flex flex-col gap-2 mt-4">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('cargar una plantilla maestra');
+                                                if (!key) return;
+                                            }
+                                            const fileInput = document.createElement('input');
+                                            fileInput.type = 'file';
+                                            fileInput.accept = '.xlsx';
+                                            fileInput.onchange = (ev: any) => handleMasterTemplateUpload(ev, targetModule);
+                                            fileInput.click();
+                                        }}
+                                        className="w-full bg-emerald-950/40 border border-emerald-800/50 hover:border-emerald-500 hover:bg-emerald-900/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-emerald-400 font-bold flex items-center gap-2 mb-1 text-sm">
+                                            <span>📥</span> Cargar Plantilla Maestra
+                                        </h4>
+                                        <p className="text-[10px] text-emerald-600/80">Sube el Excel base para usarlo como molde de la inspección.</p>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => { 
+                                            if (targetModule && targetModule.toLowerCase().includes('botiquin')) {
+                                                const key = checkBotiquinAuthorization('refactorizar el formulario');
+                                                if (!key) return;
+                                            }
+                                            setFormatActionType('update'); 
+                                            setShowFormatOptionsModal(false); 
+                                            setViewMode('menu'); 
+                                            setShowParserModal(true); 
+                                        }}
+                                        className="w-full bg-slate-950 border border-slate-800 hover:border-indigo-500 hover:bg-slate-800/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-white font-bold flex items-center gap-2 mb-1 group-hover:text-indigo-400 text-sm">
+                                            <span>🔄</span> Refactorizar Formulario
+                                        </h4>
+                                        <p className="text-[10px] text-slate-500">Sube un Excel para que el motor reestructure las preguntas del formulario web.</p>
+                                    </button>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal del Motor Analizador */}
+                    {showParserModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <Settings className="text-indigo-500" size={20} />
+                                        {formatActionType === 'update' ? 'Actualización Comparativa: ' : 'Ingresando Formato: '} {targetModule}
+                                    </h3>
+                                    <button onClick={() => setShowParserModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="p-6">
+                                    <div className="mb-6">
+                                        <p className="text-slate-300 text-sm mb-4">
+                                            {formatActionType === 'update' 
+                                                ? 'Sube la versión modificada del Excel. El motor la cruzará con la estructura actual y te mostrará un resumen de los cambios detectados (versiones, filas agregadas/eliminadas).' 
+                                                : 'Sube un documento Excel (.xlsx) limpio. El motor escaneará las filas para detectar automáticamente las opciones de checklist y crear la primera estructura base en la base de datos.'
+                                            }
+                                        </p>
+                                        
+                                        <div className="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-950/50 rounded-xl p-8 text-center transition-colors">
+                                            <input 
+                                                type="file" 
+                                                accept=".xlsx"
+                                                onChange={handleParseTemplate}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-500 rounded-full flex items-center justify-center">
+                                                    <Download size={24} className="rotate-180" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-bold">Haz clic o arrastra un archivo Excel aquí</p>
+                                                    <p className="text-xs text-slate-500 mt-1">Solo archivos .xlsx permitidos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Loader */}
+                                    {isParsing && (
+                                        <div className="bg-slate-950 rounded-xl p-6 text-center border border-slate-800 animate-pulse">
+                                            <Settings size={32} className="animate-spin text-indigo-500 mx-auto mb-3" />
+                                            <p className="text-indigo-400 font-bold">Analizando estructura del documento...</p>
+                                            <p className="text-xs text-slate-500 mt-1">Buscando patrones, columnas de opciones y extrayendo ítems.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Resultado del Escaneo */}
+                                    {!isParsing && parserResult && (
+                                        <div className={`rounded-xl p-6 border ${parserResult.success ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-red-950/30 border-red-500/30'}`}>
+                                            {parserResult.success ? (
+                                                <div>
+                                                    <div className="flex items-center gap-2 text-emerald-400 font-black text-lg mb-2">
+                                                        <CheckCircle size={20} /> Análisis Completado
+                                                    </div>
+                                                    <p className="text-sm text-slate-300 mb-4">{parserResult.data.message}</p>
+                                                    
+                                                    <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 max-h-[400px] overflow-y-auto">
+                                                        <div className="mb-4 bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-lg">
+                                                            <h5 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Clasificador Inteligente</h5>
+                                                            <p className="text-xs text-slate-300 leading-relaxed">
+                                                                El motor ha extraído todo el texto. Por defecto asume que todo son <b>preguntas</b>. 
+                                                                Para mantener el orden en el celular de tus trabajadores, identifica cuáles son <b>Títulos de Sección</b> (Ej. "CHASIS") haciendo clic en el botón correspondiente. Usa el basurero solo para texto inservible.
+                                                            </p>
+                                                        </div>
+                                                        <ul className="space-y-3">
+                                                            {editableItems.map((item: any, i: number) => (
+                                                                <li key={i} className={`text-sm flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border transition-all ${item.type === 'title' ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-900/50 border-slate-800/50'}`}>
+                                                                    <div className="flex-1 flex items-start gap-2">
+                                                                        <span className="text-indigo-500 font-mono text-xs mt-0.5 min-w-[20px]">{i+1}.</span> 
+                                                                        <span className={`flex-1 font-medium ${item.type === 'title' ? 'text-indigo-300 uppercase tracking-wide' : 'text-slate-300'}`}>
+                                                                            {item.text}
+                                                                        </span>
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex items-center gap-1 self-end sm:self-auto bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                                                        <button 
+                                                                            onClick={() => toggleItemType(i, 'question')}
+                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'question' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                                                        >
+                                                                            ❓ Pregunta
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => toggleItemType(i, 'title')}
+                                                                            className={`px-3 py-1 text-xs rounded-md font-bold transition-colors ${item.type === 'title' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                                                        >
+                                                                            📁 Título
+                                                                        </button>
+                                                                        <div className="w-px h-4 bg-slate-700 mx-1"></div>
+                                                                        <button 
+                                                                            onClick={() => handleRemoveEditableItem(i)}
+                                                                            className="px-2 py-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                                                                            title="Eliminar este ítem"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <button 
+                                                        onClick={handleSaveTemplate}
+                                                        disabled={isSavingTemplate || editableItems.length === 0}
+                                                        className="w-full mt-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-400 text-white py-3 rounded-lg font-bold transition-colors shadow-lg"
+                                                    >
+                                                        {isSavingTemplate ? <Settings className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                                                        {isSavingTemplate ? 'Guardando...' : 'Guardar Configuración en Base de Datos'}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <div className="flex items-center gap-2 text-red-400 font-black text-lg mb-2">
+                                                        <AlertCircle size={20} /> Error en el Análisis
+                                                    </div>
+                                                    <p className="text-sm text-slate-300">{parserResult.error}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal de Detalle de Programa */}
+                    {showProgramModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Calendar size={20} className="text-indigo-500" />
+                                        Programa Mensual Importado
+                                    </h3>
+                                    <button onClick={() => setShowProgramModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                                <div className="p-0 overflow-auto flex-1">
+                                    {monthlyProgram.length === 0 ? (
+                                        <div className="p-8 text-center text-slate-500">
+                                            No hay datos importados. Sube un archivo Excel.
+                                        </div>
+                                    ) : (
+                                        <table className="w-full text-left text-sm text-slate-300">
+                                            <thead className="bg-slate-950 text-slate-500 uppercase text-xs sticky top-0">
+                                                <tr>
+                                                    <th className="px-4 py-3">Responsable</th>
+                                                    <th className="px-4 py-3">Mes</th>
+                                                    <th className="px-4 py-3 text-right">Cantidad</th>
+                                                    <th className="px-4 py-3">Tipo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {monthlyProgram.map((item, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-800/50">
+                                                        <td className="px-4 py-2">{item.responsible}</td>
+                                                        <td className="px-4 py-2 text-indigo-400">
+                                                            {item.month >= 0 ? MONTH_NAMES[item.month] : 'Todos (Genérico)'}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-mono text-emerald-400 font-bold">{item.quantity}</td>
+                                                        <td className="px-4 py-2 text-slate-500 text-xs">{item.type}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                                
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SECTION: CONFIGURACIÓN DE METAS (Panel Desplegable) */}
+                    {showQuotaSettings && user?.role === 'developer' && (
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 animate-in slide-in-from-top-4 duration-300 shadow-2xl mb-6">
+                            <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                                <Settings size={18} className="text-emerald-500" />
+                                Configuración Manual de Metas (Fallback)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {RESPONSIBLES.filter(r => r !== 'Jose Luis Cancino' && !r.toLowerCase().includes('gerencia')).map(resp => (
+                                    <div key={resp} className="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <span className="text-sm text-slate-300 font-medium">{resp}</span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => updateQuota(resp, false)}
+                                                className="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-slate-400 transition-colors"
+                                            >
+                                                -
+                                            </button>
+                                            <span className="w-8 text-center font-mono font-bold text-white">
+                                                {userQuotas[resp] !== undefined ? userQuotas[resp] : 4}
+                                            </span>
+                                            <button
+                                                onClick={() => updateQuota(resp, true)}
+                                                className="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 rounded-lg text-slate-400 transition-colors"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
         </div >
     );
 }

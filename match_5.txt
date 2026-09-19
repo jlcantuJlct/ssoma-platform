@@ -1,0 +1,1 @@
+    'export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {\

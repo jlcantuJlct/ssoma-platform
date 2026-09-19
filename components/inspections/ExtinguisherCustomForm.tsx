@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
-import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X } from 'lucide-react';
+import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail} from 'lucide-react';
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -82,6 +83,9 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
 export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
     const [isSaving, setIsSaving] = useState(false);
+    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailData, setEmailData] = useState<any>(null);
     
     // Metadata Header
     const [meta, setMeta] = useState({
@@ -240,7 +244,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         setExtinguishers(copy);
     };
 
-    const handleSaveAndDownload = async () => {
+    const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
         if (extinguishers.length === 0) {
             alert('Añade al menos un equipo de emergencia evaluado.');
             return;
@@ -265,19 +269,55 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                 const data = await res.json();
 
                 if (data.fileBase64) {
+                    setCachedDriveUrl(data.driveUrl);
                     const byteCharacters = atob(data.fileBase64);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
+                    
+                    if (isEmailing && customEmailData) {
+                        try {
+                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
+                            const driveLink = data.driveUrl || '';
+                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                ? customEmailData.message.replace(
+                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                                )
+                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: bodyWithLink,
+                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
+                                        /(https?:\/\/[^\s]+)/g,
+                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
+                                    ),
+                                    fromEmail: customEmailData.fromEmail,
+                                    fromName: customEmailData.fromName
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
+                        }
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
                     a.download = `INSP_Extintores_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
-                    a.remove();
+                        a.remove();
+                    }
                 }
 
                 await fetch('/api/inspections', {
@@ -299,7 +339,11 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     })
                 });
 
-                alert('¡Inspección de Extintores guardada exitosamente en Drive y Base de Datos!');
+                if (!isEmailing) {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                        setShowEmailModal(true);
+                    }
+                }
                 // Permanece en el panel actual en lugar de redirigir al control de inspecciones
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
@@ -562,10 +606,55 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     </div>
                 </div>
 
-                <button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-transform active:scale-95 mt-8 disabled:opacity-50">
-                    {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                    {isSaving ? 'Generando Excel y Guardando en Drive...' : 'Finalizar y Descargar Excel'}
-                </button>
+                
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                      <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
+                          {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
+                      </button>
+                      <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
+                          {isSaving && showEmailModal ? 'Preparando...' : 'Enviar por Correo'}
+                      </button>
+                  </div>
+                  
+                  <EmailReportModal
+            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
+                      isOpen={showEmailModal} 
+                      onClose={() => setShowEmailModal(false)}
+                      isSending={isSaving}
+                      onSend={async (data) => {
+                          if (cachedDriveUrl) {
+                              setIsSaving(true);
+                              try {
+                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
+                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
+                                  
+                                  const emailRes = await fetch('/api/send-email', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          to: data.to, cc: data.cc, subject: data.subject,
+                                          text: bodyWithLink,
+                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
+                                          fromEmail: data.fromEmail, fromName: data.fromName
+                                      })
+                                  });
+                                  if (!emailRes.ok) throw new Error('Error enviando correo');
+                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
+                              } catch(e) {
+                                  alert('Error al enviar el correo.');
+                              } finally {
+                                  setIsSaving(false);
+                                  setShowEmailModal(false);
+                              }
+                          } else {
+                              await handleSaveAndDownload(true, data);
+                              setShowEmailModal(false);
+                          }
+                      }}
+                  />
             </div>
         </div>
     );

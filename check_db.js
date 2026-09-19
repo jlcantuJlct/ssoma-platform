@@ -1,17 +1,9 @@
-const db = require('./lib/db').default;
+const sqlite3 = require('better-sqlite3');
+const db = new sqlite3('app.db');
+const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+console.log(tables);
 
-async function check() {
-    try {
-        const rows = await db.fetchAll('SELECT * FROM inspection_records WHERE date = ?', ['2026-03-03']);
-        console.log('Results for 2026-03-03:');
-        console.log(JSON.stringify(rows, null, 2));
-
-        const all = await db.fetchAll('SELECT id, date, responsible, evidence_pdf FROM inspection_records ORDER BY id DESC LIMIT 5');
-        console.log('\nLatest 5 records:');
-        console.log(JSON.stringify(all, null, 2));
-    } catch (e) {
-        console.error(e);
-    }
+const row = db.prepare("SELECT * FROM inspection_modules WHERE name LIKE '%Taller%'").get();
+if (row) {
+    console.log(row.template);
 }
-
-check();

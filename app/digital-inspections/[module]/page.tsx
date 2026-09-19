@@ -1,16 +1,23 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { ClipboardList, Plus } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { ClipboardList, Plus, ArrowLeft } from 'lucide-react';
 
 export default function DynamicModuleDashboard() {
     const params = useParams();
+    const router = useRouter();
     const moduleName = decodeURIComponent(params.module as string);
     const [records, setRecords] = useState([]);
 
     return (
         <div className="p-4 md:p-8">
+            <button 
+                onClick={() => router.push('/inspections?openDigital=true')} 
+                className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+            >
+                <ArrowLeft size={18} /> Volver al panel principal
+            </button>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">

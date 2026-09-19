@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, MicOff, Trash2, Camera, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, X } from 'lucide-react';
+import { Mic, MicOff, Trash2, Camera, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, X , Mail} from 'lucide-react';
 
 const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,7 +48,13 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
 import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
+
+
+import { EmailReportModal } from '@/components/EmailReportModal';
 import { BotiquinCustomForm } from '@/components/inspections/BotiquinCustomForm';
+import { InternasCustomForm } from '@/components/inspections/InternasCustomForm';
+import { KitAntiderrameCustomForm } from '@/components/inspections/KitAntiderrameCustomForm';
+import { EstacionEmergenciaCustomForm } from '@/components/inspections/EstacionEmergenciaCustomForm';
 
 export default function FillDigitalInspection() {
     const params = useParams();
@@ -61,6 +67,18 @@ export default function FillDigitalInspection() {
     
     const [answers, setAnswers] = useState<any>({});
     const [isSaving, setIsSaving] = useState(false);
+    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const badItemsText = template
+        .map((item, idx) => ({ text: item.text, ans: answers[idx] }))
+        .filter(({ ans }) => ans?.text === 'NC' || ans?.isConforme === false)
+        .map(({ text, ans }) => '- ' + text + ' (' + (ans?.text === 'NC' ? 'NC' : 'NO CONFORME') + ')')
+        .join('\n');
+    const obsIndex = template.findIndex(t => t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario'));
+    const userObs = obsIndex !== -1 && answers[obsIndex] ? answers[obsIndex].text || '' : '';
+    const combinedObs = [(badItemsText ? 'HALLAZGOS REGISTRADOS:\n' + badItemsText : ''), userObs].filter(Boolean).join('\n\n');
+
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailData, setEmailData] = useState<any>(null);
     const [isRecording, setIsRecording] = useState<number | null>(null);
     const recognitionRef = useRef<any>(null);
 
@@ -212,7 +230,7 @@ export default function FillDigitalInspection() {
         }));
     };
 
-        const handleSaveAndDownload = async () => {
+        const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
         setIsSaving(true);
         try {
             const lightAnswers = JSON.parse(JSON.stringify(answers));
@@ -224,7 +242,7 @@ export default function FillDigitalInspection() {
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template, saveToDrive: true, fotosDefectos })
+                body: JSON.stringify({ moduleName: decodeURIComponent(moduleName as string), answers: lightAnswers, template, saveToDrive: true, fotosDefectos, observaciones: combinedObs })
             });
 
             if (res.ok) {
@@ -232,19 +250,77 @@ export default function FillDigitalInspection() {
                 
                 // 2. Descargar el archivo localmente
                 if (data.fileBase64) {
+                    setCachedDriveUrl(data.driveUrl);
                     const byteCharacters = atob(data.fileBase64);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
+                    
+                    if (isEmailing && customEmailData) {
+                        try {
+                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
+                            const driveLink = data.driveUrl || '';
+                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                ? customEmailData.message.replace(
+                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                                )
+                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: bodyWithLink,
+                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
+                                        /(https?:\/\/[^\s]+)/g,
+                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
+                                    ),
+                                    fromEmail: customEmailData.fromEmail,
+                                    fromName: customEmailData.fromName
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó.');
+                        }
+                    } else {
+                        
+                    if (isEmailing && customEmailData) {
+                        try {
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: customEmailData.message,
+                                    attachmentBase64: data.fileBase64,
+                                    filename: `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó.');
+                        }
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
                     a.download = `INSP_${decodeURIComponent(moduleName as string)}_${new Date().toISOString().split('T')[0]}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
-                    a.remove();
+                        a.remove();
+                    }
+                    }
                 }
 
                 // 3. Guardar en Base de Datos
@@ -271,8 +347,12 @@ export default function FillDigitalInspection() {
                     })
                 });
 
-                alert('¡Inspección guardada exitosamente en Base de Datos y Drive!');
-                window.location.href = '/inspections?openDigital=true';
+                if (!isEmailing) {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                        setShowEmailModal(true);
+                    }
+                }
+                
 
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
@@ -301,13 +381,57 @@ export default function FillDigitalInspection() {
             });
             if (res.ok) {
                 const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
+                
+                    if (isEmailing && customEmailData) {
+                        try {
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: customEmailData.message,
+                                    attachmentBase64: data.fileBase64,
+                                    filename: `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó.');
+                        }
+                    } else {
+                        
+                    if (isEmailing && customEmailData) {
+                        try {
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: customEmailData.message,
+                                    attachmentBase64: data.fileBase64,
+                                    filename: `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó.');
+                        }
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
                 a.download = `Vista_Previa_${decodeURIComponent(moduleName as string)}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
-                a.remove();
+                        a.remove();
+                    }
+                    }
             } else {
                 alert('Error al generar la vista previa.');
             }
@@ -322,7 +446,7 @@ export default function FillDigitalInspection() {
         try {
             // Check if user is offline or server is down. For now just standard post
             alert('En esta demo, la función Guardar guarda la info en la BD y finaliza la inspección. Redirigiendo al panel...');
-            window.location.href = '/inspections?openDigital=true';
+            
         } catch(e) {
             console.error(e);
         }
@@ -397,8 +521,24 @@ export default function FillDigitalInspection() {
 
     if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
 
+    if (moduleName.toLowerCase().includes('internas')) {
+        return <InternasCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+
     if (moduleName.toLowerCase().includes('botiquin')) {
         return <BotiquinCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+    
+    
+    
+    if (moduleName.toLowerCase().includes('antiderrame') || moduleName.toLowerCase().includes('anti derrame') || moduleName.toLowerCase().includes('derrames')) {
+        return <KitAntiderrameCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+    
+    
+    
+    if (moduleName.toLowerCase().includes('estación de emergencia') || moduleName.toLowerCase().includes('estacion de emergencia') || moduleName.toLowerCase().includes('primeros auxilios')) {
+        return <EstacionEmergenciaCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
     }
 
     if (moduleName.toLowerCase().includes('epp')) {
@@ -468,7 +608,7 @@ export default function FillDigitalInspection() {
                                 value={ans?.text || ''}
                                 onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
                                 placeholder="Nombre del inspector..."
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                className="w-full bg-white shadow-inner border border-slate-300 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px] transition-all"
                             />
                             <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                 <button 
@@ -497,7 +637,7 @@ export default function FillDigitalInspection() {
                                     value={cargoAns?.text || ''}
                                     onChange={(e) => handleAnswerChange(cargoIdx, 'text', e.target.value)}
                                     placeholder="Escribe el cargo..."
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px]"
+                                    className="w-full bg-white shadow-inner border border-slate-300 rounded-lg p-3 pr-20 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none resize-y min-h-[48px] h-[48px] transition-all"
                                 />
                                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                     <button 
@@ -657,14 +797,14 @@ export default function FillDigitalInspection() {
                                             type="date"
                                             value={ans?.text || ''}
                                             onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-white shadow-inner border border-slate-300 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         />
                                     ) : (item.text.toLowerCase() === 'hora' || item.text.toLowerCase().includes('hora:')) ? (
                                         <input 
                                             type="time"
                                             value={ans?.text || ''}
                                             onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-white shadow-inner border border-slate-300 rounded-lg p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         />
                                     ) : (
                                         <>
@@ -672,7 +812,7 @@ export default function FillDigitalInspection() {
                                                 value={ans?.text || ''}
                                                 onChange={(e) => handleAnswerChange(idx, 'text', e.target.value)}
                                                 placeholder="Escribe o dicta tu respuesta..."
-                                                className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-y ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
+                                                className={`w-full bg-white shadow-inner border border-slate-300 rounded-lg p-3 pr-12 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none resize-y transition-all ${(item.text.toLowerCase().includes('observaciones') || item.text.toLowerCase().includes('comentario')) ? 'min-h-[100px]' : 'min-h-[48px] h-[48px]'}`}
                                             />
                                             <button 
                                                 onClick={() => toggleVoiceRecording(idx)}
@@ -822,9 +962,55 @@ export default function FillDigitalInspection() {
             </div>
 
                                                 <div className="flex gap-4">
-                <button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-transform active:scale-95 disabled:opacity-50">
-                    <Save size={20} /> Finalizar y Descargar Excel
+                
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-transform active:scale-95 disabled:opacity-50">
+                    {isSaving && !showEmailModal ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar Excel'}
                 </button>
+                <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-transform active:scale-95 disabled:opacity-50">
+                    {isSaving && showEmailModal ? <Loader2 className="animate-spin" size={20} /> : <Mail size={20} />}
+                    {isSaving && showEmailModal ? 'Generando...' : 'Enviar por Correo'}
+                </button>
+            </div>
+            
+            <EmailReportModal
+                initialObservations={combinedObs} 
+                isOpen={showEmailModal} 
+                onClose={() => setShowEmailModal(false)}
+                isSending={isSaving}
+                onSend={async (data) => {
+                          if (cachedDriveUrl) {
+                              setIsSaving(true);
+                              try {
+                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
+                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
+                                  
+                                  const emailRes = await fetch('/api/send-email', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          to: data.to, cc: data.cc, subject: data.subject,
+                                          text: bodyWithLink,
+                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
+                                          fromEmail: data.fromEmail, fromName: data.fromName
+                                      })
+                                  });
+                                  if (!emailRes.ok) throw new Error('Error enviando correo');
+                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
+                              } catch(e) {
+                                  alert('Error al enviar el correo.');
+                              } finally {
+                                  setIsSaving(false);
+                                  setShowEmailModal(false);
+                              }
+                          } else {
+                              await handleSaveAndDownload(true, data);
+                              setShowEmailModal(false);
+                          }
+                      }}
+            />
             </div>
             </div>
         </div>

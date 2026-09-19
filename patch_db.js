@@ -1,45 +1,34 @@
-require('dotenv').config({path: '.env.local'});
 const { Pool } = require('pg');
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+require('dotenv').config({ path: '.env.local' });
+
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+});
 
 async function run() {
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    const res = await pool.query("SELECT items_json FROM templates_config WHERE id = 12");
+    let items = JSON.parse(res.rows[0].items_json);
     
-    // Delete all non-permanent CCs
-    await client.query('DELETE FROM notification_contacts WHERE is_permanent_cc = false');
-
-    const newContacts = [
-      { name: 'Roberto Cabezas', email: 'rcabezas@casacontratistas.com', area: 'Equipos' },
-      { name: 'Javier Alvarado', email: 'jalvarado@casacontratistas.com', area: 'Almacén' },
-      { name: 'J. Espinoza', email: 'jespinoza@casacontratistas.com', area: 'Almacén' },
-      { name: 'M. Taipe', email: 'mtaipe@casacontratistas.com', area: 'Mantenimiento Rutinario' },
-      { name: 'Richard Bayona', email: 'richard_bayona05@hotmail.com', area: 'Mantenimiento Periódico' },
-      { name: 'Edwin Pastor', email: 'epastor@casacontratistas.com', area: 'Señalización' },
-      { name: 'Luis Mamani', email: 'lmamani@casacontratistas.com', area: 'Movimiento de Tierras' },
-      { name: 'Marcus Escobar', email: 'mescobar@casacontratistas.com', area: 'Obras de Arte' },
-      { name: 'Jose Parodi', email: 'jparodi@casacontratistas.com', area: 'Administración' },
-      { name: 'Jose Luis Cancino', email: 'jcancino@casacontratistas.com', area: 'SSTMA' },
-      { name: 'Adrian Suarez', email: 'adrian142005@hotmail.com', area: 'SSTMA' }
-    ];
-
-    for (const c of newContacts) {
-      await client.query(
-        'INSERT INTO notification_contacts (name, email, area, is_permanent_cc) VALUES ($1, $2, $3, false)',
-        [c.name, c.email, c.area]
-      );
+    // Find index of "Candado, tenaza..."
+    const idx = items.findIndex(item => item.text && item.text.includes("Candado, tenaza"));
+    
+    if (idx !== -1) {
+        // Insert missing item before it
+        items.splice(idx, 0, {
+            text: "Herramientas manuales, eléctricas y/o equipos portátiles han sido inspeccionadas y cuentan con la cinta de inspección correspondiente al color del mes y en caso de defectuosas genera el (F-OP-019) Verificación de Herramientas Manuales, Eléctricas y Equipos Portátiles",
+            type: "question"
+        });
+        
+        await pool.query("UPDATE templates_config SET items_json = $1 WHERE id = 12", [JSON.stringify(items)]);
+        console.log("Updated items_json in DB.");
+    } else {
+        console.log("Could not find anchor item.");
     }
-
-    await client.query('COMMIT');
-    console.log("Database updated successfully!");
-  } catch (e) {
-    await client.query('ROLLBACK');
+  } catch(e) {
     console.error(e);
   } finally {
-    client.release();
     pool.end();
   }
 }
-
 run();

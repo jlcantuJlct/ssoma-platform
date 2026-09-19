@@ -51,7 +51,7 @@ export async function GET() {
         const risstma = await countQuery('risstma_records', 'date LIKE ?', [monthLike]);
         const sim = await countQuery('simulacro_records', 'date LIKE ?', [monthLike]);
         const desvio = await countQuery('desvio_evidence_records', 'date LIKE ?', [monthLike]);
-        const emo = await countQuery('evidence_center_records', 'date LIKE ? AND (activity LIKE "%EMO%" OR activity LIKE "%Médico%")', [monthLike]);
+        const emo = await countQuery('evidence_center_records', "date LIKE ? AND (activity LIKE '%EMO%' OR activity LIKE '%Médico%')", [monthLike]);
         
         const mon = await countQuery('monitoring_records', 'date LIKE ?', [monthLike]);
         const brig = await countQuery('brigadista_records', 'date LIKE ?', [monthLike]);

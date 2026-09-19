@@ -1,0 +1,1535 @@
+﻿diff --git a/app/api/export-excel/route.ts b/app/api/export-excel/route.ts
+index 831dc85..7f5f841 100644
+--- a/app/api/export-excel/route.ts
++++ b/app/api/export-excel/route.ts
+@@ -9,28 +9,67 @@ export async function POST(req: Request) {
+         const data = await req.json();
+         const { moduleName, answers, template } = data;
+ 
++        const normName = (moduleName || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++
+         let templatePath = path.join(process.cwd(), 'public', 'templates', 'digital', `${moduleName}.xlsx`);
+         if (!fs.existsSync(templatePath)) {
+-            if (moduleName && (moduleName.toLowerCase().includes('extintor') || moduleName.toLowerCase().includes('emergencia'))) {
++            if (normName.includes('extintor') || normName.includes('emergencia')) {
+                 const alt = path.join(process.cwd(), 'public', 'templates', 'digital', 'Extintores.xlsx');
+                 if (fs.existsSync(alt)) templatePath = alt;
+-            } else if (moduleName && moduleName.toLowerCase().includes('botiquin')) {
++            } else if (normName.includes('botiquin')) {
+                 const alt = path.join(process.cwd(), 'public', 'templates', 'digital', 'Botiquines.xlsx');
+                 if (fs.existsSync(alt)) templatePath = alt;
++            } else if (normName.includes('epp')) {
++                const alt1 = path.join(process.cwd(), 'public', 'templates', 'digital', 'Inspección de EPP.xlsx');
++                const alt2 = path.join(process.cwd(), 'public', 'templates', 'digital', 'EPP.xlsx');
++                if (fs.existsSync(alt1)) templatePath = alt1;
++                else if (fs.existsSync(alt2)) templatePath = alt2;
++            } else if (normName.includes('maquinaria') || normName.includes('maquina')) {
++                const alt1 = path.join(process.cwd(), 'public', 'templates', 'digital', 'Inspección de maquinaria.xlsx');
++                const alt2 = path.join(process.cwd(), 'public', 'templates', 'digital', 'Maquinaria.xlsx');
++                if (fs.existsSync(alt1)) templatePath = alt1;
++                else if (fs.existsSync(alt2)) templatePath = alt2;
++            } else if (normName.includes('almacen')) {
++                const alt1 = path.join(process.cwd(), 'public', 'templates', 'digital', 'Inspección de Almacén .xlsx');
++                const alt2 = path.join(process.cwd(), 'public', 'templates', 'digital', 'Inspección de Almacén.xlsx');
++                if (fs.existsSync(alt1)) templatePath = alt1;
++                else if (fs.existsSync(alt2)) templatePath = alt2;
+             }
+         }
+         let workbook = new ExcelJS.Workbook();
+-        
+-        const isBotiquin = moduleName && moduleName.toLowerCase().includes('botiquin');
+-        const isEpp = data.isEppMatrix || (moduleName && moduleName.toLowerCase().includes('epp'));
+-        const isExtintor = data.isExtinguisherMatrix || (moduleName && (moduleName.toLowerCase().includes('extintor') || moduleName.toLowerCase().includes('emergencia')));
+-        const isMachinery = data.isMachineryMatrix || (moduleName && (moduleName.toLowerCase().includes('maquinaria') || moduleName.toLowerCase().includes('máquina') || moduleName.toLowerCase().includes('maquina')));
++
++        const isBotiquin = normName.includes('botiquin');
++        const isEpp = data.isEppMatrix || normName.includes('epp');
++        const isExtintor = data.isExtinguisherMatrix || normName.includes('extintor') || normName.includes('emergencia');
++        const isMachinery = data.isMachineryMatrix || normName.includes('maquinaria') || normName.includes('maquina');
++        const isAlmacen = normName.includes('almacen');
++        const isTalleres = normName.includes('taller');
++        const isCampamento = normName.includes('campamento');
++        const isInternas = normName.includes('internas');
++        const isLaboratorio = normName.includes('laboratorio');
++        const isElectricas = normName.includes('electrica') || normName.includes('eléctrica');
+ 
+         let worksheet: ExcelJS.Worksheet;
+ 
+         if (fs.existsSync(templatePath)) {
+             await workbook.xlsx.readFile(templatePath);
+             worksheet = workbook.worksheets[0];
++
++        const officialLogoPath = path.join(process.cwd(), 'public', 'templates', 'digital', 'official_casa_logo.png');
++        if (fs.existsSync(officialLogoPath) && worksheet) {
++            try {
++                worksheet._media = [];
++                const logoBuffer = fs.readFileSync(officialLogoPath);
++                const logoId = workbook.addImage({ buffer: logoBuffer, extension: 'png' });
++                worksheet.addImage(logoId, {
++                    tl: { col: 0, row: 0 }, br: { col: 2, row: 2 },
++                    editAs: 'oneCell'
++                });
++            } catch (e) {
++                console.error('Error aplicando logo oficial CASA:', e);
++            }
++        }
++
+         } else {
+             // Generar plantilla estructurada limpia desde cero si el archivo físico aún no fue subido
+             worksheet = workbook.addWorksheet(moduleName || 'Inspección');
+@@ -149,52 +188,115 @@ export async function POST(req: Request) {
+                 });
+             }
+         } 
+-        // --- MANEJADOR 2: EPP MATRICIAL ---
++        // --- MANEJADOR 2: EPP MATRICIAL (F-SIG-044) ---
+         else if (isEpp) {
+             const meta = data.meta || {};
+             const workers = data.workers || [];
+ 
+-            worksheet.mergeCells('A1:G2');
+-            const titleCell = worksheet.getCell('A1');
+-            titleCell.value = 'REGISTRO DE INSPECCIÓN DE EQUIPOS DE PROTECCIÓN PERSONAL (EPP)';
+-            titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+-            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+-            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+-
+-            worksheet.getCell('A4').value = 'Proyecto:';
+-            worksheet.getCell('B4').value = meta.proyecto || 'RED VIAL 6';
+-            worksheet.getCell('D4').value = 'Fecha:';
+-            worksheet.getCell('E4').value = meta.fecha || new Date().toISOString().split('T')[0];
+-            worksheet.getCell('A5').value = 'Supervisor SSOMA:';
+-            worksheet.getCell('B5').value = meta.supervisor || meta.inspector || '';
+-            worksheet.getCell('D5').value = 'Área:';
+-            worksheet.getCell('E5').value = meta.area || '';
+-
+-            ['A4', 'D4', 'A5', 'D5'].forEach(c => worksheet.getCell(c).font = { bold: true });
+-
+-            const headers = ['N°', 'Trabajador', 'DNI', 'Cargo', 'EPPs Observados / No Conforme', 'Firma'];
+-            const headerRow = worksheet.getRow(7);
+-            headers.forEach((h, idx) => {
+-                const cell = headerRow.getCell(idx + 1);
+-                cell.value = h;
+-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+-                cell.alignment = { horizontal: 'center' };
+-            });
++            if (fs.existsSync(templatePath)) {
++                // Header data
++                worksheet.getCell('E4').value = meta.proyecto || 'RED VIAL 6';
++                worksheet.getCell('Z4').value = meta.area || '';
++                worksheet.getCell('J5').value = meta.responsable || '';
++                worksheet.getCell('Z5').value = meta.fecha || new Date().toISOString().split('T')[0];
++                worksheet.getCell('AO5').value = meta.nTrabajadores || '';
++                
++                // Signature (Responsable)
++                if (meta.firmaResponsable) {
++                    try {
++                        const base64Data = meta.firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        // Position in R5 (col 17, row 4)
++                        worksheet.addImage(imageId, { tl: { col: 17, row: 4.2 }, ext: { width: 140, height: 40 } });
++                    } catch(e) { console.error('Error attaching signature:', e); }
++                }
+ 
+-            workers.forEach((w: any, idx: number) => {
+-                const r = worksheet.getRow(8 + idx);
+-                r.getCell(1).value = idx + 1;
+-                r.getCell(2).value = w.workerName || '';
+-                r.getCell(3).value = w.dni || '';
+-                r.getCell(4).value = w.cargo || '';
+-                r.getCell(5).value = (w.badEpps && w.badEpps.length > 0) ? w.badEpps.join(', ') : 'CONFORME (100%)';
+-                r.getCell(6).value = w.firma ? '[Firma Digital]' : 'Firmado';
+-            });
++                // Add rows if more than 10 workers
++                const totalWorkers = workers.length;
++                let extraRows = 0;
++                if (totalWorkers > 10) {
++                    extraRows = totalWorkers - 10;
++                    worksheet.spliceRows(20, 0, ...Array(extraRows).fill([]));
++                    const baseRow = worksheet.getRow(19);
++                    for (let r = 20; r < 20 + extraRows; r++) {
++                        const newRow = worksheet.getRow(r);
++                        newRow.height = 15;
++                        for (let c = 1; c <= 48; c++) {
++                            newRow.getCell(c).style = JSON.parse(JSON.stringify(baseRow.getCell(c).style || {}));
++                        }
++                    }
++                }
++
++                // EPP Column Mapping
++                const eppCols: Record<string, string> = {
++                    'Casco': 'M', 'Barbiquejo': 'N', 'Careta de esmerilar': 'O', 'Careta de soldador': 'P',
++                    'Camisa': 'Q', 'Pantalón': 'R', 'Polo': 'S', 'Mandil': 'T', 'Escarpines': 'U',
++                    'Lentes': 'V', 'Sobrelente': 'W', 'Guantes de cuero': 'X', 'Guantes de jebe': 'Y',
++                    'Guantes dieléctricos': 'Z', 'Guantes de hilo': 'AA', 'Tapones': 'AB', 'Orejeras': 'AC',
++                    'Mascarilla descartable': 'AD', 'Resp. c/filtro p/polvo': 'AE', 'Resp. c/filtro p/gases': 'AF',
++                    'Resp. c/filtro p/humos': 'AG', 'Botines punta de acero': 'AH', 'Botines dieléctricos': 'AI',
++                    'Botas de jebe': 'AJ'
++                };
++
++                // Fill worker data
++                workers.forEach((w: any, idx: number) => {
++                    const r = 10 + idx;
++                    worksheet.getCell(`A${r}`).value = idx + 1;
++                    worksheet.getCell(`B${r}`).value = w.name || '';
++                    worksheet.getCell(`B${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                    worksheet.getCell(`L${r}`).value = w.role || '';
++                    worksheet.getCell(`L${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                    
++                    (w.badEpps || []).forEach((epp: string) => {
++                        const col = eppCols[epp];
++                        if (col) {
++                            worksheet.getCell(`${col}${r}`).value = 'X';
++                            worksheet.getCell(`${col}${r}`).font = { bold: true, color: { argb: 'FF000000' } };
++                            worksheet.getCell(`${col}${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                        }
++                    });
++
++                    worksheet.getCell(`AK${r}`).value = w.correction || '';
++                    worksheet.getCell(`AP${r}`).value = w.deadline || '';
++                    worksheet.getCell(`AP${r}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
++                    worksheet.getCell(`AS${r}`).value = w.verification || '';
++                    worksheet.getCell(`AS${r}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
++                });
++
++                // Observaciones
++                if (meta.observaciones) {
++                    const obsRow = 28 + extraRows;
++                    worksheet.getCell(`A${obsRow}`).value = meta.observaciones;
++                    worksheet.getCell(`A${obsRow}`).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                }
+ 
+-            worksheet.columns = [
+-                { width: 6 }, { width: 32 }, { width: 14 }, { width: 22 }, { width: 40 }, { width: 16 }, { width: 16 }
+-            ];
++                // Evidencia Fotográfica (added at the bottom)
++                const workersWithPhotos = workers.filter((w: any) => w.fotoEvidencia);
++                if (workersWithPhotos.length > 0) {
++                    let photoRow = 30 + extraRows;
++                    worksheet.getCell(`A${photoRow}`).value = "REGISTRO FOTOGRÁFICO DE EVIDENCIA:";
++                    worksheet.getCell(`A${photoRow}`).font = { bold: true };
++                    photoRow += 2;
++
++                    let colCursor = 1;
++                    workersWithPhotos.forEach((w: any) => {
++                        worksheet.getCell(photoRow, colCursor).value = `${w.name} - ${w.role || ''}`;
++                        worksheet.getCell(photoRow, colCursor).font = { bold: true };
++                        try {
++                            const base64Data = w.fotoEvidencia.replace(/^data:image\/\w+;base64,/, "");
++                            const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                            worksheet.addImage(imageId, {
++                                tl: { col: colCursor - 1, row: photoRow },
++                                ext: { width: 280, height: 280 }
++                            });
++                            colCursor += 5;
++                            if (colCursor > 10) { colCursor = 1; photoRow += 16; }
++                        } catch(e) { console.error('Error attaching photo:', e); }
++                    });
++                }
++            } else {
++                throw new Error("La plantilla 'Inspección de EPP.xlsx' no se encuentra en el servidor.");
++            }
+         }
+         // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA (Calibrado a F-SIG-058) ---
+         else if (isExtintor) {
+@@ -367,52 +469,1243 @@ export async function POST(req: Request) {
+                 ];
+             }
+         }
+-        // --- MANEJADOR 4: MAQUINARIA Y EQUIPO PESADO ---
++        // --- MANEJADOR 4: MAQUINARIA Y EQUIPO PESADO (F-OP-015) ---
+         else if (isMachinery) {
+             const meta = data.meta || {};
+             const checklist = data.checklist || {};
+             const observaciones = data.observaciones || '';
+ 
+-            worksheet.mergeCells('A1:F2');
+-            const titleCell = worksheet.getCell('A1');
+-            titleCell.value = 'CHECKLIST DE INSPECCIÓN DE PRE-USO DE MAQUINARIA';
+-            titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+-            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+-            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' } };
+-
+-            worksheet.getCell('A4').value = 'Equipo:'; worksheet.getCell('B4').value = meta.equipo || '';
+-            worksheet.getCell('D4').value = 'Fecha:'; worksheet.getCell('E4').value = meta.fecha || new Date().toISOString().split('T')[0];
+-            worksheet.getCell('A5').value = 'Marca/Modelo:'; worksheet.getCell('B5').value = `${meta.marca || ''} ${meta.modelo || ''}`;
+-            worksheet.getCell('D5').value = 'Placa/Serie:'; worksheet.getCell('E5').value = meta.placa || '';
+-            worksheet.getCell('A6').value = 'Operador/Chofer:'; worksheet.getCell('B6').value = meta.chofer || meta.operador || '';
+-            worksheet.getCell('D6').value = 'Horómetro:'; worksheet.getCell('E6').value = meta.horometro || '';
+-            ['A4', 'D4', 'A5', 'D5', 'A6', 'D6'].forEach(c => worksheet.getCell(c).font = { bold: true });
+-
+-            const headers = ['N°', 'Componente / Sistema Evaluado', 'Evaluación (OK / R / M / F / N/A)'];
+-            const headerRow = worksheet.getRow(8);
+-            headers.forEach((h, idx) => {
+-                const cell = headerRow.getCell(idx + 1);
+-                cell.value = h;
+-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB45309' } };
+-            });
++            if (fs.existsSync(templatePath)) {
++                // Header Data
++                worksheet.getCell('B4').value = meta.proyecto || 'RED VIAL 6';
++                worksheet.getCell('B5').value = meta.equipo || '';
++                worksheet.getCell('K5').value = meta.marca || '';
++                worksheet.getCell('P5').value = meta.modelo || '';
++                worksheet.getCell('U5').value = meta.serie || '';
++                worksheet.getCell('B6').value = meta.operador || '';
++                worksheet.getCell('K6').value = meta.turno || '';
++                worksheet.getCell('P6').value = meta.fecha || new Date().toISOString().split('T')[0];
++
++                // Check marks mapping
++                // status keys: 'OK' (Conforme), 'R' (Regular), 'M' (Mal estado), 'F' (Faltante), 'N/A' (No Aplica)
++                const statusOffsetMap: Record<string, number> = {
++                    'OK': 2, 'R': 3, 'M': 4, 'F': 5, 'N/A': 6
++                };
++
++                const itemCols = ['A', 'J', 'S'];
++                const cleanStr = (s: string) => s.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
++                const checkKeys = Object.keys(checklist);
++
++                for (let r = 14; r <= 75; r++) {
++                    itemCols.forEach(col => {
++                        let cellVal = worksheet.getCell(`${col}${r}`).value;
++                        if (cellVal && typeof cellVal === 'object' && (cellVal as any).richText) {
++                            cellVal = (cellVal as any).richText.map((t: any) => t.text).join('');
++                        }
++                        if (cellVal && typeof cellVal === 'string') {
++                            const templateItem = cleanStr(cellVal);
++                            const match = checkKeys.find(k => cleanStr(k) === templateItem || cleanStr(k) === templateItem.replace('critical', ''));
++                            
++                            if (match) {
++                                const status = checklist[match];
++                                const offset = statusOffsetMap[status];
++                                if (offset) {
++                                    const baseColCode = col.charCodeAt(0) - 64; 
++                                    const targetColCode = baseColCode + offset;
++                                    const targetCol = String.fromCharCode(targetColCode + 64);
++                                    
++                                    worksheet.getCell(`${targetCol}${r}`).value = 'X';
++                                    worksheet.getCell(`${targetCol}${r}`).font = { bold: true, color: { argb: 'FF000000' } };
++                                    worksheet.getCell(`${targetCol}${r}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                                }
++                            }
++                        }
++                    });
++                }
+ 
+-            let rowIdx = 9;
+-            Object.keys(checklist).forEach((item, idx) => {
+-                const r = worksheet.getRow(rowIdx++);
+-                r.getCell(1).value = idx + 1;
+-                r.getCell(2).value = item;
+-                r.getCell(3).value = checklist[item];
+-                r.getCell(3).alignment = { horizontal: 'center' };
+-            });
++                if (observaciones) {
++                    worksheet.getCell('A79').value = observaciones;
++                    worksheet.getCell('A79').alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                }
+ 
+-            worksheet.getCell(`A${rowIdx + 1}`).value = 'OBSERVACIONES:';
+-            worksheet.getCell(`A${rowIdx + 1}`).font = { bold: true };
+-            worksheet.getCell(`A${rowIdx + 2}`).value = observaciones || 'Sin observaciones adicionales.';
++                const firmas = data.firmas || {};
++                
++                if (firmas.operadorNombre || meta.operador) {
++                    worksheet.getCell('K83').value = firmas.operadorNombre || meta.operador;
++                }
++                if (firmas.capatazNombre) {
++                    worksheet.getCell('K84').value = firmas.capatazNombre;
++                }
++
++                if (firmas.operadorFirma) {
++                    try {
++                        const base64Data = firmas.operadorFirma.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 19, row: 82.2 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++                if (firmas.capatazFirma) {
++                    try {
++                        const base64Data = firmas.capatazFirma.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 19, row: 83.2 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++                
++                // Add photo evidence below if any
++                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
++                    let currentPhotoRow = 108; // As requested
++                    worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                    worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                    currentPhotoRow += 2;
+ 
+-            worksheet.columns = [{ width: 6 }, { width: 45 }, { width: 28 }, { width: 15 }, { width: 15 }, { width: 15 }];
++                    Object.keys(data.fotosDefectos).forEach(itemName => {
++                        const fotos = data.fotosDefectos[itemName];
++                        if (fotos && fotos.length > 0) {
++                            worksheet.getCell(`A${currentPhotoRow}`).value = `Observación en: ${itemName}`;
++                            currentPhotoRow += 1;
++                            let colCursor = 1;
++                            fotos.forEach((fotoB64: string) => {
++                                try {
++                                    const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                    worksheet.addImage(imageId, {
++                                        tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                        ext: { width: 250, height: 250 }
++                                    });
++                                    colCursor += 5;
++                                    if (colCursor > 10) { colCursor = 1; currentPhotoRow += 14; }
++                                } catch(e) { console.error('Error attaching photo:', e); }
++                            });
++                            if (colCursor > 1) currentPhotoRow += 14;
++                        }
++                    });
++                }
++            } else {
++                throw new Error("La plantilla 'Inspección de maquinaria.xlsx' no se encuentra.");
++            }
+         }
+-        // --- MANEJADOR 5: INSPECCIONES DIGITALES GENÉRICAS (Almacén, Escaleras, etc.) ---
++        // --- MANEJADOR 5: ALMACÉN ---
++        else if (isAlmacen) {
++            if (fs.existsSync(templatePath)) {
++                const templateDef = data.template || [];
++                const answers = data.answers || [];
++
++                // Extract headers from answers based on template text
++                let proyecto = 'RED VIAL 6', area = '', fecha = '', inspector = '', cargo = '', responsable = '', firmaInspector = '', firmaResponsable = '';
++                
++                templateDef.forEach((t: any, idx: number) => {
++                    const text = (t.text || '').toLowerCase();
++                    const val = answers[idx]?.text || '';
++                    const sig = answers[idx]?.signature || '';
++                    
++                    if (text === 'proyecto' || text === 'proyecto:') proyecto = val || proyecto;
++                    else if (text === 'área de inspección' || text === 'area de inspeccion' || text === 'area de inspeccion:') area = val;
++                    else if (text.includes('fecha')) fecha = val;
++                    else if (text === 'inspector' || text === 'inspector:' || text === 'nombre y apellido' || text === 'nombre y apellido:') {
++                        inspector = val;
++                        if (sig) firmaInspector = sig;
++                    }
++                    else if (text.includes('cargo') && !text.includes('inspector')) cargo = val;
++                    else if (text.includes('responsable')) {
++                        responsable = val;
++                        if (sig) firmaResponsable = sig;
++                    }
++                });
++
++                // Headers
++                worksheet.getCell('C4').value = proyecto;
++                worksheet.getCell('D5').value = area;
++                worksheet.getCell('K5').value = fecha || new Date().toISOString().split('T')[0];
++                worksheet.getCell('D6').value = inspector;
++                worksheet.getCell('D7').value = cargo;
++                worksheet.getCell('D8').value = responsable;
++
++                // Signatures
++                if (firmaInspector) {
++                    try {
++                        const base64Data = firmaInspector.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 140, height: 40 } });
++                    } catch(e) {}
++                }
++                if (firmaResponsable) {
++                    try {
++                        const base64Data = firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 140, height: 40 } });
++                    } catch(e) {}
++                }
++
++                // Enforce white font for category headers
++                [14, 30, 46, 51, 82].forEach(r => {
++                    ['B', 'K', 'L', 'M'].forEach(c => {
++                        worksheet.getCell(`${c}${r}`).font = { color: { argb: 'FFFFFFFF' }, bold: true };
++                    });
++                });
++
++                // Checkboxes for type of inspection
++                const isPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
++                const isNoPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('no planificada'));
++                
++                if (isPlanificada !== -1 && (answers[isPlanificada]?.text === 'X' || answers[isPlanificada]?.text === 'true' || answers[isPlanificada]?.text === true)) {
++                    worksheet.getCell('A10').value = 'X';
++                    worksheet.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle' };
++                }
++                if (isNoPlanificada !== -1 && (answers[isNoPlanificada]?.text === 'X' || answers[isNoPlanificada]?.text === 'true' || answers[isNoPlanificada]?.text === true)) {
++                    worksheet.getCell('A11').value = 'X';
++                    worksheet.getCell('A11').alignment = { horizontal: 'center', vertical: 'middle' };
++                }
++                const isOtro = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().trim() === 'otro');
++                if (isOtro !== -1 && (answers[isOtro]?.text === 'X' || answers[isOtro]?.text === 'true' || answers[isOtro]?.text === true)) {
++                    worksheet.getCell('A12').value = 'X';
++                    worksheet.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' };
++                }
++
++                // Observations
++                const obsIndex = templateDef.findIndex((t: any) => t.text && (t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario')));
++                if (obsIndex !== -1 && answers[obsIndex]?.text) {
++                    worksheet.getCell('A83').value = answers[obsIndex].text;
++                    worksheet.getCell('A83').alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                }
++
++                // Matrix items
++                let currentPhotoRow = 87; // Put photos below
++                let hasPhotos = false;
++
++                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                currentPhotoRow += 2;
++                let colCursor = 1;
++
++                templateDef.forEach((item: any, idx: number) => {
++                    const text = (item.text || '').toLowerCase();
++                    if (['proyecto', 'fecha', 'inspector', 'cargo', 'responsable', 'planificada', 'observacion', 'comentario'].some(k => text.includes(k))) return;
++
++                    const ans = answers[idx];
++                    if (!ans) return;
++                    
++                    // Match with row in template
++                    let targetRow = -1;
++                    for (let r = 15; r <= 80; r++) {
++                        let cellB = worksheet.getCell(`B${r}`).value;
++                        if (cellB && typeof cellB === 'object' && (cellB as any).richText) {
++                            cellB = (cellB as any).richText.map((t: any) => t.text).join('');
++                        }
++                        if (cellB && typeof cellB === 'string') {
++                            const bClean = cellB.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
++                            const tClean = text.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
++                            if (!matchedRows.has(r) && (bClean === tClean || (bClean.length > 20 && (tClean.includes(bClean) || bClean.includes(tClean))))) {
++                                targetRow = r;
++                                break;
++                            }
++                        }
++                    }
++
++                    if (targetRow !== -1) {
++                        console.log('Assigning row', targetRow, 'with answer:', ans.text, ans.isConforme); matchedRows.add(targetRow);
++                        const status = ans.text;
++                        if (status === 'C' || status === 'X' || status === 'true' || status === true) worksheet.getCell(`K${targetRow}`).value = 'X';
++                        else if (status === 'NC' || status === 'false' || status === false) worksheet.getCell(`L${targetRow}`).value = 'X';
++                        else if (status === 'N/A' || status === 'NA') worksheet.getCell(`M${targetRow}`).value = 'X';
++
++                        ['K', 'L', 'M'].forEach(c => {
++                            worksheet.getCell(`${c}${targetRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                            worksheet.getCell(`${c}${targetRow}`).font = { bold: true };
++                        });
++
++                        // Photos
++                        if (ans.photos && ans.photos.length > 0) {
++                            hasPhotos = true;
++                            worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${item.text}`;
++                            currentPhotoRow += 1;
++                            ans.photos.forEach((fotoB64: string) => {
++                                try {
++                                    const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                    worksheet.addImage(imageId, {
++                                        tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                        ext: { width: 280, height: 280 }
++                                    });
++                                    colCursor += 5;
++                                    if (colCursor > 10) { colCursor = 1; currentPhotoRow += 15; }
++                                } catch(e) {}
++                            });
++                            if (colCursor > 1) { colCursor = 1; currentPhotoRow += 15; }
++                        }
++                    }
++                });
++
++                if (!hasPhotos) {
++                    worksheet.getCell(`A${87}`).value = ""; // clear if no photos
++                }
++
++            } else {
++                throw new Error("La plantilla 'Inspección de Almacén .xlsx' no se encuentra.");
++            }
++        }
++
++        else if (isTalleres) {
++            if (fs.existsSync(templatePath)) {
++                const templateDef = data.template || [];
++                const answers = data.answers || [];
++
++                let proyecto = 'RED VIAL 6', area = '', fecha = '', inspector = '', cargo = '', responsable = '', firmaInspector = '', firmaResponsable = '';
++                
++                templateDef.forEach((t: any, idx: number) => {
++                    const origText = t.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    const val = answers[idx]?.text || '';
++                    const sig = answers[idx]?.signature || '';
++                    
++                    if (normText === 'proyecto' || normText === 'proyecto:') {
++                        proyecto = val || proyecto;
++                    } else if (normText.includes('especifica') || (normText.includes('area') && normText.includes('inspeccion'))) {
++                        area = val;
++                    } else if (normText.includes('fecha')) {
++                        fecha = val;
++                    } else if (normText === 'inspector' || normText === 'inspector:' || normText === 'nombre y apellido' || normText === 'nombre y apellido:') {
++                        inspector = val;
++                        if (sig) firmaInspector = sig;
++                    } else if (normText.includes('cargo') && !normText.includes('responsable')) {
++                        cargo = val;
++                    } else if (normText.includes('responsable')) {
++                        responsable = val;
++                        if (sig) firmaResponsable = sig;
++                    } else if (normText.includes('firma')) {
++                        if (normText.includes('inspector') && sig) firmaInspector = sig;
++                        else if (normText.includes('responsable') && sig) firmaResponsable = sig;
++                        else if (!firmaInspector && sig) firmaInspector = sig;
++                        else if (!firmaResponsable && sig) firmaResponsable = sig;
++                    }
++                });
++
++                worksheet.getCell('C4').value = proyecto;
++                worksheet.getCell('D5').value = area;
++                worksheet.getCell('K5').value = fecha;
++                worksheet.getCell('D6').value = inspector;
++                worksheet.getCell('D7').value = cargo;
++                worksheet.getCell('D8').value = responsable;
++
++                if (firmaInspector) {
++                    try {
++                        const base64Data = firmaInspector.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                if (firmaResponsable) {
++                    try {
++                        const base64Data = firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                const isPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
++                const isNoPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('no planificada'));
++                const isOtro = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().trim() === 'otro');
++                
++                if (isPlanificada !== -1 && (answers[isPlanificada]?.text === 'X' || answers[isPlanificada]?.text === 'true' || answers[isPlanificada]?.text === true)) { worksheet.getCell('A10').value = 'X'; worksheet.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isNoPlanificada !== -1 && (answers[isNoPlanificada]?.text === 'X' || answers[isNoPlanificada]?.text === 'true' || answers[isNoPlanificada]?.text === true)) { worksheet.getCell('A11').value = 'X'; worksheet.getCell('A11').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isOtro !== -1 && (answers[isOtro]?.text === 'X' || answers[isOtro]?.text === 'true' || answers[isOtro]?.text === true)) { worksheet.getCell('A12').value = 'X'; worksheet.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' }; }
++
++                // Auto-generate NC observations list under 'A39' (Observaciones)
++                let hallazgosNC: string[] = [];
++                templateDef.forEach((item: any, idx: number) => {
++                    const normText = (item.text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (ans) {
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            hallazgosNC.push(`- ${item.text} (NC)`);
++                        }
++                    }
++                });
++
++                let finalObsText = '';
++                const obsIndex = templateDef.findIndex((t: any) => t.text && (t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario')));
++                if (obsIndex !== -1 && answers[obsIndex]?.text) {
++                    finalObsText = answers[obsIndex].text;
++                }
++
++                if (hallazgosNC.length > 0 && !finalObsText.includes('NC')) {
++                    if (finalObsText) finalObsText += '\n\n';
++                    finalObsText += 'Hallazgos Registrados:\n' + hallazgosNC.join('\n');
++                }
++
++                if (finalObsText) {
++                    worksheet.getCell('A39').value = finalObsText;
++                    worksheet.getCell('A39').font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
++                    for (let r = 39; r <= 44; r++) {
++                        for (let c = 1; c <= 13; c++) {
++                            worksheet.getCell(r, c).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                        }
++                    }
++                    const lineCount = finalObsText.split('\n').length;
++                    worksheet.getRow(39).height = Math.max(90, lineCount * 18);
++                }
++
++                // Grid evaluations (Columns K=Cumple, L=No Cumple, M=N/A)
++                const matchedRows = new Set<number>();
++                templateDef.forEach((item: any, idx: number) => {
++                    if (item.type === 'title') return;
++                    const origText = item.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (!ans) return;
++                    
++                    let targetRow = -1;
++                    for (let r = 15; r <= 35; r++) {
++                        let cellB = worksheet.getCell(`B${r}`).value;
++                        if (cellB && typeof cellB === 'object' && cellB.richText) cellB = cellB.richText.map((t: any) => t.text).join('');
++                        if (cellB && typeof cellB !== 'undefined' && cellB !== null) {
++                            const bNorm = String(cellB).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
++                            const bClean = bNorm.replace(/[^a-zA-Z0-9]/g, '');
++                            const tClean = normText.replace(/[^a-zA-Z0-9]/g, '');
++                            if (!matchedRows.has(r) && (bClean === tClean || (bClean.length > 20 && (tClean.includes(bClean) || bClean.includes(tClean))))) {
++                                targetRow = r;
++                                break;
++                            }
++                        }
++                    }
++
++                    if (targetRow !== -1) {
++                        matchedRows.add(targetRow);
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === true || normAns === 'C' || normAns === 'X' || normAns === 'TRUE' || normAns === 'CUMPLE') {
++                            worksheet.getCell(`K${targetRow}`).value = 'X';
++                        } else if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            worksheet.getCell(`L${targetRow}`).value = 'X';
++                        } else if (normAns.includes('N/A') || normAns.includes('NA')) {
++                            worksheet.getCell(`M${targetRow}`).value = 'X';
++                        }
++
++                        ['K', 'L', 'M'].forEach(c => {
++                            worksheet.getCell(`${c}${targetRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                            worksheet.getCell(`${c}${targetRow}`).font = { bold: true };
++                        });
++                    }
++                });
++
++                // Row 47 Photo Gallery (~5cm x 5cm / 150px x 150px)
++                let currentPhotoRow = 47; 
++                let hasPhotos = false;
++
++                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true, size: 11 };
++                currentPhotoRow += 2;
++                let colCursor = 1;
++
++                const renderPhotosForFinding = (itemName: string, photosList: string[]) => {
++                    if (photosList && photosList.length > 0) {
++                        hasPhotos = true;
++                        worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${itemName}`;
++                        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                        currentPhotoRow += 1;
++
++                        photosList.forEach((fotoB64: string) => {
++                            try {
++                                const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                worksheet.addImage(imageId, {
++                                    tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                    ext: { width: 150, height: 150 }
++                                });
++                                colCursor += 4;
++                                if (colCursor > 9) { 
++                                    colCursor = 1; 
++                                    currentPhotoRow += 9;
++                                }
++                            } catch(e) {}
++                        });
++                        if (colCursor > 1) { 
++                            colCursor = 1; 
++                            currentPhotoRow += 9;
++                        }
++                    }
++                };
++
++                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
++                    Object.keys(data.fotosDefectos).forEach((itemName) => {
++                        renderPhotosForFinding(itemName, data.fotosDefectos[itemName]);
++                    });
++                }
++
++                templateDef.forEach((item: any, idx: number) => {
++                    const ans = answers[idx];
++                    if (ans && ans.photos && ans.photos.length > 0) {
++                        renderPhotosForFinding(item.text, ans.photos);
++                    }
++                });
++
++                if (!hasPhotos) worksheet.getCell(`A47`).value = ""; 
++
++            } else {
++                throw new Error("La plantilla 'Inspección de Talleres.xlsx' no se encuentra.");
++            }
++        }
++
++        // --- MANEJADOR 6: INSPECCIONES DIGITALES GENÉRICAS ---
++                else if (isLaboratorio) {
++            if (fs.existsSync(templatePath)) {
++                const templateDef = data.template || [];
++                const answers = data.answers || [];
++
++                let proyecto = 'RED VIAL 6', area = '', fecha = '', inspector = '', cargo = '', responsable = '', firmaInspector = '', firmaResponsable = '';
++                
++                templateDef.forEach((t: any, idx: number) => {
++                    const origText = t.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    const val = answers[idx]?.text || '';
++                    const sig = answers[idx]?.signature || '';
++                    
++                    if (normText === 'proyecto' || normText === 'proyecto:') {
++                        proyecto = val || proyecto;
++                    } else if (normText === 'ubicacion de campamento' || normText === 'ubicacion de campamento:' || normText === 'area especifica de inspeccion' || normText === 'area especifica de inspeccion:') {
++                        area = val;
++                    } else if (normText.includes('fecha')) {
++                        fecha = val;
++                    } else if (normText === 'inspector' || normText === 'inspector:' || normText === 'nombre y apellido' || normText === 'nombre y apellido:') {
++                        inspector = val;
++                        if (sig) firmaInspector = sig;
++                    } else if (normText.includes('cargo') && !normText.includes('responsable')) {
++                        cargo = val;
++                    } else if (normText.includes('responsable')) {
++                        responsable = val;
++                        if (sig) firmaResponsable = sig;
++                    } else if (normText.includes('firma')) {
++                        if (normText.includes('inspector') && sig) firmaInspector = sig;
++                        else if (normText.includes('responsable') && sig) firmaResponsable = sig;
++                        else if (!firmaInspector && sig) firmaInspector = sig;
++                        else if (!firmaResponsable && sig) firmaResponsable = sig;
++                    }
++                });
++
++                worksheet.getCell('C4').value = proyecto;
++                worksheet.getCell('D5').value = area;
++                worksheet.getCell('K5').value = fecha;
++                worksheet.getCell('D6').value = inspector;
++                worksheet.getCell('D7').value = cargo;
++                worksheet.getCell('D8').value = responsable;
++
++                if (firmaInspector) {
++                    try {
++                        const base64Data = firmaInspector.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                if (firmaResponsable) {
++                    try {
++                        const base64Data = firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                const isPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
++                const isNoPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('no planificada'));
++                const isOtro = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().trim() === 'otro');
++                
++                if (isPlanificada !== -1 && (answers[isPlanificada]?.text === 'X' || answers[isPlanificada]?.text === 'true' || answers[isPlanificada]?.text === true)) { worksheet.getCell('A10').value = 'X'; worksheet.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isNoPlanificada !== -1 && (answers[isNoPlanificada]?.text === 'X' || answers[isNoPlanificada]?.text === 'true' || answers[isNoPlanificada]?.text === true)) { worksheet.getCell('A11').value = 'X'; worksheet.getCell('A11').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isOtro !== -1 && (answers[isOtro]?.text === 'X' || answers[isOtro]?.text === 'true' || answers[isOtro]?.text === true)) { worksheet.getCell('A12').value = 'X'; worksheet.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' }; }
++
++                // Auto-generate NC observations list under 'A35' (Observaciones)
++                let hallazgosNC: string[] = [];
++                templateDef.forEach((item: any, idx: number) => {
++                    const normText = (item.text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (ans) {
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            hallazgosNC.push(`- ${item.text} (NC)`);
++                        }
++                    }
++                });
++
++                let finalObsText = '';
++                const obsIndex = templateDef.findIndex((t: any) => t.text && (t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario')));
++                if (obsIndex !== -1 && answers[obsIndex]?.text) {
++                    finalObsText = answers[obsIndex].text;
++                }
++
++                if (hallazgosNC.length > 0 && !finalObsText.includes('NC')) {
++                    if (finalObsText) finalObsText += '\n\n';
++                    finalObsText += 'Hallazgos Registrados:\n' + hallazgosNC.join('\n');
++                }
++
++                if (finalObsText) {
++                    worksheet.getCell('A36').value = finalObsText;
++                    worksheet.getCell('A36').font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
++                    for (let r = 36; r <= 41; r++) {
++                        for (let c = 1; c <= 13; c++) {
++                            worksheet.getCell(r, c).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                        }
++                    }
++                    const lineCount = finalObsText.split('\n').length;
++                    worksheet.getRow(36).height = Math.max(90, lineCount * 18);
++                }
++                
++                
++
++                // Grid evaluations (Columns K=Cumple, L=No Cumple, M=N/A)
++                const matchedRows = new Set<number>();
++                templateDef.forEach((item: any, idx: number) => {
++                    if (item.type === 'title') return;
++                    const origText = item.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (!ans) return;
++                    
++                    let targetRow = -1;
++                    for (let r = 15; r <= 33; r++) {
++                        let cellB = worksheet.getCell(`B${r}`).value;
++                        if (cellB && typeof cellB === 'object' && cellB.richText) cellB = cellB.richText.map((t: any) => t.text).join('');
++                        if (cellB && typeof cellB !== 'undefined' && cellB !== null) {
++                            const bNorm = String(cellB).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
++                            const bClean = bNorm.replace(/[^a-zA-Z0-9]/g, '');
++                            const tClean = normText.replace(/[^a-zA-Z0-9]/g, '');
++                            if (!matchedRows.has(r) && (bClean === tClean || (bClean.length > 20 && (tClean.includes(bClean) || bClean.includes(tClean))))) {
++                                targetRow = r;
++                                break;
++                            }
++                        }
++                    }
++
++                    if (targetRow !== -1) {
++                        matchedRows.add(targetRow);
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === true || normAns === 'C' || normAns === 'X' || normAns === 'TRUE' || normAns === 'CUMPLE') {
++                            worksheet.getCell(`K${targetRow}`).value = 'X';
++                        } else if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            worksheet.getCell(`L${targetRow}`).value = 'X';
++                        } else if (normAns.includes('N/A') || normAns.includes('NA')) {
++                            worksheet.getCell(`M${targetRow}`).value = 'X';
++                        }
++
++                        ['K', 'L', 'M'].forEach(c => {
++                            worksheet.getCell(`${c}${targetRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                            worksheet.getCell(`${c}${targetRow}`).font = { bold: true };
++                        });
++                    }
++                });
++
++                // Row 47 Photo Gallery (~5cm x 5cm / 150px x 150px)
++                let currentPhotoRow = 43; 
++                let hasPhotos = false;
++
++                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true, size: 11 };
++                currentPhotoRow += 2;
++                let colCursor = 1;
++
++                const renderPhotosForFinding = (itemName: string, photosList: string[]) => {
++                    if (photosList && photosList.length > 0) {
++                        hasPhotos = true;
++                        worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${itemName}`;
++                        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                        currentPhotoRow += 1;
++
++                        photosList.forEach((fotoB64: string) => {
++                            try {
++                                const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                worksheet.addImage(imageId, {
++                                    tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                    ext: { width: 150, height: 150 }
++                                });
++                                colCursor += 4;
++                                if (colCursor > 9) { 
++                                    colCursor = 1; 
++                                    currentPhotoRow += 9;
++                                }
++                            } catch(e) {}
++                        });
++                        if (colCursor > 1) { 
++                            colCursor = 1; 
++                            currentPhotoRow += 9;
++                        }
++                    }
++                };
++
++                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
++                    Object.keys(data.fotosDefectos).forEach((itemName) => {
++                        renderPhotosForFinding(itemName, data.fotosDefectos[itemName]);
++                    });
++                }
++
++                templateDef.forEach((item: any, idx: number) => {
++                    const ans = answers[idx];
++                    if (ans && ans.photos && ans.photos.length > 0) {
++                        renderPhotosForFinding(item.text, ans.photos);
++                    }
++                });
++
++                if (!hasPhotos) worksheet.getCell(`A55`).value = "";
++            } else {
++                throw new Error("La plantilla 'Inspección de Laboratorio.xlsx' no se encuentra.");
++            }
++        } 
++
++
++        
++        else if (isElectricas) {
++            if (fs.existsSync(templatePath)) {
++                const templateDef = data.template || [];
++                const answers = data.answers || [];
++
++                let proyecto = 'RED VIAL 6', area = '', fecha = '', inspector = '', cargo = '', responsable = '', firmaInspector = '', firmaResponsable = '';
++                
++                templateDef.forEach((t: any, idx: number) => {
++                    const origText = t.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    const val = answers[idx]?.text || '';
++                    const sig = answers[idx]?.signature || '';
++                    
++                    if (normText === 'proyecto' || normText === 'proyecto:') {
++                        proyecto = val || proyecto;
++                    } else if (normText === 'ubicacion de campamento' || normText === 'ubicacion de campamento:' || normText === 'area especifica de inspeccion' || normText === 'area especifica de inspeccion:') {
++                        area = val;
++                    } else if (normText.includes('fecha')) {
++                        fecha = val;
++                    } else if (normText === 'inspector' || normText === 'inspector:' || normText === 'nombre y apellido' || normText === 'nombre y apellido:') {
++                        inspector = val;
++                        if (sig) firmaInspector = sig;
++                    } else if (normText.includes('cargo') && !normText.includes('responsable')) {
++                        cargo = val;
++                    } else if (normText.includes('responsable')) {
++                        responsable = val;
++                        if (sig) firmaResponsable = sig;
++                    } else if (normText.includes('firma')) {
++                        if (normText.includes('inspector') && sig) firmaInspector = sig;
++                        else if (normText.includes('responsable') && sig) firmaResponsable = sig;
++                        else if (!firmaInspector && sig) firmaInspector = sig;
++                        else if (!firmaResponsable && sig) firmaResponsable = sig;
++                    }
++                });
++
++                worksheet.getCell('C4').value = proyecto;
++                worksheet.getCell('E5').value = area;
++                worksheet.getCell('K5').value = fecha;
++                worksheet.getCell('D6').value = inspector;
++                worksheet.getCell('D7').value = cargo;
++                worksheet.getCell('D8').value = responsable;
++
++                if (firmaInspector) {
++                    try {
++                        const base64Data = firmaInspector.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                if (firmaResponsable) {
++                    try {
++                        const base64Data = firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                const isPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
++                const isNoPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('no planificada'));
++                const isOtro = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().trim() === 'otro');
++                
++                if (isPlanificada !== -1 && (answers[isPlanificada]?.text === 'X' || answers[isPlanificada]?.text === 'true' || answers[isPlanificada]?.text === true)) { worksheet.getCell('A10').value = 'X'; worksheet.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isNoPlanificada !== -1 && (answers[isNoPlanificada]?.text === 'X' || answers[isNoPlanificada]?.text === 'true' || answers[isNoPlanificada]?.text === true)) { worksheet.getCell('A11').value = 'X'; worksheet.getCell('A11').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isOtro !== -1 && (answers[isOtro]?.text === 'X' || answers[isOtro]?.text === 'true' || answers[isOtro]?.text === true)) { worksheet.getCell('A12').value = 'X'; worksheet.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' }; }
++
++                // Auto-generate NC observations list under 'A47' (Observaciones)
++                let hallazgosNC: string[] = [];
++                templateDef.forEach((item: any, idx: number) => {
++                    const normText = (item.text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (ans) {
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            hallazgosNC.push(`- ${item.text} (NC)`);
++                        }
++                    }
++                });
++
++                let finalObsText = '';
++                const obsIndex = templateDef.findIndex((t: any) => t.text && (t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario')));
++                if (obsIndex !== -1 && answers[obsIndex]?.text) {
++                    finalObsText = answers[obsIndex].text;
++                }
++
++                if (hallazgosNC.length > 0 && !finalObsText.includes('NC')) {
++                    if (finalObsText) finalObsText += '\n\n';
++                    finalObsText += 'Hallazgos Registrados:\n' + hallazgosNC.join('\n');
++                }
++
++                if (finalObsText) {
++                    worksheet.getCell('A47').value = finalObsText;
++                    worksheet.getCell('A47').font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
++                    for (let r = 47; r <= 52; r++) {
++                        for (let c = 1; c <= 13; c++) {
++                            worksheet.getCell(r, c).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                        }
++                    }
++                    const lineCount = finalObsText.split('\n').length;
++                    worksheet.getRow(47).height = Math.max(90, lineCount * 18);
++                }
++                
++                // Color títulos en blanco
++                [14, 26, 36].forEach(r => {
++                    for (let c = 2; c <= 13; c++) {
++                        const cell = worksheet.getCell(r, c);
++                        if (cell.value) {
++                            cell.font = { ...cell.font, color: { argb: 'FFFFFFFF' } };
++                        }
++                    }
++                });
++
++                // Grid evaluations (Columns K=Cumple, L=No Cumple, M=N/A)
++                const matchedRows = new Set<number>();
++                templateDef.forEach((item: any, idx: number) => {
++                    if (item.type === 'title') return;
++                    const origText = item.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (!ans) return;
++                    
++                    let targetRow = -1;
++                    for (let r = 15; r <= 44; r++) {
++                        let cellB = worksheet.getCell(`B${r}`).value;
++                        if (cellB && typeof cellB === 'object' && cellB.richText) cellB = cellB.richText.map((t: any) => t.text).join('');
++                        if (cellB && typeof cellB !== 'undefined' && cellB !== null) {
++                            const bNorm = String(cellB).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
++                            const bClean = bNorm.replace(/[^a-zA-Z0-9]/g, '');
++                            const tClean = normText.replace(/[^a-zA-Z0-9]/g, '');
++                            if (!matchedRows.has(r) && (bClean === tClean || (bClean.length > 20 && (tClean.includes(bClean) || bClean.includes(tClean))))) {
++                                targetRow = r;
++                                break;
++                            }
++                        }
++                    }
++
++                    if (targetRow !== -1) {
++                        matchedRows.add(targetRow);
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === true || normAns === 'C' || normAns === 'X' || normAns === 'TRUE' || normAns === 'CUMPLE') {
++                            worksheet.getCell(`K${targetRow}`).value = 'X';
++                        } else if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            worksheet.getCell(`L${targetRow}`).value = 'X';
++                        } else if (normAns.includes('N/A') || normAns.includes('NA')) {
++                            worksheet.getCell(`M${targetRow}`).value = 'X';
++                        }
++
++                        ['K', 'L', 'M'].forEach(c => {
++                            worksheet.getCell(`${c}${targetRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                            worksheet.getCell(`${c}${targetRow}`).font = { bold: true };
++                        });
++                    }
++                });
++
++                // Row 47 Photo Gallery (~5cm x 5cm / 150px x 150px)
++                let currentPhotoRow = 53; 
++                let hasPhotos = false;
++
++                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true, size: 11 };
++                currentPhotoRow += 2;
++                let colCursor = 1;
++
++                const renderPhotosForFinding = (itemName: string, photosList: string[]) => {
++                    if (photosList && photosList.length > 0) {
++                        hasPhotos = true;
++                        worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${itemName}`;
++                        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                        currentPhotoRow += 1;
++
++                        photosList.forEach((fotoB64: string) => {
++                            try {
++                                const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                worksheet.addImage(imageId, {
++                                    tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                    ext: { width: 150, height: 150 }
++                                });
++                                colCursor += 4;
++                                if (colCursor > 9) { 
++                                    colCursor = 1; 
++                                    currentPhotoRow += 9;
++                                }
++                            } catch(e) {}
++                        });
++                        if (colCursor > 1) { 
++                            colCursor = 1; 
++                            currentPhotoRow += 9;
++                        }
++                    }
++                };
++
++                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
++                    Object.keys(data.fotosDefectos).forEach((itemName) => {
++                        renderPhotosForFinding(itemName, data.fotosDefectos[itemName]);
++                    });
++                }
++
++                templateDef.forEach((item: any, idx: number) => {
++                    const ans = answers[idx];
++                    if (ans && ans.photos && ans.photos.length > 0) {
++                        renderPhotosForFinding(item.text, ans.photos);
++                    }
++                });
++
++                if (!hasPhotos) worksheet.getCell(`A55`).value = "";
++            } else {
++                throw new Error("La plantilla 'Inspección de instalaciones eléctricas.xlsx' no se encuentra.");
++            }
++        } 
++
++
++        
++         else if (isInternas) {
++            const getAns = (label) => answers.find(a => a.text === label)?.text || '';
++            const razon = getAns('Razon:');
++            const ruc = getAns('Ruc:');
++            const domicilio = getAns('Domicilio:');
++            const actividad = getAns('Actividad:');
++            const trabajadores = getAns('Trabajadores:');
++
++            const proyecto = getAns('Proyecto:');
++            const direccion = getAns('Dirección:');
++            const respArea = getAns('Responsable Área:');
++            const area = getAns('Área:');
++            const tipo = getAns('Tipo:');
++            const hora = getAns('Hora:');
++            const fecha = getAns('Fecha:');
++            const responsables = JSON.parse(getAns('Responsables:') || '[]');
++            const hallazgos = JSON.parse(getAns('Hallazgos:') || '[]');
++            const conclusiones = getAns('Conclusiones:');
++            const regNombre = getAns('RegNombre:');
++            const regCargo = getAns('RegCargo:');
++            const regFecha = getAns('RegFecha:');
++            const regFirma = answers.find(a => a.text === 'RegFirma:')?.signature || '';
++
++            worksheet.getCell('A5').value = razon;
++            worksheet.getCell('I5').value = ruc;
++            worksheet.getCell('K5').value = domicilio;
++            worksheet.getCell('P5').value = actividad;
++            worksheet.getCell('T5').value = trabajadores;
++            worksheet.getCell('A7').value = proyecto;
++            worksheet.getCell('K7').value = direccion;
++            worksheet.getCell('I9').value = respArea;
++            worksheet.getCell('L9').value = area;
++            
++            let tipoText = "    \nPlaneada:                  No planeada:             Otro:";
++            if (tipo === 'Planeada') tipoText = "    \nPlaneada: X               No planeada:             Otro:";
++            if (tipo === 'No planeada') tipoText = "    \nPlaneada:                  No planeada: X           Otro:";
++            if (tipo === 'Otro') tipoText = "    \nPlaneada:                  No planeada:             Otro: X";
++            worksheet.getCell('O9').value = tipoText;
++            
++            worksheet.getCell('T9').value = hora;
++            worksheet.getCell('U9').value = fecha;
++
++            const resCells = ['A9', 'A10', 'A11', 'A12', 'E9', 'E10', 'E11', 'E12'];
++            for(let i = 0; i < 8; i++) {
++                if (responsables[i]) {
++                    worksheet.getCell(resCells[i]).value = `${i<4 ? i+1 : i+1}) ${responsables[i]}`;
++                }
++            }
++
++            // Grid logic
++            let currentRow = 15;
++            for (let i = 0; i < hallazgos.length; i++) {
++                if (currentRow > 21) {
++                    worksheet.duplicateRow(21, 1, true);
++                }
++                const h = hallazgos[i];
++                worksheet.getCell(`A${currentRow}`).value = i + 1;
++                worksheet.getCell(`B${currentRow}`).value = h.descripcion;
++                worksheet.getCell(`J${currentRow}`).value = h.riesgo;
++                if (h.riesgo === 'Bajo') worksheet.getCell(`J${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFc6efce' } };
++                if (h.riesgo === 'Medio') worksheet.getCell(`J${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFffeb9c' } };
++                if (h.riesgo === 'Alto') worksheet.getCell(`J${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFffc7ce' } };
++                
++                worksheet.getCell(`K${currentRow}`).value = h.categoria;
++                worksheet.getCell(`L${currentRow}`).value = h.accion;
++                worksheet.getCell(`N${currentRow}`).value = h.responsable;
++                worksheet.getCell(`Q${currentRow}`).value = h.fecha;
++                worksheet.getCell(`U${currentRow}`).value = h.estado;
++                if (h.estado === 'Abierto') worksheet.getCell(`U${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFffc7ce' } };
++                if (h.estado === 'Cerrado') worksheet.getCell(`U${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFc6efce' } };
++                
++                // Photo
++                if (h.evidencia) {
++                    try {
++                        const base64Data = h.evidencia.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        // col 6 is G (Evidencia Inicial)
++                        worksheet.addImage(imageId, { tl: { col: 6, row: currentRow - 1 }, ext: { width: 100, height: 100 } });
++                        worksheet.getRow(currentRow).height = 80;
++                    } catch(e) {}
++                }
++                if (h.evidenciaLevantamiento) {
++                    try {
++                        const base64Data = h.evidenciaLevantamiento.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        // col 8 is I (Evidencia Levantamiento), placed side by side with Evidencia Inicial
++                        worksheet.addImage(imageId, { tl: { col: 8, row: currentRow - 1 }, ext: { width: 100, height: 100 } });
++                        worksheet.getRow(currentRow).height = 80;
++                    } catch(e) {}
++                }
++                currentRow++;
++            }
++
++            // Cleanup remaining blank rows if any (from 15 to 21)
++            for (let i = currentRow; i <= 21; i++) {
++                worksheet.getCell(`A${i}`).value = '';
++                worksheet.getCell(`B${i}`).value = '';
++            }
++
++            let shift = currentRow > 22 ? currentRow - 22 : 0;
++            worksheet.getCell(`A${23 + shift}`).value = conclusiones;
++            worksheet.getCell(`A${26 + shift}`).value = regNombre;
++            worksheet.getCell(`M${26 + shift}`).value = regCargo;
++            worksheet.getCell(`P${26 + shift}`).value = regFecha;
++            
++            if (regFirma) {
++                try {
++                    const base64Data = regFirma.replace(/^data:image\/\w+;base64,/, "");
++                    const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                    // T26 -> col 19, row 25
++                    worksheet.addImage(imageId, { tl: { col: 19, row: 25 + shift }, ext: { width: 120, height: 35 } });
++                } catch(e) {}
++            }
++else if (isCampamento) {
++            if (fs.existsSync(templatePath)) {
++                const templateDef = data.template || [];
++                const answers = data.answers || [];
++
++                let proyecto = 'RED VIAL 6', area = '', fecha = '', inspector = '', cargo = '', responsable = '', firmaInspector = '', firmaResponsable = '';
++                
++                templateDef.forEach((t: any, idx: number) => {
++                    const origText = t.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    const val = answers[idx]?.text || '';
++                    const sig = answers[idx]?.signature || '';
++                    
++                    if (normText === 'proyecto' || normText === 'proyecto:') {
++                        proyecto = val || proyecto;
++                    } else if (normText === 'ubicacion de campamento' || normText === 'ubicacion de campamento:' || normText === 'area especifica de inspeccion' || normText === 'area especifica de inspeccion:') {
++                        area = val;
++                    } else if (normText.includes('fecha')) {
++                        fecha = val;
++                    } else if (normText === 'inspector' || normText === 'inspector:' || normText === 'nombre y apellido' || normText === 'nombre y apellido:') {
++                        inspector = val;
++                        if (sig) firmaInspector = sig;
++                    } else if (normText.includes('cargo') && !normText.includes('responsable')) {
++                        cargo = val;
++                    } else if (normText.includes('responsable')) {
++                        responsable = val;
++                        if (sig) firmaResponsable = sig;
++                    } else if (normText.includes('firma')) {
++                        if (normText.includes('inspector') && sig) firmaInspector = sig;
++                        else if (normText.includes('responsable') && sig) firmaResponsable = sig;
++                        else if (!firmaInspector && sig) firmaInspector = sig;
++                        else if (!firmaResponsable && sig) firmaResponsable = sig;
++                    }
++                });
++
++                worksheet.getCell('C4').value = proyecto;
++                worksheet.getCell('E5').value = area;
++                worksheet.getCell('K5').value = fecha;
++                worksheet.getCell('D6').value = inspector;
++                worksheet.getCell('D7').value = cargo;
++                worksheet.getCell('D8').value = responsable;
++
++                if (firmaInspector) {
++                    try {
++                        const base64Data = firmaInspector.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                if (firmaResponsable) {
++                    try {
++                        const base64Data = firmaResponsable.replace(/^data:image\/\w+;base64,/, "");
++                        const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                        worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 120, height: 35 } });
++                    } catch(e) {}
++                }
++
++                const isPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('planificada') && !t.text.toLowerCase().includes('no planificada'));
++                const isNoPlanificada = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().includes('no planificada'));
++                const isOtro = templateDef.findIndex((t: any) => t.text && t.text.toLowerCase().trim() === 'otro');
++                
++                if (isPlanificada !== -1 && (answers[isPlanificada]?.text === 'X' || answers[isPlanificada]?.text === 'true' || answers[isPlanificada]?.text === true)) { worksheet.getCell('A10').value = 'X'; worksheet.getCell('A10').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isNoPlanificada !== -1 && (answers[isNoPlanificada]?.text === 'X' || answers[isNoPlanificada]?.text === 'true' || answers[isNoPlanificada]?.text === true)) { worksheet.getCell('A11').value = 'X'; worksheet.getCell('A11').alignment = { horizontal: 'center', vertical: 'middle' }; }
++                if (isOtro !== -1 && (answers[isOtro]?.text === 'X' || answers[isOtro]?.text === 'true' || answers[isOtro]?.text === true)) { worksheet.getCell('A12').value = 'X'; worksheet.getCell('A12').alignment = { horizontal: 'center', vertical: 'middle' }; }
++
++                // Auto-generate NC observations list under 'A57' (Observaciones)
++                let hallazgosNC: string[] = [];
++                templateDef.forEach((item: any, idx: number) => {
++                    const normText = (item.text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (ans) {
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            hallazgosNC.push(`- ${item.text} (NC)`);
++                        }
++                    }
++                });
++
++                let finalObsText = '';
++                const obsIndex = templateDef.findIndex((t: any) => t.text && (t.text.toLowerCase().includes('observacion') || t.text.toLowerCase().includes('comentario')));
++                if (obsIndex !== -1 && answers[obsIndex]?.text) {
++                    finalObsText = answers[obsIndex].text;
++                }
++
++                if (hallazgosNC.length > 0 && !finalObsText.includes('NC')) {
++                    if (finalObsText) finalObsText += '\n\n';
++                    finalObsText += 'Hallazgos Registrados:\n' + hallazgosNC.join('\n');
++                }
++
++                if (finalObsText) {
++                    worksheet.getCell('A57').value = finalObsText;
++                    worksheet.getCell('A57').font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
++                    for (let r = 57; r <= 62; r++) {
++                        for (let c = 1; c <= 13; c++) {
++                            worksheet.getCell(r, c).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
++                        }
++                    }
++                    const lineCount = finalObsText.split('\n').length;
++                    worksheet.getRow(57).height = Math.max(90, lineCount * 18);
++                }
++                
++                // Color títulos en blanco
++                [23, 36, 45, 50].forEach(r => {
++                    for (let c = 2; c <= 13; c++) {
++                        const cell = worksheet.getCell(r, c);
++                        if (cell.value) {
++                            cell.font = { ...cell.font, color: { argb: 'FFFFFFFF' } };
++                        }
++                    }
++                });
++
++                // Grid evaluations (Columns K=Cumple, L=No Cumple, M=N/A)
++                const matchedRows = new Set<number>();
++                templateDef.forEach((item: any, idx: number) => {
++                    if (item.type === 'title') return;
++                    const origText = item.text || '';
++                    const normText = origText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
++                    // removed greedy filter for hallazgos
++
++                    const ans = answers[idx];
++                    if (!ans) return;
++                    
++                    let targetRow = -1;
++                    for (let r = 15; r <= 54; r++) {
++                        let cellB = worksheet.getCell(`B${r}`).value;
++                        if (cellB && typeof cellB === 'object' && cellB.richText) cellB = cellB.richText.map((t: any) => t.text).join('');
++                        if (cellB && typeof cellB !== 'undefined' && cellB !== null) {
++                            const bNorm = String(cellB).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
++                            const bClean = bNorm.replace(/[^a-zA-Z0-9]/g, '');
++                            const tClean = normText.replace(/[^a-zA-Z0-9]/g, '');
++                            if (!matchedRows.has(r) && (bClean === tClean || (bClean.length > 20 && (tClean.includes(bClean) || bClean.includes(tClean))))) {
++                                targetRow = r;
++                                break;
++                            }
++                        }
++                    }
++
++                    if (targetRow !== -1) {
++                        matchedRows.add(targetRow);
++                        const normAns = String(ans.text || '').toUpperCase().trim();
++                        if (ans.isConforme === true || normAns === 'C' || normAns === 'X' || normAns === 'TRUE' || normAns === 'CUMPLE') {
++                            worksheet.getCell(`K${targetRow}`).value = 'X';
++                        } else if (ans.isConforme === false || normAns === 'NC' || normAns === 'FALSE' || normAns.includes('NO')) {
++                            worksheet.getCell(`L${targetRow}`).value = 'X';
++                        } else if (normAns.includes('N/A') || normAns.includes('NA')) {
++                            worksheet.getCell(`M${targetRow}`).value = 'X';
++                        }
++
++                        ['K', 'L', 'M'].forEach(c => {
++                            worksheet.getCell(`${c}${targetRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
++                            worksheet.getCell(`${c}${targetRow}`).font = { bold: true };
++                        });
++                    }
++                });
++
++                // Row 47 Photo Gallery (~5cm x 5cm / 150px x 150px)
++                let currentPhotoRow = 65; 
++                let hasPhotos = false;
++
++                worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO FOTOGRÁFICO DE HALLAZGOS:";
++                worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true, size: 11 };
++                currentPhotoRow += 2;
++                let colCursor = 1;
++
++                const renderPhotosForFinding = (itemName: string, photosList: string[]) => {
++                    if (photosList && photosList.length > 0) {
++                        hasPhotos = true;
++                        worksheet.getCell(`A${currentPhotoRow}`).value = `Hallazgo: ${itemName}`;
++                        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
++                        currentPhotoRow += 1;
++
++                        photosList.forEach((fotoB64: string) => {
++                            try {
++                                const base64Data = fotoB64.replace(/^data:image\/\w+;base64,/, "");
++                                const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });
++                                worksheet.addImage(imageId, {
++                                    tl: { col: colCursor - 1, row: currentPhotoRow - 1 },
++                                    ext: { width: 150, height: 150 }
++                                });
++                                colCursor += 4;
++                                if (colCursor > 9) { 
++                                    colCursor = 1; 
++                                    currentPhotoRow += 9;
++                                }
++                            } catch(e) {}
++                        });
++                        if (colCursor > 1) { 
++                            colCursor = 1; 
++                            currentPhotoRow += 9;
++                        }
++                    }
++                };
++
++                if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
++                    Object.keys(data.fotosDefectos).forEach((itemName) => {
++                        renderPhotosForFinding(itemName, data.fotosDefectos[itemName]);
++                    });
++                }
++
++                templateDef.forEach((item: any, idx: number) => {
++                    const ans = answers[idx];
++                    if (ans && ans.photos && ans.photos.length > 0) {
++                        renderPhotosForFinding(item.text, ans.photos);
++                    }
++                });
++
++                if (!hasPhotos) worksheet.getCell(`A65`).value = "";
++            } else {
++                throw new Error("La plantilla 'Inspección de campamento.xlsx' no se encuentra.");
++            }
++        } 
++
+         else {
+             // Si no tiene plantilla física, creamos una vista tabular ordenada
+             if (!fs.existsSync(templatePath)) {
+@@ -478,9 +1771,15 @@ const buffer = await workbook.xlsx.writeBuffer();
+             let driveUrl = '';
+             if (driveRes.ok) {
+                 const text = await driveRes.text();
+-                const driveData = JSON.parse(text);
+-                if (driveData.result === 'success') {
+-                    driveUrl = driveData.url || driveData.viewLink || '';
++                try {
++                    const driveData = JSON.parse(text);
++                    if (driveData.result === 'success') {
++                        driveUrl = driveData.url || driveData.viewLink || '';
++                    } else {
++                        console.error('Drive script error:', driveData);
++                    }
++                } catch (err) {
++                    console.error('Error parsing Drive response. It might be an HTML error page due to size limits:', err.message);
+                 }
+             }
+ 

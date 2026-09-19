@@ -1,0 +1,66 @@
+Created At: 2026-09-18T14:23:41-05:00
+Completed At: 2026-09-18T14:23:41-05:00
+The following changes were made by the replace_file_content tool to: c:\Users\jlcan\Desktop\Seguimiento de plataforma de seguridad Antigravity\ssoma-platform\components\inspections\EstacionEmergenciaCustomForm.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -47,32 +47,32 @@
+ );
+ 
+ const ITEMS_LIST = [
+-  "Paquetes de guantes quirúrgicos",
+-  "Frasco de yodopovidoma 120 ml solución antiséptico",
+-  "Frasco de agua oxigenada mediano 120 ml",
+-  "Frasco de alcohol mediano 250 ml",
+-  "Paquetes de gasas esterilizadas de 10 cm x 10 cm",
+-  "Paquetes de apósitos (05 para Sede Central)",
+-  "Rollo de esparadrapo 5 cm x 4.5 cm",
+-  "Rollos de venda elástica de 3 plg. X 5 yardas",
+-  "Rollos de venda elástica de 4 plg. X 5 yardas",
+-  "Paquete de algodón x 100 g",
+-  "Venda triangular",
+-  "Paletas baja lengua (para entablillado de dedos)",
+-  "Frasco de solución de cloruro de sodio al 9/1000 x 1 l (para lavado de heridas)",
+-  "Paquetes de gasa tipo jelonet (para quemaduras)",
+-  "Frascos de colirio de 10 ml (01 para Sede Central)",
+-  "Tijera punta roma",
+-  "Pinza",
+-  "Jabón germicida (solo para Sede Central)",
+-  "Curitas (solo para Sede Central)",
+-  "Lava ojo portàtil",
+-  "Camilla rígida - inmovilizador de cabeza",
+-  "frazada",
+-  "Collarin regulable",
+-  "extintor",
+-  "Registro para control de entrada y salida e insumos",
+-  "Férula inmovilizadora"
++  { name: "Paquetes de guantes quirúrgicos", qty: "02" },
++  { name: "Frasco de yodopovidoma 120 ml solución antiséptico", qty: "01" },
++  { name: "Frasco de agua oxigenada mediano 120 ml", qty: "01" },
++  { name: "Frasco de alcohol mediano 250 ml", qty: "01" },
++  { name: "Paquetes de gasas esterilizadas de 10 cm x 10 cm", qty: "05" },
++  { name: "Paquetes de apósitos (05 para Sede Central)", qty: "08" },
++  { name: "Rollo de esparadrapo 5 cm x 4.5 cm", qty: "01" },
++  { name: "Rollos de venda elástica de 3 plg. X 5 yardas", qty: "02" },
++  { name: "Rollos de venda elástica de 4 plg. X 5 yardas", qty: "02" },
++  { name: "Paquete de algodón x 100 g", qty: "01" },
++  { name: "Venda triangular", qty: "01" },
++  { name: "Paletas baja lengua (para entablillado de dedos)", qty: "10" },
++  { name: "Frasco de solución de cloruro de sodio al 9/1000 x 1 l (para lavado de heridas)", qty: "01" },
++  { name: "Paquetes de gasa tipo jelonet (para quemaduras)", qty: "02" },
++  { name: "Frascos de colirio de 10 ml (01 para Sede Central)", qty: "02" },
++  { name: "Tijera punta roma", qty: "01" },
++  { name: "Pinza", qty: "01" },
++  { name: "Jabón germicida (solo para Sede Central)", qty: "01" },
++  { name: "Curitas (solo para Sede Central)", qty: "10" },
++  { name: "Lava ojo portàtil", qty: "01" },
++  { name: "Camilla rígida - inmovilizador de cabeza", qty: "01" },
++  { name: "frazada", qty: "01" },
++  { name: "Collarin regulable", qty: "01" },
++  { name: "extintor", qty: "01" },
++  { name: "Registro para control de entrada y salida e insumos", qty: "01" },
++  { name: "Férula inmovilizadora", qty: "01" }
+ ];
+ 
+ export function EstacionEmergenciaCustomForm({ moduleName, version, SignaturePad }: any) {
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

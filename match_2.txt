@@ -1,0 +1,1 @@
+    code = code.replace('export function InternasCustomForm', wrapperComponent + '\

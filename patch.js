@@ -1,62 +1,92 @@
-const fs = require('fs');
-let c = fs.readFileSync('app/inspections/page.tsx', 'utf8');
+﻿const fs = require('fs');
+const path = require('path');
 
-const targetStart = c.indexOf('<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">');
-const targetEnd = c.indexOf('{/* Modal Opciones de Formato */}');
+const dir = 'components/inspections';
+const files = fs.readdirSync(dir).filter(f => f.endsWith('CustomForm.tsx'));
 
-if (targetStart > -1 && targetEnd > -1) {
-    const replacement = `<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {inspectionModules.map((mod, idx) => (
-            <div key={idx} className={\`relative group \${mod.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-800 border-dashed opacity-70'} border rounded-xl p-5 flex flex-col items-center text-center transition-all\`}>
-                {(user?.role === 'developer' || user?.role === 'manager') && (
-                    <button 
-                        onClick={(e) => { e.preventDefault(); setTargetModule(mod.name); setFormatActionType(mod.status === 'active' ? 'update' : 'new'); setShowFormatOptionsModal(true); }}
-                        className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
-                        title="Opciones de Formato"
-                    >
-                        <Settings size={16} />
-                    </button>
-                )}
-                <a href={mod.status === 'active' ? (mod.name.includes('Vehículo') ? "/vehicle-inspections" : \`/digital-inspections/\${encodeURIComponent(mod.name)}\`) : "#"} className="flex flex-col items-center w-full">
-                    <div className={\`w-16 h-16 rounded-full flex items-center justify-center mb-4 \${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}\`}>
-                        <ClipboardList size={32} />
-                    </div>
-                    <h4 className={\`font-bold mb-2 text-sm \${mod.status === 'active' ? 'text-white' : 'text-slate-300'}\`}>{mod.name}</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{mod.description}</p>
-                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">En Configuración</span>}
-                </a>
-            </div>
-        ))}
-        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-900 border border-slate-800 border-dashed hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px]">
-            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors"><Plus size={32} /></div>
-            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-white transition-colors">Crear Nuevo Módulo</h4>
-            <p className="text-xs text-slate-500">Añadir otra inspección (Arneses, Escaleras, etc.)</p>
-        </button>
-    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+files.forEach(file => {
+    let content = fs.readFileSync(path.join(dir, file), 'utf8');
 
-                    {showCreateModuleModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md flex flex-col shadow-2xl p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-white">Crear Módulo</h3>
-                                    <button onClick={() => setShowCreateModuleModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
-                                </div>
-                                <form onSubmit={handleCreateModule} className="flex flex-col gap-4">
-                                    <input type="text" placeholder="Nombre" required value={newModuleData.name} onChange={e => setNewModuleData({...newModuleData, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
-                                    <input type="text" placeholder="Descripción" required value={newModuleData.description} onChange={e => setNewModuleData({...newModuleData, description: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white" />
-                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg">Guardar Módulo</button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-                    \n`;
-    const newContent = c.substring(0, targetStart) + replacement + c.substring(targetEnd);
-    fs.writeFileSync('app/inspections/page.tsx', newContent);
-    console.log('Success!');
-} else {
-    console.log('Targets not found');
-}
+    // 1. Add import if not exists
+    if (!content.includes('EmailReportModal')) {
+        content = content.replace('import { useRouter } from', "import { EmailReportModal } from '@/components/EmailReportModal';\nimport { useRouter } from");
+    }
+
+    // 2. Add state
+    if (!content.includes('const [showEmailModal, setShowEmailModal] = useState(false);')) {
+        content = content.replace('const [isSaving, setIsSaving] = useState(false);', 
+            "const [isSaving, setIsSaving] = useState(false);\n    const [showEmailModal, setShowEmailModal] = useState(false);\n    const [emailData, setEmailData] = useState<any>(null);");
+    }
+
+    // 3. Modify handleSaveAndDownload signature
+    content = content.replace('const handleSaveAndDownload = async () => {', 'const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {');
+
+    // 4. Intercept the download logic
+    // Usually it looks like:
+    // const url = window.URL.createObjectURL(blob);
+    // const a = document.createElement('a'); ... a.remove();
+    // We will wrap this in if (!isEmailing)
+    
+    // We need to inject the email sending logic right after getting data.fileBase64
+    const emailLogic = 
+                    if (isEmailing && customEmailData) {
+                        try {
+                            const emailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: customEmailData.to,
+                                    cc: customEmailData.cc,
+                                    subject: customEmailData.subject,
+                                    text: customEmailData.message,
+                                    attachmentBase64: data.fileBase64,
+                                    filename: \\\Reporte_\\\.xlsx\\\
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Hubo un error al enviar el correo, pero el reporte se generó.');
+                        }
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;;
+    
+    // Find the url creation and replace it
+    content = content.replace(/const url = window\.URL\.createObjectURL\(blob\);\s*const a = document\.createElement\('a'\);\s*a\.href = url;/g, emailLogic);
+    // Find the a.remove(); and close the else block
+    content = content.replace(/a\.click\(\);\s*a\.remove\(\);/g, "a.click();\n                        a.remove();\n                    }");
+
+    // 5. Add the buttons and the modal
+    // Find the save button
+    const saveBtnMatch = content.match(/<button[^>]*onClick=\{handleSaveAndDownload\}[^>]*>[\s\S]*?<\/button>/);
+    if (saveBtnMatch) {
+        const btnText = saveBtnMatch[0];
+        const newButtons = 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                      <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
+                          {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
+                      </button>
+                      <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                          {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
+                          {isSaving && showEmailModal ? 'Generando y Enviando...' : 'Enviar por Correo'}
+                      </button>
+                  </div>
+                  
+                  <EmailReportModal 
+                      isOpen={showEmailModal} 
+                      onClose={() => setShowEmailModal(false)}
+                      isSending={isSaving}
+                      onSend={async (data) => {
+                          await handleSaveAndDownload(true, data);
+                          setShowEmailModal(false);
+                      }}
+                  />;
+        content = content.replace(btnText, newButtons);
+    }
+
+    fs.writeFileSync(path.join(dir, file), content);
+    console.log('Patched ' + file);
+});
