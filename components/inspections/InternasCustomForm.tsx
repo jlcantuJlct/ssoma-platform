@@ -29,6 +29,7 @@ const CATEGORIAS = [
     "MEDIO AMBIENTE",
     "OTROS"
 ];
+
 const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea = false }: any) => {
     value = value || '';
     const [isListening, setIsListening] = useState(false);
@@ -82,6 +83,7 @@ const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea 
 };
 
 export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
+    const router = useRouter();
     const [isSaving, setIsSaving] = useState(false);
     const [proyecto, setProyecto] = useState('RED VIAL 6');
     const [direccion, setDireccion] = useState('');
@@ -154,7 +156,8 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             }
         });
     }, [hallazgos]);
-const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
+
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -170,9 +173,6 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
     const submit = async () => {
         setIsSaving(true);
         try {
-            
-            
-
             const payload = {
                 template: [
                     { text: 'Proyecto:', type: 'question' },
@@ -219,7 +219,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `\${moduleName}_\${new Date().getTime()}.xlsx`;
+                a.download = `${moduleName}_${new Date().getTime()}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -236,14 +236,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
     };
 
     return (
-        <div className="max-w-6xl mx-auto mb-6">
-                <button 
-                    onClick={() => router.push('/inspections?openDigital=true')} 
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
-                >
-                    <ArrowLeft size={18} /> Volver
-                </button>
-            </div>
+        <>
             <div className="max-w-6xl mx-auto mb-6">
                 <button 
                     onClick={() => router.push('/inspections?openDigital=true')} 
@@ -363,7 +356,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-2">
                                     <div className="flex flex-col gap-1">
                                         <label className="text-xs font-semibold text-slate-600 uppercase">Riesgo</label>
-                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold \${h.riesgo === 'Bajo' ? 'bg-green-100 text-green-800' : h.riesgo === 'Medio' ? 'bg-yellow-100 text-yellow-800' : h.riesgo === 'Alto' ? 'bg-red-100 text-red-800' : 'bg-white'}`} value={h.riesgo} onChange={e => updateHallazgo(h.id, 'riesgo', e.target.value)}>
+                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold ${h.riesgo === 'Bajo' ? 'bg-green-100 text-green-800' : h.riesgo === 'Medio' ? 'bg-yellow-100 text-yellow-800' : h.riesgo === 'Alto' ? 'bg-red-100 text-red-800' : 'bg-white'}`} value={h.riesgo} onChange={e => updateHallazgo(h.id, 'riesgo', e.target.value)}>
                                             <option value="">Seleccione</option>
                                             <option value="Bajo">Bajo</option>
                                             <option value="Medio">Medio</option>
@@ -372,7 +365,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <label className="text-xs font-semibold text-slate-600 uppercase">Estado</label>
-                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold \${h.estado === 'Abierto' ? 'bg-red-100 text-red-800' : h.estado === 'Cerrado' ? 'bg-green-100 text-green-800' : 'bg-white'}`} value={h.estado} onChange={e => updateHallazgo(h.id, 'estado', e.target.value)}>
+                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold ${h.estado === 'Abierto' ? 'bg-red-100 text-red-800' : h.estado === 'Cerrado' ? 'bg-green-100 text-green-800' : 'bg-white'}`} value={h.estado} onChange={e => updateHallazgo(h.id, 'estado', e.target.value)}>
                                             <option value="">Seleccione</option>
                                             <option value="Abierto">Abierto</option>
                                             <option value="Cerrado">Cerrado</option>
@@ -475,5 +468,6 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
             </div>
             </div>
         </div>
+        </>
     );
 }
