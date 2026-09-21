@@ -58,8 +58,6 @@ scratch/
 
 # Heavy binary files
 public/pma_temp.pdf
-public/referencias_chincha/
-public/referencias_barandas/
 test_foto.jpg
 test_output_generated.docx
 *.sqlite
