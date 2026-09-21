@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Camera, Trash2, PlusCircle, Check, Loader2, ChevronDown, ChevronUp, User, MapPin, Clock, Calendar, AlertTriangle, FileText, List, CheckCircle2, Mic, MicOff } from "lucide-react";
+import { Camera, Trash2, ArrowLeft, Mail, PlusCircle, Check, Loader2, ChevronDown, ChevronUp, User, MapPin, Clock, Calendar, AlertTriangle, FileText, List, CheckCircle2, Mic, MicOff, Save } from "lucide-react";
+import { EmailReportModal } from '@/components/EmailReportModal';
+import { useRouter } from 'next/navigation';
 
 const CATEGORIAS = [
     "TRANSPORTE DE PERSONAL",
@@ -71,9 +73,9 @@ const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea 
             )}
             <div className="absolute right-2 top-2 flex items-center gap-1">
                 <button type="button" onClick={toggleListen} className={`p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                    {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                    {isListening ? <MicOff size={14} /> : <Mic size={14} />}
                 </button>
-                <button type="button" onClick={() => onChange('')} disabled={!value} className={`p-1.5 rounded-lg transition-colors ${value ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-500' : 'text-slate-300 opacity-50 cursor-not-allowed'}`}><Trash2 size={16} /></button>
+                <button type="button" onClick={() => onChange('')} disabled={!value} className={`p-1.5 rounded-lg transition-colors ${value ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-500' : 'text-slate-300 opacity-50 cursor-not-allowed'}`}><Trash2 size={14} /></button>
             </div>
         </div>
     );
@@ -234,7 +236,23 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
     };
 
     return (
-        <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl border border-indigo-100 overflow-hidden mt-6">
+        <div className="max-w-6xl mx-auto mb-6">
+                <button 
+                    onClick={() => router.push('/inspections?openDigital=true')} 
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                >
+                    <ArrowLeft size={18} /> Volver
+                </button>
+            </div>
+            <div className="max-w-6xl mx-auto mb-6">
+                <button 
+                    onClick={() => router.push('/inspections?openDigital=true')} 
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                >
+                    <ArrowLeft size={18} /> Volver
+                </button>
+            </div>
+            <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl border border-indigo-100 overflow-hidden mt-6">
             <div className="bg-gradient-to-r from-indigo-800 to-blue-700 p-6 md:p-8 text-white mb-6">
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{moduleName.toUpperCase()}</h2>
                 <p className="text-indigo-100 mt-2 text-sm">Complete el formulario digital detallado de inspecciones y hallazgos.</p>
@@ -290,17 +308,17 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
                     <h3 className="text-lg font-bold text-slate-800">Responsables de la Inspección</h3>
                     {responsables.length < 8 && (
                         <button onClick={() => setResponsables([...responsables, ''])} className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                            <PlusCircle size={16} /> Agregar Responsable
+                            <PlusCircle size={14} /> Agregar Responsable
                         </button>
                     )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {responsables.map((r, i) => (
                         <div key={i} className="relative group">
                             <TextInputWithMic placeholder={`Responsable ${i+1}`} className="w-full border border-slate-300 rounded-lg p-2 text-sm" value={r} onChange={(val: string) => handleResponsableChange(i, val)} />
                             {responsables.length > 1 && (
                                 <button onClick={() => { const newR = [...responsables]; newR.splice(i, 1); setResponsables(newR); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors">
-                                    <Trash2 size={16} />
+                                    <Trash2 size={14} />
                                 </button>
                             )}
                         </div>
@@ -313,7 +331,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, id: number) =
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
                     <h3 className="text-lg font-bold text-slate-800">Hallazgos Registrados</h3>
                     <button onClick={addHallazgo} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors">
-                        <PlusCircle size={16} /> Agregar Hallazgo
+                        <PlusCircle size={14} /> Agregar Hallazgo
                     </button>
                 </div>
                 
