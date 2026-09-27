@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { POST as generateExcel } from '@/app/api/export-excel/route';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +89,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         // 2. Regenerar el Excel con la observación levantada y subirlo a Drive
         let driveUrl = '';
         try {
-            const res = await fetch(new URL('/api/export-excel', req.url), {
+            const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -101,6 +102,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
                     comentarioLevantamiento: comentario
                 }),
             });
+            const res = await generateExcel(mockReq);
             const data = await res.json();
             driveUrl = data.driveUrl || '';
         } catch (e) {
@@ -151,3 +153,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
 }
+
+
