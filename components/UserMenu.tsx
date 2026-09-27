@@ -99,16 +99,18 @@ function UserAvatarWithHistory({ u, presenceData, getAvatarColor, hasAlert }: { 
 }
 
 export default function UserMenu() {
+    const pathname = usePathname();
+    const router = useRouter();
+    if (pathname?.startsWith('/levantamiento') || pathname?.startsWith('/public')) return null;
+    
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const router = useRouter();
-    const pathname = usePathname();
 
     const [onlineUsers, setOnlineUsers] = useState<Record<string, { name: string, lastSeen: number, location?: string }>>({});
     const [recentAlerts, setRecentAlerts] = useState<string[]>([]);
 
-    if (pathname && pathname.startsWith('/public')) return null;
+
 
     useEffect(() => {
         // Fetch users with recent critical activity
@@ -416,3 +418,6 @@ export default function UserMenu() {
         </div>
     );
 }
+
+
+

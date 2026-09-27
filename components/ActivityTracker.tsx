@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 
 export default function ActivityTracker() {
     const pathname = usePathname();
+    if (pathname?.startsWith('/levantamiento')) return null;
     const { user } = useAuth();
     const lastPath = useRef<string>('');
 
@@ -51,3 +52,6 @@ export default function ActivityTracker() {
 
     return null; // Invisible component
 }
+
+
+

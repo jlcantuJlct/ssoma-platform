@@ -12,7 +12,11 @@ declare global {
   }
 }
 
+import { usePathname } from 'next/navigation';
+
 export default function VoiceNavigator() {
+    const pathname = usePathname();
+    if (pathname?.startsWith('/levantamiento')) return null;
   const [isListening, setIsListening] = useState(false);
   const [supportSpeech, setSupportSpeech] = useState(true);
   const [feedback, setFeedback] = useState("");
@@ -175,3 +179,5 @@ export default function VoiceNavigator() {
     </div>
   );
 }
+
+

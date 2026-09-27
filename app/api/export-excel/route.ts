@@ -75,6 +75,16 @@ export async function POST(req: Request) {
 
     // --- MANEJADOR 1: BOTIQUINES (Calibrado a F-SIG-030) ---
     if (isBotiquin && fs.existsSync(templatePath)) {
+      // Reinsertar el logo
+      worksheet.getCell("A1").value = "";
+      try {
+        const logoPath = path.join(process.cwd(), "public", "templates", "digital", "official_casa_logo.jpg");
+        if (fs.existsSync(logoPath)) {
+          const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: "jpeg" });
+          worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });
+        }
+      } catch(e) {}
+
       const getVal = (kw: string) => {
         const idx = (template || []).findIndex((t: any) =>
           t.text.toLowerCase().includes(kw),
@@ -147,52 +157,22 @@ export async function POST(req: Request) {
         worksheet.getCell("A11").value = "X";
 
       let hallazgosText = "";
-      let observacionesPrincipales = "";
-      let itemStartRow = 15;
+      let observacionesPrincipales = answers[29]?.text || "";
 
       (template || []).forEach((item: any, idx: number) => {
-        const text = item.text.toLowerCase();
-        if (
-          [
-            "proyecto",
-            "fecha",
-            "hora",
-            "inspector",
-            "cargo",
-            "responsable",
-            "ubicación",
-            "planificada",
-          ].some((k) => text.includes(k))
-        )
-          return;
-
-        if (text.includes("observaciones") || text.includes("comentario")) {
-          observacionesPrincipales = answers[idx]?.text || "";
-          return;
-        }
-
-        if (
-          answers[idx]?.text === "C" ||
-          answers[idx]?.text === "NC" ||
-          answers[idx]?.text === "N/A"
-        ) {
-          let foundRow = -1;
-          for (let r = 14; r <= 35; r++) {
-            const bVal =
-              worksheet.getCell(`B${r}`).value?.toString().toLowerCase() || "";
-            if (bVal && text.includes(bVal.substring(0, 15).trim())) {
-              foundRow = r;
-              break;
-            }
-          }
-          const targetRow = foundRow !== -1 ? foundRow : itemStartRow++;
+        if (idx >= 10 && idx <= 28) {
+          const targetRow = 15 + (idx - 10);
           const ans = answers[idx]?.text;
           const qty = answers[idx]?.qty;
+          
           if (qty) worksheet.getCell(`J${targetRow}`).value = qty;
           if (ans === "C") worksheet.getCell(`K${targetRow}`).value = "X";
           if (ans === "NC") {
             worksheet.getCell(`L${targetRow}`).value = "X";
-            hallazgosText += `- ${item.text}: NO CONFORME\n`;
+            // Solo agregamos al hallazgosText si la observación principal no lo menciona ya
+            if (!observacionesPrincipales.includes(item.text)) {
+                hallazgosText += `- ${item.text}: NO CONFORME\n`;
+            }
           }
           if (ans === "N/A") worksheet.getCell(`M${targetRow}`).value = "X";
         }
@@ -200,17 +180,23 @@ export async function POST(req: Request) {
 
       const finalObs = [
         observacionesPrincipales,
-        hallazgosText ? `HALLAZGOS:\n${hallazgosText}` : "",
+        hallazgosText ? `HALLAZGOS ADICIONALES:\n${hallazgosText.trim()}` : "",
       ]
         .filter(Boolean)
-        .join("\n\n");
+        .join("\n");
+        
       if (finalObs) {
-        worksheet.getCell("A36").value = finalObs;
-        worksheet.getCell("A36").alignment = {
-          wrapText: true,
-          vertical: "top",
-          horizontal: "left",
-        };
+        // En Excel, las filas 36 a 39 son líneas separadas. Dividimos por saltos de línea.
+        const obsLines = finalObs.split('\n');
+        let currentObsRow = 36;
+        obsLines.forEach((line) => {
+            if (currentObsRow <= 39 && line.trim()) {
+                worksheet.getCell(`A${currentObsRow}`).value = line;
+                currentObsRow++;
+            } else if (currentObsRow === 36) { // fallback si es solo una línea muy larga
+                worksheet.getCell("A36").value = line;
+            }
+        });
       }
 
       let currentPhotoRow = 48;
@@ -253,6 +239,25 @@ export async function POST(req: Request) {
             if (colCursor > 1) currentPhotoRow += 13;
           }
         });
+      }
+
+      // --- RENDERIZADO DE LEVANTAMIENTO DE OBSERVACIONES ---
+      if (data.evidenciaLevantamiento) {
+        currentPhotoRow = Math.max(currentPhotoRow, 65);
+        worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
+        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
+        currentPhotoRow += 2;
+        if (data.comentarioLevantamiento) {
+          worksheet.getCell(`A${currentPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
+          currentPhotoRow += 2;
+        }
+        try {
+          const base64Data = data.evidenciaLevantamiento.replace(/^data:image\/\w+;base64,/, "");
+          const imageId = workbook.addImage({ base64: base64Data, extension: "png" });
+          worksheet.addImage(imageId, { tl: { col: 0, row: currentPhotoRow - 1 }, ext: { width: 300, height: 220 } });
+        } catch (e) {
+          console.error("Error attaching levantamiento photo:", e);
+        }
       }
     }
     // --- MANEJADOR 2: EPP MATRICIAL ---
@@ -511,6 +516,36 @@ export async function POST(req: Request) {
             }
           });
         }
+
+        // --- RENDERIZADO DE LEVANTAMIENTO DE OBSERVACIONES ---
+        if (data.evidenciaLevantamiento) {
+          // Si no hubo fotos anteriores, forzamos a que inicie en la fila 65 como pidió el usuario, 
+          // o usamos la fila actual si ya avanzamos más allá
+          currentPhotoRow = Math.max(currentPhotoRow, 65);
+          
+          worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
+          worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
+          currentPhotoRow += 2;
+          
+          if (data.comentarioLevantamiento) {
+            worksheet.getCell(`A${currentPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
+            currentPhotoRow += 2;
+          }
+
+          try {
+            const base64Data = data.evidenciaLevantamiento.replace(/^data:image\/\w+;base64,/, "");
+            const imageId = workbook.addImage({
+              base64: base64Data,
+              extension: "png",
+            });
+            worksheet.addImage(imageId, {
+              tl: { col: 0, row: currentPhotoRow - 1 },
+              ext: { width: 300, height: 220 },
+            });
+          } catch (e) {
+            console.error("Error attaching levantamiento photo:", e);
+          }
+        }
       } else {
         worksheet.mergeCells("A1:H2");
         const titleCell = worksheet.getCell("A1");
@@ -671,8 +706,42 @@ export async function POST(req: Request) {
     }
     // --- MANEJADOR INTERNAS ---
     else if (isInternas) {
-      const getAns = (label: string) =>
-        answers.find((a: any) => a.text === label)?.text || "";
+      // Reinsertar el logo (ExcelJS pierde las imágenes incrustadas al reescribir el archivo)
+      try {
+        const logoPath = path.join(
+          process.cwd(),
+          "public",
+          "templates",
+          "digital",
+          "logo_internas.jpg",
+        );
+        if (fs.existsSync(logoPath)) {
+          const logoId = workbook.addImage({
+            buffer: fs.readFileSync(logoPath),
+            extension: "jpeg",
+          });
+          worksheet.addImage(logoId, {
+            tl: { col: 1, row: 0 }, // Columna B, fila 1 (posición original del formato)
+            ext: { width: 149, height: 61 },
+          });
+        }
+      } catch (logoErr) {
+        console.error("Error insertando logo:", logoErr);
+      }
+
+      // Buscar la respuesta por su etiqueta en el array 'template' (mismo índice)
+      const getAns = (label: string) => {
+        const idx = (template || []).findIndex(
+          (t: any) => (t.text || "").trim() === label,
+        );
+        return idx !== -1 ? answers[idx]?.text || "" : "";
+      };
+      const getSig = (label: string) => {
+        const idx = (template || []).findIndex(
+          (t: any) => (t.text || "").trim() === label,
+        );
+        return idx !== -1 ? answers[idx]?.signature || "" : "";
+      };
       const proyecto = getAns("Proyecto:");
       const direccion = getAns("Dirección:");
       const respArea = getAns("Responsable Área:");
@@ -686,8 +755,7 @@ export async function POST(req: Request) {
       const regNombre = getAns("RegNombre:");
       const regCargo = getAns("RegCargo:");
       const regFecha = getAns("RegFecha:");
-      const regFirma =
-        answers.find((a: any) => a.text === "RegFirma:")?.signature || "";
+      const regFirma = getSig("RegFirma:");
 
       worksheet.getCell("A7").value = proyecto;
       worksheet.getCell("K7").value = direccion;
@@ -709,6 +777,8 @@ export async function POST(req: Request) {
 
       worksheet.getCell("T9").value = hora;
       worksheet.getCell("U9").value = fecha;
+      // N° de trabajadores en el centro laboral (celda combinada T5:U5)
+      worksheet.getCell("T5").value = getAns("N° Trabajadores:");
 
       const resCells = ["A9", "A10", "A11", "A12", "E9", "E10", "E11", "E12"];
       for (let i = 0; i < 8; i++) {
@@ -717,6 +787,85 @@ export async function POST(req: Request) {
             `${i < 4 ? i + 1 : i + 1}) ${responsables[i]}`;
         }
       }
+
+      // --- CENTRADO DE IMÁGENES EN CELDAS COMBINADAS ---
+      const stripB64 = (b64: string) =>
+        b64.substring(b64.indexOf(",") + 1);
+      const colWidthPx = (c: number) => {
+        const w = worksheet.getColumn(c).width;
+        return w ? Math.round(w * 7 + 5) : 64;
+      };
+      const rowHeightPx = (r: number) => {
+        const h = worksheet.getRow(r).height;
+        return h ? (h * 4) / 3 : 20;
+      };
+      const getMergedBox = (col1: number, row1: number) => {
+        const internal = (worksheet as any)._merges || {};
+        for (const key of Object.keys(internal)) {
+          const m = internal[key]?.model || internal[key];
+          if (
+            m &&
+            m.left !== undefined &&
+            col1 >= m.left &&
+            col1 <= m.right &&
+            row1 >= m.top &&
+            row1 <= m.bottom
+          ) {
+            return m;
+          }
+        }
+        return { left: col1, top: row1, right: col1, bottom: row1 };
+      };
+      const addCenteredImage = (
+        b64: string,
+        col1: number,
+        row1: number,
+        maxW = 100,
+        maxH = 100,
+        aspect = 1,
+      ) => {
+        try {
+          const box = getMergedBox(col1, row1);
+          let boxW = 0;
+          for (let c = box.left; c <= box.right; c++) boxW += colWidthPx(c);
+          let boxH = 0;
+          for (let r = box.top; r <= box.bottom; r++) boxH += rowHeightPx(r);
+          // Ajustar al área disponible respetando la proporción (aspect = ancho/alto)
+          let w = Math.max(20, Math.min(maxW, boxW - 8));
+          let h = w / aspect;
+          if (h > Math.min(maxH, boxH - 8)) {
+            h = Math.max(20, Math.min(maxH, boxH - 8));
+            w = h * aspect;
+          }
+          const imageId = workbook.addImage({
+            base64: stripB64(b64),
+            extension: "png",
+          });
+          const offX = Math.max(0, (boxW - w) / 2);
+          const offY = Math.max(0, (boxH - h) / 2);
+          // Avanzar columna por columna hasta el píxel central (evita que la
+          // fracción se calcule con el ancho de una sola columna angosta)
+          let remX = offX;
+          let anchorCol = box.left;
+          while (anchorCol < box.right && remX > colWidthPx(anchorCol)) {
+            remX -= colWidthPx(anchorCol);
+            anchorCol++;
+          }
+          let remY = offY;
+          let anchorRow = box.top;
+          while (anchorRow < box.bottom && remY > rowHeightPx(anchorRow)) {
+            remY -= rowHeightPx(anchorRow);
+            anchorRow++;
+          }
+          worksheet.addImage(imageId, {
+            tl: {
+              col: anchorCol - 1 + remX / colWidthPx(anchorCol),
+              row: anchorRow - 1 + remY / rowHeightPx(anchorRow),
+            },
+            ext: { width: w, height: h },
+          });
+        } catch (e) {}
+      };
 
       // Grid logic
       let currentRow = 15;
@@ -765,44 +914,14 @@ export async function POST(req: Request) {
             fgColor: { argb: "FFc6efce" },
           };
 
-        // Photo Evidencia
-        if (h.evidencia) {
-          try {
-            const base64Data = h.evidencia.replace(
-              /^data:image\/\w+;base64,/,
-              "",
-            );
-            const imageId = workbook.addImage({
-              base64: base64Data,
-              extension: "png",
-            });
-            // col 6 is G
-            worksheet.addImage(imageId, {
-              tl: { col: 6, row: currentRow - 1 },
-              ext: { width: 100, height: 100 },
-            });
-            worksheet.getRow(currentRow).height = 80;
-          } catch (e) {}
-        }
-
-        // Photo Levantamiento
-        if (h.evidenciaLevantamiento) {
-          try {
-            const base64Data = h.evidenciaLevantamiento.replace(
-              /^data:image\/\w+;base64,/,
-              "",
-            );
-            const imageId = workbook.addImage({
-              base64: base64Data,
-              extension: "png",
-            });
-            // col 16 is Q
-            worksheet.addImage(imageId, {
-              tl: { col: 16, row: currentRow - 1 },
-              ext: { width: 100, height: 100 },
-            });
-            worksheet.getRow(currentRow).height = 80;
-          } catch (e) {}
+        // Fotos centradas en sus celdas combinadas
+        if (h.evidencia || h.evidenciaLevantamiento) {
+          worksheet.getRow(currentRow).height = 80;
+          // Evidencia inicial -> columna G (celda combinada G:I)
+          if (h.evidencia) addCenteredImage(h.evidencia, 7, currentRow);
+          // Evidencia de levantamiento -> columna Q (celda combinada Q:T)
+          if (h.evidenciaLevantamiento)
+            addCenteredImage(h.evidenciaLevantamiento, 17, currentRow);
         }
         currentRow++;
       }
@@ -820,16 +939,9 @@ export async function POST(req: Request) {
 
       if (regFirma) {
         try {
-          const base64Data = regFirma.replace(/^data:image\/\w+;base64,/, "");
-          const imageId = workbook.addImage({
-            base64: base64Data,
-            extension: "png",
-          });
-          // T26 -> col 19, row 25
-          worksheet.addImage(imageId, {
-            tl: { col: 19, row: 25 },
-            ext: { width: 120, height: 35 },
-          });
+          // Firma digital más grande y centrada en la celda combinada T26:U26
+          // (se respeta la altura original de la fila de la plantilla: 80.25pt ≈ 107px)
+          addCenteredImage(regFirma, 20, 26, 280, 90, 4);
         } catch (e) {}
       }
     }
@@ -956,3 +1068,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+

@@ -58,6 +58,10 @@ export default function Sidebar() {
         environment: true
     });
 
+    if (pathname?.startsWith('/levantamiento')) {
+        return null;
+    }
+
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [alerts, setAlerts] = useState<Record<string, boolean>>({});
 

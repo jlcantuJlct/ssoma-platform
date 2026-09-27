@@ -85,6 +85,9 @@ const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea 
 export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     const router = useRouter();
     const [isSaving, setIsSaving] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [generatedReport, setGeneratedReport] = useState<{ fileBase64: string; driveUrl: string; fileName: string } | null>(null);
     const [proyecto, setProyecto] = useState('RED VIAL 6');
     const [direccion, setDireccion] = useState('');
     const [responsableArea, setResponsableArea] = useState('');
@@ -103,7 +106,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     const [responsables, setResponsables] = useState<string[]>(['']);
     
     const [hallazgos, setHallazgos] = useState<any[]>([
-        { id: 1, descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', fecha: '', estado: '' }
+        { id: 1, descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', responsableEmail: '', responsableManual: false, fecha: '', estado: '' }
     ]);
     
     const [conclusiones, setConclusiones] = useState('');
@@ -115,6 +118,15 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
 
     const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
+    // Directorio de contactos para asignar responsables con correo
+    const [contactos, setContactos] = useState<{ name: string; email: string }[]>([]);
+    useEffect(() => {
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('ssoma_contacts') : null;
+        if (stored) {
+            try { setContactos(JSON.parse(stored)); } catch (e) { /* lista vacía */ }
+        }
+    }, []);
+
     const handleResponsableChange = (idx: number, val: string) => {
         const newResp = [...responsables];
         newResp[idx] = val;
@@ -122,7 +134,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     };
 
     const addHallazgo = () => {
-        setHallazgos([...hallazgos, { id: Date.now(), descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', fecha: '', estado: '' }]);
+        setHallazgos([...hallazgos, { id: Date.now(), descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', responsableEmail: '', responsableManual: false, fecha: '', estado: '' }]);
     };
 
     const removeHallazgo = (id: number) => {
@@ -182,6 +194,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                     { text: 'Tipo:', type: 'question' },
                     { text: 'Hora:', type: 'question' },
                     { text: 'Fecha:', type: 'question' },
+                    { text: 'N° Trabajadores:', type: 'question' },
                     { text: 'Responsables:', type: 'question' },
                     { text: 'Hallazgos:', type: 'question' },
                     { text: 'Conclusiones:', type: 'question' },
@@ -198,6 +211,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                     { text: tipo },
                     { text: hora },
                     { text: fecha },
+                    { text: trabajadores },
                     { text: JSON.stringify(responsables) },
                     { text: JSON.stringify(hallazgos) },
                     { text: conclusiones },
@@ -211,19 +225,107 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName, version, ...payload })
+                body: JSON.stringify({ moduleName, version, ...payload, saveToDrive: true })
             });
 
             if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${moduleName}_${new Date().getTime()}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                alert("Excel generado correctamente.");
+                const data = await res.json();
+                const fileName = `INSP_${moduleName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                const fileBase64: string = data.fileBase64 || '';
+                const driveUrl: string = data.driveUrl || '';
+
+                // 1. Descargar el archivo localmente
+                if (fileBase64) {
+                    const byteCharacters = atob(fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }
+
+                setGeneratedReport({ fileBase64, driveUrl, fileName });
+
+                // 2. Registrar la inspección en la base de datos
+                let inspectionRecordId: number | null = null;
+                try {
+                    const dbResponse = await fetch('/api/inspections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create',
+                            data: {
+                                date: fecha || new Date().toISOString().split('T')[0],
+                                responsible: regNombre || 'Sin responsable',
+                                inspectionType: moduleName,
+                                area: area || proyecto || 'Seguridad',
+                                zone: `Inspección Interna SSOMA${tipo ? ` - ${tipo}` : ''}`,
+                                status: 'Completado',
+                                observations: conclusiones || 'Generado desde formulario digital de Inspecciones Internas.',
+                                evidencePdf: driveUrl,
+                                evidenceImgs: []
+                            }
+                        })
+                    });
+                    const dbData = await dbResponse.json();
+                    if (dbData?.id) inspectionRecordId = dbData.id;
+                } catch (dbErr) {
+                    console.error('Error registrando inspección en BD:', dbErr);
+                }
+
+                // 3. Crear enlaces de levantamiento para hallazgos abiertos con responsable
+                let enlacesEnviados = 0;
+                try {
+                    const pendientes = hallazgos
+                        .map((h, i) => ({ ...h, index: i }))
+                        .filter((h: any) => h.estado !== 'Cerrado' && h.responsableEmail);
+
+                    if (pendientes.length > 0) {
+                        const lvRes = await fetch('/api/levantamiento/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ moduleName, template: payload.template, answers: payload.answers, hallazgos: pendientes, inspectionRecordId })
+                        });
+                        const lvData = await lvRes.json();
+                        const origin = window.location.origin;
+                        for (const item of (lvData.items || [])) {
+                            const link = `${origin}/levantamiento/${item.token}`;
+                            const mailRes = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: [item.email],
+                                    subject: `⚠️ Acción requerida: Levantar hallazgo - ${moduleName}`,
+                                    text: `Hola ${item.responsable},\n\nSe te asignó levantar la siguiente observación:\n"${item.description}"\n\nIngresa al siguiente enlace para subir tu evidencia y cerrar la observación:\n${link}`,
+                                    html: `<p>Hola <b>${item.responsable}</b>,</p><p>Se te asignó levantar la siguiente observación:</p><p style="background:#fef3c7;padding:12px;border-radius:8px;"><i>"${item.description}"</i></p><p><a href="${link}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">✅ Levantar mi observación</a></p><p>Si el botón no funciona, copia este enlace:<br>${link}</p>`
+                                })
+                            });
+                            if (mailRes.ok) enlacesEnviados++;
+                        }
+                    }
+                } catch (lvErr) {
+                    console.error('Error creando/enviando levantamientos:', lvErr);
+                }
+
+                const abiertosSinCorreo = hallazgos.filter((h: any) => h.estado !== 'Cerrado' && !h.responsableEmail).length;
+                let mensajeFinal = '✅ Excel generado, guardado en Drive y registrado en el sistema.';
+                if (enlacesEnviados > 0) {
+                    mensajeFinal = `✅ Excel generado, guardado en Drive y registrado.\n📧 Se enviaron ${enlacesEnviados} enlace(s) de levantamiento a los responsables.`;
+                }
+                if (abiertosSinCorreo > 0) {
+                    mensajeFinal += `\n\n⚠️ ATENCIÓN: ${abiertosSinCorreo} hallazgo(s) abierto(s) NO recibieron enlace de levantamiento porque no tienen responsable con correo asignado en la tarjeta del hallazgo.`;
+                }
+                alert(mensajeFinal);
+
+                // 3. Abrir el modal de correo con el enlace de Drive
+                setShowEmailModal(true);
             } else {
                 alert("Error al generar Excel");
             }
@@ -232,6 +334,55 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             alert("Error al exportar");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const resumenHallazgos = hallazgos
+        .filter(h => h.descripcion || h.riesgo)
+        .map((h, i) => {
+            const nivel = h.riesgo || '-';
+            const resp = h.responsable || '-';
+            const fechaH = h.fecha || '-';
+            const estado = h.estado || 'Abierto';
+            return `${i + 1}. ${h.descripcion || 'Sin descripción'} (Nivel: ${nivel} | Resp: ${resp} | Fecha: ${fechaH} | Estado: ${estado})`;
+        })
+        .join('\n');
+
+    const handleSendEmail = async (emailData: { to: string[]; cc: string[]; subject: string; message: string; fromEmail: string; fromName: string }) => {
+        setIsSendingEmail(true);
+        try {
+            const driveLink = generatedReport?.driveUrl || '';
+            const placeholder = '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]';
+            const bodyWithLink = emailData.message.includes(placeholder)
+                ? emailData.message.replace(placeholder, driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : '')
+                : (driveLink ? emailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : emailData.message);
+
+            const emailRes = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: emailData.to,
+                    cc: emailData.cc,
+                    subject: emailData.subject,
+                    text: bodyWithLink,
+                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
+                        /(https?:\/\/[^\s]+)/g,
+                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
+                    ),
+                    fromEmail: emailData.fromEmail,
+                    fromName: emailData.fromName
+                })
+            });
+
+            if (!emailRes.ok) throw new Error('Error al enviar correo');
+
+            alert('📧 Correo enviado correctamente con el enlace del reporte.');
+            setShowEmailModal(false);
+        } catch (e) {
+            console.error(e);
+            alert('Hubo un error al enviar el correo, pero el reporte se generó correctamente.');
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -253,46 +404,48 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             <div className="p-4 md:p-6 pt-0">
             
             {/* METADATA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+                <div className="flex flex-col gap-1 md:col-span-3">
                     <label className="text-sm font-semibold text-slate-700">Proyecto:</label>
                     <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={proyecto} onChange={setProyecto} />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 md:col-span-3">
                     <label className="text-sm font-semibold text-slate-700">Dirección del Proyecto:</label>
                     <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={direccion} onChange={setDireccion} />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 md:col-span-2">
                     <label className="text-sm font-semibold text-slate-700">Responsable del Área:</label>
                     <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={responsableArea} onChange={setResponsableArea} />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 md:col-span-2">
                     <label className="text-sm font-semibold text-slate-700">Área Inspeccionada:</label>
                     <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={area} onChange={setArea} />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 md:col-span-2">
+                    <label className="text-sm font-semibold text-slate-700">N° Trabajadores en el Centro Laboral:</label>
+                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={trabajadores} onChange={setTrabajadores} />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
                     <label className="text-sm font-semibold text-slate-700">Tipo de Inspección:</label>
                     <div className="flex gap-2 h-full items-end">
                         {['Planeada', 'No planeada', 'Otro'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setTipo(t)}
-                                className={`flex-1 py-2 px-1 text-[11px] sm:text-xs rounded-lg font-bold transition-all border ${tipo === t ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}
+                                className={`flex-1 py-2 px-2 text-xs rounded-lg font-bold transition-all border ${tipo === t ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}
                             >
                                 {t}
                             </button>
                         ))}
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-slate-700">Fecha:</label>
-                        <input type="date" className="border border-slate-300 rounded-lg p-2" value={fecha} onChange={e => setFecha(e.target.value)} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-slate-700">Hora:</label>
-                        <input type="time" className="border border-slate-300 rounded-lg p-2" value={hora} onChange={e => setHora(e.target.value)} />
-                    </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
+                    <label className="text-sm font-semibold text-slate-700">Fecha:</label>
+                    <input type="date" className="border border-slate-300 rounded-lg p-2" value={fecha} onChange={e => setFecha(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1 md:col-span-2">
+                    <label className="text-sm font-semibold text-slate-700">Hora:</label>
+                    <input type="time" className="border border-slate-300 rounded-lg p-2" value={hora} onChange={e => setHora(e.target.value)} />
                 </div>
             </div>
 
@@ -410,7 +563,41 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-2">
                                     <div className="flex flex-col gap-1">
                                         <label className="text-xs font-semibold text-slate-600 uppercase">Responsable Impl.</label>
-                                        <TextInputWithMic className="w-full border border-slate-300 rounded-lg p-1.5 text-sm" value={h.responsable} onChange={(val: string) => updateHallazgo(h.id, 'responsable', val)} />
+                                        <select
+                                            className={`border rounded-lg p-1.5 text-sm ${h.responsableEmail && !h.responsableManual ? 'border-green-300 bg-green-50 font-semibold' : 'border-slate-300 bg-white'}`}
+                                            value={h.responsableManual ? '__manual__' : (h.responsableEmail ? `${h.responsable}|${h.responsableEmail}` : '')}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                if (v === '__manual__') {
+                                                    updateHallazgo(h.id, 'responsableManual', true);
+                                                    updateHallazgo(h.id, 'responsableEmail', '');
+                                                } else if (v === '') {
+                                                    updateHallazgo(h.id, 'responsableManual', false);
+                                                    updateHallazgo(h.id, 'responsableEmail', '');
+                                                    updateHallazgo(h.id, 'responsable', '');
+                                                } else {
+                                                    const parts = v.split('|');
+                                                    updateHallazgo(h.id, 'responsableManual', false);
+                                                    updateHallazgo(h.id, 'responsable', parts[0]);
+                                                    updateHallazgo(h.id, 'responsableEmail', parts[1]);
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Seleccione responsable...</option>
+                                            {contactos.map((c) => (
+                                                <option key={c.email} value={`${c.name}|${c.email}`}>{c.name}</option>
+                                            ))}
+                                            <option value="__manual__">Otro (correo manual)</option>
+                                        </select>
+                                        {h.responsableManual && (
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <input placeholder="Nombre del responsable" className="w-full border border-slate-300 rounded-lg p-1.5 text-sm" value={h.responsable || ''} onChange={(e) => updateHallazgo(h.id, 'responsable', e.target.value)} />
+                                                <input placeholder="Correo del responsable" type="email" className="w-full border border-slate-300 rounded-lg p-1.5 text-sm" value={h.responsableEmail || ''} onChange={(e) => updateHallazgo(h.id, 'responsableEmail', e.target.value)} />
+                                            </div>
+                                        )}
+                                        {!h.responsableManual && h.responsableEmail && (
+                                            <span className="text-[10px] text-green-700 font-semibold break-all">📧 {h.responsableEmail}</span>
+                                        )}
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <label className="text-xs font-semibold text-slate-600 uppercase">Fecha Prog.</label>
@@ -456,7 +643,16 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                {generatedReport && (
+                    <button 
+                        onClick={() => setShowEmailModal(true)} 
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/30"
+                    >
+                        <Mail size={20} />
+                        Enviar por Correo
+                    </button>
+                )}
                 <button 
                     onClick={submit} 
                     disabled={isSaving}
@@ -468,6 +664,15 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             </div>
             </div>
         </div>
+
+            <EmailReportModal
+                isOpen={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                onSend={handleSendEmail}
+                defaultSubject={`Reporte de Inspección Interna SSOMA - ${proyecto || 'Proyecto'}${tipo ? ` (${tipo})` : ''}`}
+                isSending={isSendingEmail}
+                initialObservations={resumenHallazgos || conclusiones}
+            />
         </>
     );
 }

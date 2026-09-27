@@ -31,6 +31,7 @@ interface EmailReportModalProps {
   defaultSubject?: string;
   isSending?: boolean;
   initialObservations?: string;
+  preSelectedTo?: string[];
 }
 
 export function EmailReportModal({ 
@@ -39,7 +40,8 @@ export function EmailReportModal({
   onSend, 
   defaultSubject = 'Reporte de Inspección', 
   isSending = false,
-  initialObservations = '' 
+  initialObservations = '',
+  preSelectedTo = []
 }: EmailReportModalProps) {
   const [activeTab, setActiveTab] = useState<'compose' | 'contacts'>('compose');
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -58,6 +60,9 @@ export function EmailReportModal({
   // Generate default message when modal opens
   useEffect(() => {
     if (isOpen) {
+      if (preSelectedTo && preSelectedTo.length > 0) {
+        setSelectedTo(preSelectedTo);
+      }
       const stored = localStorage.getItem('ssoma_contacts');
       if (stored) {
         setContacts(JSON.parse(stored));

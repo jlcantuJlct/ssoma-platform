@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle , Mail} from 'lucide-react';
 import { generateBotiquinPDF } from '@/lib/pdfGenerator';
+import { useAuth } from '@/lib/auth';
 
 interface BotiquinCustomFormProps {
     moduleName: string;
@@ -17,6 +18,7 @@ interface ChecklistItem {
     name: string;
     qty: string;
     status: 'C' | 'NC' | 'N/A' | null;
+    defectNote?: string;
 }
 
 const INITIAL_BOTIQUIN_ITEMS: { name: string; qty: string }[] = [
@@ -43,6 +45,7 @@ const INITIAL_BOTIQUIN_ITEMS: { name: string; qty: string }[] = [
 
 export function BotiquinCustomForm({ moduleName, version, SignaturePad }: BotiquinCustomFormProps) {
     const router = useRouter();
+    const { user } = useAuth();
 
     // Metadata
     const [proyecto, setProyecto] = useState('RED VIAL 6');
@@ -51,13 +54,32 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         const now = new Date();
         return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     });
-    const [inspector, setInspector] = useState('');
+    const [inspector, setInspector] = useState(user?.name || '');
+    
+    // Sincronizar el nombre del inspector si el usuario carga después
+    useEffect(() => {
+        if (user?.name && !inspector) {
+            setInspector(user.name);
+        }
+    }, [user, inspector]);
+
     const [cargo, setCargo] = useState('');
     const [responsable, setResponsable] = useState('');
     const [ubicacion, setUbicacion] = useState('');
     const [isPlanificada, setIsPlanificada] = useState(true);
     const [isNoPlanificada, setIsNoPlanificada] = useState(false);
     const [isOtro, setIsOtro] = useState(false);
+
+    // Módulo Levantamiento
+    const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
+    const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('ssoma_contacts');
+        if (stored) {
+            setContactos(JSON.parse(stored));
+        }
+    }, []);
 
     // Firmas
     const [inspectorSignature, setInspectorSignature] = useState('');
@@ -69,7 +91,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
             id: index + 1,
             name: item.name,
             qty: item.qty,
-            status: null
+            status: 'C'
         }))
     );
 
@@ -82,6 +104,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
     // Estado de guardado y voz
     const [isSaving, setIsSaving] = useState(false);
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
     const [activeRecordingField, setActiveRecordingField] = useState<string | null>(null);
@@ -138,18 +161,39 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
     };
 
     const handleStatusChange = (id: number, status: 'C' | 'NC' | 'N/A') => {
-        const item = items.find(i => i.id === id);
-        if (item && status === 'NC' && item.status !== 'NC') {
-            const missing = window.prompt(`¿Cuántos faltan o están defectuosos de "${item.name}"? (Req: ${item.qty})`);
-            if (missing) {
-                const textToAppend = `- Falta/Defectuoso: ${missing} de ${item.name}`;
-                setObservaciones(prevObs => {
-                    if (prevObs.includes(textToAppend)) return prevObs;
-                    return prevObs ? prevObs + '\n' + textToAppend : textToAppend;
-                });
-            }
-        }
         setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    };
+
+    const handleDefectChange = (id: number, defectNote: string) => {
+        setItems(prev => prev.map(item => item.id === id ? { ...item, defectNote } : item));
+    };
+
+    const handleDefectConfirm = (id: number) => {
+        const item = items.find(i => i.id === id);
+        if (item && item.defectNote && item.defectNote.trim() !== '') {
+            const qtyStr = item.defectNote.trim();
+            const newText = `- Falta/Defectuoso: ${qtyStr} de ${item.name}`;
+            
+            setObservaciones(prevObs => {
+                // Si la línea exacta ya existe, no hacemos nada
+                if (prevObs.includes(newText)) return prevObs;
+                
+                // Expresión regular para buscar si ya existe una entrada para este ítem con otra cantidad
+                // Busca "- Falta/Defectuoso: [cualquier numero] de [Nombre del item]"
+                // Para escapar caracteres especiales del nombre del item en el regex
+                const safeItemName = item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`- Falta/Defectuoso: \\d+ de ${safeItemName}`, 'g');
+                
+                if (regex.test(prevObs)) {
+                    // Si existe, reemplazamos solo la cantidad, manteniendo intacto cualquier otro texto que el usuario haya escrito a la derecha
+                    return prevObs.replace(regex, newText);
+                }
+                
+                // Si no existe, agregamos la nueva línea
+                return prevObs ? prevObs + '\n' + newText : newText;
+            });
+            // Ya NO limpiamos el input para que el número se mantenga visible y no se duplique
+        }
     };
 
     const handleQtyChange = (id: number, qty: string) => {
@@ -249,7 +293,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     moduleName: 'Botiquines',
                     answers: answersObj,
                     template: templateItems,
-                    observaciones,
+                    observaciones: observaciones,
                     saveToDrive: true,
                     fotosDefectos: fotoGeneral.length > 0 ? { 'Evidencia General': fotoGeneral } : {}
                 })
@@ -267,41 +311,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
                     
-                    if (isEmailing && customEmailData) {
-                        try {
-                            // Agregar enlace de Drive al cuerpo del mensaje
-                            const driveLink = data.driveUrl || '';
-                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                ? customEmailData.message.replace(
-                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
-                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
-                                )
-                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
-
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
-                                        /(https?:\/\/[^\s]+)/g,
-                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
-                                    ),
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                    // sin adjunto — el archivo está en Drive
-                                })
-                            });
-                            if (!emailRes.ok) throw new Error('Error al enviar correo');
-                            alert('✅ Correo enviado correctamente con el enlace de Drive.');
-                        } catch (e) {
-                            console.error(e);
-                            alert('Hubo un error al enviar el correo, pero el reporte se guardó en Drive.');
-                        }
-                    } else {
+                    if (!isEmailing) {
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
@@ -312,34 +322,80 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     }
                 }
 
-                await fetch('/api/inspections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'create',
-                        data: {
-                            date: fecha,
-                            responsible: inspector,
-                            inspectionType: 'Botiquines',
-                            area: proyecto,
-                            zone: ubicacion || 'Inspección Digital',
-                            status: 'Completado',
-                            observations: observaciones || 'Generado desde formulario blindado de Botiquines.',
-                            evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
+                let inspectionRecordId = null;
+                try {
+                    const dbRes = await fetch('/api/inspections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create',
+                            data: {
+                                date: fecha,
+                                responsible: inspector,
+                                inspectionType: 'Botiquines',
+                                area: proyecto,
+                                zone: ubicacion || 'Inspección Digital',
+                                status: 'Completado',
+                                observations: observaciones || 'Generado desde formulario blindado de Botiquines.',
+                                evidencePdf: data.driveUrl || '',
+                                evidenceImgs: []
+                            }
+                        })
+                    });
+                    const dbData = await dbRes.json();
+                    if (dbData?.id) inspectionRecordId = dbData.id;
+                } catch(err) { console.error(err); }
+
+                // Generar Levantamiento de Observaciones General si aplica
+                let generatedLevantamientoLink = null;
+                if (responsableLevantamiento && badItems.length > 0) {
+                    const desc = "Observaciones generales del Checklist Botiquín:\n" + badItems.map(b => `- ${b.name}${b.defectNote ? ` (Detalle: ${b.defectNote})` : ''}`).join("\n");
+                    try {
+                        const lvRes = await fetch('/api/levantamiento/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                moduleName: 'Botiquines',
+                                template: templateItems,
+                                answers: answersObj,
+                                inspectionRecordId,
+                                hallazgos: [{
+                                    index: 0,
+                                    descripcion: desc,
+                                    riesgo: 'Medio',
+                                    categoria: 'Condición Subestándar',
+                                    responsable: responsableLevantamiento.name,
+                                    responsableEmail: responsableLevantamiento.email,
+                                    fecha: fecha,
+                                    fotosDefectos: fotoGeneral.length > 0 ? { 'Evidencia General': fotoGeneral } : {}
+                                }]
+                            })
+                        });
+                        
+                        if (lvRes.ok) {
+                            const lvData = await lvRes.json();
+                            if (lvData.items && lvData.items.length > 0) {
+                                generatedLevantamientoLink = `${window.location.origin}/levantamiento/${lvData.items[0].token}`;
+                                setCachedLevantamientoLink(generatedLevantamientoLink);
+                            }
+                        } else {
+                            const errText = await lvRes.text();
+                            alert(`Error de servidor al crear levantamiento: ${errText}`);
                         }
-                    })
-                });
+                    } catch(err) { console.error('Error generando levantamiento:', err); }
+                }
 
                 if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo.\n3. Si quieres salir, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
                     }
                 }
                 
+                return { driveUrl: data.driveUrl, levantamientoLink: generatedLevantamientoLink };
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
+                return null;
             }
         } catch(e) {
             console.error(e);
@@ -598,49 +654,70 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
 
                 <div className="divide-y divide-slate-100">
                     {items.map((item) => (
-                        <div key={item.id} className="p-3.5 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex-1">
-                                <span className="text-xs font-bold text-slate-400 mr-2">#{item.id}</span>
-                                <span className="text-sm font-semibold text-slate-800">{item.name}</span>
-                            </div>
+                        <div key={item.id} className="p-3.5 hover:bg-slate-50/70 transition-colors flex flex-col gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex-1">
+                                    <span className="text-xs font-bold text-slate-400 mr-2">#{item.id}</span>
+                                    <span className="text-sm font-semibold text-slate-800">{item.name}</span>
+                                </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                                {/* Cantidad */}
-                                <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] font-bold text-slate-400 mr-1.5">CANT:</span>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    {/* Cantidad */}
+                                    <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
+                                        <span className="text-[10px] font-bold text-slate-400 mr-1.5">CANT:</span>
+                                        <input 
+                                            type="text" 
+                                            value={item.qty} 
+                                            onChange={(e) => handleQtyChange(item.id, e.target.value)}
+                                            className="w-10 bg-transparent text-xs font-bold text-slate-700 text-center outline-none" 
+                                        />
+                                    </div>
+
+                                    {/* Botones C / NC / N/A */}
+                                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleStatusChange(item.id, 'C')} 
+                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'C' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+                                        >
+                                            C
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleStatusChange(item.id, 'NC')} 
+                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'NC' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+                                        >
+                                            NC
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleStatusChange(item.id, 'N/A')} 
+                                            className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
+                                        >
+                                            N/A
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Inline Defect Input */}
+                            {item.status === 'NC' && (
+                                <div className="w-full mt-1 bg-red-50 border border-red-100 p-2 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <AlertCircle size={14} className="text-red-500 shrink-0" />
                                     <input 
-                                        type="text" 
-                                        value={item.qty} 
-                                        onChange={(e) => handleQtyChange(item.id, e.target.value)}
-                                        className="w-10 bg-transparent text-xs font-bold text-slate-700 text-center outline-none" 
+                                        type="number" 
+                                        min="1"
+                                        placeholder={`Escribe la cantidad y presiona Enter...`} 
+                                        value={item.defectNote || ''}
+                                        onChange={(e) => handleDefectChange(item.id, e.target.value)}
+                                        onBlur={() => handleDefectConfirm(item.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleDefectConfirm(item.id);
+                                        }}
+                                        className="w-full bg-white border border-red-200 text-xs rounded-md px-2.5 py-1.5 outline-none focus:border-red-400 placeholder:text-red-300 text-red-700 font-bold"
                                     />
                                 </div>
-
-                                {/* Botones C / NC / N/A */}
-                                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'C')} 
-                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'C' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        C
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'NC')} 
-                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'NC' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        NC
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'N/A')} 
-                                        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        N/A
-                                    </button>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -687,19 +764,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                     4. Observaciones y Conclusiones (A36)
                 </h3>
 
-                {/* Resumen dinámico de Hallazgos */}
-                {badItems.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-3">
-                        <h5 className="font-bold text-red-800 text-xs mb-1.5 flex items-center gap-1.5">
-                            <AlertCircle size={14} /> HALLAZGOS REGISTRADOS AUTOMÁTICAMENTE:
-                        </h5>
-                        <ul className="list-disc pl-5 text-xs text-red-700 space-y-1">
-                            {badItems.map((b) => (
-                                <li key={b.id}><strong>{b.name}</strong> (NO CONFORME - CANT: {b.qty})</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                {/* El cuadro de redacción recibe los textos automáticamente */}
 
                 <div className="relative">
                     <textarea 
@@ -730,6 +795,32 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                 </div>
             </div>
 
+            {/* SECCIÓN LEVANTAMIENTO */}
+            {badItems.length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-8 shadow-sm">
+                    <h3 className="font-bold text-orange-800 text-sm mb-2 flex items-center gap-1.5">
+                        <AlertCircle size={16} /> Asignar Levantamiento de Observación General
+                    </h3>
+                    <p className="text-xs text-orange-700 mb-3">
+                        Hay {badItems.length} ítem(s) marcados como No Conformes. Si deseas enviar un enlace de levantamiento para subsanar estas observaciones, selecciona un responsable:
+                    </p>
+                    <div className="relative">
+                        <select 
+                            className="w-full p-2.5 bg-white border border-orange-300 rounded-lg text-sm text-slate-700 font-semibold focus:outline-none focus:border-orange-500"
+                            onChange={(e) => {
+                                const c = contactos.find(x => x.email === e.target.value);
+                                setResponsableLevantamiento(c || null);
+                            }}
+                        >
+                            <option value="">-- No enviar solicitud de levantamiento --</option>
+                            {contactos.map(c => (
+                                <option key={c.email} value={c.email}>{c.name} ({c.email})</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            )}
+
             {/* BOTÓN FINALIZAR */}
             <div className="sticky bottom-4 z-40">
                 
@@ -746,37 +837,53 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                   
                   <EmailReportModal
             initialObservations={observaciones}
+            preSelectedTo={responsableLevantamiento ? [responsableLevantamiento.email] : []}
                       isOpen={showEmailModal} 
                       onClose={() => setShowEmailModal(false)}
                       isSending={isSaving}
                       onSend={async (data) => {
-                          if (cachedDriveUrl) {
-                              setIsSaving(true);
-                              try {
-                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
-                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
-                                  
-                                  const emailRes = await fetch('/api/send-email', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                          to: data.to, cc: data.cc, subject: data.subject,
-                                          text: bodyWithLink,
-                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
-                                          fromEmail: data.fromEmail, fromName: data.fromName
-                                      })
-                                  });
-                                  if (!emailRes.ok) throw new Error('Error enviando correo');
-                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
-                              } catch(e) {
-                                  alert('Error al enviar el correo.');
-                              } finally {
-                                  setIsSaving(false);
-                                  setShowEmailModal(false);
+                          let currentDriveUrl = cachedDriveUrl;
+                          let currentLevLink = cachedLevantamientoLink;
+
+                          setIsSaving(true);
+                          try {
+                              if (!currentDriveUrl) {
+                                  const saveRes = await handleSaveAndDownload(true, data);
+                                  if (!saveRes) throw new Error('Falló el guardado');
+                                  currentDriveUrl = saveRes.driveUrl;
+                                  currentLevLink = saveRes.levantamientoLink;
                               }
-                          } else {
-                              await handleSaveAndDownload(true, data);
+
+                              let bodyWithLink = data.message;
+                              if (currentDriveUrl) {
+                                  bodyWithLink = bodyWithLink.includes('[📎') 
+                                      ? bodyWithLink.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + currentDriveUrl)
+                                      : bodyWithLink + '\n\n📎 Enlace al reporte en Drive:\n' + currentDriveUrl;
+                              }
+                              
+                              let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+
+                              if (currentLevLink) {
+                                  htmlBody += `<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="${currentLevLink}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>`;
+                                  bodyWithLink += `\n\n✅ Enlace de Levantamiento de Observaciones:\n${currentLevLink}`;
+                              }
+
+                              const emailRes = await fetch('/api/send-email', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                      to: data.to, cc: data.cc, subject: data.subject,
+                                      text: bodyWithLink,
+                                      html: htmlBody,
+                                      fromEmail: data.fromEmail, fromName: data.fromName
+                                  })
+                              });
+                              if (!emailRes.ok) throw new Error('Error enviando correo');
+                              alert('✅ Correo unificado enviado correctamente.');
+                          } catch(e) {
+                              alert('Error al enviar el correo.');
+                          } finally {
+                              setIsSaving(false);
                               setShowEmailModal(false);
                           }
                       }}
@@ -785,3 +892,5 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         </div>
     );
 }
+
+

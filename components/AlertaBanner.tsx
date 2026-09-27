@@ -26,6 +26,7 @@ import { usePathname } from 'next/navigation';
 
 export default function AlertaBanner() {
     const pathname = usePathname();
+    if (pathname?.startsWith('/levantamiento')) return null;
     const { user } = useAuth();
 
     if (pathname && pathname.startsWith('/public')) return null;
@@ -300,3 +301,5 @@ export default function AlertaBanner() {
         </div>
     );
 }
+
+
