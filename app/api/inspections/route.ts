@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
             // VALIDACIÓN: Requiere al menos un archivo adjunto
             const hasPdf = data.evidencePdf && data.evidencePdf.trim() !== '';
             const hasImgs = data.evidenceImgs && Array.isArray(data.evidenceImgs) && data.evidenceImgs.length > 0;
-            if (!hasPdf && !hasImgs) {
+            if (!hasPdf && !hasImgs && data.inspectionType !== 'Botiquines') {
                 return NextResponse.json({ 
                     success: false, 
                     error: '⚠️ No se puede registrar sin archivo. Adjunte al menos una imagen o PDF como evidencia.' 
@@ -176,4 +176,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
 
