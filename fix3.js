@@ -1,6 +1,5 @@
-const fs = require('fs');
-let content = fs.readFileSync('app/inspections/page.tsx', 'utf8');
-const searchStr = `<div className={\`space-y-6 \${user?.role === 'manager' ? 'xl:col-span-5' : 'xl:col-span-4'}\`}>`;
-content = content.replace(searchStr, `<div className="max-w-5xl w-full space-y-6">`);
-fs.writeFileSync('app/inspections/page.tsx', content);
-console.log('Fixed width');
+﻿const fs = require('fs');
+let content = fs.readFileSync('components/inspections/ExtinguisherCustomForm.tsx', 'utf-8');
+content = content.replace("obs = ${prefix}\\n.trim();\r\n        copy[idx].observaciones = obs;", "obs = ${prefix}\\n.trim();\n        obs = obs.replace(/\\]\\\\s+\\[/g, ']\\n[');\n        copy[idx].observaciones = obs;");
+content = content.replace("obs = ${prefix}\\n.trim();\n        copy[idx].observaciones = obs;", "obs = ${prefix}\\n.trim();\n        obs = obs.replace(/\\]\\\\s+\\[/g, ']\\n[');\n        copy[idx].observaciones = obs;");
+fs.writeFileSync('components/inspections/ExtinguisherCustomForm.tsx', content);

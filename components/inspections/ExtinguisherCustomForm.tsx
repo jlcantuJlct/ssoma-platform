@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -41,11 +42,17 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
                     }
                 }
                 
-                if (finalTranscriptChunk) {
-                    finalTranscriptAtStart = (finalTranscriptAtStart + ' ' + finalTranscriptChunk).trim();
-                }
+                const currentText = finalTranscriptAtStart + (finalTranscriptAtStart && finalTranscriptChunk ? ' ' : '') + finalTranscriptChunk;
+                onChange(currentText + (interimTranscript ? ' ' + interimTranscript : ''));
                 
-                onChange((finalTranscriptAtStart + ' ' + interimTranscript).trim());
+                if (finalTranscriptChunk) {
+                    finalTranscriptAtStart = currentText;
+                }
+            };
+            
+            recognitionRef.current.onerror = (event: any) => {
+                console.error('Speech recognition error', event.error);
+                setIsRecording(false);
             };
             
             recognitionRef.current.onend = () => {
@@ -59,15 +66,25 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
 
     return (
         <div className={`relative w-full ${className || ''}`}>
-            <input 
-                type={type}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={placeholder}
-                className={`${inputClass} ${type === 'text' ? 'pr-16' : ''}`}
-            />
-            {type === 'text' && (
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+            {type === 'textarea' ? (
+                <textarea 
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    rows={4}
+                    className={`${inputClass} pr-16`}
+                />
+            ) : (
+                <input 
+                    type={type}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    className={`${inputClass} ${type === 'text' ? 'pr-16' : ''}`}
+                />
+            )}
+            {(type === 'text' || type === 'textarea') && (
+                <div className={`absolute right-1 flex items-center ${type === 'textarea' ? 'top-2' : 'top-1/2 -translate-y-1/2'}`}>
                     {value && (
                         <button onClick={() => onChange('')} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 rounded-md transition-colors" title="Limpiar">
                             <Trash2 size={14} />
@@ -772,6 +789,12 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
+
+
+
+
 
 
 
