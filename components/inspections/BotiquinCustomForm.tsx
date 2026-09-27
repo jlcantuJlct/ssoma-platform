@@ -410,7 +410,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
             {/* Header con indicador de blindaje */}
             <div className="flex items-center justify-between mb-4">
                 <button 
-                    onClick={() => router.push('/inspections?openDigital=true')} 
+                    onClick={() => window.location.href = '/inspections?openDigital=true'} 
                     className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
                 >
                     <ArrowLeft size={16} /> Volver
@@ -880,6 +880,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                               });
                               if (!emailRes.ok) throw new Error('Error enviando correo');
                               alert('✅ Correo unificado enviado correctamente.');
+                              window.location.href = '/inspections?openDigital=true';
                           } catch(e) {
                               alert('Error al enviar el correo.');
                           } finally {
@@ -892,5 +893,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         </div>
     );
 }
+
+
 
 
