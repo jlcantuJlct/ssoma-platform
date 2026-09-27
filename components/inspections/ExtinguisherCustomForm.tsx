@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail, AlertCircle} from 'lucide-react';
-import { ALL_USER_LIST } from '@/lib/users';
+
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -87,7 +87,9 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
-    const [responsableLevantamiento, setResponsableLevantamiento] = useState('');
+    const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
+    const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
+    useEffect(() => { const stored = localStorage.getItem('ssoma_contacts'); if (stored) setContactos(JSON.parse(stored)); }, []);
     
     // Metadata Header
     const [meta, setMeta] = useState({
@@ -351,7 +353,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                 // Generar Levantamiento
                 let generatedLevantamientoLink = null;
                 if (responsableLevantamiento && badItems.length > 0) {
-                    const respUser = ALL_USER_LIST.find(u => u.name === responsableLevantamiento);
+                    const respUser = responsableLevantamiento;
                     const desc = "Observaciones generales de Extintores:\n" + badItems.map((b: any) => `- ${b.codigo || ""} ${b.tipo || ""}: ${b.observaciones || ""}`).join("\n");
                     try {
                         const lvRes = await fetch('/api/levantamiento/create', {
@@ -646,6 +648,35 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     </button>
                 </div>
 
+                {/* Panel de Asignación de Levantamiento */}
+                {extinguishers.filter(e => e.estado === "NC" || e.acceso === "NC" || e.senalizacion === "NC").length > 0 && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-8 shadow-sm">
+                        <h3 className="font-bold text-orange-800 text-sm mb-2 flex items-center gap-1.5">
+                            <AlertCircle size={16} /> Asignar Levantamiento de Observación General
+                        </h3>
+                        <p className="text-xs text-orange-700 mb-3">
+                            Se ha detectado {extinguishers.filter(e => e.estado === "NC" || e.acceso === "NC" || e.senalizacion === "NC").length} equipo(s) con observación. Asigna un responsable para corregir esta situación general.
+                        </p>
+                        <div className="relative">
+                            <select
+                                className="w-full bg-white border border-orange-300 px-4 py-3 rounded-xl text-slate-800 text-sm font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all appearance-none cursor-pointer"
+                                onChange={(e) => {
+                                    const c = contactos.find(x => x.email === e.target.value);
+                                    setResponsableLevantamiento(c || null);
+                                }}
+                            >
+                                <option value="">-- No enviar solicitud de levantamiento --</option>
+                                {contactos.map(c => (
+                                    <option key={c.email} value={c.email}>{c.name} ({c.email})</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-orange-400">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* FIRMAS */}
                 <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 mt-6">
                     <h2 className="font-bold text-slate-700 text-sm uppercase mb-4">Responsable del Registro</h2>
@@ -653,7 +684,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Nombres y Apellidos</label>
-                                <select value={meta.inspector} onChange={(e) => { const user = ALL_USER_LIST.find(u => u.name === e.target.value); setMeta({...meta, inspector: e.target.value, cargoInspector: user?.role || ''}); }} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded"><option value="" disabled>Seleccionar inspector...</option>{ALL_USER_LIST.map(u => (<option key={u.id} value={u.name}>{u.name} - {u.role}</option>))}</select>
+                                <select value={meta.inspector} onChange={(e) => { const user = contactos.find(u => u.name === e.target.value); setMeta({...meta, inspector: e.target.value, cargoInspector: ''}); }} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded"><option value="" disabled>Seleccionar inspector...</option>{contactos.map(u => (<option key={u.email} value={u.name}>{u.name}</option>))}</select>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Cargo</label>
@@ -685,7 +716,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                   
                   <EmailReportModal
                     initialObservations={`${extinguishers.length} equipos inspeccionados.`} 
-                    preSelectedTo={responsableLevantamiento ? [ALL_USER_LIST.find(u => u.name === responsableLevantamiento)?.email || ""] : []}
+                    preSelectedTo={responsableLevantamiento ? [responsableLevantamiento.email] : []}
                     isOpen={showEmailModal} 
                     onClose={() => setShowEmailModal(false)}
                     isSending={isSaving}
@@ -727,6 +758,9 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
+
 
 
 
