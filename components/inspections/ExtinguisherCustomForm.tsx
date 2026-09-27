@@ -84,6 +84,7 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
 
 export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
+    const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -99,7 +100,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     }, [user, meta.inspector]);
     
     // Metadata Header
-    const { user } = useAuth();
+    
     const [meta, setMeta] = useState({
         registro: '',
         fecha: new Date().toISOString().split('T')[0],
@@ -240,7 +241,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         const regex = new RegExp(`\\[${labels[field]}:.*?\\]\\s*`, 'g');
         obs = obs.replace(regex, '');
         
-        obs = `${prefix} ${obs}`.trim();
+        obs = `${prefix}\n${obs}`.trim();
         copy[idx].observaciones = obs;
         setExtinguishers(copy);
     };
@@ -606,7 +607,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
 
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones / Acciones</label>
-                                            <VoiceInput placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={(val: string) => updateExtinguisher(idx, 'observaciones', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                            <VoiceInput type="textarea" placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={(val: string) => updateExtinguisher(idx, 'observaciones', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
                                         </div>
 
                                         {/* FOTOS / EVIDENCIAS */}
@@ -766,6 +767,17 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
+
+
+
+
+
+
+
+
+
 
 
 
