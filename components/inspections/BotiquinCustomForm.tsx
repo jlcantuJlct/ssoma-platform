@@ -335,7 +335,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                                 inspectionType: 'Botiquines',
                                 area: proyecto,
                                 zone: ubicacion || 'Inspección Digital',
-                                status: 'Completado',
+                                status: badItems.length > 0 ? 'Abierto' : 'Cerrado',
                                 observations: observaciones || 'Generado desde formulario blindado de Botiquines.',
                                 evidencePdf: data.driveUrl || '',
                                 evidenceImgs: []
@@ -893,6 +893,7 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         </div>
     );
 }
+
 
 
 

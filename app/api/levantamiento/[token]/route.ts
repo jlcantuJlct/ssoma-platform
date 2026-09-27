@@ -123,8 +123,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         if (row.inspection_record_id) {
             try {
                 await db.execute(
-                    'UPDATE inspection_records SET evidence_pdf = ? WHERE id = ?',
-                    [driveUrl, row.inspection_record_id]
+                    'UPDATE inspection_records SET evidence_pdf = ?, status = ? WHERE id = ?',
+                    [driveUrl, 'Cerrado', row.inspection_record_id]
                 );
             } catch (e) {
                 console.error('Error actualizando registro de Control de Inspecciones:', e);
@@ -162,5 +162,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
 }
+
 
 

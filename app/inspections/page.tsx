@@ -1574,7 +1574,7 @@ export default function InspectionsPage() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-3 text-center">
-                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.status === 'Completado' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${(item.status === 'Completado' || item.status === 'Cerrado') ? 'bg-emerald-500/10 text-emerald-500' :
                                                                 'bg-amber-500/10 text-amber-500'
                                                                 }`}>
                                                                 {item.status}
@@ -2390,6 +2390,7 @@ export default function InspectionsPage() {
         </div >
     );
 }
+
 
 
 
