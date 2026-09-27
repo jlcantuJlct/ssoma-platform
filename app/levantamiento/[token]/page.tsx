@@ -43,7 +43,10 @@ export default function LevantamientoPublico() {
         fetch(`/api/levantamiento/${token}`)
             .then(r => r.json())
             .then(data => {
-                if (data.success) setFinding(data.finding);
+                if (data.success) {
+                    setFinding(data.finding);
+                    if (data.finding.driveUrl) setDriveUrl(data.finding.driveUrl);
+                }
                 else setError(data.error || 'Enlace inválido');
                 setLoading(false);
             })

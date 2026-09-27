@@ -9,7 +9,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     try {
         const { token } = await ctx.params;
         const row: any = await db.fetchOne(
-            `SELECT token, module_name, description, riesgo, categoria, responsable, responsable_email, fecha_prog, status, template_json, answers_json, hallazgo_index, comentario, closed_at, evidence, fotos_defectos_json
+            `SELECT token, module_name, description, riesgo, categoria, responsable, responsable_email, fecha_prog, status, template_json, answers_json, hallazgo_index, comentario, closed_at, evidence, fotos_defectos_json, inspection_record_id
              FROM hallazgo_levantamientos WHERE token = ?`,
             [token]
         );
@@ -33,6 +33,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
             console.warn('No se pudo recuperar la evidencia inicial:', e);
         }
 
+        let driveUrl = '';
+        if (row.inspection_record_id) {
+            try {
+                const rec: any = await db.fetchOne('SELECT evidence_pdf FROM inspection_records WHERE id = ?', [row.inspection_record_id]);
+                if (rec && rec.evidence_pdf) driveUrl = rec.evidence_pdf;
+            } catch(e) {}
+        }
+
         return NextResponse.json({
             success: true,
             finding: {
@@ -47,6 +55,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
                 evidencia: evidencia_inicial,
                 evidenciaLevantamiento: row.evidence || '',
                 comentario: row.comentario || '',
+                driveUrl: driveUrl,
                 closedAt: row.closed_at || null,
             },
         });
