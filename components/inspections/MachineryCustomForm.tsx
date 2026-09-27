@@ -240,6 +240,8 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                                 })
                             });
                             if (!emailRes.ok) throw new Error('Error al enviar correo');
+                            alert('✅ Correo enviado correctamente.');
+                            window.location.href = '/inspections?openDigital=true';
                         } catch (e) {
                             console.error(e);
                             alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
@@ -277,6 +279,8 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                 if (!isEmailing) {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
+                    } else {
+                        window.location.href = '/inspections?openDigital=true';
                     }
                 }
             } else {
@@ -589,8 +593,9 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                                       })
                                   });
                                   if (!emailRes.ok) throw new Error('Error enviando correo');
-                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
-                              } catch(e) {
+                                alert('✅ Correo enviado correctamente con el reporte ya revisado.');
+                                window.location.href = '/inspections?openDigital=true';
+                            } catch(e) {
                                   alert('Error al enviar el correo.');
                               } finally {
                                   setIsSaving(false);
