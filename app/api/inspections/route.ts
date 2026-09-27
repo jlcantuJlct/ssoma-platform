@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
 // Crear tabla si no existe
 // Crear tabla si no existe (Unificado con actions.ts)
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest) {
                     data.evidencePdf || ''
                 ]
             );
+            revalidatePath('/inspections');
             return NextResponse.json({ success: true, id: recordId });
         }
 
@@ -136,12 +138,14 @@ export async function POST(req: NextRequest) {
                     id
                 ]
             );
+            revalidatePath('/inspections');
             return NextResponse.json({ success: true });
         }
 
         if (action === 'delete') {
             if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
             await db.execute('DELETE FROM inspection_records WHERE id=?', [id]);
+            revalidatePath('/inspections');
             return NextResponse.json({ success: true });
         }
 
@@ -167,6 +171,7 @@ export async function POST(req: NextRequest) {
                 );
                 count++;
             }
+            revalidatePath('/inspections');
             return NextResponse.json({ success: true, count });
         }
 
@@ -176,5 +181,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
+
 
 

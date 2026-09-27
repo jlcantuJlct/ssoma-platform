@@ -64,7 +64,7 @@ const INITIAL_ZONES = SSOMA_LOCATIONS;
 // Lista de Tipos de Inspección
 // Lista de Tipos de Inspección por Área
 const INSPECTION_TYPES_BY_AREA = {
-    "Seguridad": [
+    "Seguridad": [`r`n        "Botiquines",
         "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua) F-OP-015 V02 22.12.16 Maquinaria Pesada",
         "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehiculos",
         "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia",
@@ -2389,6 +2389,7 @@ export default function InspectionsPage() {
         </div >
     );
 }
+
 
 
 

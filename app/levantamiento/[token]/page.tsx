@@ -159,7 +159,7 @@ export default function LevantamientoPublico() {
                                 📄 Ver reporte actualizado
                             </a>
                         )}
-                        <a href="/dashboard" className="text-slate-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-slate-100 hover:bg-slate-200 py-3 rounded-xl border border-slate-200 transition-colors">
+                        <a href="/inspections?openDigital=true" className="text-slate-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-slate-100 hover:bg-slate-200 py-3 rounded-xl border border-slate-200 transition-colors">
                             ← Volver al Panel de Inspecciones
                         </a>
                     </div>
@@ -251,5 +251,6 @@ export default function LevantamientoPublico() {
         </div>
     );
 }
+
 
 
