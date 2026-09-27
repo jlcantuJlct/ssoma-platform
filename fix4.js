@@ -1,9 +1,5 @@
-const fs = require('fs');
-const content = fs.readFileSync('app/inspections/page.tsx', 'utf8');
-const lines = content.split('\n');
-for(let i=0; i<lines.length; i++) {
-    if (lines[i].includes("viewMode === 'digital'")) {
-        for(let j=i; j<=i+40; j++) console.log(j + ': ' + lines[j]);
-        break;
-    }
-}
+﻿const fs = require('fs');
+let content = fs.readFileSync('components/inspections/ExtinguisherCustomForm.tsx', 'utf-8');
+content = content.replace("obs = ${prefix}\\n.trim();\r\n        copy[idx].observaciones = obs;", "obs = ${prefix}\\n.trim();\n        obs = obs.replace(/\\]\\\\s+\\[/g, ']\\n[');\n        copy[idx].observaciones = obs;");
+content = content.replace("obs = ${prefix}\\n.trim();\n        copy[idx].observaciones = obs;", "obs = ${prefix}\\n.trim();\n        obs = obs.replace(/\\]\\\\s+\\[/g, ']\\n[');\n        copy[idx].observaciones = obs;");
+fs.writeFileSync('components/inspections/ExtinguisherCustomForm.tsx', content);

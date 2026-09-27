@@ -264,6 +264,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         obs = obs.replace(regex, '');
         
         obs = `${prefix}\n${obs}`.trim();
+        obs = obs.replace(/\]\s+\[/g, ']\n[');
         copy[idx].observaciones = obs;
         setExtinguishers(copy);
     };
