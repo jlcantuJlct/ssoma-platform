@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
-import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail} from 'lucide-react';
+import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail, AlertCircle} from 'lucide-react';
+import { ALL_USER_LIST } from '@/lib/users';
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -86,6 +87,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
+    const [responsableLevantamiento, setResponsableLevantamiento] = useState('');
     
     // Metadata Header
     const [meta, setMeta] = useState({
@@ -320,31 +322,94 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     }
                 }
 
-                await fetch('/api/inspections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'create',
-                        data: {
-                            date: meta.fecha || new Date().toISOString().split('T')[0],
-                            responsible: meta.inspector || 'Supervisor SSOMA',
-                            inspectionType: 'Extintores',
-                            area: meta.proyecto || 'RED VIAL 6',
-                            zone: meta.ubicacionProyecto || 'Inspección Digital',
-                            status: 'Completado',
-                            observations: `${extinguishers.length} equipos de emergencia inspeccionados.`,
-                            evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
-                        }
-                    })
-                });
+                const badItems = extinguishers.filter((e: any) => e.estado === "NC" || e.acceso === "NC" || e.senalizacion === "NC");
+                let inspectionRecordId = null;
+                try {
+                    const dbRes = await fetch('/api/inspections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create',
+                            data: {
+                                date: meta.fecha || new Date().toISOString().split('T')[0],
+                                responsible: meta.inspector || 'Supervisor SSOMA',
+                                inspectionType: 'Extintores',
+                                area: meta.proyecto || 'RED VIAL 6',
+                                zone: meta.ubicacionProyecto || 'Inspección Digital',
+                                status: badItems.length > 0 ? 'Abierto' : 'Cerrado',
+                                observations: `${extinguishers.length} equipos inspeccionados. ${badItems.length > 0 ? badItems.length + " con observaciones." : ""}`,
+                                evidencePdf: data.driveUrl || '',
+                                evidenceImgs: []
+                            }
+                        })
+                    });
+                    const dbData = await dbRes.json();
+                    if (dbData?.id) { inspectionRecordId = dbData.id; }
+                    else { alert('ALERTA DE DIAGNOSTICO: Falló el guardado en la BD: ' + (dbData?.error || 'Desconocida')); }
+                } catch(err: any) { alert('ALERTA DE DIAGNOSTICO: Error de red BD: ' + err.message); }
 
-                if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                // Generar Levantamiento
+                let generatedLevantamientoLink = null;
+                if (responsableLevantamiento && badItems.length > 0) {
+                    const respUser = ALL_USER_LIST.find(u => u.name === responsableLevantamiento);
+                    const desc = "Observaciones generales de Extintores:\n" + badItems.map((b: any) => `- ${b.codigo || ""} ${b.tipo || ""}: ${b.observaciones || ""}`).join("\n");
+                    try {
+                        const lvRes = await fetch('/api/levantamiento/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                moduleName: 'Extintores',
+                                template: [],
+                                answers: {},
+                                inspectionRecordId,
+                                hallazgos: [{
+                                    index: 0,
+                                    descripcion: desc,
+                                    riesgo: 'Medio',
+                                    categoria: 'Condición Subestándar',
+                                    responsable: respUser?.name || "Responsable",
+                                    responsableEmail: respUser?.email || "responsable@casacontratistas.com",
+                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                    fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                                }]
+                            })
+                        });
+                        if (lvRes.ok) {
+                            const lvData = await lvRes.json();
+                            if (lvData.items && lvData.items.length > 0) {
+                                generatedLevantamientoLink = `${window.location.origin}/levantamiento/${lvData.items[0].token}`;
+                            }
+                        }
+                    } catch(err) { console.error("Error generando levantamiento:", err); }
+                }
+
+                if (isEmailing) {
+                    const finalEmailData = customEmailData || emailData;
+                    if (finalEmailData) {
+                        try {
+                            const emailRes = await fetch('/api/send-alert', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: finalEmailData.to,
+                                    subject: finalEmailData.subject,
+                                    message: finalEmailData.message,
+                                    driveUrl: data.driveUrl,
+                                    levantamientoLink: generatedLevantamientoLink
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error('Error enviando correo');
+                            alert('✅ Correo unificado enviado correctamente.');
+                            window.location.href = '/inspections?openDigital=true';
+                        } catch(e) { alert('Error al enviar el correo.'); }
+                    }
+                } else {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel descargado.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo.\n3. Si quieres salir al panel, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
+                    } else {
+                        window.location.href = '/inspections?openDigital=true';
                     }
                 }
-                // Permanece en el panel actual en lugar de redirigir al control de inspecciones
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
@@ -360,7 +425,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     return (
         <div className="max-w-4xl mx-auto pb-24">
             <div className="bg-red-700 text-white p-6 shadow-lg relative z-10 mb-6">
-                <button onClick={() => router.push('/inspections?openDigital=true')} className="flex items-center gap-2 text-red-200 hover:text-white transition-colors mb-4">
+                <button onClick={() => window.location.href = '/inspections?openDigital=true'} className="flex items-center gap-2 text-red-200 hover:text-white transition-colors mb-4">
                     <ArrowLeft size={20} /> Volver
                 </button>
                 <h1 className="text-2xl font-black mb-2 flex items-center gap-3">
@@ -588,7 +653,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Nombres y Apellidos</label>
-                                <VoiceInput value={meta.inspector} onChange={(val: string) => setMeta({...meta, inspector: val})} inputClass="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded" />
+                                <select value={meta.inspector} onChange={(e) => { const user = ALL_USER_LIST.find(u => u.name === e.target.value); setMeta({...meta, inspector: e.target.value, cargoInspector: user?.role || ''}); }} className="w-full border-b border-slate-200 p-2 text-sm focus:border-red-500 outline-none bg-slate-50 rounded"><option value="" disabled>Seleccionar inspector...</option>{ALL_USER_LIST.map(u => (<option key={u.id} value={u.name}>{u.name} - {u.role}</option>))}</select>
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-slate-400 uppercase">Cargo</label>
@@ -619,43 +684,56 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                   </div>
                   
                   <EmailReportModal
-            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
-                      isOpen={showEmailModal} 
-                      onClose={() => setShowEmailModal(false)}
-                      isSending={isSaving}
-                      onSend={async (data) => {
-                          if (cachedDriveUrl) {
-                              setIsSaving(true);
-                              try {
-                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
-                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
-                                  
-                                  const emailRes = await fetch('/api/send-email', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                          to: data.to, cc: data.cc, subject: data.subject,
-                                          text: bodyWithLink,
-                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
-                                          fromEmail: data.fromEmail, fromName: data.fromName
-                                      })
-                                  });
-                                  if (!emailRes.ok) throw new Error('Error enviando correo');
-                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
-                              } catch(e) {
-                                  alert('Error al enviar el correo.');
-                              } finally {
-                                  setIsSaving(false);
-                                  setShowEmailModal(false);
-                              }
-                          } else {
-                              await handleSaveAndDownload(true, data);
-                              setShowEmailModal(false);
-                          }
-                      }}
-                  />
+                    initialObservations={`${extinguishers.length} equipos inspeccionados.`} 
+                    preSelectedTo={responsableLevantamiento ? [ALL_USER_LIST.find(u => u.name === responsableLevantamiento)?.email || ""] : []}
+                    isOpen={showEmailModal} 
+                    onClose={() => setShowEmailModal(false)}
+                    isSending={isSaving}
+                    onSend={async (data) => {
+                        let currentDriveUrl = cachedDriveUrl;
+                        setIsSaving(true);
+                        try {
+                            if (!currentDriveUrl) {
+                                await handleSaveAndDownload(true, data);
+                                return;
+                            }
+                            let bodyWithLink = data.message;
+                            if (currentDriveUrl) {
+                                bodyWithLink = bodyWithLink.includes("[📎") 
+                                    ? bodyWithLink.replace("[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]", "📎 Enlace al reporte en Drive:\n" + currentDriveUrl)
+                                    : bodyWithLink + "\n\n📎 Enlace al reporte en Drive:\n" + currentDriveUrl;
+                            }
+                            const emailRes = await fetch("/api/send-alert", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    to: data.to,
+                                    subject: data.subject,
+                                    message: bodyWithLink,
+                                    driveUrl: currentDriveUrl
+                                })
+                            });
+                            if (!emailRes.ok) throw new Error("Error enviando correo");
+                            alert("✅ Correo unificado enviado correctamente.");
+                            window.location.href = "/inspections?openDigital=true";
+                        } catch(e) {
+                            alert("Error al enviar el correo.");
+                        } finally {
+                            setIsSaving(false);
+                        }
+                    }} 
+                />
             </div>
         </div>
     );
 };
+
+
+
+
+
+
+
+
+
+

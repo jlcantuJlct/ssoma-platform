@@ -336,8 +336,7 @@ export async function POST(req: Request) {
       ];
     }
     // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA (Calibrado a F-SIG-058) ---
-    else if (isExtintor) {
-      const meta = data.meta || {};
+    else if (isExtintor) {`n      const meta = data.meta || {};`n`n      if (fs.existsSync(templatePath)) {`n        worksheet.getCell("A1").value = "";`n        try {`n          const logoPath = path.join(process.cwd(), "public", "templates", "digital", "official_casa_logo.jpg");`n          if (fs.existsSync(logoPath)) {`n            const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: "jpeg" });`n            worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });`n          }`n        } catch(e) {}`n      }
       const extinguishers = data.extinguishers || [];
 
       if (fs.existsSync(templatePath)) {
@@ -474,9 +473,9 @@ export async function POST(req: Request) {
           }
         }
 
-        // 4. Registro Fotográfico de Evidencias (si existen)
-        if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
-          let currentPhotoRow = sigDataRow + 3;
+        let currentPhotoRow = sigDataRow + 3;
+          // 4. Registro Fotográfico de Evidencias (si existen)
+          if (data.fotosDefectos && Object.keys(data.fotosDefectos).length > 0) {
           worksheet.getCell(`A${currentPhotoRow}`).value =
             "REGISTRO FOTOGRÁFICO DE HALLAZGOS / INSPECCIÓN:";
           worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
@@ -1068,5 +1067,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+
 
 
