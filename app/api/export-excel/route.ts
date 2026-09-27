@@ -336,7 +336,19 @@ export async function POST(req: Request) {
       ];
     }
     // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA (Calibrado a F-SIG-058) ---
-    else if (isExtintor) {`n      const meta = data.meta || {};`n`n      if (fs.existsSync(templatePath)) {`n        worksheet.getCell("A1").value = "";`n        try {`n          const logoPath = path.join(process.cwd(), "public", "templates", "digital", "official_casa_logo.jpg");`n          if (fs.existsSync(logoPath)) {`n            const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: "jpeg" });`n            worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });`n          }`n        } catch(e) {}`n      }
+    else if (isExtintor) {
+      const meta = data.meta || {};
+
+      if (fs.existsSync(templatePath)) {
+        worksheet.getCell('A1').value = '';
+        try {
+          const logoPath = path.join(process.cwd(), 'public', 'templates', 'digital', 'official_casa_logo.jpg');
+          if (fs.existsSync(logoPath)) {
+            const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: 'jpeg' });
+            worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });
+          }
+        } catch(e) {}
+      }
       const extinguishers = data.extinguishers || [];
 
       if (fs.existsSync(templatePath)) {
@@ -1067,6 +1079,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 
 

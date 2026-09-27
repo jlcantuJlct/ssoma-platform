@@ -101,7 +101,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         domicilio: 'Avenida Javier Prado Este No. 4109. Santiago de Surco. Lima 33, Perú',
         nTrabajadores: '',
         proyecto: 'RED VIAL 6',
-        ubicacionProyecto: '',
+        ubicacionProyecto: 'Lima - Ica',
         inspector: '',
         cargoInspector: '',
         fechaFirma: new Date().toISOString().split('T')[0],
@@ -758,6 +758,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
 
 
 
