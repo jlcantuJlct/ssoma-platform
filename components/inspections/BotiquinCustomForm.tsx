@@ -343,8 +343,8 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                         })
                     });
                     const dbData = await dbRes.json();
-                    if (dbData?.id) inspectionRecordId = dbData.id;
-                } catch(err) { console.error(err); }
+                    if (dbData?.id) { inspectionRecordId = dbData.id; } else { alert('ALERTA DE DIAGNOSTICO: Falló el guardado en la Base de Datos. Razón: ' + (dbData?.error || 'Desconocida')); }
+                } catch(err) { console.error(err); alert('ALERTA DE DIAGNOSTICO: Error de red al intentar guardar en Base de Datos: ' + err.message); }
 
                 // Generar Levantamiento de Observaciones General si aplica
                 let generatedLevantamientoLink = null;
@@ -893,6 +893,8 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
         </div>
     );
 }
+
+
 
 
 
