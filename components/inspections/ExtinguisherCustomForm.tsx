@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail, AlertCircle} from 'lucide-react';
 
 
@@ -90,8 +91,15 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
     const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
     useEffect(() => { const stored = localStorage.getItem('ssoma_contacts'); if (stored) setContactos(JSON.parse(stored)); }, []);
+
+    useEffect(() => {
+        if (user?.name && !meta.inspector) {
+            setMeta(prev => ({ ...prev, inspector: user.name, cargoInspector: user.role || '' }));
+        }
+    }, [user, meta.inspector]);
     
     // Metadata Header
+    const { user } = useAuth();
     const [meta, setMeta] = useState({
         registro: '',
         fecha: new Date().toISOString().split('T')[0],
@@ -758,6 +766,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
 
 
 
