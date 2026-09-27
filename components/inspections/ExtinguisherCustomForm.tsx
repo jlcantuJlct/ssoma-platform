@@ -93,11 +93,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
     useEffect(() => { const stored = localStorage.getItem('ssoma_contacts'); if (stored) setContactos(JSON.parse(stored)); }, []);
 
-    useEffect(() => {
-        if (user?.name && !meta.inspector) {
-            setMeta(prev => ({ ...prev, inspector: user.name, cargoInspector: user.role || '' }));
-        }
-    }, [user, meta.inspector]);
+
     
     // Metadata Header
     
@@ -116,6 +112,15 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         fechaFirma: new Date().toISOString().split('T')[0],
         firmaInspector: ''
     });
+
+    useEffect(() => {
+        if (user?.name && !meta.inspector) {
+            setMeta(prev => ({ ...prev, inspector: user.name, cargoInspector: user.role || '' }));
+        }
+    }, [user, meta.inspector]);
+
+
+
 
     // Extinguisher items
     const [extinguishers, setExtinguishers] = useState<any[]>([
@@ -767,6 +772,14 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
+
+
+
+
+
+
 
 
 
