@@ -278,7 +278,7 @@ export async function updateInspection(record: any) {
 export async function getInspections() {
     try {
         await ensureInspectionTable();
-        const rows = await db.fetchAll('SELECT * FROM inspection_records ORDER BY date DESC');
+        const rows = await db.fetchAll('SELECT * FROM inspection_records ORDER BY id DESC');
 
         // Map back to frontend structure
         // Map back to frontend structure with safe parsing and sanitization
@@ -543,3 +543,4 @@ export async function syncProgramToDashboard(items: any[]) {
         return { success: false };
     }
 }
+

@@ -27,7 +27,7 @@ async function ensureTable() {
 export async function GET() {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM inspection_records ORDER BY date DESC, id DESC');
+        const records = await db.fetchAll('SELECT * FROM inspection_records ORDER BY id DESC');
 
         const parsed = records.map((r: any) => {
             let evidenceImgs: string[] = [];
@@ -181,6 +181,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
+
 
 
 

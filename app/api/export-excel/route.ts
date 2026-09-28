@@ -39,6 +39,15 @@ export async function POST(req: Request) {
           "Botiquines.xlsx",
         );
         if (fs.existsSync(alt)) templatePath = alt;
+      } else if (data.isEppMatrix || (moduleName && moduleName.toLowerCase().includes("epp"))) {
+        const alt = path.join(
+          process.cwd(),
+          "public",
+          "templates",
+          "digital",
+          "Inspección de EPP.xlsx",
+        );
+        if (fs.existsSync(alt)) templatePath = alt;
       }
     }
     let workbook = new ExcelJS.Workbook();
@@ -243,18 +252,18 @@ export async function POST(req: Request) {
 
       // --- RENDERIZADO DE LEVANTAMIENTO DE OBSERVACIONES ---
       if (data.evidenciaLevantamiento) {
-        currentPhotoRow = Math.max(currentPhotoRow, 65);
-        worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
-        worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
-        currentPhotoRow += 2;
+        let levPhotoRow = sigRow + 3;
+        worksheet.getCell(`D${levPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
+        worksheet.getCell(`D${levPhotoRow}`).font = { bold: true };
+        levPhotoRow += 2;
         if (data.comentarioLevantamiento) {
-          worksheet.getCell(`A${currentPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
-          currentPhotoRow += 2;
+          worksheet.getCell(`D${levPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
+          levPhotoRow += 2;
         }
         try {
           const base64Data = data.evidenciaLevantamiento.replace(/^data:image\/\w+;base64,/, "");
           const imageId = workbook.addImage({ base64: base64Data, extension: "png" });
-          worksheet.addImage(imageId, { tl: { col: 0, row: currentPhotoRow - 1 }, ext: { width: 300, height: 220 } });
+          worksheet.addImage(imageId, { tl: { col: 3, row: levPhotoRow - 1 }, ext: { width: 300, height: 220 } });
         } catch (e) {
           console.error("Error attaching levantamiento photo:", e);
         }
@@ -262,82 +271,164 @@ export async function POST(req: Request) {
     }
     // --- MANEJADOR 2: EPP MATRICIAL ---
     else if (isEpp) {
-      const meta = data.meta || {};
-      const workers = data.workers || [];
+      const meta = data.meta || data.answers || {};
+      const workers = data.workers || data.template || [];
 
-      worksheet.mergeCells("A1:G2");
-      const titleCell = worksheet.getCell("A1");
-      titleCell.value =
-        "REGISTRO DE INSPECCIÓN DE EQUIPOS DE PROTECCIÓN PERSONAL (EPP)";
-      titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
-      titleCell.alignment = { horizontal: "center", vertical: "middle" };
-      titleCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF1E293B" },
-      };
+      if (fs.existsSync(templatePath)) {
+        // Reinsertar logo
+        worksheet.getCell("A1").value = "";
+        try {
+          const logoPath = path.join(process.cwd(), "public", "templates", "digital", "official_casa_logo.jpg");
+          if (fs.existsSync(logoPath)) {
+            const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: "jpeg" });
+            worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });
+          }
+        } catch (e) {}
 
-      worksheet.getCell("A4").value = "Proyecto:";
-      worksheet.getCell("B4").value = meta.proyecto || "RED VIAL 6";
-      worksheet.getCell("D4").value = "Fecha:";
-      worksheet.getCell("E4").value =
-        meta.fecha || new Date().toISOString().split("T")[0];
-      worksheet.getCell("A5").value = "Supervisor SSOMA:";
-      worksheet.getCell("B5").value = meta.supervisor || meta.inspector || "";
-      worksheet.getCell("D5").value = "Área:";
-      worksheet.getCell("E5").value = meta.area || "";
+        // Datos Generales
+        worksheet.getCell("E4").value = meta.proyecto || "RED VIAL 6";
+        worksheet.getCell("Z4").value = meta.area || "";
+        worksheet.getCell("J5").value = meta.responsable || meta.supervisor || meta.inspector || "";
+        worksheet.getCell("Z5").value = meta.fecha || new Date().toISOString().split("T")[0];
+        worksheet.getCell("AO5").value = meta.nTrabajadores || "";
+          worksheet.getCell("AO5").alignment = { horizontal: "center", vertical: "middle" };
 
-      ["A4", "D4", "A5", "D5"].forEach(
-        (c) => (worksheet.getCell(c).font = { bold: true }),
-      );
-
-      const headers = [
-        "N°",
-        "Trabajador",
-        "DNI",
-        "Cargo",
-        "EPPs Observados / No Conforme",
-        "Firma",
-      ];
-      const headerRow = worksheet.getRow(7);
-      headers.forEach((h, idx) => {
-        const cell = headerRow.getCell(idx + 1);
-        cell.value = h;
-        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FF2563EB" },
+        // EPP Columns Mapping
+        const eppCols: any = {
+          "Casco": "M", "Barbiquejo": "N", "Careta de esmerilar": "O", "Careta de soldador": "P",
+          "Camisa": "Q", "Pantalón": "R", "Polo": "S", "Mandil": "T", "Escarpines": "U",
+          "Lentes": "V", "Sobrelente": "W",
+          "Guantes de cuero": "X", "Guantes de jebe": "Y", "Guantes dieléctricos": "Z", "Guantes de hilo": "AA",
+          "Tapones": "AB", "Orejeras": "AC",
+          "Mascarilla descartable": "AD", "Resp. c/filtro p/polvo": "AE", "Resp. c/filtro p/gases": "AF", "Resp. c/filtro p/humos": "AG",
+          "Botines punta de acero": "AH", "Botines dieléctricos": "AI", "Botas de jebe": "AJ"
         };
-        cell.alignment = { horizontal: "center" };
-      });
 
-      workers.forEach((w: any, idx: number) => {
-        const r = worksheet.getRow(8 + idx);
-        r.getCell(1).value = idx + 1;
-        r.getCell(2).value = w.workerName || "";
-        r.getCell(3).value = w.dni || "";
-        r.getCell(4).value = w.cargo || "";
-        r.getCell(5).value =
-          w.badEpps && w.badEpps.length > 0
-            ? w.badEpps.join(", ")
-            : "CONFORME (100%)";
-        r.getCell(6).value = w.firma ? "[Firma Digital]" : "Firmado";
-      });
+        let row = 10;
+        workers.forEach((w: any, i: number) => {
+          worksheet.getCell(`A${row}`).value = i + 1;
+          worksheet.getCell(`B${row}`).value = w.name || "";
+          worksheet.getCell(`L${row}`).value = w.role || "";
+          
+          Object.keys(eppCols).forEach(epp => {
+            const isBad = (w.badEpps || []).includes(epp);
+            worksheet.getCell(`${eppCols[epp]}${row}`).value = isBad ? "NC" : "C";
+          });
 
-      worksheet.columns = [
-        { width: 6 },
-        { width: 32 },
-        { width: 14 },
-        { width: 22 },
-        { width: 40 },
-        { width: 16 },
-        { width: 16 },
-      ];
+          worksheet.getCell(`AK${row}`).value = w.correction || "";
+          worksheet.getCell(`AK${row}`).alignment = { wrapText: true, vertical: "middle", horizontal: "left" };
+          worksheet.getCell(`AP${row}`).value = w.deadline || "";
+          worksheet.getCell(`AS${row}`).value = w.verification || "";
+
+          row++;
+          if (row > 24) return;
+        });
+
+        // Observaciones
+        worksheet.getCell("A28").value = meta.observaciones || "";
+
+        // Evidencia fotográfica a partir de fila 32
+        let currentImgRow = 31;
+        const workersWithPhotos = workers.filter(w => w.fotoEvidencia);
+          
+          if (workersWithPhotos.length > 0 || data.evidenciaLevantamiento || data.comentarioLevantamiento) {
+              worksheet.getCell(`D${currentImgRow}`).value = "EVIDENCIA FOTOGRÁFICA DE LA CONDICIÓN INSEGURA";
+              worksheet.getCell(`D${currentImgRow}`).font = { bold: true, size: 12 };
+              worksheet.getCell(`U${currentImgRow}`).value = "EVIDENCIA FOTOGRÁFICA DEL LEVANTAMIENTO";
+              worksheet.getCell(`U${currentImgRow}`).font = { bold: true, size: 12 };
+              currentImgRow += 2;
+              
+              if (data.comentarioLevantamiento) {
+                  worksheet.getCell(`U${currentImgRow}`).value = "Comentario: " + data.comentarioLevantamiento;
+                  currentImgRow += 2;
+              }
+
+              if (workersWithPhotos.length === 0 && data.evidenciaLevantamiento) {
+                  try {
+                      const stripB64 = (b64) => b64.substring(b64.indexOf(",") + 1);
+                      const evId = workbook.addImage({ base64: stripB64(data.evidenciaLevantamiento), extension: "png" });
+                      worksheet.addImage(evId, {
+                          tl: { col: 20, row: currentImgRow + 1 },
+                          ext: { width: 300, height: 300 }
+                      });
+                  } catch(e) {}
+                  currentImgRow += 16;
+              }
+
+              workersWithPhotos.forEach((w: any) => {
+                worksheet.getCell(`D${currentImgRow}`).value = `Trabajador: ${w.name || "Sin nombre"}`;
+                worksheet.getCell(`D${currentImgRow}`).font = { bold: true };
+                
+                try {
+                    const stripB64 = (b64: string) => b64.substring(b64.indexOf(",") + 1);
+                    const imageId = workbook.addImage({ base64: stripB64(w.fotoEvidencia), extension: "png" });
+                    
+                      worksheet.addImage(imageId, {
+                          tl: { col: 3, row: currentImgRow + 1 },
+                          ext: { width: 300, height: 300 }
+                      });
+                      if (data.evidenciaLevantamiento) {
+                          const evId = workbook.addImage({ base64: stripB64(data.evidenciaLevantamiento), extension: "png" });
+                          worksheet.addImage(evId, {
+                              tl: { col: 20, row: currentImgRow + 1 },
+                              ext: { width: 300, height: 300 }
+                          });
+                      }
+                } catch(e) {}
+                
+                currentImgRow += 16;
+            });
+        }
+
+      } else {
+        // Fallback genérico si no hay plantilla física
+        worksheet.mergeCells("A1:G2");
+        const titleCell = worksheet.getCell("A1");
+        titleCell.value = "REGISTRO DE INSPECCIÓN DE EQUIPOS DE PROTECCIÓN PERSONAL (EPP)";
+        titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+        titleCell.alignment = { horizontal: "center", vertical: "middle" };
+        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+
+        worksheet.getCell("A4").value = "Proyecto:";
+        worksheet.getCell("B4").value = meta.proyecto || "RED VIAL 6";
+        worksheet.getCell("D4").value = "Fecha:";
+        worksheet.getCell("E4").value = meta.fecha || new Date().toISOString().split("T")[0];
+        worksheet.getCell("A5").value = "Supervisor SSOMA:";
+        worksheet.getCell("B5").value = meta.supervisor || meta.inspector || "";
+        worksheet.getCell("D5").value = "Área:";
+        worksheet.getCell("E5").value = meta.area || "";
+
+        ["A4", "D4", "A5", "D5"].forEach((c) => (worksheet.getCell(c).font = { bold: true }));
+
+        const headers = ["N°", "Trabajador", "Cargo", "EPPs Observados / No Conforme"];
+        const headerRow = worksheet.getRow(7);
+        headers.forEach((h, idx) => {
+          const cell = headerRow.getCell(idx + 1);
+          cell.value = h;
+          cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
+          cell.alignment = { horizontal: "center" };
+        });
+
+        workers.forEach((w: any, idx: number) => {
+          const r = worksheet.getRow(8 + idx);
+          r.getCell(1).value = idx + 1;
+          r.getCell(2).value = w.name || "";
+          r.getCell(3).value = w.role || "";
+          r.getCell(4).value = w.badEpps && w.badEpps.length > 0 ? w.badEpps.join(", ") : "CONFORME (100%)";
+        });
+
+        worksheet.columns = [
+          { width: 6 },
+          { width: 32 },
+          { width: 22 },
+          { width: 40 },
+        ];
+      }
     }
     // --- MANEJADOR 3: EXTINTORES Y EQUIPOS DE EMERGENCIA (Calibrado a F-SIG-058) ---
     else if (isExtintor) {
-      const meta = data.meta || {};
+      const meta = data.meta || data.answers || {};
 
       if (fs.existsSync(templatePath)) {
         worksheet.getCell('A1').value = '';
@@ -356,18 +447,18 @@ export async function POST(req: Request) {
         if (meta.registro) worksheet.getCell("B4").value = meta.registro;
         if (meta.fecha) worksheet.getCell("E4").value = meta.fecha;
         if (meta.actividadEconomica) {
-          const c = worksheet.getCell("J4");
+          const c = worksheet.getCell("I4");
           c.value = meta.actividadEconomica;
-          c.font = { ...c.font, color: { argb: "FF000000" } };
+          c.font = { name: "Arial", size: 9, color: { argb: "FF000000" }, bold: false };
         }
 
         if (meta.razonSocial) worksheet.getCell("A6").value = meta.razonSocial;
         if (meta.ruc) worksheet.getCell("C6").value = meta.ruc;
         if (meta.domicilio) worksheet.getCell("E6").value = meta.domicilio;
         if (meta.nTrabajadores) {
-          const c = worksheet.getCell("J6");
+          const c = worksheet.getCell("I6");
           c.value = meta.nTrabajadores;
-          c.font = { ...c.font, color: { argb: "FF000000" } };
+          c.font = { name: "Arial", size: 9, color: { argb: "FF000000" }, bold: false };
         }
 
         if (meta.proyecto) worksheet.getCell("B8").value = meta.proyecto;
@@ -530,17 +621,15 @@ export async function POST(req: Request) {
 
         // --- RENDERIZADO DE LEVANTAMIENTO DE OBSERVACIONES ---
         if (data.evidenciaLevantamiento) {
-          // Si no hubo fotos anteriores, forzamos a que inicie en la fila 65 como pidió el usuario, 
-          // o usamos la fila actual si ya avanzamos más allá
-          currentPhotoRow = Math.max(currentPhotoRow, 65);
+          let levPhotoRow = sigDataRow + 3; // Fila 26 si sigDataRow es 23
           
-          worksheet.getCell(`A${currentPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
-          worksheet.getCell(`A${currentPhotoRow}`).font = { bold: true };
-          currentPhotoRow += 2;
+          worksheet.getCell(`D${levPhotoRow}`).value = "REGISTRO DE LEVANTAMIENTO:";
+          worksheet.getCell(`D${levPhotoRow}`).font = { bold: true };
+          levPhotoRow += 2;
           
           if (data.comentarioLevantamiento) {
-            worksheet.getCell(`A${currentPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
-            currentPhotoRow += 2;
+            worksheet.getCell(`D${levPhotoRow}`).value = `Comentario: ${data.comentarioLevantamiento}`;
+            levPhotoRow += 2;
           }
 
           try {
@@ -550,7 +639,7 @@ export async function POST(req: Request) {
               extension: "png",
             });
             worksheet.addImage(imageId, {
-              tl: { col: 0, row: currentPhotoRow - 1 },
+              tl: { col: 3, row: levPhotoRow - 1 },
               ext: { width: 300, height: 220 },
             });
           } catch (e) {
@@ -642,7 +731,7 @@ export async function POST(req: Request) {
     }
     // --- MANEJADOR 4: MAQUINARIA Y EQUIPO PESADO ---
     else if (isMachinery) {
-      const meta = data.meta || {};
+      const meta = data.meta || data.answers || {};
       const checklist = data.checklist || {};
       const observaciones = data.observaciones || "";
 
@@ -1079,6 +1168,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+
+
+
+
+
+
 
 
 

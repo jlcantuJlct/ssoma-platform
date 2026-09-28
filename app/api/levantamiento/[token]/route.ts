@@ -101,11 +101,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    moduleName: row.module_name, 
-                    template, 
-                    answers, 
-                    saveToDrive: true,
+                body: JSON.stringify({ moduleName: row.module_name, template, answers, extinguishers: row.module_name === 'Extintores' ? template : undefined, meta: row.module_name === 'Extintores' ? answers : undefined, isExtinguisherMatrix: row.module_name === 'Extintores', saveToDrive: true,
                     fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : null,
                     evidenciaLevantamiento: evidence,
                     comentarioLevantamiento: comentario

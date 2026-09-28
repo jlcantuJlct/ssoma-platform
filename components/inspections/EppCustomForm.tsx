@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 import { Trash2, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, Copy, Shield , Mail} from 'lucide-react';
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
@@ -166,10 +167,15 @@ const EPP_GROUPS = [
 
 export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
+    const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
+    const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
+    const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
+    useEffect(() => { const stored = localStorage.getItem("ssoma_contacts"); if (stored) setContactos(JSON.parse(stored)); }, []);
     
     // Metadata Header
     const [meta, setMeta] = useState({
@@ -182,6 +188,16 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
         firmaResponsable: '',
         observaciones: ''
     });
+
+    useEffect(() => {
+        if (user && !meta.responsable) {
+            setMeta(prev => ({
+                ...prev,
+                responsable: user.name || '',
+                cargoResponsable: user.role || ''
+            }));
+        }
+    }, [user]);
 
     // Workers
     const [workers, setWorkers] = useState<any[]>([]);
@@ -235,7 +251,17 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
 
     const updateWorker = (idx: number, field: string, val: any) => {
         const copy = [...workers];
+        const oldName = copy[idx].name || `${idx + 1}`;
         copy[idx][field] = val;
+        
+        if (field === 'name') {
+            const newName = val || `${idx + 1}`;
+            if (meta.observaciones) {
+                const regex = new RegExp(`\\(Trabajador: ${oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+                setMeta({ ...meta, observaciones: meta.observaciones.replace(regex, `(Trabajador: ${newName})`) });
+            }
+        }
+        
         setWorkers(copy);
     };
 
@@ -282,22 +308,49 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
         const w = copy[wIdx];
         const requiresSize = ['Camisa', 'Pantalón', 'Polo', 'Botines punta de acero', 'Botines dieléctricos', 'Botas de jebe'].includes(epp);
 
+        let newObservaciones = meta.observaciones || "";
+
         if (w.badEpps.includes(epp)) {
             w.badEpps = w.badEpps.filter((e: string) => e !== epp);
-            if (requiresSize) {
-                const regex = new RegExp(`\\[Talla de ${epp}:.*?\\]\\s*`, 'g');
-                w.correction = (w.correction || '').replace(regex, '').trim();
-            }
+            
+            // Remover de corrección
+            const sizeRegex = new RegExp(`\\[Talla de ${epp}:.*?\\]\\s*Cambio de ${epp}\\s*`, 'gi');
+            const sizeRegex2 = new RegExp(`\\[Talla de ${epp}:.*?\\]\\s*`, 'g');
+            const normalRegex = new RegExp(`Cambio de ${epp}\\s*`, 'gi');
+            
+            w.correction = (w.correction || '').replace(sizeRegex, '').replace(sizeRegex2, '').replace(normalRegex, '').trim();
+            
+            // Remover de observaciones generales
+            const obsRegex = new RegExp(`?- ${epp}.*?\\(Trabajador:.*?\\)`, 'g');
+            newObservaciones = newObservaciones.replace(obsRegex, '').trim();
         } else {
             w.badEpps.push(epp);
+            
+            // Añadir a corrección
             if (requiresSize) {
-                const prefix = `[Talla de ${epp}: ...]`;
+                const prefix = `[Talla de ${epp}: ...] Cambio de ${epp}`;
                 if (!(w.correction || '').includes(`[Talla de ${epp}`)) {
-                    w.correction = `${prefix} ${w.correction || ''}`.trim();
+                    w.correction = w.correction ? `${w.correction}
+${prefix}` : prefix;
                 }
+            } else {
+                const prefix = `Cambio de ${epp}`;
+                if (!(w.correction || '').includes(prefix)) {
+                    w.correction = w.correction ? `${w.correction}
+${prefix}` : prefix;
+                }
+            }
+            
+            // Añadir a observaciones generales
+            const workerName = w.name || `${wIdx + 1}`;
+            const obsAdd = `- ${epp} (Trabajador: ${workerName})`;
+            if (!newObservaciones.includes(obsAdd)) {
+                newObservaciones = newObservaciones ? `${newObservaciones.trim()}
+${obsAdd}` : obsAdd;
             }
         }
         setWorkers(copy);
+        setMeta({ ...meta, observaciones: newObservaciones });
     };
 
     const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
@@ -324,6 +377,48 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                 const data = await res.json();
 
                 if (data.fileBase64) {
+                        let inspectionRecordId = data.inspectionRecordId;
+                        if (!inspectionRecordId && !isEmailing) {
+                            inspectionRecordId = Date.now().toString();
+                        }
+                        
+                        const badItems: string[] = [];
+                        workers.forEach((w: any) => {
+                            if (w.badEpps && w.badEpps.length > 0) badItems.push("- " + (w.name || "Trabajador") + ": " + w.badEpps.join(", "));
+                        });
+
+                        let generatedLevantamientoLink = cachedLevantamientoLink;
+
+                        if (responsableLevantamiento && badItems.length > 0 && !generatedLevantamientoLink) {
+                            try {
+                                const lvRes = await fetch('/api/levantamiento/create', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        moduleName: 'Inspección de EPP',
+                                        template: workers,
+                                        answers: meta,
+                                        inspectionRecordId,
+                                        hallazgos: [{
+                                            index: 0,
+                                            descripcion: "Observaciones de EPP en mal estado:\n" + badItems.join("\n"),
+                                            riesgo: 'Medio',
+                                            categoria: 'Condición Subestándar',
+                                            responsable: responsableLevantamiento.name,
+                                            responsableEmail: responsableLevantamiento.email,
+                                            fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                        }]
+                                    })
+                                });
+                                if (lvRes.ok) {
+                                    const lvData = await lvRes.json();
+                                    if (lvData.items && lvData.items.length > 0) {
+                                        generatedLevantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
+                                        setCachedLevantamientoLink(generatedLevantamientoLink);
+                                    }
+                                }
+                            } catch(err) { console.error("Error generating levantamiento:", err); }
+                        }
                     setCachedDriveUrl(data.driveUrl);
                     const byteCharacters = atob(data.fileBase64);
                     const byteNumbers = new Array(byteCharacters.length);
@@ -343,23 +438,31 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                                 )
                                 : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
 
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
-                                        /(https?:\/\/[^\s]+)/g,
-                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
-                                    ),
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                })
-                            });
-                            if (!emailRes.ok) throw new Error('Error al enviar correo');
+                            let finalBodyText = bodyWithLink;
+                              if (generatedLevantamientoLink) {
+                                  finalBodyText += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
+                              }
+                              
+                              let finalHtmlBody = finalBodyText.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+  
+                              if (generatedLevantamientoLink) {
+                                  finalHtmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                              }
+  
+                              const emailRes = await fetch('/api/send-email', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                      to: customEmailData.to,
+                                      cc: customEmailData.cc,
+                                      subject: customEmailData.subject,
+                                      text: finalBodyText,
+                                      html: finalHtmlBody,
+                                      fromEmail: customEmailData.fromEmail,
+                                      fromName: customEmailData.fromName
+                                  })
+                              });
+                              if (!emailRes.ok) throw new Error('Error al enviar correo');
                             alert('✅ Correo enviado correctamente.');
                             window.location.href = '/inspections?openDigital=true';
                         } catch (e) {
@@ -397,7 +500,7 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                 });
 
                 if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                    if (window.confirm("¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en \"Aceptar\" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en \"Cancelar\".")) {
                         setShowEmailModal(true);
                     } else {
                         window.location.href = '/inspections?openDigital=true';
@@ -544,7 +647,7 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                                                 <h5 className="text-xs font-black text-orange-800 uppercase flex items-center gap-2"><AlertCircle size={14}/> Acciones Correctivas</h5>
                                                 <div>
                                                     <label className="text-[10px] font-black text-orange-800/60 uppercase">Corrección a tomar</label>
-                                                    <VoiceInput placeholder="Ej: Cambio de casco" value={worker.correction} onChange={(val: string) => updateWorker(wIdx, 'correction', val)} inputClass="w-full border border-orange-200 p-2 text-sm rounded bg-white outline-none focus:border-orange-500" />
+                                                    <VoiceTextarea placeholder="Ej: Cambio de casco" value={worker.correction} onChange={(e) => updateWorker(wIdx, 'correction', e.target.value)} className="w-full border border-orange-200 p-2 text-sm rounded bg-white outline-none focus:border-orange-500 resize-none" />
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div>
@@ -601,7 +704,9 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                                     if (obs.includes("Resumen de Tallas Solicitadas:")) {
                                         obs = obs.replace(/Resumen de Tallas Solicitadas:[\s\S]*/, finalStr);
                                     } else {
-                                        obs = obs ? `${obs}\n\n${finalStr}` : finalStr;
+                                        obs = obs ? `${obs}
+
+${finalStr}` : finalStr;
                                     }
                                     setMeta({ ...meta, observaciones: obs });
                                 } else {
@@ -679,7 +784,37 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                 </div>
 
                 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                  <div className="mt-8 bg-orange-50 border border-orange-200 rounded-2xl p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                          <div className="bg-orange-100 text-orange-600 p-2 rounded-xl">
+                              <AlertCircle size={24} />
+                          </div>
+                          <div>
+                              <h3 className="font-black text-orange-900 text-lg">Responsable de Levantamiento</h3>
+                              <p className="text-orange-700/80 text-sm font-medium">Asigna al encargado de resolver las desviaciones (opcional)</p>
+                          </div>
+                      </div>
+                      
+                      <div className="relative">
+                          <select 
+                              className="w-full bg-white border border-orange-300 px-4 py-3 rounded-xl text-slate-800 text-sm font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all appearance-none cursor-pointer"
+                              onChange={(e) => {
+                                  const c = contactos.find(x => x.email === e.target.value);
+                                  setResponsableLevantamiento(c || null);
+                              }}
+                          >
+                              <option value="">-- No enviar solicitud de levantamiento --</option>
+                              {contactos.map(c => (
+                                  <option key={c.email} value={c.email}>{c.name} ({c.email})</option>
+                              ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-orange-400">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
                           {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
                           {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
@@ -691,7 +826,8 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                   </div>
                   
                   <EmailReportModal
-            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
+            initialObservations={meta.observaciones || (workers.length + " trabajadores evaluados")} 
+                      preSelectedTo={responsableLevantamiento ? [responsableLevantamiento.email] : []}
                       isOpen={showEmailModal} 
                       onClose={() => setShowEmailModal(false)}
                       isSending={isSaving}
@@ -699,24 +835,35 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                           if (cachedDriveUrl) {
                               setIsSaving(true);
                               try {
-                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
-                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
+                                  let emailBodyText = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]') 
+                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl) 
+                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl; 
                                   
+                                  if (cachedLevantamientoLink) { 
+                                      emailBodyText += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + cachedLevantamientoLink; 
+                                  } 
+
+                                  let htmlBody = emailBodyText.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                                  
+                                  if (cachedLevantamientoLink) { 
+                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + cachedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>'; 
+                                  } 
+
                                   const emailRes = await fetch('/api/send-email', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
                                           to: data.to, cc: data.cc, subject: data.subject,
-                                          text: bodyWithLink,
-                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
+                                          text: emailBodyText,
+                                          html: htmlBody,
                                           fromEmail: data.fromEmail, fromName: data.fromName
                                       })
                                   });
                                   if (!emailRes.ok) throw new Error('Error enviando correo');
-                                alert('✅ Correo enviado correctamente con el reporte ya revisado.');
-                                window.location.href = '/inspections?openDigital=true';
-                            } catch(e) {
+                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
+                                  window.location.href = '/inspections?openDigital=true';
+                              } catch(e) {
+                                  console.error(e);
                                   alert('Error al enviar el correo.');
                               } finally {
                                   setIsSaving(false);
@@ -727,8 +874,19 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
                               setShowEmailModal(false);
                           }
                       }}
-                  />
+                    />
             </div>
         </div>
     );
 };
+
+
+
+
+
+
+
+
+
+
+

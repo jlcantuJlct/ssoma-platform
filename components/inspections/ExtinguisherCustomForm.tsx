@@ -104,6 +104,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
     const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
@@ -393,8 +394,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 moduleName: 'Extintores',
-                                template: [],
-                                answers: {},
+                                template: extinguishers,
+                                answers: meta,
                                 inspectionRecordId,
                                 hallazgos: [{
                                     index: 0,
@@ -412,6 +413,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                             const lvData = await lvRes.json();
                             if (lvData.items && lvData.items.length > 0) {
                                 generatedLevantamientoLink = `${window.location.origin}/levantamiento/${lvData.items[0].token}`;
+                                setCachedLevantamientoLink(generatedLevantamientoLink);
                             }
                         }
                     } catch(err) { console.error("Error generando levantamiento:", err); }
@@ -421,21 +423,37 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     const finalEmailData = customEmailData || emailData;
                     if (finalEmailData) {
                         try {
-                            const emailRes = await fetch('/api/send-alert', {
+                            let bodyWithLink = finalEmailData.message;
+                            if (data.driveUrl) {
+                                bodyWithLink = bodyWithLink.includes('[📎') 
+                                    ? bodyWithLink.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + data.driveUrl)
+                                    : bodyWithLink + '\n\n📎 Enlace al reporte en Drive:\n' + data.driveUrl;
+                            }
+                            
+                            let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+
+                            if (generatedLevantamientoLink) {
+                                htmlBody += `<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="${generatedLevantamientoLink}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>`;
+                                bodyWithLink += `\n\n✅ Enlace de Levantamiento de Observaciones:\n${generatedLevantamientoLink}`;
+                            }
+
+                            const emailRes = await fetch('/api/send-email', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     to: finalEmailData.to,
+                                    cc: finalEmailData.cc,
                                     subject: finalEmailData.subject,
-                                    message: finalEmailData.message,
-                                    driveUrl: data.driveUrl,
-                                    levantamientoLink: generatedLevantamientoLink
+                                    text: bodyWithLink,
+                                    html: htmlBody,
+                                    fromEmail: finalEmailData.fromEmail,
+                                    fromName: finalEmailData.fromName
                                 })
                             });
-                            if (!emailRes.ok) throw new Error('Error enviando correo');
+                            if (!emailRes.ok) { const text = await emailRes.text(); throw new Error('Error enviando correo: ' + text); }
                             alert('✅ Correo unificado enviado correctamente.');
                             window.location.href = '/inspections?openDigital=true';
-                        } catch(e) { alert('Error al enviar el correo.'); }
+                        } catch(e) { alert('Error al enviar el correo: ' + e.message); console.error('Email error:', e); }
                     }
                 } else {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel descargado.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo.\n3. Si quieres salir al panel, haz clic en "Cancelar".')) {
@@ -766,21 +784,29 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                     ? bodyWithLink.replace("[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]", "📎 Enlace al reporte en Drive:\n" + currentDriveUrl)
                                     : bodyWithLink + "\n\n📎 Enlace al reporte en Drive:\n" + currentDriveUrl;
                             }
-                            const emailRes = await fetch("/api/send-alert", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    to: data.to,
-                                    subject: data.subject,
-                                    message: bodyWithLink,
-                                    driveUrl: currentDriveUrl
-                                })
-                            });
-                            if (!emailRes.ok) throw new Error("Error enviando correo");
+                            
+                              let htmlBody = bodyWithLink.replace(/\n/g, "<br>").replace(/(https?:\/\/[^\s]+)/g, "<a href=\"$1\" style=\"color:#1a73e8;font-weight:bold;\">📄 Ver / Descargar Reporte</a>");
+
+                              if (cachedLevantamientoLink) {
+                                  htmlBody += `<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="${cachedLevantamientoLink}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>`;
+                                  bodyWithLink += `\n\n✅ Enlace de Levantamiento de Observaciones:\n${cachedLevantamientoLink}`;
+                              }
+
+                              const emailRes = await fetch("/api/send-email", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                      to: data.to,
+                                      subject: data.subject,
+                                      text: bodyWithLink,
+                                      html: htmlBody
+                                  })
+                              });
+                              if (!emailRes.ok) { const text = await emailRes.text(); throw new Error("Error enviando correo: " + text); }
                             alert("✅ Correo unificado enviado correctamente.");
                             window.location.href = "/inspections?openDigital=true";
                         } catch(e) {
-                            alert("Error al enviar el correo.");
+                            alert("Error al enviar el correo: " + e.message); console.error("Email error:", e);
                         } finally {
                             setIsSaving(false);
                         }
@@ -790,6 +816,10 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         </div>
     );
 };
+
+
+
+
 
 
 

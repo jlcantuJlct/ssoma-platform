@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
@@ -1278,15 +1278,6 @@ export default function InspectionsPage() {
                             <p className="text-slate-400 font-medium">Panel de Registro y Seguimiento Histórico</p>
                         </div>
                         <div className="flex gap-3 flex-wrap items-center">
-
-                            {/* Botón de Inspección Digital */}
-                            <button
-                                onClick={() => setViewMode('digital')}
-                                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 active:scale-95 border border-blue-500/30"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                                Inspección Digital
-                            </button>
 
                             {/* Selector de Mes */}
                             <div className="relative group">
