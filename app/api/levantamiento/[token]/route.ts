@@ -23,7 +23,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
             if (row.template_json) {
                 const template = JSON.parse(row.template_json);
                 const answers = JSON.parse(row.answers_json);
-                const idx = template.findIndex((t: any) => (t.text || '').trim() === 'Hallazgos:');
+                const idx = Array.isArray(template) ? template.findIndex((t: any) => (t.text || '').trim() === 'Hallazgos:') : -1;
                 if (idx !== -1 && answers[idx]) {
                     const hallazgos = JSON.parse(answers[idx].text || '[]');
                     evidencia_inicial = hallazgos[row.hallazgo_index]?.evidencia || '';
@@ -34,7 +34,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
         }
 
         let driveUrl = '';
-        if (row.inspection_record_id) {
+        if (row.inspection_record_id && driveUrl) {
             try {
                 const rec: any = await db.fetchOne('SELECT evidence_pdf FROM inspection_records WHERE id = ?', [row.inspection_record_id]);
                 if (rec && rec.evidence_pdf) driveUrl = rec.evidence_pdf;
@@ -57,6 +57,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
                 comentario: row.comentario || '',
                 driveUrl: driveUrl,
                 closedAt: row.closed_at || null,
+                fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : {},
             },
         });
     } catch (e: any) {
@@ -82,10 +83,26 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             return NextResponse.json({ success: false, error: 'Este hallazgo ya fue levantado o el enlace no es válido' }, { status: 404 });
         }
 
+        const lines = (row.description || '').split('\n').filter((l: string) => l.trim().length > 0);
+        let numRequired = lines.length;
+        if (numRequired === 0) numRequired = 1;
+
+        let numProvided = 1;
+        if (numRequired > 1 && evidence.startsWith('{')) {
+            try {
+                const map = JSON.parse(evidence);
+                // only count those with valid base64 strings
+                numProvided = Object.values(map).filter((v: any) => v && v.length > 50).length;
+            } catch(e){}
+        }
+
+        const isParcial = numProvided < numRequired;
+        const finalStatus = isParcial ? 'Abierto' : 'Cerrado';
+        
         // 1. Marcar el hallazgo como Cerrado en las respuestas guardadas
         const template = JSON.parse(row.template_json || '[]');
         const answers = JSON.parse(row.answers_json || '[]');
-        const idx = template.findIndex((t: any) => (t.text || '').trim() === 'Hallazgos:');
+        const idx = Array.isArray(template) ? template.findIndex((t: any) => (t.text || '').trim() === 'Hallazgos:') : -1;
         if (idx !== -1 && answers[idx]) {
             const hallazgos = JSON.parse(answers[idx].text || '[]');
             if (hallazgos[row.hallazgo_index]) {
@@ -97,6 +114,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
         // 2. Regenerar el Excel con la observación levantada y subirlo a Drive
         let driveUrl = '';
+        let fileBase64 = '';
         try {
             const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
                 method: 'POST',
@@ -109,18 +127,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             });
             const res = await generateExcel(mockReq);
             const data = await res.json();
+            if (!data.success) require('fs').writeFileSync('export_error.log', JSON.stringify(data));
             driveUrl = data.driveUrl || '';
+            fileBase64 = data.fileBase64 || '';
         } catch (e) {
             console.error('Error regenerando Excel:', e);
         }
 
         // 2.5. Actualizar el registro de Control de Inspecciones con el nuevo enlace
         //      (el mismo registro pasa a apuntar al Excel actualizado con el levantamiento)
-        if (row.inspection_record_id) {
+        if (row.inspection_record_id && driveUrl) {
             try {
                 await db.execute(
-                    'UPDATE inspection_records SET evidence_pdf = ?, status = ? WHERE id = ?',
-                    [driveUrl, 'Cerrado', row.inspection_record_id]
+                    'UPDATE inspection_records SET evidence_pdf = ?, status = ?, updated_at = ? WHERE id = ?',
+                    [driveUrl, finalStatus, Date.now(), row.inspection_record_id]
                 );
             } catch (e) {
                 console.error('Error actualizando registro de Control de Inspecciones:', e);
@@ -129,8 +149,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
         // 3. Registrar el levantamiento en la base de datos
         await db.execute(
-            'UPDATE hallazgo_levantamientos SET status = ?, evidence = ?, comentario = ?, closed_at = CURRENT_TIMESTAMP WHERE token = ?',
-            ['Cerrado', evidence, comentario || '', token]
+            `UPDATE hallazgo_levantamientos SET status = ?, evidence = ?, comentario = ?, closed_at = ${isParcial ? 'NULL' : 'CURRENT_TIMESTAMP'} WHERE token = ?`,
+            [finalStatus, evidence, comentario || '', token]
         );
 
         // 4. Notificar a SSOMA por correo
@@ -152,7 +172,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             console.error('Error notificando a SSOMA:', e);
         }
 
-        return NextResponse.json({ success: true, driveUrl });
+        return NextResponse.json({ success: true, driveUrl, isParcial, fileBase64 });
     } catch (e: any) {
         console.error('Error en levantamiento:', e);
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });

@@ -1,9 +1,8 @@
-const sqlite3 = require('better-sqlite3');
-const db = new sqlite3('app.db');
-const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-console.log(tables);
-
-const row = db.prepare("SELECT * FROM inspection_modules WHERE name LIKE '%Taller%'").get();
-if (row) {
-    console.log(row.template);
+﻿const { Pool } = require('pg');
+const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+async function run() {
+    const res = await pool.query('SELECT module_name, template_json, answers_json FROM hallazgo_levantamientos ORDER BY created_at DESC LIMIT 1');
+    console.log(JSON.stringify(res.rows, null, 2));
+    process.exit(0);
 }
+run();

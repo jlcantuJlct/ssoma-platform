@@ -1,8 +1,12 @@
-const fs = require('fs');
-const path = 'app/api/export-excel/route.ts';
-let code = fs.readFileSync(path, 'utf8');
+﻿const fs = require('fs');
+let c = fs.readFileSync('app/api/levantamiento/[token]/route.ts', 'utf8');
 
-code = code.replace("else if (isInternas) {", "else if (isInternas) {\nconsole.log('INTERNAS EXECUTING!');\nconsole.log('Template length:', (template||[]).length);\nconsole.log('Answers length:', (answers||[]).length);\nconsole.log('First answer:', answers?.[0]);\n");
+c = c.replace(
+    /const data = await res\.json\(\);\s*driveUrl = data\.driveUrl \|\| '';/,
+    `const data = await res.json();
+            if (!data.success) require('fs').writeFileSync('export_error.log', JSON.stringify(data));
+            driveUrl = data.driveUrl || '';`
+);
 
-fs.writeFileSync(path, code);
-console.log("Injected log");
+fs.writeFileSync('app/api/levantamiento/[token]/route.ts', c);
+console.log('Injected error logging');

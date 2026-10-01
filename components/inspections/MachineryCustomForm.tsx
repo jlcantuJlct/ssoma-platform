@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail} from 'lucide-react';
 
 const generalSections = [
@@ -49,8 +50,10 @@ const specificSections: Record<string, {category: string, items: string[]}[]> = 
 
 export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
+    const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailData, setEmailData] = useState<any>(null);
     
@@ -68,8 +71,30 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
     });
 
     const [checklist, setChecklist] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const newChecklist: Record<string, string> = {};
+        generalSections.forEach(section => {
+              section.items.forEach(item => {
+                  if (section.type === 'fugas') {
+                      newChecklist[item] = 'N/A';
+                  } else {
+                      newChecklist[item] = 'OK';
+                  }
+              });
+          });
+        
+        setChecklist(newChecklist);
+    }, [meta.tipoEquipo]);
+
     const [observaciones, setObservaciones] = useState('');
     const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
+
+    useEffect(() => {
+        if (user && !firmas.capatazNombre) {
+            setFirmas(prev => ({ ...prev, capatazNombre: user.name || '' }));
+        }
+    }, [user]);
 
     const [firmas, setFirmas] = useState({
         operadorNombre: '',
@@ -156,6 +181,19 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
 
     const handleCheck = (item: string, value: string) => {
         setChecklist(prev => ({ ...prev, [item]: value }));
+        
+        setObservaciones(prev => {
+            let next = prev;
+            const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp('- ' + escapeRegex(item) + ' \\(.*?\\)\\n?', 'g');
+            next = next.replace(regex, '');
+            
+            if (['R', 'M', 'F', 'RESUM', 'FUGA'].includes(value)) {
+                const prefix = '- ' + item + ' (' + value + ')';
+                next = next ? next.trim() + '\n' + prefix : prefix;
+            }
+            return next.trim();
+        });
     };
 
     const handlePhotoUploadDefecto = (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,12 +254,22 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                         try {
                             // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
                             const driveLink = data.driveUrl || '';
-                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                            let bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
                                 ? customEmailData.message.replace(
                                     '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
                                     driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
                                 )
                                 : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                            if (generatedLevantamientoLink) {
+                                bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
+                            }
+
+                            let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                            
+                            if (generatedLevantamientoLink) {
+                                htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                            }
 
                             const emailRes = await fetch('/api/send-email', {
                                 method: 'POST',
@@ -231,10 +279,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                                     cc: customEmailData.cc,
                                     subject: customEmailData.subject,
                                     text: bodyWithLink,
-                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
-                                        /(https?:\/\/[^\s]+)/g,
-                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
-                                    ),
+                                    html: htmlBody,
                                     fromEmail: customEmailData.fromEmail,
                                     fromName: customEmailData.fromName
                                 })
@@ -257,7 +302,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                     }
                 }
 
-                await fetch('/api/inspections', {
+                const recRes = await fetch('/api/inspections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -275,6 +320,46 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                         }
                     })
                 });
+                let inspectionRecordId = null;
+                if (recRes.ok) {
+                    const recData = await recRes.json();
+                    inspectionRecordId = recData.id;
+                }
+
+                const badItemsList = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
+                let generatedLevantamientoLink = cachedLevantamientoLink;
+
+                if (badItemsList.length > 0 && !generatedLevantamientoLink) {
+                    try {
+                        const lvRes = await fetch('/api/levantamiento/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                moduleName: 'Maquinaria',
+                                template: checklist,
+                                answers: { ...meta, observaciones, firmas, fotosDefectos },
+                                inspectionRecordId,
+                                hallazgos: [{
+                                    index: 0,
+                                    descripcion: observaciones || "Observaciones de Maquinaria",
+                                    riesgo: 'Medio',
+                                    categoria: 'Condición Subestándar',
+                                    responsable: firmas.capatazNombre || user?.name || "Capataz",
+                                    responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                    fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                                }]
+                            })
+                        });
+                        if (lvRes.ok) {
+                            const lvData = await lvRes.json();
+                            if (lvData.items && lvData.items.length > 0) {
+                                generatedLevantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
+                                setCachedLevantamientoLink(generatedLevantamientoLink);
+                            }
+                        }
+                    } catch(err) { console.error("Error generating levantamiento:", err); }
+                }
 
                 if (!isEmailing) {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
@@ -375,7 +460,9 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
         );
     };
 
-    const sectionsToRender = generalSections;
+    const generalNonFugas = generalSections.filter(s => s.type !== 'fugas');
+    const fugas = generalSections.filter(s => s.type === 'fugas');
+    const sectionsToRender = [...generalNonFugas, ...fugas];
 
     const badItems = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
 
@@ -474,16 +561,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                             </div>
                         </div>
 
-                        {badItems.length > 0 && (
-                            <div className="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                                <h4 className="text-[10px] font-black text-orange-800 uppercase mb-2 flex items-center gap-1"><AlertCircle size={12} /> Hallazgos Registrados:</h4>
-                                <ul className="list-disc pl-5 text-xs text-orange-900 space-y-1 font-medium">
-                                    {badItems.map(([item, val]) => (
-                                        <li key={item}>{item} <span className="font-black bg-white px-1.5 rounded border border-orange-200 ml-1">({val})</span></li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                        
 
                         <textarea 
                             value={observaciones} 
@@ -578,17 +656,27 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                           if (cachedDriveUrl) {
                               setIsSaving(true);
                               try {
-                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                                  let bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
                                       ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
                                       : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
                                   
+                                  if (cachedLevantamientoLink) {
+                                      bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + cachedLevantamientoLink;
+                                  }
+
+                                  let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                                  
+                                  if (cachedLevantamientoLink) {
+                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + cachedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                                  }
+
                                   const emailRes = await fetch('/api/send-email', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
                                           to: data.to, cc: data.cc, subject: data.subject,
                                           text: bodyWithLink,
-                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
+                                          html: htmlBody,
                                           fromEmail: data.fromEmail, fromName: data.fromName
                                       })
                                   });
@@ -611,3 +699,4 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
         </div>
     );
 };
+

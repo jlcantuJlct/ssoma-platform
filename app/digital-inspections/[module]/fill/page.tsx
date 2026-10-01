@@ -52,6 +52,12 @@ import { MachineryCustomForm } from '@/components/inspections/MachineryCustomFor
 
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { BotiquinCustomForm } from '@/components/inspections/BotiquinCustomForm';
+import AlmacenCustomForm from '@/components/inspections/AlmacenCustomForm';
+import TalleresCustomForm from '@/components/inspections/TalleresCustomForm';
+import CampamentoCustomForm from '@/components/inspections/CampamentoCustomForm';
+import InstalacionesElectricasCustomForm from '@/components/inspections/InstalacionesElectricasCustomForm';
+import CocinaComedorCustomForm from '@/components/inspections/CocinaComedorCustomForm';
+import LaboratorioCustomForm from '@/components/inspections/LaboratorioCustomForm';
 import { InternasCustomForm } from '@/components/inspections/InternasCustomForm';
 import { KitAntiderrameCustomForm } from '@/components/inspections/KitAntiderrameCustomForm';
 import { EstacionEmergenciaCustomForm } from '@/components/inspections/EstacionEmergenciaCustomForm';
@@ -531,6 +537,28 @@ export default function FillDigitalInspection() {
 
     if (moduleName.toLowerCase().includes('botiquin')) {
         return <BotiquinCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('almac')) {
+        return <AlmacenCustomForm SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('taller')) {
+        return <TalleresCustomForm SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('eléctrica') || moduleName.toLowerCase().includes('electrica')) {
+        return <InstalacionesElectricasCustomForm SignaturePad={SignaturePad} />;
+    }
+    if (moduleName.toLowerCase().includes('cocina') || moduleName.toLowerCase().includes('comedor')) {
+        return <CocinaComedorCustomForm SignaturePad={SignaturePad} />;
+    }
+    if (moduleName.toLowerCase().includes('laboratorio')) {
+        return <LaboratorioCustomForm SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('campamento')) {
+        return <CampamentoCustomForm SignaturePad={SignaturePad} />;
     }
     
     

@@ -1,29 +1,20 @@
-const fs = require('fs');
-const path = 'app/api/export-excel/route.ts';
-let code = fs.readFileSync(path, 'utf8');
+﻿const fs = require('fs');
+let c = fs.readFileSync('app/api/export-excel/route.ts', 'utf8');
 
-const target = `const getAns = (label) => answers.find(a => a.text === label)?.text || '';`;
-const replacement = `const getAns = (label) => answers.find(a => a.text === label)?.text || '';
-            const razon = getAns('Razon:');
-            const ruc = getAns('Ruc:');
-            const domicilio = getAns('Domicilio:');
-            const actividad = getAns('Actividad:');
-            const trabajadores = getAns('Trabajadores:');
-`;
-if (!code.includes("const razon = getAns('Razon:');")) {
-    code = code.replace(target, replacement);
-}
+c = c.replace(
+    "const isCampamento =",
+    "const isInstalacionesElectricas = data.isInstalacionesElectricasMatrix || (moduleName && moduleName.toLowerCase().includes('eléctrica') || moduleName && moduleName.toLowerCase().includes('electrica'));\n      const isCampamento ="
+);
 
-const writeTarget = `worksheet.getCell('A7').value = proyecto;`;
-const writeReplacement = `worksheet.getCell('A5').value = razon;
-            worksheet.getCell('I5').value = ruc;
-            worksheet.getCell('K5').value = domicilio;
-            worksheet.getCell('P5').value = actividad;
-            worksheet.getCell('T5').value = trabajadores;
-            worksheet.getCell('A7').value = proyecto;`;
-if (!code.includes("worksheet.getCell('A5').value = razon;")) {
-    code = code.replace(writeTarget, writeReplacement);
-}
+c = c.replace(
+    "else if (isAlmacen || isTalleres || isCampamento) {",
+    "else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas) {"
+);
 
-fs.writeFileSync(path, code);
-console.log("Excel Export updated!");
+c = c.replace(
+    "if (isCampamento) {",
+    "if (isInstalacionesElectricas) {\n                    for(let r=47; r<=51; r++) { try { worksheet.unMergeCells(\"A\"+r+\":M\"+r); } catch(e){} }\n                    worksheet.getCell(\"A47\").value = observaciones;\n                    worksheet.getCell(\"A47\").font = { color: { argb: 'FF000000' } };\n                    \n                    if (firmas.inspectorFirma && typeof firmas.inspectorFirma === 'string' && firmas.inspectorFirma.includes('data:image')) {\n                        try {\n                            const base64Data = firmas.inspectorFirma.replace(/^data:image\\/\\w+;base64,/, \"\");\n                            const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });\n                            worksheet.addImage(imageId, { tl: { col: 10, row: 7 }, ext: { width: 120, height: 40 } });\n                        } catch(e) {}\n                    }\n                    if (firmas.responsableFirma && typeof firmas.responsableFirma === 'string' && firmas.responsableFirma.includes('data:image')) {\n                        try {\n                            const base64Data = firmas.responsableFirma.replace(/^data:image\\/\\w+;base64,/, \"\");\n                            const imageId = workbook.addImage({ base64: base64Data, extension: 'png' });\n                            worksheet.addImage(imageId, { tl: { col: 10, row: 8 }, ext: { width: 120, height: 40 } });\n                        } catch(e) {}\n                    }\n                } else if (isCampamento) {"
+);
+
+fs.writeFileSync('app/api/export-excel/route.ts', c);
+console.log('Updated export-excel');
