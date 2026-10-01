@@ -51,7 +51,7 @@ import { MachineryCustomForm } from '@/components/inspections/MachineryCustomFor
 
 
 import { EmailReportModal } from '@/components/EmailReportModal';
-import { BotiquinCustomForm } from '@/components/inspections/BotiquinCustomForm';
+import BotiquinCustomForm from '@/components/inspections/BotiquinCustomForm';
 import AlmacenCustomForm from '@/components/inspections/AlmacenCustomForm';
 import TalleresCustomForm from '@/components/inspections/TalleresCustomForm';
 import CampamentoCustomForm from '@/components/inspections/CampamentoCustomForm';
@@ -536,7 +536,7 @@ export default function FillDigitalInspection() {
     }
 
     if (moduleName.toLowerCase().includes('botiquin')) {
-        return <BotiquinCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+        return <BotiquinCustomForm SignaturePad={SignaturePad} />;
     }
 
     if (moduleName.toLowerCase().includes('almac')) {

@@ -52,8 +52,7 @@ export async function POST(req: Request) {
     }
     let workbook = new ExcelJS.Workbook();
 
-    const isBotiquin =
-      moduleName && moduleName.toLowerCase().includes("botiquin");
+    // removed old isBotiquin
     const isEpp =
       data.isEppMatrix ||
       (moduleName && moduleName.toLowerCase().includes("epp"));
@@ -77,6 +76,8 @@ export async function POST(req: Request) {
     const isInstalacionesElectricas = data.isInstalacionesElectricasMatrix || (moduleName && (moduleName.toLowerCase().includes("eléctrica") || moduleName.toLowerCase().includes("electrica")));
     const isCocinaComedor = data.isCocinaComedorMatrix || (moduleName && (moduleName.toLowerCase().includes("cocina") || moduleName.toLowerCase().includes("comedor")));
     const isLaboratorio = data.isLaboratorioMatrix || (moduleName && moduleName.toLowerCase().includes("laboratorio"));
+    const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
+    if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Botiquines.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
     // Template Fallbacks
     if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de Almacen.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
     }
 
     // --- MANEJADOR 1: BOTIQUINES (Calibrado a F-SIG-030) ---
-    if (isBotiquin && fs.existsSync(templatePath)) {
+    if (false && fs.existsSync(templatePath)) {
       // Reinsertar el logo
       worksheet.getCell("A1").value = "";
       try {
@@ -1062,9 +1063,16 @@ export async function POST(req: Request) {
     }
     
       // --- MANEJADOR 5: ALMACEN MATRICIAL ---
-      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio) {
+      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin) {
           const meta = data.meta || data.answers || {};
-          const checklist = data.checklist || (data.template && !Array.isArray(data.template) ? data.template : {});
+          let checklist = data.checklist || (data.template && !Array.isArray(data.template) ? data.template : {});
+          if (Object.keys(checklist).length === 0 && Array.isArray(data.template)) {
+              data.template.forEach(item => {
+                  if (item.type === 'radio' && item.value) {
+                      checklist[item.text] = item.value;
+                  }
+              });
+          }
           const firmas = data.firmas || meta.firmas || {};
           const observaciones = data.observaciones || meta.observaciones || "";
           
@@ -1082,7 +1090,28 @@ export async function POST(req: Request) {
                   worksheet.getCell("C4").value = meta.proyecto || ""; worksheet.getCell("E5").value = meta.area || ""; worksheet.getCell("K5").value = meta.fecha || ""; worksheet.getCell("D6").value = meta.inspector || ""; worksheet.getCell("D8").value = meta.responsable || "";
               } else if (isInstalacionesElectricas) {
                   worksheet.getCell("C4").value = meta.proyecto || ""; worksheet.getCell("E5").value = meta.area || ""; worksheet.getCell("K5").value = meta.fecha || ""; worksheet.getCell("D6").value = meta.inspector || ""; worksheet.getCell("D8").value = meta.responsable || "";
-              } else if (isCampamento || isCocinaComedor || isLaboratorio) {
+              
+                } else if (isBotiquin) {
+                    worksheet.getCell("C4").value = meta.proyecto || "";
+                    worksheet.getCell("C5").value = meta.fecha || "";
+                    worksheet.getCell("I5").value = meta.hora || "";
+                    worksheet.getCell("D6").value = meta.inspector || "";
+                    worksheet.getCell("D7").value = meta.cargo || "";
+                    worksheet.getCell("D8").value = meta.ubicacion || meta.responsable || "";
+                    
+                    if (meta.tipoInspeccion === 'Planificada' || data.tipoInspeccion === 'Planificada') {
+                        worksheet.getCell("A10").value = "x";
+                    } else {
+                        worksheet.getCell("A11").value = "x";
+                    }
+                    
+                    if (firmas.inspectorFirma && typeof firmas.inspectorFirma === 'string' && firmas.inspectorFirma.includes('data:image')) {
+                        try { const imgId = workbook.addImage({ base64: firmas.inspectorFirma.replace(/^data:image\/\w+;base64,/, ""), extension: 'png' }); worksheet.addImage(imgId, { tl: { col: 10, row: 5 }, ext: { width: 120, height: 40 } }); } catch(e) {}
+                    }
+                    if (firmas.responsableFirma && typeof firmas.responsableFirma === 'string' && firmas.responsableFirma.includes('data:image')) {
+                        try { const imgId = workbook.addImage({ base64: firmas.responsableFirma.replace(/^data:image\/\w+;base64,/, ""), extension: 'png' }); worksheet.addImage(imgId, { tl: { col: 10, row: 6 }, ext: { width: 120, height: 40 } }); } catch(e) {}
+                    }
+ } else if (isCampamento || isCocinaComedor || isLaboratorio) {
                   worksheet.getCell("E4").value = meta.proyecto || ""; worksheet.getCell("E5").value = meta.area || ""; worksheet.getCell("K5").value = meta.fecha || ""; worksheet.getCell("D6").value = meta.inspector || ""; worksheet.getCell(isCampamento ? "D7" : "D7").value = meta.cargo || ""; worksheet.getCell("D8").value = meta.responsable || "";
                   if (isCocinaComedor || isLaboratorio) {
                       if (meta.tipoInspeccion === 'Planificada' || data.tipoInspeccion === 'Planificada') worksheet.getCell("A10").value = "x";
@@ -1101,13 +1130,13 @@ export async function POST(req: Request) {
               else if (isCampamento) { obsCellStart = "A57"; obsCellEnd = "M61"; }
               else if (isInstalacionesElectricas) { obsCellStart = "A47"; obsCellEnd = "M52"; }
               else if (isCocinaComedor) { obsCellStart = "A55"; obsCellEnd = "M59"; }
-              else if (isLaboratorio) { obsCellStart = "A36"; obsCellEnd = "M42"; }
+              else if (isLaboratorio) { obsCellStart = "A36"; obsCellEnd = "M42"; } else if (isBotiquin) { obsCellStart = "A36"; obsCellEnd = "M42"; }
               
               try { 
                   if (isCampamento) { for(let r=57; r<=61; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isInstalacionesElectricas) { for(let r=47; r<=52; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isCocinaComedor) { for(let r=55; r<=59; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
-                  else if (isLaboratorio) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
+                  else if (isLaboratorio) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } } else if (isBotiquin) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isTalleres) { for(let r=39; r<=44; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   worksheet.mergeCells(obsCellStart + ":" + obsCellEnd); 
               } catch(e) {}
@@ -1122,7 +1151,7 @@ export async function POST(req: Request) {
               else if (isCampamento) currentImgRow = 65;
               else if (isInstalacionesElectricas) currentImgRow = 54;
               else if (isCocinaComedor) currentImgRow = 61;
-              else if (isLaboratorio) currentImgRow = 44;
+              else if (isLaboratorio) currentImgRow = 44; else if (isBotiquin) currentImgRow = 50;
               
               const badItemsKeys = Object.keys(checklist).filter(k => ['NC', 'X'].includes(checklist[k]));
               let evidenciasMapLocal = {};

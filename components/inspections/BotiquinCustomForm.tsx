@@ -3,326 +3,272 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
-import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle , Mail} from 'lucide-react';
-import { generateBotiquinPDF } from '@/lib/pdfGenerator';
+import { Mic, MicOff, Camera, Save, Loader2, ArrowLeft, Mail, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
-interface BotiquinCustomFormProps {
-    moduleName: string;
-    version: number;
-    SignaturePad: React.ComponentType<{ onSave: (data: string) => void }>;
-}
-
-interface ChecklistItem {
-    id: number;
-    name: string;
-    qty: string;
-    status: 'C' | 'NC' | 'N/A' | null;
-    defectNote?: string;
-}
-
-const INITIAL_BOTIQUIN_ITEMS: { name: string; qty: string }[] = [
-    { name: 'Paquetes de guantes quirúrgicos', qty: '02' },
-    { name: 'Frascos de yodopovidona 120ml solución', qty: '01' },
-    { name: 'Frascos de agua oxigenada 120ml', qty: '01' },
-    { name: 'Frasco de alcohol de 70° 500ml', qty: '01' },
-    { name: 'Paquetes de gasas estériles fraccionadas 10x10 cm', qty: '05' },
-    { name: 'Paquetes de apósitos estériles 10x10 cm', qty: '08' },
-    { name: 'Rollos de esparadrapo 2.5cm x 5m', qty: '01' },
-    { name: 'Rollos de venda elástica de 3 pulg x 5 yardas', qty: '02' },
-    { name: 'Rollos de venda elástica de 4 pulg x 5 yardas', qty: '02' },
-    { name: 'Paquetes de algodón hidrófilo de 100g', qty: '01' },
-    { name: 'Venda triangular', qty: '01' },
-    { name: 'Paletas bajalengua', qty: '10' },
-    { name: 'Frascos de solución salina (cloruro de sodio al 0.9%) de 1000ml', qty: '01' },
-    { name: 'Apósitos para quemaduras jelonet 10x10cm', qty: '02' },
-    { name: 'Frascos de colirio de 10ml', qty: '02' },
-    { name: 'Tijera de trauma', qty: '01' },
-    { name: 'Pinza', qty: '01' },
-    { name: 'Jabón antiséptico', qty: '01' },
-    { name: 'Curitas', qty: '10' }
+const sectionsToRender = [
+    {
+        title: 'Inspección de Botiquines',
+        items: [
+            'Paquetes de guantes quirúrgicos',
+            'Frasco de yodopovidoma 120 ml solución antiséptico',
+            'Frasco de agua oxigenada mediano 120 ml',
+            'Frasco de alcohol mediano 250 ml',
+            'Paquetes de gasas esterilizadas de 10 cm x 10 cm',
+            'Paquetes de apósitos (05 para Sede Central)',
+            'Rollo de esparadrapo 5 cm x 4.5 cm',
+            'Rollos de venda elástica de 3 plg. X 5 yardas',
+            'Rollos de venda elástica de 4 plg. X 5 yardas',
+            'Paquete de algodón x 100 g',
+            'Venda triangular',
+            'Paletas baja lengua (para entabillado de dedos)',
+            'Frasco de solución de cloruro de sodio al 9/1000 x 1 l (para lavado de heridas)',
+            'Paquetes de gasa tipo jelonet (para quemaduras)',
+            'Frascos de colirio de 10 ml (01 para Sede Central)',
+            'Tijera punta roma',
+            'Pinza',
+            'Jabón germicida (solo para Sede Central)',
+            'Curitas (solo para Sede Central)'
+        ]
+    }
 ];
 
-export function BotiquinCustomForm({ moduleName, version, SignaturePad }: BotiquinCustomFormProps) {
+export default function BotiquinCustomForm({ SignaturePad }: { SignaturePad: any }) {
     const router = useRouter();
     const { user } = useAuth();
 
-    // Metadata
-    const [proyecto, setProyecto] = useState('RED VIAL 6');
-    const [fecha, setFecha] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }));
-    const [hora, setHora] = useState(() => {
-        const now = new Date();
-        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const [meta, setMeta] = useState({
+        hora: (() => { const now = new Date(); return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`; })(),
+        proyecto: 'RED VIAL 6',
+        area: '',
+        fecha: new Date().toISOString().split('T')[0],
+        inspector: user?.name || '',
+        cargo: '',
+        responsable: '',
+        tipoInspeccion: 'Planificada'
     });
-    const [inspector, setInspector] = useState(user?.name || '');
-    
-    // Sincronizar el nombre del inspector si el usuario carga después
+
+    const [checklist, setChecklist] = useState<Record<string, string>>({});
+    const [observaciones, setObservaciones] = useState('');
+    const [itemComments, setItemComments] = useState<Record<string, string>>({});
+    const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
+
     useEffect(() => {
-        if (user?.name && !inspector) {
-            setInspector(user.name);
+        const newChecklist: Record<string, string> = {};
+        sectionsToRender.forEach(section => {
+            section.items.forEach(item => {
+                newChecklist[item] = 'OK';
+            });
+        });
+        setChecklist(newChecklist);
+    }, []);
+
+    const [firmas, setFirmas] = useState({
+        inspectorFirma: '',
+        responsableFirma: '',
+        inspectorNombre: user?.name || '',
+        responsableNombre: ''
+    });
+
+    useEffect(() => {
+        if (user && !firmas.inspectorNombre) {
+            setFirmas(prev => ({ ...prev, inspectorNombre: user.name || '' }));
+            setMeta(prev => ({ ...prev, inspector: user.name || '' }));
         }
-    }, [user, inspector]);
+    }, [user]);
 
-    const [cargo, setCargo] = useState('');
-    const [responsable, setResponsable] = useState('');
-    const [ubicacion, setUbicacion] = useState('');
-    const [isPlanificada, setIsPlanificada] = useState(true);
-    const [isNoPlanificada, setIsNoPlanificada] = useState(false);
-    const [isOtro, setIsOtro] = useState(false);
-
-    // Módulo Levantamiento
-    const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
-    const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
+    const recognitionRef = useRef<any>(null);
+    const [isRecordingMeta, setIsRecordingMeta] = useState<string | null>(null);
 
     useEffect(() => {
-        const stored = localStorage.getItem('ssoma_contacts');
-        if (stored) {
-            setContactos(JSON.parse(stored));
+        if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = 'es-ES';
         }
     }, []);
 
-    // Firmas
-    const [inspectorSignature, setInspectorSignature] = useState('');
-    const [responsableSignature, setResponsableSignature] = useState('');
-
-    // Checklist Items
-    const [items, setItems] = useState<ChecklistItem[]>(() =>
-        INITIAL_BOTIQUIN_ITEMS.map((item, index) => ({
-            id: index + 1,
-            name: item.name,
-            qty: item.qty,
-            status: 'C'
-        }))
-    );
-
-    // Fotos de hallazgos (NC)
-    const [fotoGeneral, setFotoGeneral] = useState<string[]>([]);
-
-    // Observaciones
-    const [observaciones, setObservaciones] = useState('');
-
-    // Estado de guardado y voz
-    const [isSaving, setIsSaving] = useState(false);
-    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
-    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
-    const [showEmailModal, setShowEmailModal] = useState(false);
-    const [emailData, setEmailData] = useState<any>(null);
-    const [activeRecordingField, setActiveRecordingField] = useState<string | null>(null);
-    const recognitionRef = useRef<any>(null);
-
-    const toggleVoice = (fieldKey: string, currentValue: string, setter: (val: string) => void) => {
-        if (typeof window === 'undefined') return;
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert('El dictado por voz no está soportado en este navegador.');
-            return;
-        }
-
-        if (activeRecordingField === fieldKey) {
+    const toggleDictation = (field: string, isFirma = false, isItemComment = false) => {
+        if (isRecordingMeta === field) {
             recognitionRef.current?.stop();
-            setActiveRecordingField(null);
+            setIsRecordingMeta(null);
             return;
         }
-
         if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'es-ES';
-
-        let baseText = currentValue || '';
-
-        recognition.onresult = (event: any) => {
-            let interimTranscript = '';
-            let finalChunk = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalChunk += event.results[i][0].transcript;
+            setIsRecordingMeta(field);
+            recognitionRef.current.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript;
+                let newText = transcript;
+                if (isFirma) {
+                    newText = transcript;
+                } else if (isItemComment) {
+                    const existing = itemComments[field] || '';
+                    newText = existing ? existing + ' ' + transcript : transcript;
+                } else if (field === 'observaciones') {
+                    newText = observaciones ? observaciones + ' ' + transcript : transcript;
                 } else {
-                    interimTranscript += event.results[i][0].transcript;
+                    newText = transcript;
                 }
-            }
-            if (finalChunk) {
-                baseText = (baseText + ' ' + finalChunk).trim();
-            }
-            setter((baseText + ' ' + interimTranscript).trim());
-        };
 
-        recognition.onend = () => {
-            setActiveRecordingField(null);
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
-        setActiveRecordingField(fieldKey);
-    };
-
-    const handleStatusChange = (id: number, status: 'C' | 'NC' | 'N/A') => {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    };
-
-    const handleDefectChange = (id: number, defectNote: string) => {
-        setItems(prev => prev.map(item => item.id === id ? { ...item, defectNote } : item));
-    };
-
-    const handleDefectConfirm = (id: number) => {
-        const item = items.find(i => i.id === id);
-        if (item && item.defectNote && item.defectNote.trim() !== '') {
-            const qtyStr = item.defectNote.trim();
-            const newText = `- Falta/Defectuoso: ${qtyStr} de ${item.name}`;
-            
-            setObservaciones(prevObs => {
-                // Si la línea exacta ya existe, no hacemos nada
-                if (prevObs.includes(newText)) return prevObs;
-                
-                // Expresión regular para buscar si ya existe una entrada para este ítem con otra cantidad
-                // Busca "- Falta/Defectuoso: [cualquier numero] de [Nombre del item]"
-                // Para escapar caracteres especiales del nombre del item en el regex
-                const safeItemName = item.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`- Falta/Defectuoso: \\d+ de ${safeItemName}`, 'g');
-                
-                if (regex.test(prevObs)) {
-                    // Si existe, reemplazamos solo la cantidad, manteniendo intacto cualquier otro texto que el usuario haya escrito a la derecha
-                    return prevObs.replace(regex, newText);
+                if (isFirma) {
+                    setFirmas(prev => ({ ...prev, [field]: newText }));
+                } else if (isItemComment) {
+                    handleItemComment(field, newText);
+                } else if (field === 'observaciones') {
+                    setObservaciones(newText);
+                } else {
+                    setMeta(prev => ({ ...prev, [field]: newText }));
+                    if (field === 'inspector') {
+                        setFirmas(prev => ({ ...prev, inspectorNombre: newText }));
+                    } else if (field === 'responsable') {
+                        setFirmas(prev => ({ ...prev, responsableNombre: newText }));
+                    }
                 }
-                
-                // Si no existe, agregamos la nueva línea
-                return prevObs ? prevObs + '\n' + newText : newText;
-            });
-            // Ya NO limpiamos el input para que el número se mantenga visible y no se duplique
+            };
+            recognitionRef.current.onend = () => setIsRecordingMeta(null);
+            recognitionRef.current.start();
+        } else {
+            alert("El dictado por voz no está soportado en este navegador.");
         }
     };
 
-    const handleQtyChange = (id: number, qty: string) => {
-        setItems(prev => prev.map(item => item.id === id ? { ...item, qty } : item));
+    const handleItemComment = (item: string, comment: string) => {
+        setItemComments(prev => ({ ...prev, [item]: comment }));
+        setObservaciones(prev => {
+            let next = prev;
+            const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp('- ' + escapeRegex(item) + ' \\(NC\\)(: .*)?\\n?', 'g');
+            next = next.replace(regex, '');
+            if (['NC'].includes(checklist[item])) {
+                const prefix = comment ? `- ${item} (NC): ${comment}` : `- ${item} (NC)`;
+                next = next ? next.trim() + '\n' + prefix : prefix;
+            }
+            return next.trim();
+        });
     };
 
-    const handleGeneralPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
+    const handleCheck = (item: string, value: string) => {
+        setChecklist(prev => ({ ...prev, [item]: value }));
+        
+        setObservaciones(prev => {
+            let next = prev;
+            const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp('- ' + escapeRegex(item) + ' \\(NC\\)(: .*)?\\n?', 'g');
+            next = next.replace(regex, '');
+            
+            if (['NC'].includes(value)) {
+                const currentComment = itemComments[item];
+                const prefix = currentComment ? `- ${item} (NC): ${currentComment}` : `- ${item} (NC)`;
+                next = next ? next.trim() + '\n' + prefix : prefix;
+            }
+            return next.trim();
+        });
+    };
 
-        files.forEach(file => {
+    const handlePhotoUploadDefecto = (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+        Array.from(files).forEach(file => {
             const reader = new FileReader();
-            reader.onload = (event) => {
-                if (event.target?.result) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const maxDim = 800;
-                        if (width > height && width > maxDim) {
-                            height *= maxDim / width;
-                            width = maxDim;
-                        } else if (height > maxDim) {
-                            width *= maxDim / height;
-                            height = maxDim;
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx?.drawImage(img, 0, 0, width, height);
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-                        setFotoGeneral(prev => [...prev, compressedBase64]);
-                    };
-                    img.src = event.target.result as string;
+            reader.onload = (ev) => {
+                if (ev.target?.result) {
+                    setFotosDefectos(prev => {
+                        const current = prev[item] || [];
+                        return { ...prev, [item]: [...current, ev.target!.result as string] };
+                    });
                 }
             };
             reader.readAsDataURL(file);
         });
     };
 
-    const removeGeneralPhoto = (photoIdx: number) => {
-        setFotoGeneral(prev => prev.filter((_, i) => i !== photoIdx));
+    const removePhotoDefecto = (item: string, photoIdx: number) => {
+        setFotosDefectos(prev => {
+            const current = prev[item] || [];
+            return { ...prev, [item]: current.filter((_, i) => i !== photoIdx) };
+        });
     };
 
-    const badItems = items.filter(i => i.status === 'NC');
+    const renderMicInput = (label: string, field: string, value: string, isFirma = false) => (
+        <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase">{label}</label>
+            <div className="relative flex items-center mt-1">
+                <input 
+                    type="text" 
+                    value={value} 
+                    onChange={e => {
+                        if (isFirma) setFirmas(prev => ({ ...prev, [field]: e.target.value }));
+                        else {
+                            setMeta(prev => ({ ...prev, [field]: e.target.value }));
+                            if (field === 'inspector') setFirmas(prev => ({ ...prev, inspectorNombre: e.target.value }));
+                            if (field === 'responsable') setFirmas(prev => ({ ...prev, responsableNombre: e.target.value }));
+                        }
+                    }}
+                    className={"w-full border-b p-2 text-sm focus:border-emerald-500 outline-none bg-slate-50 " + (isRecordingMeta === field ? "border-red-400 bg-red-50/50 pr-10" : "border-slate-200 pr-10")} 
+                />
+                <button type="button" onClick={() => toggleDictation(field, isFirma)} className={"absolute right-2 p-1.5 rounded-full transition-colors " + (isRecordingMeta === field ? "bg-red-100 text-red-500 animate-pulse" : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-blue-500")}>
+                    <Mic size={14} />
+                </button>
+            </div>
+        </div>
+    );
 
-    const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
-        if (!inspector.trim()) {
+    const [isSaving, setIsSaving] = useState(false);
+    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+        
+    const badItemsList = Object.entries(checklist).filter(([_, val]) => ['NC'].includes(val));
+
+    const handleSaveAndDownload = async (isEmailing = false, customEmailData: any = null) => {
+        if (!meta.inspector.trim()) {
             alert('Por favor, indica el nombre del Inspector.');
             return;
         }
 
         setIsSaving(true);
         try {
-            const templateItems = [
-                { text: 'Proyecto', type: 'item' },
-                { text: 'Fecha de inspección', type: 'item' },
-                { text: 'Hora', type: 'item' },
-                { text: 'Inspector', type: 'item' },
-                { text: 'Cargo', type: 'item' },
-                { text: 'Responsable', type: 'item' },
-                { text: 'Ubicación del Botiquín', type: 'item' },
-                { text: 'Inspección planificada', type: 'item' },
-                { text: 'Inspección no planificada', type: 'item' },
-                { text: 'Otro', type: 'item' },
-                ...items.map(item => ({ text: item.name, type: 'item', qty: item.qty })),
-                { text: 'Observaciones', type: 'item' }
-            ];
-
-            const answersObj: Record<number, any> = {
-                0: { text: proyecto },
-                1: { text: fecha },
-                2: { text: hora },
-                3: { text: inspector, signature: inspectorSignature },
-                4: { text: cargo },
-                5: { text: responsable, signature: responsableSignature },
-                6: { text: ubicacion },
-                7: { text: isPlanificada ? 'true' : 'false' },
-                8: { text: isNoPlanificada ? 'true' : 'false' },
-                9: { text: isOtro ? 'true' : 'false' }
-            };
-
-            items.forEach((item, idx) => {
-                answersObj[10 + idx] = {
-                    text: item.status || '',
-                    qty: item.qty
-                };
-            });
-
-            answersObj[10 + items.length] = { text: observaciones };
-
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    moduleName: 'Botiquines',
-                    answers: answersObj,
-                    template: templateItems,
-                    observaciones: observaciones,
-                    saveToDrive: true,
-                    fotosDefectos: fotoGeneral.length > 0 ? { 'Evidencia General': fotoGeneral } : {}
+                    moduleName: "Botiquín",
+                    isBotiquinesMatrix: true,
+                    meta,
+                    checklist,
+                    observaciones,
+                    firmas,
+                    fotosDefectos,
+                    saveToDrive: true
                 })
             });
 
             if (res.ok) {
                 const data = await res.json();
+                let currentInspectionRecordId = null;
 
                 if (data.fileBase64) {
                     setCachedDriveUrl(data.driveUrl);
-                    const byteCharacters = atob(data.fileBase64);
+                    if (!isEmailing) {
+                        const byteCharacters = atob(data.fileBase64);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
                     const byteArray = new Uint8Array(byteNumbers);
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-                    
-                    if (!isEmailing) {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                    a.download = `INSP_Botiquines_${fecha}.xlsx`;
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Inspeccion_Botiquines_${meta.fecha}_${Date.now()}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
+                        window.URL.revokeObjectURL(url);
                         a.remove();
                     }
                 }
 
-                let inspectionRecordId = null;
+                // Guardar en BD local
                 try {
                     const dbRes = await fetch('/api/inspections', {
                         method: 'POST',
@@ -330,72 +276,117 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
                         body: JSON.stringify({
                             action: 'create',
                             data: {
-                                date: fecha,
-                                responsible: inspector,
-                                inspectionType: 'Botiquines',
-                                area: proyecto,
-                                zone: ubicacion || 'Inspección Digital',
-                                status: badItems.length > 0 ? 'Abierto' : 'Cerrado',
-                                observations: observaciones || 'Generado desde formulario blindado de Botiquines.',
+                                date: meta.fecha,
+                                responsible: meta.responsable || firmas.responsableNombre || "Responsable",
+                                inspectionType: 'Inspección de Botiquín',
+                                area: meta.proyecto,
+                                zone: meta.ubicacion || 'Inspección Digital',
+                                status: badItemsList.length > 0 ? 'Abierto' : 'Cerrado',
+                                observations: observaciones || 'Generado desde formulario blindado de Almacenes.',
                                 evidencePdf: data.driveUrl || '',
                                 evidenceImgs: []
                             }
                         })
                     });
-                    const dbData = await dbRes.json();
-                    if (dbData?.id) { inspectionRecordId = dbData.id; } else { alert('ALERTA DE DIAGNOSTICO: Falló el guardado en la Base de Datos. Razón: ' + (dbData?.error || 'Desconocida')); }
-                } catch(err) { console.error(err); alert('ALERTA DE DIAGNOSTICO: Error de red al intentar guardar en Base de Datos: ' + err.message); }
+                    if (dbRes.ok) {
+                        const dbData = await dbRes.json();
+                        currentInspectionRecordId = dbData.id;
+                    }
+                } catch (e) {
+                    console.error("Error saving to local DB:", e);
+                }
 
-                // Generar Levantamiento de Observaciones General si aplica
-                let generatedLevantamientoLink = null;
-                if (responsableLevantamiento && badItems.length > 0) {
-                    const desc = "Observaciones generales del Checklist Botiquín:\n" + badItems.map(b => `- ${b.name}${b.defectNote ? ` (Detalle: ${b.defectNote})` : ''}`).join("\n");
+                let generatedLevantamientoLink = cachedLevantamientoLink;
+
+                if (badItemsList.length > 0 && !generatedLevantamientoLink) {
                     try {
                         const lvRes = await fetch('/api/levantamiento/create', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                moduleName: 'Botiquines',
-                                template: templateItems,
-                                answers: answersObj,
-                                inspectionRecordId,
+                                moduleName: "Botiquín",
+                                template: checklist,
+                                answers: { ...meta, observaciones, firmas, fotosDefectos },
+                                inspectionRecordId: currentInspectionRecordId,
                                 hallazgos: [{
                                     index: 0,
-                                    descripcion: desc,
+                                    descripcion: badItemsList.map(([key]) => key + (itemComments[key] ? `: ${itemComments[key]}` : '')).join('\n'),
                                     riesgo: 'Medio',
                                     categoria: 'Condición Subestándar',
-                                    responsable: responsableLevantamiento.name,
-                                    responsableEmail: responsableLevantamiento.email,
-                                    fecha: fecha,
-                                    fotosDefectos: fotoGeneral.length > 0 ? { 'Evidencia General': fotoGeneral } : {}
+                                    responsable: meta.responsable || firmas.responsableNombre || "Responsable",
+                                    responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                    fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
                                 }]
                             })
                         });
-                        
+
                         if (lvRes.ok) {
                             const lvData = await lvRes.json();
                             if (lvData.items && lvData.items.length > 0) {
-                                generatedLevantamientoLink = `${window.location.origin}/levantamiento/${lvData.items[0].token}`;
+                                generatedLevantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
                                 setCachedLevantamientoLink(generatedLevantamientoLink);
                             }
-                        } else {
-                            const errText = await lvRes.text();
-                            alert(`Error de servidor al crear levantamiento: ${errText}`);
                         }
-                    } catch(err) { console.error('Error generando levantamiento:', err); }
+                    } catch(err) { console.error("Error generating levantamiento:", err); }
+                }
+
+                if (isEmailing && customEmailData) {
+                    try {
+                        const driveLink = data.driveUrl || cachedDriveUrl;
+                        let bodyWithLink = customEmailData.message.includes('[📎')
+                            ? customEmailData.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + driveLink)
+                            : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                        if (generatedLevantamientoLink) {
+                            bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
+                        }
+
+                        let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                        
+                        if (generatedLevantamientoLink) {
+                            htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                        }
+
+                        const emailRes = await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: customEmailData.to,
+                                cc: customEmailData.cc,
+                                subject: customEmailData.subject,
+                                text: bodyWithLink,
+                                html: htmlBody,
+                                fromEmail: customEmailData.fromEmail,
+                                fromName: customEmailData.fromName
+                            })
+                        });
+                        if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        alert('✅ Correo enviado correctamente.');
+                        window.location.href = '/inspections?openDigital=true';
+                        return;
+                    } catch (e) {
+                        console.error(e);
+                        alert('El Excel se guardó, pero hubo un error al enviar el correo.');
+                    }
                 }
 
                 if (!isEmailing) {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo.\n3. Si quieres salir, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
+                    } else {
+                        window.location.href = '/inspections?openDigital=true';
                     }
                 }
-                
-                return { driveUrl: data.driveUrl, levantamientoLink: generatedLevantamientoLink };
+
+                return {
+                    driveUrl: data.driveUrl,
+                    levantamientoLink: generatedLevantamientoLink
+                };
+
             } else {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
-                return null;
             }
         } catch(e) {
             console.error(e);
@@ -406,497 +397,216 @@ export function BotiquinCustomForm({ moduleName, version, SignaturePad }: Botiqu
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6 pb-24 text-slate-800">
-            {/* Header con indicador de blindaje */}
-            <div className="flex items-center justify-between mb-4">
-                <button 
-                    onClick={() => window.location.href = '/inspections?openDigital=true'} 
-                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
-                >
-                    <ArrowLeft size={16} /> Volver
+        <div className="max-w-4xl mx-auto pb-24">
+            <div className="bg-slate-800 text-white p-6 shadow-lg relative z-10 mb-6">
+                <button onClick={() => router.push('/inspections')} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors mb-4">
+                    <ArrowLeft size={20} /> Volver
                 </button>
-                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
-                    <ShieldCheck size={14} className="text-emerald-600" /> Formato Blindado (V{version || 1})
-                </div>
+                <h1 className="text-2xl font-black mb-1 text-emerald-400">INSPECCIÓN DE BOTIQUÍN</h1>
+                <p className="text-slate-400 text-sm">Lista de chequeo F-SIG-028</p>
             </div>
 
-            {/* Banner del Formato */}
-            <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6 shadow-md border border-slate-800">
-                <h1 className="text-xl font-black">Inspección de Botiquines</h1>
-                <p className="text-slate-400 text-xs mt-1">Formato F-SIG-030 • Red Vial 6 • Calibración Asegurada</p>
-            </div>
-
-            {/* SECCIÓN 1: CABECERA Y METADATOS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2">1. Datos Generales de la Inspección</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Proyecto */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Proyecto</label>
-                        <input 
-                            type="text" 
-                            value={proyecto} 
-                            onChange={(e) => setProyecto(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                    </div>
-
-                    {/* Ubicación del Botiquín (D8) */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Ubicación del Botiquín (D8)</label>
-                        <div className="relative flex items-center">
-                            <input 
-                                type="text" 
-                                value={ubicacion} 
-                                onChange={(e) => setUbicacion(e.target.value)} 
-                                placeholder="Ej. Taller Mecánico, Caseta 2..." 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                            />
-                            <div className="absolute right-2 flex items-center gap-1">
-                                <button 
-                                    type="button" 
-                                    onClick={() => toggleVoice('ubicacion', ubicacion, setUbicacion)}
-                                    className={`p-1.5 rounded-md ${activeRecordingField === 'ubicacion' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                    title="Dictar por voz"
-                                >
-                                    {activeRecordingField === 'ubicacion' ? <MicOff size={16} /> : <Mic size={16} />}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setUbicacion('')}
-                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                    title="Limpiar"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+            <div className="px-4 space-y-6">
+                <div className="bg-white border-t-4 border-emerald-400 shadow-sm rounded-xl p-5 flex flex-col gap-4">
+                    <h3 className="font-bold text-slate-800 border-b pb-2">Datos Generales</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {renderMicInput("Proyecto", "proyecto", meta.proyecto)}
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Hora</label>
+                            <input type="time" value={meta.hora || ''} onChange={e => setMeta({...meta, hora: e.target.value})} className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                         </div>
-                    </div>
-
-                    {/* Fecha y Hora */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Fecha de Inspección (D5)</label>
-                        <input 
-                            type="date" 
-                            value={fecha} 
-                            onChange={(e) => setFecha(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Hora (I5)</label>
-                        <input 
-                            type="time" 
-                            value={hora} 
-                            onChange={(e) => setHora(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                    </div>
-                </div>
-
-                {/* Tipo de Inspección (Checkboxes A10, A11) */}
-                <div className="pt-2 border-t border-slate-100">
-                    <label className="text-xs font-bold text-slate-600 mb-2 block">Tipo de Inspección</label>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isPlanificada} 
-                                onChange={(e) => { setIsPlanificada(e.target.checked); if (e.target.checked) setIsNoPlanificada(false); }}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Inspección Planificada (A10)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isNoPlanificada} 
-                                onChange={(e) => { setIsNoPlanificada(e.target.checked); if (e.target.checked) setIsPlanificada(false); }}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Inspección No Planificada (A11)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isOtro} 
-                                onChange={(e) => setIsOtro(e.target.checked)}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Otro</span>
-                        </label>
-                    </div>
-                </div>
-
-                {/* Inspector y Firma (D6, K6) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                    <div className="space-y-3">
                         <div>
-                            <label className="text-xs font-bold text-slate-600 mb-1 block">Inspector a cargo (D6)</label>
-                            <div className="relative flex items-center">
-                                <input 
-                                    type="text" 
-                                    value={inspector} 
-                                    onChange={(e) => setInspector(e.target.value)} 
-                                    placeholder="Nombres y Apellidos..." 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                                />
-                                <div className="absolute right-2 flex items-center gap-1">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => toggleVoice('inspector', inspector, setInspector)}
-                                        className={`p-1.5 rounded-md ${activeRecordingField === 'inspector' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                        title="Dictar por voz"
-                                    >
-                                        {activeRecordingField === 'inspector' ? <MicOff size={16} /> : <Mic size={16} />}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setInspector('')}
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                        title="Limpiar"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase">Fecha</label>
+                            <input type="date" value={meta.fecha} onChange={e => setMeta({...meta, fecha: e.target.value})} className="w-full border-b border-slate-200 p-2 text-sm focus:border-emerald-500 outline-none bg-slate-50 mt-1" />
                         </div>
-
-                        <div>
-                            <label className="text-xs font-bold text-slate-600 mb-1 block">Cargo del Inspector</label>
-                            <div className="relative flex items-center">
-                                <input 
-                                    type="text" 
-                                    value={cargo} 
-                                    onChange={(e) => setCargo(e.target.value)} 
-                                    placeholder="Ej. Supervisor SSOMA..." 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                                />
-                                <div className="absolute right-2 flex items-center gap-1">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => toggleVoice('cargo', cargo, setCargo)}
-                                        className={`p-1.5 rounded-md ${activeRecordingField === 'cargo' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                        title="Dictar por voz"
-                                    >
-                                        {activeRecordingField === 'cargo' ? <MicOff size={16} /> : <Mic size={16} />}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setCargo('')}
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                        title="Limpiar"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
+                        {renderMicInput("Ubicación del Botiquín", "ubicacion", meta.ubicacion)}
+                        {renderMicInput("Inspector", "inspector", meta.inspector)}
+                        {renderMicInput("Cargo", "cargo", meta.cargo)}
+                        {renderMicInput("Responsable de Área", "responsable", meta.responsable)}
+                        
+                        <div className="sm:col-span-2 lg:col-span-3 mt-2 flex flex-col sm:flex-row sm:items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <label className="text-[10px] font-black text-slate-500 uppercase">Tipo de Inspección:</label>
+                            <div className="flex gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 hover:text-emerald-600 transition-colors">
+                                    <input type="radio" checked={meta.tipoInspeccion === 'Planificada'} onChange={() => setMeta({...meta, tipoInspeccion: 'Planificada'})} className="w-4 h-4 text-emerald-500 accent-emerald-500" />
+                                    Inspección Planificada
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 hover:text-emerald-600 transition-colors">
+                                    <input type="radio" checked={meta.tipoInspeccion === 'No Planificada'} onChange={() => setMeta({...meta, tipoInspeccion: 'No Planificada'})} className="w-4 h-4 text-emerald-500 accent-emerald-500" />
+                                    Inspección No Planificada
+                                </label>
                             </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Firma del Inspector (K6)</label>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <SignaturePad onSave={setInspectorSignature} />
                         </div>
                     </div>
                 </div>
 
-                {/* Responsable de área y Firma (D7, K7) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Responsable de Área (D7)</label>
-                        <div className="relative flex items-center">
-                            <input 
-                                type="text" 
-                                value={responsable} 
-                                onChange={(e) => setResponsable(e.target.value)} 
-                                placeholder="Nombres y Apellidos del Responsable..." 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                            />
-                            <div className="absolute right-2 flex items-center gap-1">
-                                <button 
-                                    type="button" 
-                                    onClick={() => toggleVoice('responsable', responsable, setResponsable)}
-                                    className={`p-1.5 rounded-md ${activeRecordingField === 'responsable' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                    title="Dictar por voz"
-                                >
-                                    {activeRecordingField === 'responsable' ? <MicOff size={16} /> : <Mic size={16} />}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setResponsable('')}
-                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                    title="Limpiar"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                <div className="bg-slate-100 p-3 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-[10px] sm:text-xs text-slate-600 border border-slate-200">
+                    <div className="flex items-center gap-1"><span className="font-black bg-emerald-500 text-white px-1 rounded">OK</span> Cumple</div>
+                    <div className="flex items-center gap-1"><span className="font-black bg-red-500 text-white px-1 rounded">NC</span> No Conforme</div>
+                    <div className="flex items-center gap-1"><span className="font-black bg-slate-400 text-white px-1 rounded">N/A</span> No aplica</div>
+                </div>
+
+                <div className="space-y-6">
+                    <h2 className="text-xl font-black text-slate-800 text-center uppercase tracking-wider">Lista de Chequeo</h2>
+                    {sectionsToRender.map((section, sIdx) => (
+                        <div key={sIdx} className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                            <div className="bg-slate-800 p-3">
+                                <h3 className="font-bold text-emerald-400 text-sm uppercase">{section.title}</h3>
                             </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Firma del Responsable de Área (K7)</label>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <SignaturePad onSave={setResponsableSignature} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* SECCIÓN 2: CHECKLIST DE INSUMOS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                <div className="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center">
-                    <h3 className="font-bold text-sm">2. Verificación de Insumos del Botiquín</h3>
-                    <span className="text-xs bg-slate-700 px-2.5 py-1 rounded-full">{items.length} Insumos Evaluados</span>
-                </div>
-
-                <div className="divide-y divide-slate-100">
-                    {items.map((item) => (
-                        <div key={item.id} className="p-3.5 hover:bg-slate-50/70 transition-colors flex flex-col gap-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="flex-1">
-                                    <span className="text-xs font-bold text-slate-400 mr-2">#{item.id}</span>
-                                    <span className="text-sm font-semibold text-slate-800">{item.name}</span>
-                                </div>
-
-                                <div className="flex items-center gap-3 shrink-0">
-                                    {/* Cantidad */}
-                                    <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
-                                        <span className="text-[10px] font-bold text-slate-400 mr-1.5">CANT:</span>
-                                        <input 
-                                            type="text" 
-                                            value={item.qty} 
-                                            onChange={(e) => handleQtyChange(item.id, e.target.value)}
-                                            className="w-10 bg-transparent text-xs font-bold text-slate-700 text-center outline-none" 
-                                        />
+                            <div className="divide-y divide-slate-100">
+                                {section.items.map((item) => (
+                                    <div key={item} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                                        <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
+                                            {item}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {['OK', 'NC', 'N/A'].map(opt => {
+                                                const isSelected = checklist[item] === opt;
+                                                let bg = "bg-slate-100 text-slate-400 border-slate-200";
+                                                if (isSelected) {
+                                                    if (opt === 'OK') bg = "bg-emerald-500 text-white border-emerald-600 shadow-inner";
+                                                    if (opt === 'NC') bg = "bg-red-500 text-white border-red-600 shadow-inner";
+                                                    if (opt === 'N/A') bg = "bg-slate-500 text-white border-slate-600 shadow-inner";
+                                                }
+                                                return (
+                                                    <button
+                                                        key={opt}
+                                                        onClick={() => handleCheck(item, opt)}
+                                                        className={`w-10 h-10 rounded-lg font-black text-sm border flex items-center justify-center transition-all ${bg} ${!isSelected && 'hover:bg-slate-200'}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {checklist[item] === 'NC' && (
+                                            <div className="w-full mt-3 bg-red-50 p-3 rounded-lg border border-red-100 flex flex-col gap-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-black text-red-600 uppercase">Detalle y Evidencia:</span>
+                                                    <div className="flex gap-2">
+                                                        <input type="file" id={`foto-${item}`} accept="image/*" capture="environment" className="hidden" onChange={(e) => handlePhotoUploadDefecto(item, e)} multiple />
+                                                        <button onClick={() => document.getElementById(`foto-${item}`)?.click()} className="px-3 py-1.5 bg-white text-red-600 border border-red-200 rounded-md text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 shadow-sm transition-colors">
+                                                            <Camera size={14} /> {(fotosDefectos[item]?.length || 0) > 0 ? `Fotos (${fotosDefectos[item].length})` : 'Añadir Foto'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="relative flex items-center">
+                                                    <input 
+                                                        type="text" 
+                                                        value={itemComments[item] || ''}
+                                                        onChange={e => handleItemComment(item, e.target.value)}
+                                                        placeholder="Escriba o dicte el detalle de la observación..."
+                                                        className={"w-full text-xs p-2.5 pr-16 rounded-md outline-none border focus:border-red-400 " + (isRecordingMeta === item ? "border-red-400 bg-red-100" : "border-red-200 bg-white")}
+                                                    />
+                                                    <div className="absolute right-1 flex items-center gap-1">
+                                                        {itemComments[item] && (
+                                                            <button onClick={() => handleItemComment(item, '')} className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 transition-colors">
+                                                                <X size={12} />
+                                                            </button>
+                                                        )}
+                                                        <button onClick={() => toggleDictation(item, false, true)} className={"p-1.5 rounded-full transition-colors " + (isRecordingMeta === item ? "text-red-500 bg-red-100 animate-pulse" : "text-slate-400 hover:text-blue-500 hover:bg-slate-100")}>
+                                                            <Mic size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Botones C / NC / N/A */}
-                                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleStatusChange(item.id, 'C')} 
-                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'C' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                        >
-                                            C
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleStatusChange(item.id, 'NC')} 
-                                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'NC' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                        >
-                                            NC
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleStatusChange(item.id, 'N/A')} 
-                                            className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                        >
-                                            N/A
-                                        </button>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                            
-                            {/* Inline Defect Input */}
-                            {item.status === 'NC' && (
-                                <div className="w-full mt-1 bg-red-50 border border-red-100 p-2 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <AlertCircle size={14} className="text-red-500 shrink-0" />
-                                    <input 
-                                        type="number" 
-                                        min="1"
-                                        placeholder={`Escribe la cantidad y presiona Enter...`} 
-                                        value={item.defectNote || ''}
-                                        onChange={(e) => handleDefectChange(item.id, e.target.value)}
-                                        onBlur={() => handleDefectConfirm(item.id)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleDefectConfirm(item.id);
-                                        }}
-                                        className="w-full bg-white border border-red-200 text-xs rounded-md px-2.5 py-1.5 outline-none focus:border-red-400 placeholder:text-red-300 text-red-700 font-bold"
-                                    />
-                                </div>
-                            )}
                         </div>
                     ))}
-                </div>
-            </div>
-
-            {/* SECCIÓN 3: EVIDENCIA FOTOGRÁFICA GENERAL */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 flex items-center gap-2 mb-4">
-                    <Camera size={18} className="text-blue-500" />
-                    3. Evidencia Fotográfica General (Se inserta a partir de la fila 48 en Excel)
-                </h3>
-                <p className="text-xs text-slate-500 mb-3 italic">Adjunta una o más fotos generales del botiquín inspeccionado.</p>
-                <div className="flex flex-wrap gap-3">
-                    {fotoGeneral.map((foto, fIdx) => (
-                        <div key={fIdx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
-                            <img src={foto} alt={`Foto ${fIdx + 1}`} className="w-full h-full object-cover" />
-                            <button
-                                type="button"
-                                onClick={() => removeGeneralPhoto(fIdx)}
-                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <Trash2 size={12} />
-                            </button>
+                    
+                    <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones del Chequeo</label>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setObservaciones('')} className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600">
+                                    <X size={12} /> Borrar
+                                </button>
+                                <button type="button" onClick={() => toggleDictation('observaciones')} className={"p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold " + (isRecordingMeta === 'observaciones' ? "bg-red-100 text-red-500 animate-pulse shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-500")}>
+                                    <Mic size={12} /> {isRecordingMeta === 'observaciones' ? 'Escuchando...' : 'Dictar'}
+                                </button>
+                            </div>
                         </div>
-                    ))}
-                    <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 cursor-pointer transition-colors bg-white">
-                        <Camera size={20} className="mb-1" />
-                        <span className="text-[10px] font-bold">+ Foto</span>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            multiple
-                            onChange={handleGeneralPhotoUpload}
-                            className="hidden"
-                        />
-                    </label>
-                </div>
-            </div>
-
-            {/* SECCIÓN 4: OBSERVACIONES */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-8">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 mb-3">
-                    4. Observaciones y Conclusiones (A36)
-                </h3>
-
-                {/* El cuadro de redacción recibe los textos automáticamente */}
-
-                <div className="relative">
-                    <textarea 
-                        value={observaciones} 
-                        onChange={(e) => setObservaciones(e.target.value)} 
-                        rows={4} 
-                        placeholder="Escribe o dicta observaciones adicionales. Los hallazgos anteriores se consolidarán automáticamente en el cuadro de redacción del Excel..." 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pr-20 text-sm outline-none focus:border-blue-500 resize-y" 
-                    />
-                    <div className="absolute bottom-3 right-3 flex items-center gap-1">
-                        <button 
-                            type="button" 
-                            onClick={() => toggleVoice('observaciones', observaciones, setObservaciones)}
-                            className={`p-2 rounded-full ${activeRecordingField === 'observaciones' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
-                            title="Dictar por voz"
-                        >
-                            {activeRecordingField === 'observaciones' ? <MicOff size={16} /> : <Mic size={16} />}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setObservaciones('')}
-                            className="p-2 rounded-full bg-slate-200 text-slate-600 hover:bg-red-100 hover:text-red-600"
-                            title="Limpiar"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} className={"w-full border p-3 text-sm rounded-lg outline-none min-h-[80px] " + (isRecordingMeta === 'observaciones' ? "border-red-400 bg-red-50/30" : "border-slate-200 focus:border-emerald-500")} placeholder="Escriba o dicte aquí sus observaciones extra..." />
                     </div>
-                </div>
-            </div>
 
-            {/* SECCIÓN LEVANTAMIENTO */}
-            {badItems.length > 0 && (
-                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-8 shadow-sm">
-                    <h3 className="font-bold text-orange-800 text-sm mb-2 flex items-center gap-1.5">
-                        <AlertCircle size={16} /> Asignar Levantamiento de Observación General
-                    </h3>
-                    <p className="text-xs text-orange-700 mb-3">
-                        Hay {badItems.length} ítem(s) marcados como No Conformes. Si deseas enviar un enlace de levantamiento para subsanar estas observaciones, selecciona un responsable:
-                    </p>
-                    <div className="relative">
-                        <select 
-                            className="w-full p-2.5 bg-white border border-orange-300 rounded-lg text-sm text-slate-700 font-semibold focus:outline-none focus:border-orange-500"
-                            onChange={(e) => {
-                                const c = contactos.find(x => x.email === e.target.value);
-                                setResponsableLevantamiento(c || null);
-                            }}
-                        >
-                            <option value="">-- No enviar solicitud de levantamiento --</option>
-                            {contactos.map(c => (
-                                <option key={c.email} value={c.email}>{c.name} ({c.email})</option>
+                                    {/* FOTOGRAFÍAS DE HALLAZGOS */}
+                <div className="bg-white border-t-4 border-emerald-400 shadow-sm rounded-xl p-5 flex flex-col gap-4 mt-6">
+                    <h3 className="font-bold text-slate-800 border-b pb-2 flex items-center gap-2"><Camera size={18} className="text-emerald-500" /> Evidencia Fotográfica de Hallazgos</h3>
+                    
+                    {badItemsList.length === 0 ? (
+                        <p className="text-sm text-slate-500 text-center py-4">No hay hallazgos (NC) que requieran fotografía.</p>
+                    ) : (
+                        <div className="space-y-6">
+                            {badItemsList.map(([item, val]) => (
+                                <div key={item} className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="font-bold text-slate-700 text-sm">{item} <span className="text-xs bg-white border border-slate-300 px-1.5 py-0.5 rounded ml-2">(NC)</span></h4>
+                                    </div>
+                                    <div className="flex flex-wrap gap-3">
+                                        {(fotosDefectos[item] || []).map((foto, idx) => (
+                                            <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
+                                                <img src={foto} alt={"Foto " + item} className="w-full h-full object-cover" />
+                                                <button
+                                                    onClick={() => removePhotoDefecto(item, idx)}
+                                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
-                        </select>
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col">
+                            {renderMicInput("Nombre del Inspector", "inspectorNombre", firmas.inspectorNombre, true)}
+                            <div className="mt-4 flex-1 flex flex-col">
+                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Inspector</label>
+                                <SignaturePad onSave={(val: string) => setFirmas(prev => ({...prev, inspectorFirma: val}))} />
+                            </div>
+                        </div>
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col">
+                            {renderMicInput("Nombre del Responsable", "responsableNombre", firmas.responsableNombre, true)}
+                            <div className="mt-4 flex-1 flex flex-col">
+                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Responsable</label>
+                                <SignaturePad onSave={(val: string) => setFirmas(prev => ({...prev, responsableFirma: val}))} />
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
-
-            {/* BOTÓN FINALIZAR */}
-            <div className="sticky bottom-4 z-40">
-                
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                      <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
-                          {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
-                          {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
-                      </button>
-                      <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
-                          {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
-                          {isSaving && showEmailModal ? 'Preparando...' : 'Enviar por Correo'}
-                      </button>
-                  </div>
-                  
-                  <EmailReportModal
-            initialObservations={observaciones}
-            preSelectedTo={responsableLevantamiento ? [responsableLevantamiento.email] : []}
-                      isOpen={showEmailModal} 
-                      onClose={() => setShowEmailModal(false)}
-                      isSending={isSaving}
-                      onSend={async (data) => {
-                          let currentDriveUrl = cachedDriveUrl;
-                          let currentLevLink = cachedLevantamientoLink;
-
-                          setIsSaving(true);
-                          try {
-                              if (!currentDriveUrl) {
-                                  const saveRes = await handleSaveAndDownload(true, data);
-                                  if (!saveRes) throw new Error('Falló el guardado');
-                                  currentDriveUrl = saveRes.driveUrl;
-                                  currentLevLink = saveRes.levantamientoLink;
-                              }
-
-                              let bodyWithLink = data.message;
-                              if (currentDriveUrl) {
-                                  bodyWithLink = bodyWithLink.includes('[📎') 
-                                      ? bodyWithLink.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + currentDriveUrl)
-                                      : bodyWithLink + '\n\n📎 Enlace al reporte en Drive:\n' + currentDriveUrl;
-                              }
-                              
-                              let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
-
-                              if (currentLevLink) {
-                                  htmlBody += `<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="${currentLevLink}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>`;
-                                  bodyWithLink += `\n\n✅ Enlace de Levantamiento de Observaciones:\n${currentLevLink}`;
-                              }
-
-                              const emailRes = await fetch('/api/send-email', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                      to: data.to, cc: data.cc, subject: data.subject,
-                                      text: bodyWithLink,
-                                      html: htmlBody,
-                                      fromEmail: data.fromEmail, fromName: data.fromName
-                                  })
-                              });
-                              if (!emailRes.ok) throw new Error('Error enviando correo');
-                              alert('✅ Correo unificado enviado correctamente.');
-                              window.location.href = '/inspections?openDigital=true';
-                          } catch(e) {
-                              alert('Error al enviar el correo.');
-                          } finally {
-                              setIsSaving(false);
-                              setShowEmailModal(false);
-                          }
-                      }}
-                  />
             </div>
-        </div>
+
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 z-50">
+                <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                        {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
+                        {isSaving && !showEmailModal ? 'Generando...' : 'Finalizar y Descargar'}
+                    </button>
+                    <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
+                        {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
+                        {isSaving && showEmailModal ? 'Preparando...' : 'Enviar por Correo'}
+                    </button>
+                </div>
+            </div>
+
+            <EmailReportModal
+                initialObservations={observaciones}
+                isOpen={showEmailModal} 
+                onClose={() => setShowEmailModal(false)}
+                isSending={isSaving}
+                onSend={async (data) => {
+                    await handleSaveAndDownload(true, data);
+                }}
+            />
+
+            </div>
     );
 }
-
-
-
-
-
-
-
