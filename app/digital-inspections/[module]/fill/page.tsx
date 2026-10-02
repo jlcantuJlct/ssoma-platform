@@ -60,7 +60,7 @@ import CocinaComedorCustomForm from '@/components/inspections/CocinaComedorCusto
 import LaboratorioCustomForm from '@/components/inspections/LaboratorioCustomForm';
 import { InternasCustomForm } from '@/components/inspections/InternasCustomForm';
 import { KitAntiderrameCustomForm } from '@/components/inspections/KitAntiderrameCustomForm';
-import { EstacionEmergenciaCustomForm } from '@/components/inspections/EstacionEmergenciaCustomForm';
+import EstacionEmergenciaCustomForm from '@/components/inspections/EstacionEmergenciaCustomForm';
 
 export default function FillDigitalInspection() {
     const params = useParams();

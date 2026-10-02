@@ -79,7 +79,9 @@ export async function POST(req: Request) {
     const isKitAntiderrame = data.isKitAntiderrameMatrix || (moduleName && moduleName.toLowerCase().includes('derrame'));
     if (isKitAntiderrame) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Kit con derrames.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
       const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
+    const isEstacionEmergencia = data.isEstacionEmergenciaMatrix || (moduleName && (moduleName.toLowerCase().includes("estacion") || moduleName.toLowerCase().includes("estación")));
     if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Botiquines.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isEstacionEmergencia) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de estación de primeros auxilios.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
     // Template Fallbacks
     if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de Almacen.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
@@ -1189,7 +1191,7 @@ export async function POST(req: Request) {
     }
     
       // --- MANEJADOR 5: ALMACEN MATRICIAL ---
-      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin) {
+      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin || isEstacionEmergencia) {
           const meta = data.meta || data.answers || {};
           let checklist = data.checklist || (data.template && !Array.isArray(data.template) ? data.template : {});
           if (Object.keys(checklist).length === 0 && Array.isArray(data.template)) {
@@ -1256,13 +1258,13 @@ export async function POST(req: Request) {
               else if (isCampamento) { obsCellStart = "A57"; obsCellEnd = "M61"; }
               else if (isInstalacionesElectricas) { obsCellStart = "A47"; obsCellEnd = "M52"; }
               else if (isCocinaComedor) { obsCellStart = "A55"; obsCellEnd = "M59"; }
-              else if (isLaboratorio) { obsCellStart = "A36"; obsCellEnd = "M42"; } else if (isBotiquin) { obsCellStart = "A36"; obsCellEnd = "M42"; }
+              else if (isLaboratorio) { obsCellStart = "A36"; obsCellEnd = "M42"; } else if (isBotiquin) { obsCellStart = "A36"; obsCellEnd = "M42"; } else if (isEstacionEmergencia) { obsCellStart = "A43"; obsCellEnd = "M47"; }
               
               try { 
                   if (isCampamento) { for(let r=57; r<=61; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isInstalacionesElectricas) { for(let r=47; r<=52; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isCocinaComedor) { for(let r=55; r<=59; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
-                  else if (isLaboratorio) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } } else if (isBotiquin) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
+                  else if (isLaboratorio) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } } else if (isBotiquin) { for(let r=36; r<=42; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } } else if (isEstacionEmergencia) { for(let r=43; r<=47; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   else if (isTalleres) { for(let r=39; r<=44; r++) { try { worksheet.unMergeCells("A"+r+":M"+r); } catch(e){} } }
                   worksheet.mergeCells(obsCellStart + ":" + obsCellEnd); 
               } catch(e) {}
@@ -1277,7 +1279,7 @@ export async function POST(req: Request) {
               else if (isCampamento) currentImgRow = 65;
               else if (isInstalacionesElectricas) currentImgRow = 54;
               else if (isCocinaComedor) currentImgRow = 61;
-              else if (isLaboratorio) currentImgRow = 44; else if (isBotiquin) currentImgRow = 50;
+              else if (isLaboratorio) currentImgRow = 44; else if (isBotiquin) currentImgRow = 50; else if (isEstacionEmergencia) currentImgRow = 52;
               
               const badItemsKeys = Object.keys(checklist).filter(k => ['NC', 'X'].includes(checklist[k]));
               let evidenciasMapLocal = {};

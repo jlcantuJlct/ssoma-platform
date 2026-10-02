@@ -598,7 +598,7 @@ export default function BotiquinCustomForm({ SignaturePad }: { SignaturePad: any
             </div>
 
             <EmailReportModal
-                initialObservations={observaciones}
+                initialObservations={Object.entries(checklist).filter(([_, v]) => v === 'NC' || v === 'F').map(([k]) => "- " + k + (itemComments[k] ? ": " + itemComments[k] : "")).join('\n') + (observaciones ? '\n\nOtras observaciones:\n' + observaciones : '')}
                 isOpen={showEmailModal} 
                 onClose={() => setShowEmailModal(false)}
                 isSending={isSaving}
