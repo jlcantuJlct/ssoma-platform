@@ -267,7 +267,7 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Inspeccion_Botiquines_${meta.fecha}_${Date.now()}.xlsx`;
+                    a.download = `Inspeccion_Estacion_Primeros_Auxilios_${meta.fecha}_${Date.now()}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                         window.URL.revokeObjectURL(url);
@@ -409,8 +409,8 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                 <button onClick={() => router.push('/inspections')} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors mb-4">
                     <ArrowLeft size={20} /> Volver
                 </button>
-                <h1 className="text-2xl font-black mb-1 text-emerald-400">INSPECCIÓN DE BOTIQUÍN</h1>
-                <p className="text-slate-400 text-sm">Lista de chequeo F-SIG-028</p>
+                <h1 className="text-2xl font-black mb-1 text-emerald-400">INSPECCIÓN DE ESTACIÓN DE PRIMEROS AUXILIOS</h1>
+                <p className="text-slate-400 text-sm">Lista de chequeo F-SIG-008</p>
             </div>
 
             <div className="px-4 space-y-6">
