@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
-import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle , Mail} from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { Mic, MicOff, Trash2, Camera, Save, Loader2, ArrowLeft, ShieldCheck, AlertCircle , Mail, Shield, PlusCircle, Copy, ChevronRight, X} from 'lucide-react';
 
 interface KitAntiderrameCustomFormProps {
     moduleName: string;
@@ -11,798 +12,785 @@ interface KitAntiderrameCustomFormProps {
     SignaturePad: React.ComponentType<{ onSave: (data: string) => void }>;
 }
 
-interface ChecklistItem {
-    id: number;
-    name: string;
-    qty: string;
-    status: 'C' | 'NC' | 'N/A' | null;
-}
-
-const INITIAL_BOTIQUIN_ITEMS: { name: string; qty: string }[] = [
-    { name: 'Paquetes de guantes quirúrgicos', qty: '02' },
-    { name: 'Frascos de yodopovidona 120ml solución', qty: '01' },
-    { name: 'Frascos de agua oxigenada 120ml', qty: '01' },
-    { name: 'Frasco de alcohol de 70° 500ml', qty: '01' },
-    { name: 'Paquetes de gasas estériles fraccionadas 10x10 cm', qty: '05' },
-    { name: 'Paquetes de apósitos estériles 10x10 cm', qty: '08' },
-    { name: 'Rollos de esparadrapo 2.5cm x 5m', qty: '01' },
-    { name: 'Rollos de venda elástica de 3 pulg x 5 yardas', qty: '02' },
-    { name: 'Rollos de venda elástica de 4 pulg x 5 yardas', qty: '02' },
-    { name: 'Paquetes de algodón hidrófilo de 100g', qty: '01' },
-    { name: 'Venda triangular', qty: '01' },
-    { name: 'Paletas bajalengua', qty: '10' },
-    { name: 'Frascos de solución salina (cloruro de sodio al 0.9%) de 1000ml', qty: '01' },
-    { name: 'Apósitos para quemaduras jelonet 10x10cm', qty: '02' },
-    { name: 'Frascos de colirio de 10ml', qty: '02' },
-    { name: 'Tijera de trauma', qty: '01' },
-    { name: 'Pinza', qty: '01' },
-    { name: 'Jabón antiséptico', qty: '01' },
-    { name: 'Curitas', qty: '10' }
+const KIT_ITEMS = [
+    { name: 'Cilindro de Kit antiderrame', reqQty: '1' },
+    { name: 'Bandeja Anti derrame de madera o metal', reqQty: '1' },
+    { name: 'Paños absorbentes (blanco)', reqQty: '20' },
+    { name: 'Paños absorbentes (Amarillo)', reqQty: '20' },
+    { name: 'Trapos Industriales', reqQty: '20' },
+    { name: 'Bolsas Rojas', reqQty: '10' },
+    { name: 'Bolsas Negras', reqQty: '10' },
+    { name: 'Pala', reqQty: '1' },
+    { name: 'Pico', reqQty: '1' },
+    { name: 'Guantes de nitrilo', reqQty: '2' },
+    { name: 'Guantes de Neoprene', reqQty: '2' },
+    { name: 'Salchichas absorventes', reqQty: '2' },
+    { name: 'Respirador media Cara O Mascarrilla descartable', reqQty: '2' },
+    { name: 'Trajes Tivek', reqQty: '2' }
 ];
 
-export function KitAntiderrameCustomForm({ moduleName, version, SignaturePad }: KitAntiderrameCustomFormProps) {
-    const router = useRouter();
-
-    // Metadata
-    const [proyecto, setProyecto] = useState('RED VIAL 6');
-    const [fecha, setFecha] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }));
-    const [hora, setHora] = useState(() => {
-        const now = new Date();
-        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    });
-    const [inspector, setInspector] = useState('');
-    const [cargo, setCargo] = useState('');
-    const [responsable, setResponsable] = useState('');
-    const [ubicacion, setUbicacion] = useState('');
-    const [isPlanificada, setIsPlanificada] = useState(true);
-    const [isNoPlanificada, setIsNoPlanificada] = useState(false);
-    const [isOtro, setIsOtro] = useState(false);
-
-    // Firmas
-    const [inspectorSignature, setInspectorSignature] = useState('');
-    const [responsableSignature, setResponsableSignature] = useState('');
-
-    // Checklist Items
-    const [items, setItems] = useState<ChecklistItem[]>(() =>
-        INITIAL_BOTIQUIN_ITEMS.map((item, index) => ({
-            id: index + 1,
-            name: item.name,
-            qty: item.qty,
-            status: null
-        }))
-    );
-
-    // Fotos de hallazgos (NC)
-    const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
-
-    // Observaciones
-    const [observaciones, setObservaciones] = useState('');
-
-    // Estado de guardado y voz
-    const [isSaving, setIsSaving] = useState(false);
-    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
-    const [showEmailModal, setShowEmailModal] = useState(false);
-    const [emailData, setEmailData] = useState<any>(null);
-    const [activeRecordingField, setActiveRecordingField] = useState<string | null>(null);
+const VoiceInput = ({ value, onChange, placeholder, className, inputClass = "", type = "text" }: any) => {
+    const [isRecording, setIsRecording] = useState(false);
     const recognitionRef = useRef<any>(null);
 
-    const toggleVoice = (fieldKey: string, currentValue: string, setter: (val: string) => void) => {
-        if (typeof window === 'undefined') return;
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
+    const toggleRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
             alert('El dictado por voz no está soportado en este navegador.');
             return;
         }
-
-        if (activeRecordingField === fieldKey) {
+        
+        if (isRecording) {
             recognitionRef.current?.stop();
-            setActiveRecordingField(null);
-            return;
-        }
-
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'es-ES';
-
-        let baseText = currentValue || '';
-
-        recognition.onresult = (event: any) => {
-            let interimTranscript = '';
-            let finalChunk = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalChunk += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
+            setIsRecording(false);
+        } else {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.lang = 'es-ES';
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            
+            let finalTranscriptAtStart = value || '';
+            
+            recognitionRef.current.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscriptChunk = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscriptChunk += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
                 }
-            }
-            if (finalChunk) {
-                baseText = (baseText + ' ' + finalChunk).trim();
-            }
-            setter((baseText + ' ' + interimTranscript).trim());
-        };
-
-        recognition.onend = () => {
-            setActiveRecordingField(null);
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
-        setActiveRecordingField(fieldKey);
-    };
-
-    const handleStatusChange = (id: number, status: 'C' | 'NC' | 'N/A') => {
-        const item = items.find(i => i.id === id);
-        if (item && status === 'NC' && item.status !== 'NC') {
-            const missing = window.prompt(`¿Cuántos faltan o están defectuosos de "${item.name}"? (Req: ${item.qty})`);
-            if (missing) {
-                const textToAppend = `- Falta/Defectuoso: ${missing} de ${item.name}`;
-                setObservaciones(prevObs => {
-                    if (prevObs.includes(textToAppend)) return prevObs;
-                    return prevObs ? prevObs + '\n' + textToAppend : textToAppend;
-                });
-            }
-        }
-        setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    };
-
-    const handleQtyChange = (id: number, qty: string) => {
-        setItems(prev => prev.map(item => item.id === id ? { ...item, qty } : item));
-    };
-
-    const handlePhotoUpload = (itemName: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                if (event.target?.result) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const maxDim = 800;
-                        if (width > height && width > maxDim) {
-                            height *= maxDim / width;
-                            width = maxDim;
-                        } else if (height > maxDim) {
-                            width *= maxDim / height;
-                            height = maxDim;
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx?.drawImage(img, 0, 0, width, height);
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-
-                        setFotosDefectos(prev => ({
-                            ...prev,
-                            [itemName]: [...(prev[itemName] || []), compressedBase64]
-                        }));
-                    };
-                    img.src = event.target.result as string;
+                
+                if (finalTranscriptChunk) {
+                    finalTranscriptAtStart = (finalTranscriptAtStart + ' ' + finalTranscriptChunk).trim();
                 }
+                
+                onChange((finalTranscriptAtStart + ' ' + interimTranscript).trim());
             };
-            reader.readAsDataURL(file);
+            
+            recognitionRef.current.onend = () => {
+                setIsRecording(false);
+            };
+            
+            recognitionRef.current.start();
+            setIsRecording(true);
+        }
+    };
+
+    return (
+        <div className={`relative w-full ${className || ''}`}>
+            {type === 'textarea' ? (
+                <textarea 
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    className={`${inputClass} bg-white text-slate-900 pr-16 transition-colors`}
+                    rows={3}
+                />
+            ) : (
+                <input 
+                    type={type}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    className={`${inputClass} bg-white text-slate-900 pr-16 transition-colors`}
+                />
+            )}
+            <div className="absolute right-2 top-2 flex flex-col items-center gap-1">
+                {value && (
+                    <button onClick={() => onChange('')} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 rounded-md transition-colors" title="Limpiar">
+                        <Trash2 size={14} />
+                    </button>
+                )}
+                <button onClick={toggleRecording} className={`p-1.5 rounded-md transition-colors ${isRecording ? 'text-red-500 bg-red-100 animate-pulse' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-200'}`} title="Dictado por voz">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/><line x1="8" x2="16" y1="22" y2="22"/></svg>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export function KitAntiderrameCustomForm({ moduleName, version, SignaturePad }: KitAntiderrameCustomFormProps) {
+    const router = useRouter();
+    const { user } = useAuth();
+    const [isSaving, setIsSaving] = useState(false);
+    const [cachedDriveUrl, setCachedDriveUrl] = useState<string | null>(null);
+    const [cachedLevantamientoLink, setCachedLevantamientoLink] = useState<string | null>(null);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailData, setEmailData] = useState<any>(null);
+    const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
+    const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
+    useEffect(() => { const stored = localStorage.getItem('ssoma_contacts'); if (stored) setContactos(JSON.parse(stored)); }, []);
+
+
+    // Metadata Header
+    const [meta, setMeta] = useState({
+        proyecto: 'RED VIAL 6',
+        lugar: '',
+        fecha: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
+        tipoInspeccion: 'Planeada',
+        inspector: '',
+        cargoInspector: '',
+        firmaInspector: '',
+        responsable: '',
+        cargoResponsable: '',
+        firmaResponsable: ''
+    });
+
+    useEffect(() => {
+        if (user && !meta.inspector) {
+            setMeta(prev => ({
+                ...prev,
+                inspector: user.name || '',
+                cargoInspector: user.role || ''
+            }));
+        }
+    }, [user]);
+
+    // Kits Array
+    const [kits, setKits] = useState<any[]>([]);
+
+    const addKit = () => {
+        const initItems: any = {};
+        KIT_ITEMS.forEach(item => {
+            initItems[item.name] = { status: 'C', missingQty: '' };
         });
+
+        setKits([...kits, {
+            id: Date.now().toString(),
+            codigo: '',
+            ubicacion: '',
+            expanded: true,
+            items: initItems,
+            observaciones: '',
+            fotosDefectos: [] // Usamos el mismo diseño visual de evidencia
+        }]);
     };
 
-    const removePhoto = (itemName: string, photoIdx: number) => {
-        setFotosDefectos(prev => ({
-            ...prev,
-            [itemName]: prev[itemName].filter((_, i) => i !== photoIdx)
-        }));
+    useEffect(() => {
+        if (kits.length === 0) {
+            addKit();
+        }
+    }, []);
+
+    const updateKit = (idx: number, field: string, val: any) => {
+        const copy = [...kits];
+        copy[idx][field] = val;
+        setKits(copy);
     };
 
-    const badItems = items.filter(i => i.status === 'NC');
+    const duplicateKit = (idx: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const itemToCopy = kits[idx];
+        setKits([...kits, {
+            ...itemToCopy,
+            id: Date.now().toString(),
+            expanded: true,
+            codigo: itemToCopy.codigo + ' (Copia)'
+        }]);
+    };
 
+    const handlePhotoUpload = (kIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 800;
+                    if (width > height && width > maxDim) {
+                        height *= maxDim / width;
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width *= maxDim / height;
+                        height = maxDim;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                    
+                    const copy = [...kits];
+                    if (!copy[kIdx].fotosDefectos) copy[kIdx].fotosDefectos = [];
+                    copy[kIdx].fotosDefectos.push(compressedBase64);
+                    setKits(copy);
+                };
+                img.src = event.target.result as string;
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const removePhoto = (kIdx: number, photoIdx: number) => {
+        const copy = [...kits];
+        copy[kIdx].fotosDefectos.splice(photoIdx, 1);
+        setKits(copy);
+    };
+
+    const escapeRegExp = (string: string) => {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    };
+
+    const handleItemChange = (kitIdx: number, itemName: string, field: string, val: any) => {
+        const copy = [...kits];
+        
+        copy[kitIdx].items[itemName][field] = val;
+        
+        const newStatus = copy[kitIdx].items[itemName].status;
+        const newMissingQty = copy[kitIdx].items[itemName].missingQty || '';
+        
+        let obs = copy[kitIdx].observaciones || '';
+        
+        const safeItemName = itemName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(`\\[${safeItemName}:.*?\\]\\s*`, 'g');
+        obs = obs.replace(searchRegex, '');
+        
+        if (newStatus === 'NC' || newStatus === 'F') {
+            const labelStr = newStatus === 'NC' ? 'NO CONFORME' : 'FALTANTE';
+            const qtyStr = newMissingQty ? ` - Cant: ${newMissingQty}` : '';
+            const prefix = `[${itemName}: ${labelStr}${qtyStr}]`;
+            obs = `${prefix}\n${obs}`.trim();
+            obs = obs.replace(/\]\s+\[/g, ']\n[');
+        }
+        
+        copy[kitIdx].observaciones = obs;
+        setKits(copy);
+    };
+
+    const toggleExpand = (idx: number) => {
+        const copy = [...kits];
+        copy[idx].expanded = !copy[idx].expanded;
+        setKits(copy);
+    };
+
+    
     const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
-        if (!inspector.trim()) {
-            alert('Por favor, indica el nombre del Inspector.');
+        if (kits.length === 0) {
+            alert('Añade al menos un Kit evaluado.');
             return;
         }
 
         setIsSaving(true);
         try {
-            const templateItems = [
-                { text: 'Proyecto', type: 'item' },
-                { text: 'Fecha de inspección', type: 'item' },
-                { text: 'Hora', type: 'item' },
-                { text: 'Inspector', type: 'item' },
-                { text: 'Cargo', type: 'item' },
-                { text: 'Responsable', type: 'item' },
-                { text: 'Ubicación del Botiquín', type: 'item' },
-                { text: 'Inspección planificada', type: 'item' },
-                { text: 'Inspección no planificada', type: 'item' },
-                { text: 'Otro', type: 'item' },
-                ...items.map(item => ({ text: item.name, type: 'item', qty: item.qty })),
-                { text: 'Observaciones', type: 'item' }
-            ];
-
-            const answersObj: Record<number, any> = {
-                0: { text: proyecto },
-                1: { text: fecha },
-                2: { text: hora },
-                3: { text: inspector, signature: inspectorSignature },
-                4: { text: cargo },
-                5: { text: responsable, signature: responsableSignature },
-                6: { text: ubicacion },
-                7: { text: isPlanificada ? 'true' : 'false' },
-                8: { text: isNoPlanificada ? 'true' : 'false' },
-                9: { text: isOtro ? 'true' : 'false' }
-            };
-
-            items.forEach((item, idx) => {
-                answersObj[10 + idx] = {
-                    text: item.status || '',
-                    qty: item.qty
-                };
-            });
-
-            answersObj[10 + items.length] = { text: observaciones };
+            const exportKits = kits.map(k => ({
+                ...k,
+                fotoEvidencia: k.fotosDefectos && k.fotosDefectos.length > 0 ? k.fotosDefectos[0] : ''
+            }));
 
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    moduleName: 'Botiquines',
-                    answers: answersObj,
-                    template: templateItems,
-                    saveToDrive: true,
-                    fotosDefectos
+                    moduleName: 'Kit Antiderrame',
+                    isKitAntiderrameMatrix: true,
+                    meta,
+                    kits: exportKits,
+                    saveToDrive: true
                 })
             });
 
+            const badKits = kits.filter(k => Object.values(k.items).some((it: any) => it.status === 'NC' || it.status === 'F'));
+
             if (res.ok) {
                 const data = await res.json();
-
                 if (data.fileBase64) {
                     setCachedDriveUrl(data.driveUrl);
-                    const byteCharacters = atob(data.fileBase64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
                     
-                    if (isEmailing && customEmailData) {
-                        try {
-                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
-                            const driveLink = data.driveUrl || '';
-                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                ? customEmailData.message.replace(
-                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
-                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
-                                )
-                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
-
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
-                                        /(https?:\/\/[^\s]+)/g,
-                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
-                                    ),
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                })
-                            });
-                            if (!emailRes.ok) throw new Error('Error al enviar correo');
-                        } catch (e) {
-                            console.error(e);
-                            alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
-                        }
-                    } else {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                    a.download = `INSP_Botiquines_${fecha}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                        a.remove();
+                    if (!isEmailing) {
+                        const byteCharacters = atob(data.fileBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `Inspeccion_Kit_Antiderrame_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                     }
                 }
 
-                await fetch('/api/inspections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'create',
-                        data: {
-                            date: fecha,
-                            responsible: inspector,
-                            inspectionType: 'Botiquines',
-                            area: proyecto,
-                            zone: ubicacion || 'Inspección Digital',
-                            status: 'Completado',
-                            observations: observaciones || 'Generado desde formulario blindado de Botiquines.',
-                            evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
-                        }
-                    })
-                });
-
+                // Guardar en Registro
+                let inspectionRecordId = null;
                 if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                    try {
+                        const dbRes = await fetch('/api/inspections', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'create',
+                                data: {
+                                    date: meta.fecha || new Date().toISOString().split('T')[0],
+                                    responsible: meta.inspector || 'Supervisor SSOMA',
+                                    inspectionType: 'Kit Antiderrame',
+                                    area: meta.proyecto || 'RED VIAL 6',
+                                    zone: meta.lugar || 'Inspección Digital',
+                                    status: badKits.length > 0 ? 'Abierto' : 'Cerrado',
+                                    observations: `${kits.length} kits inspeccionados. ${badKits.length > 0 ? badKits.length + " con observaciones." : ""}`,
+                                    evidencePdf: data.driveUrl || '',
+                                    evidenceImgs: []
+                                }
+                            })
+                        });
+                        const dbData = await dbRes.json();
+                        if (dbData?.id) { inspectionRecordId = dbData.id; }
+                    } catch(err: any) { console.error('Error DB:', err); }
+                }
+
+                // Generar Levantamiento
+                let generatedLevantamientoLink = cachedLevantamientoLink;
+                if (!isEmailing && responsableLevantamiento && badKits.length > 0) {
+                    const respUser = responsableLevantamiento;
+                    
+                    const desc = badKits.map((b: any) => `- Kit ${b.codigo || 'S/N'} (${b.ubicacion || 'S/U'}):\n${b.observaciones || ''}`).join("\n\n");
+                    
+                    let allFotos: any = {};
+                    badKits.forEach((b: any) => {
+                        if (b.fotosDefectos && b.fotosDefectos.length > 0) {
+                            const descLine = `- Kit ${b.codigo || 'S/N'} (${b.ubicacion || 'S/U'}):\n${b.observaciones || ''}`;
+                            allFotos[descLine] = [b.fotosDefectos[0]];
+                        }
+                    });
+
+                    const hallazgosArray = [{
+                        index: 0,
+                        descripcion: desc,
+                        riesgo: 'Medio',
+                        categoria: 'Condición Subestándar',
+                        responsable: respUser?.name || "Responsable",
+                        responsableEmail: respUser?.email || "responsable@casacontratistas.com",
+                        fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                        fotosDefectos: allFotos
+                    }];
+
+                    try {
+                        const lvRes = await fetch('/api/levantamiento/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                moduleName: 'Kit Antiderrame',
+                                template: kits,
+                                answers: meta,
+                                inspectionRecordId,
+                                hallazgos: hallazgosArray
+                            })
+                        });
+                        if (lvRes.ok) {
+                            const lvData = await lvRes.json();
+                            if (lvData.items && lvData.items.length > 0) {
+                                generatedLevantamientoLink = `${window.location.origin}/levantamiento/${lvData.items[0].token}`;
+                                setCachedLevantamientoLink(generatedLevantamientoLink);
+                            }
+                        }
+                    } catch(err) { console.error("Error levantamiento:", err); }
+                }
+
+                // Inject levantamiento link into email
+                if (isEmailing && customEmailData) {
+                    try {
+                        const driveLink = cachedDriveUrl || data.driveUrl || '';
+                        let bodyWithLink = customEmailData.message;
+                        
+                        if (generatedLevantamientoLink) {
+                            bodyWithLink += '\n\n🔗 *Enlace para Levantamiento de Observaciones:*\n' + generatedLevantamientoLink;
+                        }
+                        
+                        bodyWithLink = bodyWithLink.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                            ? bodyWithLink.replace(
+                                '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                            )
+                            : (driveLink ? bodyWithLink + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : bodyWithLink);
+
+                        const emailRes = await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: customEmailData.to,
+                                cc: customEmailData.cc,
+                                subject: customEmailData.subject,
+                                text: bodyWithLink,
+                                html: bodyWithLink.replace(/\n/g, '<br>').replace(
+                                    /(https?:\/\/[^\s]+)/g,
+                                    '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Abrir Enlace</a>'
+                                ),
+                                fromEmail: customEmailData.fromEmail,
+                                fromName: customEmailData.fromName
+                            })
+                        });
+                        if (!emailRes.ok) throw new Error('Error enviando correo');
+                        alert('✅ Correo enviado exitosamente.');
+                        window.location.href = '/inspections?openDigital=true';
+                    } catch (e) {
+                        console.error(e);
+                        alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
+                    }
+                } else {
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel descargado.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo.\n3. Si quieres salir al panel, haz clic en "Cancelar".')) {
+                        const badK = kits.filter(k => Object.values(k.items).some((it: any) => it.status === 'NC' || it.status === 'F'));
+                        let extra = '';
+                        if (responsableLevantamiento && badK.length > 0) {
+                            extra = '\n\nSe ha detectado al menos un equipo con estado No Conforme / Faltante. Se adjuntará el enlace para levantar la observación y responder con la evidencia de reparación.';
+                        }
+                        
+                        const obsText = desc ? '\n\nSegún la inspección realizada, se informa de las siguientes observaciones:\n\n' + desc.replace(/===KIT===/g, '\n') : '\n\nNo se reportaron observaciones adicionales.';
+                        setEmailData({
+                            to: user?.email || '',
+                            cc: responsableLevantamiento ? responsableLevantamiento.email : '',
+                            subject: '🚨 Reporte de Inspección: Kit Antiderrame',
+                            message: 'Buenas tardes,\n\nAdjunto el enlace al reporte de inspección de Kit Antiderrame realizado en ' + (meta.lugar || 'campo') + '.' + extra + obsText + '\n\n[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]\n\nPor favor, revisar el documento adjunto.\n\nSaludos,\n' + (user?.name || ''),
+                            fromEmail: user?.email || 'notificaciones@ssoma.com',
+                            fromName: user?.name || 'Sistema SSOMA'
+                        });
                         setShowEmailModal(true);
+                    } else {
+                        window.location.href = '/inspections?openDigital=true';
                     }
                 }
-                
             } else {
-                const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
-                alert('Error al generar la inspección: ' + errorData.error);
+                alert('Error al conectar con el servidor.');
             }
-        } catch(e) {
-            console.error(e);
-            alert('Error de conexión al procesar la inspección.');
+        } catch (error) {
+            console.error(error);
+            alert('Ocurrió un error inesperado al exportar.');
         } finally {
             setIsSaving(false);
+            if(isEmailing) setShowEmailModal(false);
         }
     };
 
+
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6 pb-24 text-slate-800">
-            {/* Header con indicador de blindaje */}
-            <div className="flex items-center justify-between mb-4">
-                <button 
-                    onClick={() => router.push('/inspections?openDigital=true')} 
-                    className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
-                >
-                    <ArrowLeft size={16} /> Volver
+        <div className="max-w-4xl mx-auto pb-24">
+            <div className="flex items-center justify-between mb-6">
+                <button onClick={() => router.back()} className="text-slate-400 hover:text-white flex items-center gap-2 font-medium px-4 py-2 bg-slate-800 rounded-xl transition-colors">
+                    <ArrowLeft size={18} /> Volver
                 </button>
-                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
-                    <ShieldCheck size={14} className="text-emerald-600" /> Formato Blindado (V{version || 1})
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl mb-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <ShieldCheck size={120} />
                 </div>
+                <h2 className="text-3xl font-black text-white tracking-tighter mb-2 relative z-10">
+                    Inspección de Kit Antiderrame
+                </h2>
+                <p className="text-slate-400 font-medium relative z-10">Formato F-SIG-076 • Gestión Ambiental</p>
             </div>
 
-            {/* Banner del Formato */}
-            <div className="bg-slate-900 text-white rounded-2xl p-6 mb-6 shadow-md border border-slate-800">
-                <h1 className="text-xl font-black">Inspección de Botiquines</h1>
-                <p className="text-slate-400 text-xs mt-1">Formato F-SIG-030 • Red Vial 6 • Calibración Asegurada</p>
-            </div>
-
-            {/* SECCIÓN 1: CABECERA Y METADATOS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2">1. Datos Generales de la Inspección</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Proyecto */}
+            {/* SECCIÓN 1: DATOS GENERALES */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
+                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 mb-4">1. Datos Generales de la Inspección</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Proyecto</label>
-                        <input 
-                            type="text" 
-                            value={proyecto} 
-                            onChange={(e) => setProyecto(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Proyecto</label>
+                        <VoiceInput value={meta.proyecto} onChange={(val: string) => setMeta({...meta, proyecto: val})} inputClass="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-cyan-500 transition-colors" />
                     </div>
-
-                    {/* Ubicación del Botiquín (D8) */}
                     <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Ubicación del Botiquín (D8)</label>
-                        <div className="relative flex items-center">
-                            <input 
-                                type="text" 
-                                value={ubicacion} 
-                                onChange={(e) => setUbicacion(e.target.value)} 
-                                placeholder="Ej. Taller Mecánico, Caseta 2..." 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                            />
-                            <div className="absolute right-2 flex items-center gap-1">
-                                <button 
-                                    type="button" 
-                                    onClick={() => toggleVoice('ubicacion', ubicacion, setUbicacion)}
-                                    className={`p-1.5 rounded-md ${activeRecordingField === 'ubicacion' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                    title="Dictar por voz"
-                                >
-                                    {activeRecordingField === 'ubicacion' ? <MicOff size={16} /> : <Mic size={16} />}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setUbicacion('')}
-                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                    title="Limpiar"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Lugar de Inspección</label>
+                        <VoiceInput value={meta.lugar} onChange={(val: string) => setMeta({...meta, lugar: val})} placeholder="Ej. Taller Mecánico..." inputClass="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-cyan-500 transition-colors" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Fecha de Inspección</label>
+                        <input type="date" value={meta.fecha} onChange={(e) => setMeta({...meta, fecha: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-cyan-500 transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Tipo de Inspección</label>
+                        <div className="flex gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2 h-[46px] items-center">
+                            <label className="flex-1 flex items-center justify-center gap-2 cursor-pointer border-r border-slate-200 pr-2">
+                                <input type="radio" checked={meta.tipoInspeccion === 'Planeada'} onChange={() => setMeta({...meta, tipoInspeccion: 'Planeada'})} className="accent-cyan-600" />
+                                <span className="text-xs font-bold text-slate-700">Planeada</span>
+                            </label>
+                            <label className="flex-1 flex items-center justify-center gap-2 cursor-pointer pl-2">
+                                <input type="radio" checked={meta.tipoInspeccion === 'No Planeada'} onChange={() => setMeta({...meta, tipoInspeccion: 'No Planeada'})} className="accent-cyan-600" />
+                                <span className="text-xs font-bold text-slate-700">No Planeada</span>
+                            </label>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    {/* Fecha y Hora */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Fecha de Inspección (D5)</label>
-                        <input 
-                            type="date" 
-                            value={fecha} 
-                            onChange={(e) => setFecha(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Hora (I5)</label>
-                        <input 
-                            type="time" 
-                            value={hora} 
-                            onChange={(e) => setHora(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                    </div>
+            {/* SECCIÓN 2: KITS INSPECCIONADOS (Estilo Extintores) */}
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-bold text-slate-700 uppercase text-sm">Listado de Kits Evaluados</h2>
+                    <span className="bg-cyan-100 text-cyan-800 text-xs font-bold px-3 py-1 rounded-full">{kits.length} kits registrados</span>
                 </div>
 
-                {/* Tipo de Inspección (Checkboxes A10, A11) */}
-                <div className="pt-2 border-t border-slate-100">
-                    <label className="text-xs font-bold text-slate-600 mb-2 block">Tipo de Inspección</label>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isPlanificada} 
-                                onChange={(e) => { setIsPlanificada(e.target.checked); if (e.target.checked) setIsNoPlanificada(false); }}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Inspección Planificada (A10)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isNoPlanificada} 
-                                onChange={(e) => { setIsNoPlanificada(e.target.checked); if (e.target.checked) setIsPlanificada(false); }}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Inspección No Planificada (A11)</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-100">
-                            <input 
-                                type="checkbox" 
-                                checked={isOtro} 
-                                onChange={(e) => setIsOtro(e.target.checked)}
-                                className="w-4 h-4 accent-emerald-600" 
-                            />
-                            <span className="font-semibold text-slate-700">Otro</span>
-                        </label>
-                    </div>
+                <div className="space-y-4">
+                    {kits.map((kit, kIdx) => {
+                        const hasBadItem = Object.values(kit.items).some((it: any) => it.status === 'NC' || it.status === 'F');
+
+                        return (
+                            <div key={kit.id} className={`bg-white border shadow-sm rounded-xl overflow-hidden transition-all ${hasBadItem ? 'border-red-300' : 'border-slate-200'}`}>
+                                {/* Header Card */}
+                                <div 
+                                    className={`p-4 flex justify-between items-center cursor-pointer ${hasBadItem ? 'bg-red-50' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                    onClick={() => toggleExpand(kIdx)}
+                                >
+                                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-slate-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">{kIdx + 1}</span>
+                                            <h3 className="font-bold text-slate-800">{kit.codigo || 'Kit Sin Código'}</h3>
+                                        </div>
+                                        <div className="text-sm text-slate-500 flex gap-2">
+                                            <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-xs">{kit.ubicacion || 'Sin ubicación'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 sm:gap-3 ml-2">
+                                        {hasBadItem && (
+                                            <span className="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-full hidden sm:block">NO CONFORME</span>
+                                        )}
+                                        <button onClick={(e) => duplicateKit(kIdx, e)} className="text-slate-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors" title="Duplicar">
+                                            <Copy size={18} />
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); setKits(kits.filter((_, i) => i !== kIdx)); }} className="text-slate-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors" title="Eliminar">
+                                            <Trash2 size={18} />
+                                        </button>
+                                        <div className={`p-1 text-slate-400 transition-transform ${kit.expanded ? 'rotate-90' : ''}`}>
+                                            <ChevronRight size={20} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Body Card */}
+                                {kit.expanded && (
+                                    <div className="p-4 sm:p-5 border-t border-slate-100 bg-white">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Código del Kit</label>
+                                                <VoiceInput placeholder="Ej: KIT-01" value={kit.codigo} onChange={(val: string) => updateKit(kIdx, 'codigo', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-cyan-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Ubicación Exacta</label>
+                                                <VoiceInput placeholder="Ej: Taller principal - Pared norte" value={kit.ubicacion} onChange={(val: string) => updateKit(kIdx, 'ubicacion', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-cyan-500" />
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-5">
+                                            <h5 className="text-[10px] font-black text-slate-400 uppercase mb-3 border-b border-slate-100 pb-1">Verificación de Componentes</h5>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                                {KIT_ITEMS.map((item, idx) => {
+                                                    const status = kit.items[item.name]?.status || 'C';
+                                                    return (
+                                                        <div key={idx} className={`flex flex-col gap-2 p-3 bg-slate-50 border rounded-xl transition-colors ${status === 'NC' || status === 'F' ? 'border-red-200 bg-red-50/30' : 'border-slate-200 hover:border-cyan-300'}`}>
+                                                            <div className="flex justify-between items-start gap-2 h-8">
+                                                                <label className="text-[10px] font-black text-slate-600 uppercase leading-tight flex-1">
+                                                                    {item.name}
+                                                                </label>
+                                                                <span className="text-[9px] font-bold bg-white border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded shadow-sm whitespace-nowrap">
+                                                                    Req: {item.reqQty}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex bg-slate-200 p-1 rounded-lg">
+                                                                <button 
+                                                                    onClick={() => handleItemChange(kIdx, item.name, 'status', 'C')} 
+                                                                    className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${status === 'C' ? 'bg-emerald-400 text-slate-900 shadow-md border border-emerald-500' : 'text-slate-500 hover:bg-slate-300'}`}
+                                                                >
+                                                                    C
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleItemChange(kIdx, item.name, 'status', 'NC')} 
+                                                                    className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${status === 'NC' ? 'bg-amber-400 text-slate-900 shadow-md border border-amber-500' : 'text-slate-500 hover:bg-slate-300'}`}
+                                                                >
+                                                                    NC
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleItemChange(kIdx, item.name, 'status', 'F')} 
+                                                                    className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${status === 'F' ? 'bg-red-500 text-white shadow-md border border-red-600' : 'text-slate-500 hover:bg-slate-300'}`}
+                                                                >
+                                                                    F
+                                                                </button>
+                                                            </div>
+                                                            {(status === 'F' || status === 'NC') && (
+                                                                <input 
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="Cant. Faltante" 
+                                                                    value={kit.items[item.name]?.missingQty || ''}
+                                                                    onChange={(e) => handleItemChange(kIdx, item.name, 'missingQty', e.target.value)}
+                                                                    className="w-full bg-white border border-red-300 rounded-md text-xs px-2 py-1.5 outline-none focus:border-red-500 text-red-900 font-medium mt-1"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Observaciones del Kit</label>
+                                                <VoiceInput 
+                                                    type="textarea" 
+                                                    placeholder="Detallar hallazgos, faltantes, etc..." 
+                                                    value={kit.observaciones} 
+                                                    onChange={(val: string) => updateKit(kIdx, 'observaciones', val)} 
+                                                    inputClass="w-full border border-slate-200 p-3 text-sm rounded-lg bg-slate-50 outline-none focus:border-cyan-500 min-h-[90px]" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                                                        <Camera size={14} className="text-slate-500" /> Fotos del Kit
+                                                    </label>
+                                                    <label className="cursor-pointer text-xs font-bold text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg border border-cyan-200 transition-colors flex items-center gap-1.5">
+                                                        <Camera size={14} /> Añadir Foto
+                                                        <input 
+                                                            type="file" 
+                                                            accept="image/*" 
+                                                            capture="environment" 
+                                                            multiple 
+                                                            className="hidden" 
+                                                            onChange={(e) => handlePhotoUpload(kIdx, e)} 
+                                                        />
+                                                    </label>
+                                                </div>
+
+                                                {(kit.fotosDefectos && kit.fotosDefectos.length > 0) ? (
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {kit.fotosDefectos.map((photoB64: string, pIdx: number) => (
+                                                            <div key={pIdx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shadow-sm group">
+                                                                <img src={photoB64} alt="Evidencia" className="w-full h-full object-cover" />
+                                                                <button 
+                                                                    onClick={() => removePhoto(kIdx, pIdx)} 
+                                                                    className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700 transition-colors shadow"
+                                                                    title="Eliminar foto"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs text-slate-400 bg-slate-50 p-4 border border-dashed border-slate-200 rounded-lg text-center">
+                                                        No hay fotos agregadas
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
-                {/* Inspector y Firma (D6, K6) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+                <button onClick={addKit} className="w-full mt-4 py-4 rounded-xl border-2 border-dashed border-cyan-300 text-cyan-600 font-bold hover:bg-cyan-50 transition-colors flex items-center justify-center gap-2">
+                    <PlusCircle size={18} /> Añadir otro Kit Antiderrame
+                </button>
+            </div>
+
+            
+            {/* Panel de Asignación de Levantamiento */}
+            {kits.filter(k => Object.values(k.items).some((it: any) => it.status === 'NC' || it.status === 'F')).length > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-8 shadow-sm">
+                    <h3 className="font-bold text-orange-800 text-sm mb-2 flex items-center gap-1.5">
+                        <AlertCircle size={16} /> Asignar Levantamiento de Observación General
+                    </h3>
+                    <p className="text-xs text-orange-700 mb-3">
+                        Se ha detectado kit(s) con observación. Asigna un responsable para corregir esta situación general.
+                    </p>
+                    <div className="relative">
+                        <select
+                            className="w-full bg-white border border-orange-300 px-4 py-3 rounded-xl text-slate-800 text-sm font-semibold focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all appearance-none cursor-pointer"
+                            onChange={(e) => {
+                                const c = contactos.find(x => x.email === e.target.value);
+                                setResponsableLevantamiento(c || null);
+                            }}
+                        >
+                            <option value="">-- No enviar solicitud de levantamiento --</option>
+                            {contactos.map(c => (
+                                <option key={c.email} value={c.email}>{c.name} ({c.email})</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-orange-400">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SECCIÓN 3: FIRMAS */}
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-8">
+                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 mb-4">3. Aprobaciones y Firmas</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Firma Inspector */}
                     <div className="space-y-3">
                         <div>
-                            <label className="text-xs font-bold text-slate-600 mb-1 block">Inspector a cargo (D6)</label>
-                            <div className="relative flex items-center">
-                                <input 
-                                    type="text" 
-                                    value={inspector} 
-                                    onChange={(e) => setInspector(e.target.value)} 
-                                    placeholder="Nombres y Apellidos..." 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                                />
-                                <div className="absolute right-2 flex items-center gap-1">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => toggleVoice('inspector', inspector, setInspector)}
-                                        className={`p-1.5 rounded-md ${activeRecordingField === 'inspector' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                        title="Dictar por voz"
-                                    >
-                                        {activeRecordingField === 'inspector' ? <MicOff size={16} /> : <Mic size={16} />}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setInspector('')}
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                        title="Limpiar"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Inspeccionado por (Nombres):</label>
+                            <VoiceInput value={meta.inspector} onChange={(val: string) => setMeta({...meta, inspector: val})} placeholder="Nombres y Apellidos..." inputClass="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500" />
                         </div>
-
                         <div>
-                            <label className="text-xs font-bold text-slate-600 mb-1 block">Cargo del Inspector</label>
-                            <div className="relative flex items-center">
-                                <input 
-                                    type="text" 
-                                    value={cargo} 
-                                    onChange={(e) => setCargo(e.target.value)} 
-                                    placeholder="Ej. Supervisor SSOMA..." 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                                />
-                                <div className="absolute right-2 flex items-center gap-1">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => toggleVoice('cargo', cargo, setCargo)}
-                                        className={`p-1.5 rounded-md ${activeRecordingField === 'cargo' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                        title="Dictar por voz"
-                                    >
-                                        {activeRecordingField === 'cargo' ? <MicOff size={16} /> : <Mic size={16} />}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setCargo('')}
-                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                        title="Limpiar"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Cargo:</label>
+                            <VoiceInput value={meta.cargoInspector} onChange={(val: string) => setMeta({...meta, cargoInspector: val})} placeholder="Ej. Supervisor SSOMA" inputClass="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Firma Digital (Obligatorio)</label>
+                            <SignaturePad onSave={(data) => setMeta({...meta, firmaInspector: data})} />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Firma del Inspector (K6)</label>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <SignaturePad onSave={setInspectorSignature} />
+                    {/* Firma Responsable */}
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Responsable del Área (Nombres):</label>
+                            <VoiceInput value={meta.responsable} onChange={(val: string) => setMeta({...meta, responsable: val})} placeholder="Nombres y Apellidos..." inputClass="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500" />
                         </div>
-                    </div>
-                </div>
-
-                {/* Responsable de área y Firma (D7, K7) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Responsable de Área (D7)</label>
-                        <div className="relative flex items-center">
-                            <input 
-                                type="text" 
-                                value={responsable} 
-                                onChange={(e) => setResponsable(e.target.value)} 
-                                placeholder="Nombres y Apellidos del Responsable..." 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 pr-20 text-sm outline-none focus:border-blue-500" 
-                            />
-                            <div className="absolute right-2 flex items-center gap-1">
-                                <button 
-                                    type="button" 
-                                    onClick={() => toggleVoice('responsable', responsable, setResponsable)}
-                                    className={`p-1.5 rounded-md ${activeRecordingField === 'responsable' ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}
-                                    title="Dictar por voz"
-                                >
-                                    {activeRecordingField === 'responsable' ? <MicOff size={16} /> : <Mic size={16} />}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => setResponsable('')}
-                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500"
-                                    title="Limpiar"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Cargo:</label>
+                            <VoiceInput value={meta.cargoResponsable} onChange={(val: string) => setMeta({...meta, cargoResponsable: val})} placeholder="Ej. Residente de Obra" inputClass="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-cyan-500" />
                         </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">Firma del Responsable de Área (K7)</label>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <SignaturePad onSave={setResponsableSignature} />
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Firma Digital</label>
+                            <SignaturePad onSave={(data) => setMeta({...meta, firmaResponsable: data})} />
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* SECCIÓN 2: CHECKLIST DE INSUMOS */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                <div className="bg-slate-800 text-white px-5 py-3.5 flex justify-between items-center">
-                    <h3 className="font-bold text-sm">2. Verificación de Insumos del Botiquín</h3>
-                    <span className="text-xs bg-slate-700 px-2.5 py-1 rounded-full">{items.length} Insumos Evaluados</span>
-                </div>
-
-                <div className="divide-y divide-slate-100">
-                    {items.map((item) => (
-                        <div key={item.id} className="p-3.5 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex-1">
-                                <span className="text-xs font-bold text-slate-400 mr-2">#{item.id}</span>
-                                <span className="text-sm font-semibold text-slate-800">{item.name}</span>
-                            </div>
-
-                            <div className="flex items-center gap-3 shrink-0">
-                                {/* Cantidad */}
-                                <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] font-bold text-slate-400 mr-1.5">CANT:</span>
-                                    <input 
-                                        type="text" 
-                                        value={item.qty} 
-                                        onChange={(e) => handleQtyChange(item.id, e.target.value)}
-                                        className="w-10 bg-transparent text-xs font-bold text-slate-700 text-center outline-none" 
-                                    />
-                                </div>
-
-                                {/* Botones C / NC / N/A */}
-                                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'C')} 
-                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'C' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        C
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'NC')} 
-                                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'NC' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        NC
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleStatusChange(item.id, 'N/A')} 
-                                        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${item.status === 'N/A' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}
-                                    >
-                                        N/A
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* SECCIÓN 3: EVIDENCIA FOTOGRÁFICA DE HALLAZGOS (NC) */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 flex items-center gap-2 mb-4">
-                    <Camera size={18} className="text-blue-500" />
-                    3. Evidencia Fotográfica de Hallazgos (Se inserta a partir de la fila 48 en Excel)
-                </h3>
-
-                {badItems.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-4 italic">
-                        No hay insumos marcados como "NC" (No Conforme) actualmente.
-                    </p>
-                ) : (
-                    <div className="space-y-4">
-                        {badItems.map((b) => (
-                            <div key={b.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="font-bold text-sm text-red-700">{b.name}</span>
-                                    <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">NO CONFORME</span>
-                                </div>
-
-                                <div className="flex flex-wrap gap-3">
-                                    {(fotosDefectos[b.name] || []).map((foto, fIdx) => (
-                                        <div key={fIdx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
-                                            <img src={foto} alt={b.name} className="w-full h-full object-cover" />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => removePhoto(b.name, fIdx)}
-                                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    <label className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 cursor-pointer transition-colors bg-white">
-                                        <Camera size={20} className="mb-1" />
-                                        <span className="text-[10px] font-bold">+ Foto</span>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            capture="environment" 
-                                            multiple 
-                                            onChange={(e) => handlePhotoUpload(b.name, e)} 
-                                            className="hidden" 
-                                        />
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* SECCIÓN 4: OBSERVACIONES */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-8">
-                <h3 className="font-bold text-slate-800 text-sm border-b pb-2 mb-3">
-                    4. Observaciones y Conclusiones (A36)
-                </h3>
-
-                {/* Resumen dinámico de Hallazgos */}
-                {badItems.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-3">
-                        <h5 className="font-bold text-red-800 text-xs mb-1.5 flex items-center gap-1.5">
-                            <AlertCircle size={14} /> HALLAZGOS REGISTRADOS AUTOMÁTICAMENTE:
-                        </h5>
-                        <ul className="list-disc pl-5 text-xs text-red-700 space-y-1">
-                            {badItems.map((b) => (
-                                <li key={b.id}><strong>{b.name}</strong> (NO CONFORME - CANT: {b.qty})</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
-                <div className="relative">
-                    <textarea 
-                        value={observaciones} 
-                        onChange={(e) => setObservaciones(e.target.value)} 
-                        rows={4} 
-                        placeholder="Escribe o dicta observaciones adicionales. Los hallazgos anteriores se consolidarán automáticamente en el cuadro de redacción del Excel..." 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pr-20 text-sm outline-none focus:border-blue-500 resize-y" 
-                    />
-                    <div className="absolute bottom-3 right-3 flex items-center gap-1">
-                        <button 
-                            type="button" 
-                            onClick={() => toggleVoice('observaciones', observaciones, setObservaciones)}
-                            className={`p-2 rounded-full ${activeRecordingField === 'observaciones' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-blue-100 hover:text-blue-600'}`}
-                            title="Dictar por voz"
-                        >
-                            {activeRecordingField === 'observaciones' ? <MicOff size={16} /> : <Mic size={16} />}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setObservaciones('')}
-                            className="p-2 rounded-full bg-slate-200 text-slate-600 hover:bg-red-100 hover:text-red-600"
-                            title="Limpiar"
-                        >
-                            <Trash2 size={16} />
-                        </button>
                     </div>
                 </div>
             </div>
 
             {/* BOTÓN FINALIZAR */}
+            
+            
+            {/* BOTÓN FINALIZAR */}
             <div className="sticky bottom-4 z-40">
-                
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                      <button onClick={() => handleSaveAndDownload(false)} disabled={isSaving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
-                          {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
-                          {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar y Descargar'}
-                      </button>
-                      <button onClick={() => setShowEmailModal(true)} disabled={isSaving} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base">
-                          {isSaving && showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Mail size={22} />}
-                          {isSaving && showEmailModal ? 'Preparando...' : 'Enviar por Correo'}
-                      </button>
-                  </div>
-                  
-                  <EmailReportModal
-            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
-                      isOpen={showEmailModal} 
-                      onClose={() => setShowEmailModal(false)}
-                      isSending={isSaving}
-                      onSend={async (data) => {
-                          if (cachedDriveUrl) {
-                              setIsSaving(true);
-                              try {
-                                  const bodyWithLink = data.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                      ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
-                                      : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
-                                  
-                                  const emailRes = await fetch('/api/send-email', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                          to: data.to, cc: data.cc, subject: data.subject,
-                                          text: bodyWithLink,
-                                          html: bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'),
-                                          fromEmail: data.fromEmail, fromName: data.fromName
-                                      })
-                                  });
-                                  if (!emailRes.ok) throw new Error('Error enviando correo');
-                                  alert('✅ Correo enviado correctamente con el reporte ya revisado.');
-                              } catch(e) {
-                                  alert('Error al enviar el correo.');
-                              } finally {
-                                  setIsSaving(false);
-                                  setShowEmailModal(false);
-                              }
-                          } else {
-                              await handleSaveAndDownload(true, data);
-                              setShowEmailModal(false);
-                          }
-                      }}
-                  />
+                <button 
+                    onClick={() => handleSaveAndDownload(false)} 
+                    disabled={isSaving} 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 text-base"
+                >
+                    {isSaving && !showEmailModal ? <Loader2 size={22} className="animate-spin" /> : <Save size={22} />}
+                    {isSaving && !showEmailModal ? 'Generando Excel...' : 'Finalizar Inspección (Descargar y Guardar)'}
+                </button>
             </div>
+
+            {showEmailModal && (
+                <EmailReportModal
+                    isOpen={showEmailModal}
+                    onClose={() => setShowEmailModal(false)}
+                    onSend={(data) => handleSaveAndDownload(true, data)}
+                    initialData={emailData}
+                    isSending={isSaving}
+                    contactos={contactos}
+                />
+            )}
         </div>
     );
 }
+

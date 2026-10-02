@@ -76,7 +76,9 @@ export async function POST(req: Request) {
     const isInstalacionesElectricas = data.isInstalacionesElectricasMatrix || (moduleName && (moduleName.toLowerCase().includes("eléctrica") || moduleName.toLowerCase().includes("electrica")));
     const isCocinaComedor = data.isCocinaComedorMatrix || (moduleName && (moduleName.toLowerCase().includes("cocina") || moduleName.toLowerCase().includes("comedor")));
     const isLaboratorio = data.isLaboratorioMatrix || (moduleName && moduleName.toLowerCase().includes("laboratorio"));
-    const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
+    const isKitAntiderrame = data.isKitAntiderrameMatrix || (moduleName && moduleName.toLowerCase().includes('derrame'));
+    if (isKitAntiderrame) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Kit con derrames.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+      const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
     if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Botiquines.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
     // Template Fallbacks
@@ -286,6 +288,130 @@ export async function POST(req: Request) {
       }
     }
     // --- MANEJADOR 2: EPP MATRICIAL ---
+    else if (isKitAntiderrame) {
+      const meta = data.meta || data.answers || {};
+      const kits = data.kits || data.template || [];
+
+      if (fs.existsSync(templatePath)) {
+        worksheet.getCell("C4").value = meta.proyecto || "RED VIAL 6";
+        worksheet.getCell("J6").value = meta.fecha || new Date().toISOString().split("T")[0];
+        worksheet.getCell("G5").value = meta.tipoInspeccion === 'Planeada' ? 'X' : '';
+        worksheet.getCell("K5").value = meta.tipoInspeccion === 'No Planeada' ? 'X' : '';
+        worksheet.getCell("C6").value = meta.lugar || '';
+
+        const allItems = kits.flatMap((k:any) => Object.values(k.items || {}));
+        const hasNC = allItems.some((it:any) => it.status === 'NC');
+        const hasF = allItems.some((it:any) => it.status === 'F');
+        
+        worksheet.getCell("D7").value = (!hasNC && !hasF) ? 'X' : '';
+        worksheet.getCell("H7").value = hasNC ? 'X' : '';
+        worksheet.getCell("M7").value = hasF ? 'X' : '';
+
+        worksheet.getCell("C26").value = meta.inspector || "";
+        worksheet.getCell("I26").value = meta.cargoInspector || "";
+        worksheet.getCell("C28").value = meta.responsable || "";
+        worksheet.getCell("I28").value = meta.cargoResponsable || "";
+
+        if (meta.firmaInspector) {
+          try {
+            const f1Id = workbook.addImage({ base64: meta.firmaInspector.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
+            worksheet.addImage(f1Id, { tl: { col: 16, row: 25 }, ext: { width: 120, height: 40 } });
+          } catch(e){}
+        }
+        if (meta.firmaResponsable) {
+          try {
+            const f2Id = workbook.addImage({ base64: meta.firmaResponsable.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
+            worksheet.addImage(f2Id, { tl: { col: 16, row: 27 }, ext: { width: 120, height: 40 } });
+          } catch(e){}
+        }
+
+        const KIT_COLS = {
+          'Cilindro de Kit antiderrame': 'D',
+          'Bandeja Anti derrame de madera o metal': 'E',
+          'Paños absorbentes (blanco)': 'F',
+          'Paños absorbentes (Amarillo)': 'G',
+          'Trapos Industriales': 'H',
+          'Bolsas Rojas': 'I',
+          'Bolsas Negras': 'J',
+          'Pala': 'K',
+          'Pico': 'L',
+          'Guantes de nitrilo': 'M',
+          'Guantes de Neoprene': 'N',
+          'Salchichas absorventes': 'O',
+          'Respirador media Cara O Mascarrilla descartable': 'P',
+          'Trajes Tivek': 'Q'
+        };
+
+        let startRow = 11;
+        kits.forEach((kit, idx) => {
+          const row = startRow + (idx * 2);
+          worksheet.getCell(`B${row}`).value = kit.codigo || "";
+          worksheet.getCell(`C${row}`).value = kit.ubicacion || "";
+          worksheet.getCell(`R${row}`).value = kit.observaciones || "";
+
+          if (kit.items) {
+            Object.keys(KIT_COLS).forEach(itemName => {
+              const col = KIT_COLS[itemName];
+              const itemData = kit.items[itemName];
+              if (itemData) {
+                let cellVal = itemData.status || '';
+                if (itemData.status === 'F' && itemData.missingQty) {
+                  cellVal = `F(${itemData.missingQty})`;
+                }
+                worksheet.getCell(`${col}${row}`).value = cellVal;
+              }
+            });
+          }
+        });
+
+        let currentImgRow = 32;
+        const stripB64 = (b64: string) => b64.substring(b64.indexOf(",") + 1);
+
+        kits.forEach((kit: any) => {
+            if (kit.fotosDefectos && kit.fotosDefectos.length > 0) {
+                worksheet.getCell("B" + currentImgRow).value = `EVIDENCIA FOTOGRÁFICA DE LA CONDICIÓN INSEGURA (Kit: ${kit.codigo || 'S/N'}):`;
+                worksheet.getCell("B" + currentImgRow).font = { bold: true, size: 12 };
+                worksheet.getCell("B" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+                
+                try { worksheet.mergeCells("J" + currentImgRow + ":P" + currentImgRow); } catch(e){}
+                worksheet.getCell("J" + currentImgRow).value = "REGISTROS FOTOGRÁFICOS DEL LEVANTAMIENTO:";
+                worksheet.getCell("J" + currentImgRow).font = { bold: true, size: 12 };
+                worksheet.getCell("J" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+
+                currentImgRow += 2;
+                
+                try {
+                    let img1 = stripB64(kit.fotosDefectos[0]);
+                    let imgLev = null;
+                    if (data.evidenciaLevantamiento) {
+                        if (data.evidenciaLevantamiento.startsWith('{')) {
+                            try {
+                                const map = JSON.parse(data.evidenciaLevantamiento);
+                                const descLine = `- Kit ${kit.codigo || 'S/N'} (${kit.ubicacion || 'S/U'}):\n${kit.observaciones || ''}`;
+                                if (map[descLine]) {
+                                    imgLev = stripB64(map[descLine]);
+                                }
+                            } catch(e) {}
+                        } else {
+                            imgLev = stripB64(data.evidenciaLevantamiento);
+                        }
+                    }
+
+                    if (img1) {
+                        const imageId1 = workbook.addImage({ base64: img1, extension: "jpeg" });
+                        worksheet.addImage(imageId1, { tl: { col: 1, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                    }
+                    if (imgLev) {
+                        const imageId2 = workbook.addImage({ base64: imgLev, extension: "jpeg" });
+                        worksheet.addImage(imageId2, { tl: { col: 9, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                    }
+                } catch(e) {}
+                
+                currentImgRow += 14;
+            }
+        });
+      }
+    }
     else if (isEpp) {
       const meta = data.meta || data.answers || {};
       const workers = data.workers || data.template || [];

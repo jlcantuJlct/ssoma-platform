@@ -1,9 +1,7 @@
 const fs = require('fs');
 let code = fs.readFileSync('components/inspections/KitAntiderrameCustomForm.tsx', 'utf8');
 
-const regex = /const handleItemChange = \([\s\S]*?setKits\(copy\);\s*\n\s*\};/;
-
-const replacement = `const handleItemChange = (kitIdx: number, itemName: string, field: string, val: any) => {
+const newFunc = `const handleItemChange = (kitIdx: number, itemName: string, field: string, val: any) => {
         const copy = [...kits];
         
         copy[kitIdx].items[itemName][field] = val;
@@ -29,6 +27,8 @@ const replacement = `const handleItemChange = (kitIdx: number, itemName: string,
         setKits(copy);
     };`;
 
-code = code.replace(regex, replacement);
+const regex = /const handleItemChange = \([\s\S]*?setKits\(copy\);\s*\n\s*\};/;
+code = code.replace(regex, () => newFunc);
+
 fs.writeFileSync('components/inspections/KitAntiderrameCustomForm.tsx', code);
-console.log('patched handleItemChange');
+console.log('Fixed handleItemChange cleanly.');

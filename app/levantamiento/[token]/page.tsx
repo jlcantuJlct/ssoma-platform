@@ -25,7 +25,7 @@ const riesgoColor = (r: string) => {
     if (r === 'Bajo') return 'bg-green-100 text-green-800 border-green-300';
     if (r === 'Medio') return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     if (r === 'Alto') return 'bg-red-100 text-red-800 border-red-300';
-    return 'bg-slate-100 text-slate-600 border-slate-300';
+    return 'bg-slate-950 text-slate-300 border-slate-700';
 };
 
 export default function LevantamientoPublico() {
@@ -54,7 +54,8 @@ export default function LevantamientoPublico() {
                     setFinding(data.finding);
                     if (data.finding.driveUrl) setDriveUrl(data.finding.driveUrl);
                     
-                    const splitted = (data.finding.description || "").split('\n').filter(l => l.trim().length > 0);
+                    const isKit = data.finding.moduleName?.toLowerCase().includes('kit antiderrame');
+                    const splitted = (data.finding.description || "").split(isKit ? '\n\n' : '\n').filter((l: string) => l.trim().length > 0);
                     
                     if (data.finding.evidenciaLevantamiento && data.finding.evidenciaLevantamiento.startsWith('{')) {
                         try {
@@ -78,7 +79,7 @@ export default function LevantamientoPublico() {
                             setComentariosMap(cMap);
                         } catch(e){}
                     }
-                    if (splitted.length > 0 && (data.finding.moduleName.toLowerCase().includes('almacen') || data.finding.moduleName.toLowerCase().includes('taller') || data.finding.moduleName.toLowerCase().includes('campamento') || data.finding.moduleName.toLowerCase().includes('eléctrica') || data.finding.moduleName.toLowerCase().includes('electrica') || data.finding.moduleName.toLowerCase().includes('cocina') || data.finding.moduleName.toLowerCase().includes('comedor') || data.finding.moduleName.toLowerCase().includes('laboratorio') || data.finding.moduleName.toLowerCase().includes('botiquin') || data.finding.moduleName.toLowerCase().includes('botiquín'))) {
+                    if (splitted.length > 0 && (data.finding.moduleName.toLowerCase().includes('almacen') || data.finding.moduleName.toLowerCase().includes('taller') || data.finding.moduleName.toLowerCase().includes('campamento') || data.finding.moduleName.toLowerCase().includes('eléctrica') || data.finding.moduleName.toLowerCase().includes('electrica') || data.finding.moduleName.toLowerCase().includes('cocina') || data.finding.moduleName.toLowerCase().includes('comedor') || data.finding.moduleName.toLowerCase().includes('laboratorio') || data.finding.moduleName.toLowerCase().includes('botiquin') || data.finding.moduleName.toLowerCase().includes('botiquín') || data.finding.moduleName.toLowerCase().includes('kit antiderrame'))) {
                         setLines(splitted);
                     } else {
                         setLines([data.finding.description]);
@@ -159,7 +160,7 @@ export default function LevantamientoPublico() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <div className="flex items-center gap-3 text-slate-500">
                     <Loader2 className="animate-spin" size={28} /> Cargando...
                 </div>
@@ -169,10 +170,10 @@ export default function LevantamientoPublico() {
 
     if (error || !finding) {
         return (
-            <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                <div className="bg-slate-900 rounded-2xl shadow-xl p-8 max-w-md text-center">
                     <XCircle className="text-red-500 mx-auto mb-4" size={48} />
-                    <h1 className="text-xl font-bold text-slate-800 mb-2">Enlace no válido</h1>
+                    <h1 className="text-xl font-bold text-slate-100 mb-2">Enlace no válido</h1>
                     <p className="text-slate-500">{error}</p>
                 </div>
             </div>
@@ -181,10 +182,10 @@ export default function LevantamientoPublico() {
 
     if (done || finding.status === 'Cerrado') {
         return (
-                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-slate-200">
+                <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                    <div className="bg-slate-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-slate-800">
                         <CheckCircle className="text-emerald-500 mx-auto mb-4" size={56} />
-                        <h1 className="text-2xl font-bold text-slate-800 mb-2">
+                        <h1 className="text-2xl font-bold text-slate-100 mb-2">
                         {isParcialState ? '¡Avance Guardado!' : '¡Observación Levantada!'}
                     </h1>
                     <p className="text-slate-500 mb-6 text-sm">
@@ -194,18 +195,18 @@ export default function LevantamientoPublico() {
                     </p>
                         
                         {(evidencia || (finding.evidenciaLevantamiento && !finding.evidenciaLevantamiento.startsWith('{'))) && (
-                            <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-left">
+                            <div className="mb-6 bg-slate-800 p-4 rounded-xl border border-slate-100 text-left">
                                 <p className="text-xs font-bold text-slate-500 uppercase mb-2">Evidencia Registrada:</p>
                                 <img 
                                     src={evidencia || finding.evidenciaLevantamiento} 
                                     alt="Evidencia levantada" 
-                                    className="rounded-lg w-full max-h-48 object-cover border border-slate-200 mb-3" 
+                                    className="rounded-lg w-full max-h-48 object-cover border border-slate-800 mb-3" 
                                 />
                             </div>
                         )}
 
                         {driveUrl && (
-                            <a href={driveUrl} target="_blank" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-blue-50 py-3 rounded-xl border border-blue-100 mb-3">
+                            <a href={driveUrl} target="_blank" className="text-blue-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-blue-900/30 py-3 rounded-xl border border-blue-800/50 mb-3">
                                 📄 Ver reporte actualizado
                             </a>
                         )}
@@ -215,11 +216,11 @@ export default function LevantamientoPublico() {
                                 link.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + fileBase64;
                                 link.download = 'Reporte_Levantamiento.xlsx';
                                 link.click();
-                            }} className="text-emerald-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-emerald-50 py-3 rounded-xl border border-emerald-100 mb-3">
+                            }} className="text-emerald-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-emerald-900/30 py-3 rounded-xl border border-emerald-800/50 mb-3">
                                 ⬇️ Descargar Excel
                             </button>
                         )}
-                        <button onClick={() => { window.close(); setTimeout(() => { window.location.href = '/'; }, 300); }} className="text-slate-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-slate-100 hover:bg-slate-200 py-3 rounded-xl border border-slate-200 transition-colors">
+                        <button onClick={() => { window.close(); setTimeout(() => { window.location.href = '/'; }, 300); }} className="text-slate-300 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-slate-950 hover:bg-slate-800 py-3 rounded-xl border border-slate-800 transition-colors">
                             Guardar y Cerrar
                         </button>
                     </div>
@@ -228,9 +229,9 @@ export default function LevantamientoPublico() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 py-8 px-4">
+        <div className="min-h-screen bg-slate-950 py-8 px-4">
             <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div className="bg-slate-900 rounded-2xl shadow-xl overflow-hidden">
                     <div className="bg-gradient-to-r from-emerald-700 to-green-600 p-6 text-white">
                         <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight flex items-center gap-2">
                             <ShieldCheck size={28} /> Levantamiento de Observación
@@ -243,16 +244,16 @@ export default function LevantamientoPublico() {
                     <div className="p-6">
                         
                         {lines.map((line, idx) => (
-                            <div key={idx} className="mb-8 border-b pb-6 border-slate-200 last:border-0 last:pb-0">
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
-                                    <p className="text-slate-800 font-semibold mb-2 whitespace-pre-wrap">{line}</p>
+                            <div key={idx} className="mb-8 border-b pb-6 border-slate-800 last:border-0 last:pb-0">
+                                <div className="bg-slate-800 border border-slate-800 rounded-xl p-4 mb-4">
+                                    <p className="text-slate-100 font-semibold mb-2 whitespace-pre-wrap">{line}</p>
                                     {idx === 0 && (
                                         <div className="flex flex-wrap gap-2 text-xs">
                                             <span className={`px-3 py-1 rounded-full border font-bold ${riesgoColor(finding.riesgo)}`}>
                                                 Riesgo: {finding.riesgo || '-'}
                                             </span>
                                             {finding.fechaProg && (
-                                                <span className="px-3 py-1 rounded-full border border-slate-300 bg-white text-slate-600 font-semibold">
+                                                <span className="px-3 py-1 rounded-full border border-slate-700 bg-slate-900 text-slate-300 font-semibold">
                                                     Fecha programada: {finding.fechaProg}
                                                 </span>
                                             )}
@@ -272,7 +273,7 @@ export default function LevantamientoPublico() {
                                                     <p className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><AlertTriangle size={14}/> Condición observada</p>
                                                     <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
                                                         {origPhotos.map((p, i) => (
-                                                            <img key={i} src={p} className="h-32 w-auto rounded-lg border border-slate-200 object-cover flex-shrink-0 snap-center shadow-sm" alt="Foto inicial" />
+                                                            <img key={i} src={p} className="h-32 w-auto rounded-lg border border-slate-800 object-cover flex-shrink-0 snap-center shadow-sm" alt="Foto inicial" />
                                                         ))}
                                                     </div>
                                                 </div>
@@ -289,7 +290,7 @@ export default function LevantamientoPublico() {
                                             <div className="relative h-32 mb-2 border-2 border-emerald-400 rounded-xl overflow-hidden shadow-sm">
                                                 <img src={evidenciasMap[line] || evidencia} alt="Evidencia" className="h-full w-full object-cover" />
                                                 <div className="absolute bottom-2 right-2 flex gap-1.5">
-                                                    <button type="button" onClick={() => document.getElementById('foto-levantamiento-' + idx)?.click()} className="bg-white/90 text-slate-800 px-3 py-1.5 rounded-lg font-bold text-[11px] shadow-sm flex items-center gap-1 hover:bg-slate-50">🔄 Cambiar</button>
+                                                    <button type="button" onClick={() => document.getElementById('foto-levantamiento-' + idx)?.click()} className="bg-slate-800/90 text-slate-100 px-3 py-1.5 rounded-lg font-bold text-[11px] shadow-sm flex items-center gap-1 hover:bg-slate-800">🔄 Cambiar</button>
                                                     <button type="button" onClick={() => {
                                                         setEvidenciasMap(p => { const n = {...p}; delete n[line]; return n; });
                                                         if (lines.length === 1) setEvidencia('');
@@ -299,10 +300,10 @@ export default function LevantamientoPublico() {
                                             </div>
                                         ) : (
                                             <div
-                                                className="h-32 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center bg-slate-50 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors mb-2"
+                                                className="h-32 border-2 border-dashed border-slate-700 rounded-xl flex items-center justify-center bg-slate-800 cursor-pointer hover:border-emerald-400 hover:bg-emerald-900/30 transition-colors mb-2"
                                                 onClick={() => document.getElementById('foto-levantamiento-' + idx)?.click()}
                                             >
-                                                <div className="text-slate-400 flex flex-col items-center gap-1">
+                                                <div className="text-slate-500 flex flex-col items-center gap-1">
                                                     <Camera size={28} className="opacity-60" />
                                                     <span className="text-xs font-bold">Toca para tomar foto</span>
                                                 </div>
@@ -312,9 +313,9 @@ export default function LevantamientoPublico() {
                                     </div>
                                 </div>
                                 
-                                <label className="block text-sm font-bold text-slate-700 mb-2">Comentario de corrección:</label>
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Comentario de corrección:</label>
                                 <textarea
-                                    className="w-full border border-slate-300 rounded-xl p-3 h-20 resize-none"
+                                    className="w-full bg-slate-950 text-white border border-slate-700 rounded-xl p-3 h-20 resize-none"
                                     placeholder="Describe la acción realizada..."
                                     value={lines.length > 1 ? (comentariosMap[line] || "") : comentario}
                                     onChange={(e) => {
@@ -335,7 +336,7 @@ export default function LevantamientoPublico() {
                         </button>
                     </div>
                 </div>
-                <p className="text-center text-slate-400 text-xs mt-4 flex items-center justify-center gap-1">
+                <p className="text-center text-slate-500 text-xs mt-4 flex items-center justify-center gap-1">
                     <AlertTriangle size={12} /> Enlace seguro y privado — solo tú puedes ver esta observación.
                 </p>
             </div>

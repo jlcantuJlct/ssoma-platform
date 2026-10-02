@@ -83,7 +83,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             return NextResponse.json({ success: false, error: 'Este hallazgo ya fue levantado o el enlace no es válido' }, { status: 404 });
         }
 
-        const lines = (row.description || '').split('\n').filter((l: string) => l.trim().length > 0);
+        const isKit = row.module_name?.toLowerCase().includes('kit antiderrame');
+        const lines = (row.description || '').split(isKit ? '\n\n' : '\n').filter((l: string) => l.trim().length > 0);
         let numRequired = lines.length;
         if (numRequired === 0) numRequired = 1;
 
@@ -119,7 +120,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
             const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName: row.module_name, template, answers, extinguishers: row.module_name === 'Extintores' ? template : undefined, meta: row.module_name === 'Extintores' ? answers : undefined, isExtinguisherMatrix: row.module_name === 'Extintores', saveToDrive: true,
+                body: JSON.stringify({ 
+                    moduleName: row.module_name, 
+                    template, 
+                    answers, 
+                    extinguishers: row.module_name === 'Extintores' ? template : undefined, 
+                    meta: (row.module_name === 'Extintores' || row.module_name === 'Kit Antiderrame') ? answers : undefined, 
+                    isExtinguisherMatrix: row.module_name === 'Extintores', 
+                    kits: row.module_name === 'Kit Antiderrame' ? template : undefined,
+                    isKitAntiderrameMatrix: row.module_name === 'Kit Antiderrame',
+                    saveToDrive: true,
                     fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : null,
                     evidenciaLevantamiento: evidence,
                     comentarioLevantamiento: comentario
