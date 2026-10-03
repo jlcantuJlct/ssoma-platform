@@ -391,13 +391,16 @@ export default function CocinaComedorCustomForm({ SignaturePad }: { SignaturePad
                                 fromName: customEmailData.fromName
                             })
                         });
-                        if (!emailRes.ok) throw new Error('Error al enviar correo');
+                        if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
+                        }
                         alert('✅ Correo enviado correctamente.');
                         window.location.href = '/inspections?openDigital=true';
                         return;
-                    } catch (e) {
+                    } catch (e: any) {
                         console.error(e);
-                        alert('El Excel se guardó, pero hubo un error al enviar el correo.');
+                        alert('El Excel se guardó, pero hubo un error al enviar el correo => ' + (e.message || 'Desconocido'));
                     }
                 }
 

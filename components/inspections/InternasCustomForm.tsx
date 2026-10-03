@@ -374,7 +374,10 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                 })
             });
 
-            if (!emailRes.ok) throw new Error('Error al enviar correo');
+            if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
+                        }
 
             alert('📧 Correo enviado correctamente con el enlace del reporte.');
             setShowEmailModal(false);

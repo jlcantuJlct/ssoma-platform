@@ -341,11 +341,14 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                     fromName: customEmailData.fromName
                                 })
                             });
-                            if (!emailRes.ok) throw new Error('Error al enviar correo');
-                        } catch (e) {
-                            console.error(e);
-                            alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
+                            if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
                         }
+                        } catch (e: any) {
+                        console.error(e);
+                        alert('Hubo un error al enviar el correo, pero el reporte se generó => ' + (e.message || 'Desconocido'));
+                    }
                     } else {
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');

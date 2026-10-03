@@ -370,7 +370,7 @@ export default function BotiquinCustomForm({ SignaturePad }: { SignaturePad: any
                         return;
                     } catch (e: any) {
                         console.error(e);
-                        alert('El Excel se guardó, pero hubo un error al enviar el correo: ' + e.message);
+                        alert('EL EXCEL SE GUARDO, PERO EL CORREO FALLO: ' + (e.message || 'Error Desconocido'));
                     }
                 }
 
