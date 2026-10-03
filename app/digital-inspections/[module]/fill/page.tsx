@@ -569,7 +569,7 @@ export default function FillDigitalInspection() {
     
     
     
-    if (decodedModule.toLowerCase().includes('estacion') || decodedModule.toLowerCase().includes('estación') || decodedModule.includes('008')) {
+    if (moduleName.toLowerCase().includes('estacion') || moduleName.toLowerCase().includes('estación') || moduleName.includes('008')) {
         return <EstacionEmergenciaCustomForm SignaturePad={SignaturePad} />;
     }
 
