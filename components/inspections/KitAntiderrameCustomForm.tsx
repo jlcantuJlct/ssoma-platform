@@ -428,12 +428,15 @@ export function KitAntiderrameCustomForm({ moduleName, version, SignaturePad }: 
                                 fromName: customEmailData.fromName
                             })
                         });
-                        if (!emailRes.ok) throw new Error('Error enviando correo');
+                        if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
+                        }
                         alert('✅ Correo enviado exitosamente.');
                         window.location.href = '/inspections?openDigital=true';
-                    } catch (e) {
+                    } catch (e: any) {
                         console.error(e);
-                        alert('Hubo un error al enviar el correo, pero el reporte se generó en la plataforma.');
+                        alert('Hubo un error al enviar el correo, pero el reporte se generó: ' + e.message);
                     }
                 } else {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel descargado.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo.\n3. Si quieres salir al panel, haz clic en "Cancelar".')) {
