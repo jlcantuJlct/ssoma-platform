@@ -569,8 +569,8 @@ export default function FillDigitalInspection() {
     
     
     
-    if (moduleName.toLowerCase().includes('estación de emergencia') || moduleName.toLowerCase().includes('estacion de emergencia') || moduleName.toLowerCase().includes('primeros auxilios')) {
-        return <EstacionEmergenciaCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    if (decodedModule.toLowerCase().includes('estacion') || decodedModule.toLowerCase().includes('estación') || decodedModule.includes('008')) {
+        return <EstacionEmergenciaCustomForm SignaturePad={SignaturePad} />;
     }
 
     if (moduleName.toLowerCase().includes('epp')) {
