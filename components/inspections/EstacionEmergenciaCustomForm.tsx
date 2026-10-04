@@ -10,32 +10,32 @@ const sectionsToRender = [
     {
         title: 'INSPECCIÓN DE ESTACIÓN DE PRIMEROS AUXILIOS',
         items: [
-            'Paquetes de guantes quirúrgicos',
-            'Frasco de yodopovidoma 120 ml solución antiséptico',
-            'Frasco de agua oxigenada mediano 120 ml',
-            'Frasco de alcohol mediano 250 ml',
-            'Paquetes de gasas esterilizadas de 10 cm x 10 cm',
-            'Paquetes de apósitos (05 para Sede Central)',
-            'Rollo de esparadrapo 5 cm x 4.5 cm',
-            'Rollos de venda elástica de 3 plg. X 5 yardas',
-            'Rollos de venda elástica de 4 plg. X 5 yardas',
-            'Paquete de algodón x 100 g',
-            'Venda triangular',
-            'Paletas baja lengua (para entabillado de dedos)',
-            'Frasco de solución de cloruro de sodio al 9/1000 x 1 l (para lavado de heridas)',
-            'Paquetes de gasa tipo jelonet (para quemaduras)',
-            'Frascos de colirio de 10 ml (01 para Sede Central)',
-            'Tijera punta roma',
-            'Pinza',
-            'Jabón germicida (solo para Sede Central)',
-            'Curitas (solo para Sede Central)',
-            'Lava ojo portàtil',
-            'Camilla rìgida - inmovilizador de cabeza',
-            'frazada',
-            'Collarìn regulable',
-            'extintor',
-            'Registro para control de entrada y salida e insumos',
-            'Férula inmovilizadora'
+            'Paquetes de guantes quirúrgicos (Cant: 2)',
+            'Frasco de yodopovidoma 120 ml solución antiséptico (Cant: 1)',
+            'Frasco de agua oxigenada mediano 120 ml (Cant: 1)',
+            'Frasco de alcohol mediano 250 ml (Cant: 1)',
+            'Paquetes de gasas esterilizadas de 10 cm x 10 cm (Cant: 5)',
+            'Paquetes de apósitos (05 para Sede Central) (Cant: 8)',
+            'Rollo de esparadrapo 5 cm x 4.5 cm (Cant: 1)',
+            'Rollos de venda elástica de 3 plg. X 5 yardas (Cant: 2)',
+            'Rollos de venda elástica de 4 plg. X 5 yardas (Cant: 2)',
+            'Paquete de algodón x 100 g (Cant: 1)',
+            'Venda triangular (Cant: 1)',
+            'Paletas baja lengua (para entabillado de dedos) (Cant: 10)',
+            'Frasco de solución de cloruro de sodio al 9/1000 x 1 l (para lavado de heridas) (Cant: 1)',
+            'Paquetes de gasa tipo jelonet (para quemaduras) (Cant: 2)',
+            'Frascos de colirio de 10 ml (01 para Sede Central) (Cant: 2)',
+            'Tijera punta roma (Cant: 1)',
+            'Pinza (Cant: 1)',
+            'Jabón germicida (solo para Sede Central) (Cant: 1)',
+            'Curitas (solo para Sede Central) (Cant: 10)',
+            'Lava ojo portàtil (Cant: 1)',
+            'Camilla rìgida - inmovilizador de cabeza (Cant: 1)',
+            'frazada (Cant: 1)',
+            'Collarìn regulable (Cant: 1)',
+            'extintor (Cant: 1)',
+            'Registro para control de entrada y salida e insumos (Cant: 1)',
+            'Férula inmovilizadora (Cant: 1)'
         ]
     }
 ];
@@ -237,6 +237,19 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
 
         setIsSaving(true);
         try {
+            // Strip (Cant: X) from checklist keys before sending
+            const cleanChecklist: any = {};
+            Object.keys(checklist).forEach(key => {
+                const cleanKey = key.replace(/\s*\(Cant:\s*\d+\)\s*/g, '');
+                cleanChecklist[cleanKey] = checklist[key];
+            });
+            // Also clean fotosDefectos keys just in case!
+            const cleanFotosDefectos: any = {};
+            Object.keys(fotosDefectos).forEach(key => {
+                const cleanKey = key.replace(/\s*\(Cant:\s*\d+\)\s*/g, '');
+                cleanFotosDefectos[cleanKey] = fotosDefectos[key];
+            });
+
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -244,10 +257,10 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                     moduleName: "Estación de Emergencia",
                     isEstacionEmergenciaMatrix: true,
                     meta,
-                    checklist,
+                    checklist: cleanChecklist,
                     observaciones,
                     firmas,
-                    fotosDefectos,
+                    fotosDefectos: cleanFotosDefectos,
                     saveToDrive: true
                 })
             });
@@ -259,19 +272,28 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                 if (data.fileBase64) {
                     setCachedDriveUrl(data.driveUrl);
                     if (!isEmailing) {
-                        const byteCharacters = atob(data.fileBase64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Inspeccion_Estacion_Primeros_Auxilios_${meta.fecha}_${Date.now()}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                        window.URL.revokeObjectURL(url);
-                        a.remove();
+                        try {
+                            const byteCharacters = atob(data.fileBase64);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            
+                            // Safe filename
+                            const safeFecha = (meta.fecha || '').replace(/[\/:]/g, '-');
+                            a.download = `Inspeccion_Estacion_Primeros_Auxilios_${safeFecha}_${Date.now()}.xlsx`;
+                            
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            a.remove();
+                        } catch (err: any) {
+                            console.error('Error al descargar:', err);
+                            alert('No se pudo descargar el archivo localmente: ' + err.message);
+                        }
                     }
                 }
 
@@ -466,11 +488,12 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                             </div>
                             <div className="divide-y divide-slate-100">
                                 {section.items.map((item) => (
-                                    <div key={item} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
-                                        <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
-                                            {item}
-                                        </div>
-                                        <div className="flex items-center gap-2">
+                                    <div key={item} className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-slate-50 transition-colors">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
+                                                {item}
+                                            </div>
+                                            <div className="flex items-center gap-2">
                                             {['OK', 'NC', 'N/A'].map(opt => {
                                                 const isSelected = checklist[item] === opt;
                                                 let bg = "bg-slate-100 text-slate-400 border-slate-200";
@@ -490,34 +513,29 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                                                 );
                                             })}
                                         </div>
+                                        </div>
                                         {checklist[item] === 'NC' && (
-                                            <div className="w-full mt-3 bg-red-50 p-3 rounded-lg border border-red-100 flex flex-col gap-3">
+                                            <div className="w-full sm:w-80 bg-red-50 p-2 rounded-lg border border-red-100 flex flex-col gap-1.5 self-start sm:self-end">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-black text-red-600 uppercase">Detalle y Evidencia:</span>
-                                                    <div className="flex gap-2">
-                                                        <input type="file" id={`foto-${item}`} accept="image/*" capture="environment" className="hidden" onChange={(e) => handlePhotoUploadDefecto(item, e)} multiple />
-                                                        <button onClick={() => document.getElementById(`foto-${item}`)?.click()} className="px-3 py-1.5 bg-white text-red-600 border border-red-200 rounded-md text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 shadow-sm transition-colors">
-                                                            <Camera size={14} /> {(fotosDefectos[item]?.length || 0) > 0 ? `Fotos (${fotosDefectos[item].length})` : 'Añadir Foto'}
-                                                        </button>
-                                                    </div>
+                                                    <span className="text-[10px] font-black text-red-600 uppercase">Detalle del Hallazgo:</span>
                                                 </div>
-                                                <div className="relative flex items-center">
-                                                    <input 
-                                                        type="text" 
-                                                        value={itemComments[item] || ''}
-                                                        onChange={e => handleItemComment(item, e.target.value)}
-                                                        placeholder="Escriba o dicte el detalle de la observación..."
-                                                        className={"w-full text-xs p-2.5 pr-16 rounded-md outline-none border focus:border-red-400 " + (isRecordingMeta === item ? "border-red-400 bg-red-100" : "border-red-200 bg-white")}
-                                                    />
-                                                    <div className="absolute right-1 flex items-center gap-1">
-                                                        {itemComments[item] && (
-                                                            <button onClick={() => handleItemComment(item, '')} className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 transition-colors">
-                                                                <X size={12} />
-                                                            </button>
-                                                        )}
-                                                        <button onClick={() => toggleDictation(item, false, true)} className={"p-1.5 rounded-full transition-colors " + (isRecordingMeta === item ? "text-red-500 bg-red-100 animate-pulse" : "text-slate-400 hover:text-blue-500 hover:bg-slate-100")}>
-                                                            <Mic size={14} />
-                                                        </button>
+                                                <div className="relative flex items-center gap-2 bg-white border border-red-200 p-1.5 rounded-md focus-within:border-red-400">
+                                                    <div className="text-xs p-1 font-bold text-red-700 flex-1 px-2">
+                                                        Faltante o deteriorado
+                                                    </div>
+                                                    <div className="flex items-center gap-2 border-l border-red-200 pl-2">
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Cant:</span>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1"
+                                                            value={(itemComments[item] || '').split(' Cant: ')[1] || ''}
+                                                            onChange={e => {
+                                                                const currentReason = 'Faltante o deteriorado';
+                                                                handleItemComment(item, currentReason + (e.target.value ? ' Cant: ' + e.target.value : ''));
+                                                            }}
+                                                            placeholder="0"
+                                                            className="w-14 text-xs outline-none bg-slate-100 border border-slate-200 p-1.5 rounded-md font-black text-center focus:border-red-400 focus:bg-white transition-colors"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -551,17 +569,24 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                         <p className="text-sm text-slate-500 text-center py-4">No hay hallazgos (NC) que requieran fotografía.</p>
                     ) : (
                         <div className="space-y-6">
-                            {badItemsList.map(([item, val]) => (
-                                <div key={item} className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                <div className="flex flex-col gap-3">
+                                    <p className="text-sm text-slate-600">Sube aquí las fotos generales de los hallazgos encontrados.</p>
                                     <div className="flex items-center justify-between mb-3">
-                                        <h4 className="font-bold text-slate-700 text-sm">{item} <span className="text-xs bg-white border border-slate-300 px-1.5 py-0.5 rounded ml-2">(NC)</span></h4>
+                                        <h4 className="font-bold text-slate-700 text-sm">Fotos Generales de Hallazgos</h4>
+                                        <div className="flex gap-2">
+                                            <input type="file" id="foto-General-bottom" accept="image/*" capture="environment" className="hidden" onChange={(e) => handlePhotoUploadDefecto('General', e)} multiple />
+                                            <button onClick={() => document.getElementById('foto-General-bottom')?.click()} className="px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded-md text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-50 shadow-sm transition-colors">
+                                                <Camera size={14} /> {(fotosDefectos['General']?.length || 0) > 0 ? `Fotos (${fotosDefectos['General'].length})` : 'Añadir Foto'}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="flex flex-wrap gap-3">
-                                        {(fotosDefectos[item] || []).map((foto, idx) => (
+                                        {(fotosDefectos['General'] || []).map((foto, idx) => (
                                             <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-300 group">
-                                                <img src={foto} alt={"Foto " + item} className="w-full h-full object-cover" />
+                                                <img src={foto} alt="Foto General" className="w-full h-full object-cover" />
                                                 <button
-                                                    onClick={() => removePhotoDefecto(item, idx)}
+                                                    onClick={() => removePhotoDefecto('General', idx)}
                                                     className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
                                                 >
                                                     <X size={12} />
@@ -570,7 +595,7 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
                                         ))}
                                     </div>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     )}
                 </div>

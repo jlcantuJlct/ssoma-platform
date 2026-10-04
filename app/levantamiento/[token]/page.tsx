@@ -79,7 +79,7 @@ export default function LevantamientoPublico() {
                             setComentariosMap(cMap);
                         } catch(e){}
                     }
-                    if (splitted.length > 0 && (data.finding.moduleName.toLowerCase().includes('almacen') || data.finding.moduleName.toLowerCase().includes('taller') || data.finding.moduleName.toLowerCase().includes('campamento') || data.finding.moduleName.toLowerCase().includes('eléctrica') || data.finding.moduleName.toLowerCase().includes('electrica') || data.finding.moduleName.toLowerCase().includes('cocina') || data.finding.moduleName.toLowerCase().includes('comedor') || data.finding.moduleName.toLowerCase().includes('laboratorio') || data.finding.moduleName.toLowerCase().includes('botiquin') || data.finding.moduleName.toLowerCase().includes('botiquín') || data.finding.moduleName.toLowerCase().includes('kit antiderrame'))) {
+                    if (splitted.length > 0 && (data.finding.moduleName.toLowerCase().includes('almacen') || data.finding.moduleName.toLowerCase().includes('taller') || data.finding.moduleName.toLowerCase().includes('campamento') || data.finding.moduleName.toLowerCase().includes('eléctrica') || data.finding.moduleName.toLowerCase().includes('electrica') || data.finding.moduleName.toLowerCase().includes('cocina') || data.finding.moduleName.toLowerCase().includes('comedor') || data.finding.moduleName.toLowerCase().includes('laboratorio') || data.finding.moduleName.toLowerCase().includes('botiquin') || data.finding.moduleName.toLowerCase().includes('botiquín') || data.finding.moduleName.toLowerCase().includes('kit antiderrame') || data.finding.moduleName.toLowerCase().includes('internas'))) {
                         setLines(splitted);
                     } else {
                         setLines([data.finding.description]);
@@ -243,6 +243,8 @@ export default function LevantamientoPublico() {
 
                     <div className="p-6">
                         
+
+                        
                         {lines.map((line, idx) => (
                             <div key={idx} className="mb-8 border-b pb-6 border-slate-800 last:border-0 last:pb-0">
                                 <div className="bg-slate-800 border border-slate-800 rounded-xl p-4 mb-4">
@@ -265,8 +267,14 @@ export default function LevantamientoPublico() {
                                     
                                     {/* Left side: Original photo (if exists) */}
                                     {(() => {
-                                        const matchKey = Object.keys(finding.fotosDefectos || {}).find(k => line.replace(/[\u200B]/g, '').trim().startsWith(k.replace(/[\u200B]/g, '').trim()));
-                                        const origPhotos = matchKey ? finding.fotosDefectos[matchKey] : [];
+const matchKey = Object.keys(finding.fotosDefectos || {}).find(k => line.replace(/[\u200B]/g, '').trim().startsWith(k.replace(/[\u200B]/g, '').trim()));
+                                        let origPhotos = matchKey ? finding.fotosDefectos[matchKey] : [];
+                                        if (lines.length === 1 && (!origPhotos || origPhotos.length === 0) && finding.fotosDefectos) {
+                                            origPhotos = Object.values(finding.fotosDefectos).flat();
+                                        }
+                                        if ((!origPhotos || origPhotos.length === 0) && finding.evidencia) {
+                                            origPhotos = [finding.evidencia];
+                                        }
                                         if (origPhotos && origPhotos.length > 0) {
                                             return (
                                                 <div className="w-full md:w-1/2">

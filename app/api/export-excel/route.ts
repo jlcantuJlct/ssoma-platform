@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       data.isExtinguisherMatrix ||
       (moduleName &&
         (moduleName.toLowerCase().includes("extintor") ||
-          moduleName.toLowerCase().includes("emergencia")));
+          (moduleName.toLowerCase().includes("emergencia") && !moduleName.toLowerCase().includes("estaci"))));
     const isMachinery =
       data.isMachineryMatrix ||
       (moduleName &&
@@ -1121,42 +1121,34 @@ export async function POST(req: Request) {
         worksheet.getCell(`A${currentRow}`).value = i + 1;
         worksheet.getCell(`B${currentRow}`).value = h.descripcion;
         worksheet.getCell(`J${currentRow}`).value = h.riesgo;
-        if (h.riesgo === "Bajo")
-          worksheet.getCell(`J${currentRow}`).fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFc6efce" },
-          };
-        if (h.riesgo === "Medio")
-          worksheet.getCell(`J${currentRow}`).fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFffeb9c" },
-          };
-        if (h.riesgo === "Alto")
-          worksheet.getCell(`J${currentRow}`).fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFffc7ce" },
-          };
-
+        const cellR = worksheet.getCell(`J${currentRow}`);
+        // Desvincular el estilo compartido clonándolo profundamente
+        cellR.style = JSON.parse(JSON.stringify(cellR.style));
+        if (h.riesgo === "Bajo") {
+          cellR.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B050" } };
+          cellR.font = { ...cellR.font, color: { argb: "FFFFFFFF" }, bold: true };
+        } else if (h.riesgo === "Medio") {
+          cellR.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+          cellR.font = { ...cellR.font, color: { argb: "FF000000" }, bold: true };
+        } else if (h.riesgo === "Alto") {
+          cellR.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+          cellR.font = { ...cellR.font, color: { argb: "FFFFFFFF" }, bold: true };
+        }
         worksheet.getCell(`K${currentRow}`).value = h.categoria;
         worksheet.getCell(`L${currentRow}`).value = h.accion;
         worksheet.getCell(`N${currentRow}`).value = h.responsable;
         worksheet.getCell(`P${currentRow}`).value = h.fecha;
         worksheet.getCell(`U${currentRow}`).value = h.estado;
-        if (h.estado === "Abierto")
-          worksheet.getCell(`U${currentRow}`).fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFffc7ce" },
-          };
-        if (h.estado === "Cerrado")
-          worksheet.getCell(`U${currentRow}`).fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFc6efce" },
-          };
+        const cellE = worksheet.getCell(`U${currentRow}`);
+        cellE.style = JSON.parse(JSON.stringify(cellE.style));
+        if (h.estado === "Abierto") {
+          cellE.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+          cellE.font = { ...cellE.font, color: { argb: "FFFFFFFF" }, bold: true };
+        }
+        if (h.estado === "Cerrado") {
+          cellE.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B050" } };
+          cellE.font = { ...cellE.font, color: { argb: "FFFFFFFF" }, bold: true };
+        }
 
         // Fotos centradas en sus celdas combinadas
         if (h.evidencia || h.evidenciaLevantamiento) {
@@ -1194,6 +1186,10 @@ export async function POST(req: Request) {
       else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin || isEstacionEmergencia) {
           const meta = data.meta || data.answers || {};
           let checklist = data.checklist || (data.template && !Array.isArray(data.template) ? data.template : {});
+          const cleanCheck = {};
+          Object.keys(checklist).forEach(k => { cleanCheck[k.replace(/\s*\(Cant:\s*\d+\)\s*/g, '')] = checklist[k]; });
+          checklist = cleanCheck;
+          
           if (Object.keys(checklist).length === 0 && Array.isArray(data.template)) {
               data.template.forEach(item => {
                   if (item.type === 'radio' && item.value) {
@@ -1219,7 +1215,7 @@ export async function POST(req: Request) {
               } else if (isInstalacionesElectricas) {
                   worksheet.getCell("C4").value = meta.proyecto || ""; worksheet.getCell("E5").value = meta.area || ""; worksheet.getCell("K5").value = meta.fecha || ""; worksheet.getCell("D6").value = meta.inspector || ""; worksheet.getCell("D8").value = meta.responsable || "";
               
-                } else if (isBotiquin) {
+                } else if (isBotiquin || isEstacionEmergencia) {
                     worksheet.getCell("C4").value = meta.proyecto || "";
                     worksheet.getCell("C5").value = meta.fecha || "";
                     worksheet.getCell("I5").value = meta.hora || "";
@@ -1279,9 +1275,12 @@ export async function POST(req: Request) {
               else if (isCampamento) currentImgRow = 65;
               else if (isInstalacionesElectricas) currentImgRow = 54;
               else if (isCocinaComedor) currentImgRow = 61;
-              else if (isLaboratorio) currentImgRow = 44; else if (isBotiquin) currentImgRow = 50; else if (isEstacionEmergencia) currentImgRow = 52;
+              else if (isLaboratorio) currentImgRow = 44; else if (isBotiquin) currentImgRow = 50; else if (isEstacionEmergencia) currentImgRow = 51;
               
               const badItemsKeys = Object.keys(checklist).filter(k => ['NC', 'X'].includes(checklist[k]));
+              if ((data.fotosDefectos && data.fotosDefectos['General'] && data.fotosDefectos['General'].length > 0) || (isEstacionEmergencia && data.evidenciaLevantamiento)) {
+                  if (!badItemsKeys.includes('General')) badItemsKeys.push('General');
+              }
               let evidenciasMapLocal = {};
               if (data.evidenciaLevantamiento && data.evidenciaLevantamiento.startsWith('{')) {
                   try { evidenciasMapLocal = JSON.parse(data.evidenciaLevantamiento); } catch(e) {}
@@ -1289,7 +1288,7 @@ export async function POST(req: Request) {
               
               badItemsKeys.forEach((item) => {
                   const photos = data.fotosDefectos ? data.fotosDefectos[item] : null;
-                  if (photos && photos.length > 0) {
+                  if ((photos && photos.length > 0) || (item === 'General' && data.evidenciaLevantamiento)) {
                       try { worksheet.mergeCells("B" + currentImgRow + ":G" + currentImgRow); } catch(e){}
                       worksheet.getCell("B" + currentImgRow).value = "EVIDENCIA FOTOGRÁFICA DE LA CONDICIÓN INSEGURA: " + item;
                       worksheet.getCell("B" + currentImgRow).font = { bold: true, size: 12 };
@@ -1305,18 +1304,28 @@ export async function POST(req: Request) {
                       
                       try {
                           const stripB64 = (b64) => b64.substring(b64.indexOf(",") + 1);
-                          let img1 = null; let imgLev = null;
-                          if (photos[0] && typeof photos[0] === 'string' && photos[0].length > 50) img1 = stripB64(photos[0]);
-                          let matchImgLev = Object.entries(evidenciasMapLocal).find(([k,v]) => k.startsWith(item) && v && v.length > 50);
-                          if (matchImgLev) imgLev = stripB64(matchImgLev[1]);
-                          
-                          if (img1) {
-                              const imageId1 = workbook.addImage({ base64: img1, extension: "jpeg" });
-                              worksheet.addImage(imageId1, { tl: { col: 1, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                          let colCursor = 1;
+                          if (photos && photos.length > 0) {
+                              for (let i = 0; i < photos.length; i++) {
+                                  if (photos[i] && typeof photos[i] === 'string' && photos[i].length > 50) {
+                                      const imgBase64 = stripB64(photos[i]);
+                                      const imgId = workbook.addImage({ base64: imgBase64, extension: "jpeg" });
+                                      worksheet.addImage(imgId, { tl: { col: colCursor, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                                      colCursor += 6;
+                                      if (colCursor > 13) break; // Max 3 images per row
+                                  }
+                              }
                           }
-                          if (imgLev) {
-                              const imageId2 = workbook.addImage({ base64: imgLev, extension: "jpeg" });
-                              worksheet.addImage(imageId2, { tl: { col: 7, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                          
+                          let matchImgLev = Object.entries(evidenciasMapLocal).find(([k,v]) => k.startsWith(item) && v && v.length > 50);
+                          if (matchImgLev) {
+                              let imgLev = stripB64(matchImgLev[1]);
+                              const imgId2 = workbook.addImage({ base64: imgLev, extension: "jpeg" });
+                              worksheet.addImage(imgId2, { tl: { col: Math.max(colCursor, 7), row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                          } else if (item === 'General' && data.evidenciaLevantamiento && !data.evidenciaLevantamiento.startsWith('{')) {
+                              let imgLev = stripB64(data.evidenciaLevantamiento);
+                              const imgId2 = workbook.addImage({ base64: imgLev, extension: "jpeg" });
+                              worksheet.addImage(imgId2, { tl: { col: Math.max(colCursor, 7), row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
                           }
                       } catch (e) {}
                       currentImgRow += 13;
@@ -1337,8 +1346,12 @@ export async function POST(req: Request) {
               worksheet.eachRow((row, rowNum) => {
                   const seenInRow = new Set();
                   row.eachCell((cell, colNum) => {
-                      if (typeof cell.value === 'string') {
-                          const cellText = cell.value.trim().replace(/\s+/g, ' ');
+                      let strVal = '';
+                      if (typeof cell.value === 'string') strVal = cell.value;
+                      else if (cell.value && cell.value.richText) strVal = cell.value.richText.map(rt => rt.text).join('');
+                      
+                      if (strVal) {
+                          const cellText = strVal.trim().replace(/\s+/g, ' ');
                           if (!seenInRow.has(cellText)) {
                               seenInRow.add(cellText);
                               occurrenceTracker[cellText] = (occurrenceTracker[cellText] || 0) + 1;

@@ -106,10 +106,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         const idx = Array.isArray(template) ? template.findIndex((t: any) => (t.text || '').trim() === 'Hallazgos:') : -1;
         if (idx !== -1 && answers[idx]) {
             const hallazgos = JSON.parse(answers[idx].text || '[]');
-            if (hallazgos[row.hallazgo_index]) {
-                hallazgos[row.hallazgo_index].estado = 'Cerrado';
-                hallazgos[row.hallazgo_index].evidenciaLevantamiento = evidence;
+            
+            if (numRequired > 1 && evidence.startsWith('{')) {
+                try {
+                    const evMap = JSON.parse(evidence);
+                    const comMap = comentario.startsWith('{') ? JSON.parse(comentario) : {};
+                    for (const h of hallazgos) {
+                        if (h.responsableEmail === row.responsable_email) {
+                            const key = h.descripcion || 'Observación';
+                            if (evMap[key] && evMap[key].length > 50) {
+                                h.estado = 'Cerrado';
+                                h.evidenciaLevantamiento = evMap[key];
+                                h.comentario = comMap[key] || comentario;
+                            }
+                        }
+                    }
+                } catch(e) {}
+            } else {
+                if (hallazgos[row.hallazgo_index]) {
+                    hallazgos[row.hallazgo_index].estado = 'Cerrado';
+                    hallazgos[row.hallazgo_index].evidenciaLevantamiento = evidence;
+                    hallazgos[row.hallazgo_index].comentario = comentario;
+                }
             }
+            
             answers[idx].text = JSON.stringify(hallazgos);
         }
 

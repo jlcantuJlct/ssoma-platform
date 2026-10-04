@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Camera, Trash2, ArrowLeft, Mail, PlusCircle, Check, Loader2, ChevronDown, ChevronUp, User, MapPin, Clock, Calendar, AlertTriangle, FileText, List, CheckCircle2, Mic, MicOff, Save } from "lucide-react";
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 
 const CATEGORIAS = [
     "TRANSPORTE DE PERSONAL",
@@ -68,15 +69,15 @@ const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea 
     return (
         <div className="relative w-full">
             {isTextArea ? (
-                <textarea className={`${className} bg-white text-slate-900 pr-20 transition-colors`} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+                <textarea className={`${className} bg-slate-800 text-slate-200 pr-20 transition-colors`} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
             ) : (
-                <input className={`${className} bg-white text-slate-900 pr-20 transition-colors`} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+                <input className={`${className} bg-slate-800 text-slate-200 pr-20 transition-colors`} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
             )}
             <div className="absolute right-2 top-2 flex items-center gap-1">
-                <button type="button" onClick={toggleListen} className={`p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                <button type="button" onClick={toggleListen} className={`p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-900/50 text-red-400 animate-pulse' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-200'}`}>
                     {isListening ? <MicOff size={14} /> : <Mic size={14} />}
                 </button>
-                <button type="button" onClick={() => onChange('')} disabled={!value} className={`p-1.5 rounded-lg transition-colors ${value ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-500' : 'text-slate-300 opacity-50 cursor-not-allowed'}`}><Trash2 size={14} /></button>
+                <button type="button" onClick={() => onChange('')} disabled={!value} className={`p-1.5 rounded-lg transition-colors ${value ? 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-red-400' : 'text-slate-600 opacity-50 cursor-not-allowed'}`}><Trash2 size={14} /></button>
             </div>
         </div>
     );
@@ -84,6 +85,7 @@ const TextInputWithMic = ({ value, onChange, placeholder, className, isTextArea 
 
 export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     const router = useRouter();
+    const { user } = useAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -103,7 +105,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     const [trabajadores, setTrabajadores] = useState('');
 
     
-    const [responsables, setResponsables] = useState<string[]>(['']);
+    const [responsables, setResponsables] = useState<string[]>([user?.name || '']);
     
     const [hallazgos, setHallazgos] = useState<any[]>([
         { id: 1, descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', responsableEmail: '', responsableManual: false, fecha: '', estado: '' }
@@ -111,7 +113,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     
     const [conclusiones, setConclusiones] = useState('');
     
-    const [regNombre, setRegNombre] = useState('');
+    const [regNombre, setRegNombre] = useState(user?.name || '');
     const [regCargo, setRegCargo] = useState('');
     const [regFecha, setRegFecha] = useState('');
     const [regFirma, setRegFirma] = useState('');
@@ -127,6 +129,28 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
         }
     }, []);
 
+    useEffect(() => {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        if (!hora) setHora(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+        if (!fecha) setFecha(today);
+        if (!regFecha) setRegFecha(today);
+        
+        setHallazgos(prev => {
+            if (prev.length === 1 && !prev[0].fecha) {
+                return [{ ...prev[0], fecha: today }];
+            }
+            return prev;
+        });
+
+        if (user) {
+            if (!regNombre) setRegNombre(user.name || '');
+            if (responsables.length === 1 && responsables[0] === '') {
+                setResponsables([user.name || '']);
+            }
+        }
+    }, [user]);
+
     const handleResponsableChange = (idx: number, val: string) => {
         const newResp = [...responsables];
         newResp[idx] = val;
@@ -134,7 +158,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     };
 
     const addHallazgo = () => {
-        setHallazgos([...hallazgos, { id: Date.now(), descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', responsableEmail: '', responsableManual: false, fecha: '', estado: '' }]);
+        setHallazgos([...hallazgos, { id: Date.now(), descripcion: '', evidencia: '', evidenciaLevantamiento: '', riesgo: '', categoria: '', accion: '', responsable: '', responsableEmail: '', responsableManual: false, fecha: new Date().toISOString().split('T')[0], estado: '' }]);
     };
 
     const removeHallazgo = (id: number) => {
@@ -142,7 +166,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     };
 
     const updateHallazgo = (id: number, field: string, val: any) => {
-        setHallazgos(hallazgos.map(h => h.id === id ? { ...h, [field]: val } : h));
+        setHallazgos(prev => prev.map(h => h.id === id ? { ...h, [field]: val } : h));
     };
 
     
@@ -182,7 +206,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
         }
     };
 
-    const submit = async () => {
+    const submit = async (isEmailing = false, customEmailData: any = null) => {
         setIsSaving(true);
         try {
             const payload = {
@@ -303,8 +327,8 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                 body: JSON.stringify({
                                     to: [item.email],
                                     subject: `⚠️ Acción requerida: Levantar hallazgo - ${moduleName}`,
-                                    text: `Hola ${item.responsable},\n\nSe te asignó levantar la siguiente observación:\n"${item.description}"\n\nIngresa al siguiente enlace para subir tu evidencia y cerrar la observación:\n${link}`,
-                                    html: `<p>Hola <b>${item.responsable}</b>,</p><p>Se te asignó levantar la siguiente observación:</p><p style="background:#fef3c7;padding:12px;border-radius:8px;"><i>"${item.description}"</i></p><p><a href="${link}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">✅ Levantar mi observación</a></p><p>Si el botón no funciona, copia este enlace:<br>${link}</p>`
+                                    text: `Hola ${item.responsable},\n\nSe te asignó levantar la siguiente observación:\n"${item.description}"\n\nIngresa al siguiente enlace para subir tu evidencia y cerrar la observación:\n${link}\n\n📄 Ver reporte de inspección completo (Excel): ${driveUrl}`,
+                                    html: `<p>Hola <b>${item.responsable}</b>,</p><p>Se te asignó levantar la siguiente observación (o grupo de observaciones):</p><p style="background:#fef3c7;padding:12px;border-radius:8px;white-space:pre-wrap;"><i>${item.description}</i></p><p><a href="${link}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">✅ Levantar mi observación</a></p><p>Si el botón no funciona, copia este enlace:<br>${link}</p><br><hr style="border:0;border-top:1px solid #ccc;"><p>📄 <b>Ver reporte de inspección completo (Excel):</b><br><a href="${driveUrl}" style="color:#2563eb;">${driveUrl}</a></p>`
                                 })
                             });
                             if (mailRes.ok) enlacesEnviados++;
@@ -394,48 +418,48 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             <div className="max-w-6xl mx-auto mb-6">
                 <button 
                     onClick={() => router.push('/inspections?openDigital=true')} 
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                    className="flex items-center gap-2 text-slate-400 hover:text-slate-200 font-medium transition-colors"
                 >
                     <ArrowLeft size={18} /> Volver
                 </button>
             </div>
-            <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl border border-indigo-100 overflow-hidden mt-6">
-            <div className="bg-gradient-to-r from-indigo-800 to-blue-700 p-6 md:p-8 text-white mb-6">
+            <div className="max-w-6xl mx-auto bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden mt-6 text-slate-200">
+            <div className="bg-slate-950 p-6 md:p-8 text-white mb-6 border-b border-slate-800">
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">{moduleName.toUpperCase()}</h2>
-                <p className="text-indigo-100 mt-2 text-sm">Complete el formulario digital detallado de inspecciones y hallazgos.</p>
+                <p className="text-slate-400 mt-2 text-sm">Complete el formulario digital detallado de inspecciones y hallazgos.</p>
             </div>
             <div className="p-4 md:p-6 pt-0">
             
             {/* METADATA */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
                 <div className="flex flex-col gap-1 md:col-span-3">
-                    <label className="text-sm font-semibold text-slate-700">Proyecto:</label>
-                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={proyecto} onChange={setProyecto} />
+                    <label className="text-sm font-semibold text-slate-400">Proyecto:</label>
+                    <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={proyecto} onChange={setProyecto} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-3">
-                    <label className="text-sm font-semibold text-slate-700">Dirección del Proyecto:</label>
-                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={direccion} onChange={setDireccion} />
+                    <label className="text-sm font-semibold text-slate-400">Dirección del Proyecto:</label>
+                    <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={direccion} onChange={setDireccion} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">Responsable del Área:</label>
-                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={responsableArea} onChange={setResponsableArea} />
+                    <label className="text-sm font-semibold text-slate-400">Responsable del Área:</label>
+                    <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={responsableArea} onChange={setResponsableArea} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">Área Inspeccionada:</label>
-                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={area} onChange={setArea} />
+                    <label className="text-sm font-semibold text-slate-400">Área Inspeccionada:</label>
+                    <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={area} onChange={setArea} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">N° Trabajadores en el Centro Laboral:</label>
-                    <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={trabajadores} onChange={setTrabajadores} />
+                    <label className="text-sm font-semibold text-slate-400">N° Trabajadores en el Centro Laboral:</label>
+                    <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={trabajadores} onChange={setTrabajadores} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">Tipo de Inspección:</label>
+                    <label className="text-sm font-semibold text-slate-400">Tipo de Inspección:</label>
                     <div className="flex gap-2 h-full items-end">
                         {['Planeada', 'No planeada', 'Otro'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setTipo(t)}
-                                className={`flex-1 py-2 px-2 text-xs rounded-lg font-bold transition-all border ${tipo === t ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}
+                                className={`flex-1 py-2 px-2 text-xs rounded-lg font-bold transition-all border ${tipo === t ? 'bg-emerald-600 text-white border-emerald-700 shadow-md' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-slate-200'}`}
                             >
                                 {t}
                             </button>
@@ -443,20 +467,20 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                     </div>
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">Fecha:</label>
-                    <input type="date" className="border border-slate-300 rounded-lg p-2" value={fecha} onChange={e => setFecha(e.target.value)} />
+                    <label className="text-sm font-semibold text-slate-400">Fecha:</label>
+                    <input type="date" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={fecha} onChange={e => setFecha(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-slate-700">Hora:</label>
-                    <input type="time" className="border border-slate-300 rounded-lg p-2" value={hora} onChange={e => setHora(e.target.value)} />
+                    <label className="text-sm font-semibold text-slate-400">Hora:</label>
+                    <input type="time" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={hora} onChange={e => setHora(e.target.value)} />
                 </div>
             </div>
 
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-3 border-b pb-2">
-                    <h3 className="text-lg font-bold text-slate-800">Responsables de la Inspección</h3>
+                    <h3 className="text-lg font-bold text-slate-200">Responsables de la Inspección</h3>
                     {responsables.length < 8 && (
-                        <button onClick={() => setResponsables([...responsables, ''])} className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        <button onClick={() => setResponsables([...responsables, ''])} className="text-sm font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1">
                             <PlusCircle size={14} /> Agregar Responsable
                         </button>
                     )}
@@ -464,7 +488,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {responsables.map((r, i) => (
                         <div key={i} className="relative group">
-                            <TextInputWithMic placeholder={`Responsable ${i+1}`} className="w-full border border-slate-300 rounded-lg p-2 text-sm" value={r} onChange={(val: string) => handleResponsableChange(i, val)} />
+                            <TextInputWithMic placeholder={`Responsable ${i+1}`} className="w-full border border-slate-700 rounded-lg p-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={r} onChange={(val: string) => handleResponsableChange(i, val)} />
                             {responsables.length > 1 && (
                                 <button onClick={() => { const newR = [...responsables]; newR.splice(i, 1); setResponsables(newR); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors">
                                     <Trash2 size={14} />
@@ -478,30 +502,30 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             {/* HALLAZGOS */}
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3 className="text-lg font-bold text-slate-800">Hallazgos Registrados</h3>
-                    <button onClick={addHallazgo} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors">
+                    <h3 className="text-lg font-bold text-slate-200">Hallazgos Registrados</h3>
+                    <button onClick={addHallazgo} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors">
                         <PlusCircle size={14} /> Agregar Hallazgo
                     </button>
                 </div>
                 
                 <div className="flex flex-col gap-6">
                     {hallazgos.map((h, i) => (
-                        <div key={h.id} className="relative bg-blue-50/50 border border-blue-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div key={h.id} className="relative bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
                             <div className="absolute -top-3 -left-3 bg-slate-800 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">{i + 1}</div>
-                            <button onClick={() => removeHallazgo(h.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 size={20} /></button>
+                            <button onClick={() => removeHallazgo(h.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-900/30 p-2 rounded-lg transition-colors"><Trash2 size={20} /></button>
                             
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-2">
                                 <div className="col-span-1 md:col-span-3 flex flex-col gap-1">
-                                    <label className="text-xs font-semibold text-slate-600 uppercase">Descripción</label>
-                                    <TextInputWithMic isTextArea={true} className="border border-slate-300 rounded-lg p-2 h-24 text-sm resize-none" value={h.descripcion} onChange={(val: string) => updateHallazgo(h.id, 'descripcion', val)} placeholder="Descripción de la observación..." />
+                                    <label className="text-xs font-semibold text-slate-400 uppercase">Descripción</label>
+                                    <TextInputWithMic isTextArea={true} className="w-full border border-slate-700 rounded-lg p-2 h-24 text-sm resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={h.descripcion} onChange={(val: string) => updateHallazgo(h.id, 'descripcion', val)} placeholder="Descripción de la observación..." />
                                 </div>
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                                    <label className="text-xs font-semibold text-slate-600 uppercase">Evidencia</label>
-                                    <div className="h-24 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-white cursor-pointer relative overflow-hidden group" onClick={() => fileInputRefs.current[h.id]?.click()}>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase">Evidencia</label>
+                                    <div className="h-24 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center bg-slate-800 cursor-pointer relative overflow-hidden group" onClick={() => fileInputRefs.current[h.id]?.click()}>
                                         {h.evidencia ? (
                                             <img src={h.evidencia} alt="Evidencia" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
                                         ) : (
-                                            <div className="text-slate-400 flex flex-col items-center gap-1 group-hover:text-indigo-500 transition-colors">
+                                            <div className="text-slate-400 flex flex-col items-center gap-1 group-hover:text-emerald-400 transition-colors">
                                                 <Camera size={24} />
                                                 <span className="text-[10px] font-bold">Añadir Foto</span>
                                             </div>
@@ -511,8 +535,8 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                 </div>
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-2">
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Riesgo</label>
-                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold ${h.riesgo === 'Bajo' ? 'bg-green-100 text-green-800' : h.riesgo === 'Medio' ? 'bg-yellow-100 text-yellow-800' : h.riesgo === 'Alto' ? 'bg-red-100 text-red-800' : 'bg-white'}`} value={h.riesgo} onChange={e => updateHallazgo(h.id, 'riesgo', e.target.value)}>
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Riesgo</label>
+                                        <select className={`w-full border border-slate-700 rounded-lg p-2 text-sm font-semibold outline-none focus:border-emerald-500 ${h.riesgo === 'Bajo' ? 'bg-emerald-600 text-white border-emerald-700 font-bold' : h.riesgo === 'Medio' ? 'bg-yellow-400 text-slate-900 border-yellow-500 font-bold' : h.riesgo === 'Alto' ? 'bg-red-600 text-white border-red-700 font-bold' : 'bg-slate-800 text-slate-200'}`} value={h.riesgo} onChange={e => updateHallazgo(h.id, 'riesgo', e.target.value)}>
                                             <option value="">Seleccione</option>
                                             <option value="Bajo">Bajo</option>
                                             <option value="Medio">Medio</option>
@@ -520,8 +544,8 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Estado</label>
-                                        <select className={`border border-slate-300 rounded-lg p-2 text-sm font-semibold ${h.estado === 'Abierto' ? 'bg-red-100 text-red-800' : h.estado === 'Cerrado' ? 'bg-green-100 text-green-800' : 'bg-white'}`} value={h.estado} onChange={e => updateHallazgo(h.id, 'estado', e.target.value)}>
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Estado</label>
+                                        <select className={`w-full border border-slate-700 rounded-lg p-2 text-sm font-semibold outline-none focus:border-emerald-500 ${h.estado === 'Abierto' ? 'bg-red-600 text-white border-red-700 font-bold' : h.estado === 'Cerrado' ? 'bg-emerald-600 text-white border-emerald-700 font-bold' : 'bg-slate-800 text-slate-200'}`} value={h.estado} onChange={e => updateHallazgo(h.id, 'estado', e.target.value)}>
                                             <option value="">Seleccione</option>
                                             <option value="Abierto">Abierto</option>
                                             <option value="Cerrado">Cerrado</option>
@@ -530,20 +554,20 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                 </div>
                                 <div className="col-span-1 md:col-span-3 flex flex-col gap-2">
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Categoría</label>
-                                        <select className="border border-slate-300 rounded-lg p-2 text-sm" value={h.categoria} onChange={e => updateHallazgo(h.id, 'categoria', e.target.value)}>
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Categoría</label>
+                                        <select className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-2 text-sm focus:border-emerald-500 outline-none" value={h.categoria} onChange={e => updateHallazgo(h.id, 'categoria', e.target.value)}>
                                             <option value="">Seleccione</option>
                                             {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Acción Correctiva</label>
-                                        <TextInputWithMic isTextArea={true} className="w-full border border-slate-300 rounded-lg p-2 h-10 text-sm resize-none" value={h.accion} onChange={(val: string) => updateHallazgo(h.id, 'accion', val)} />
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Acción Correctiva</label>
+                                        <TextInputWithMic isTextArea={true} className="w-full border border-slate-700 rounded-lg p-2 h-10 text-sm resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={h.accion} onChange={(val: string) => updateHallazgo(h.id, 'accion', val)} />
                                     </div>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                                    <label className="text-xs font-semibold text-slate-600 uppercase">Evidencia Levantamiento</label>
-                                    <div className="h-24 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-white cursor-pointer relative overflow-hidden group" onClick={() => { const input = document.getElementById('lev_'+h.id); if(input) input.click(); }}>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase">Evidencia Levantamiento</label>
+                                    <div className="h-24 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center bg-slate-800 cursor-pointer relative overflow-hidden group" onClick={() => { const input = document.getElementById('lev_'+h.id); if(input) input.click(); }}>
                                         {h.evidenciaLevantamiento ? (
                                             <img src={h.evidenciaLevantamiento} alt="Levantamiento" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
                                         ) : (
@@ -565,9 +589,9 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                 </div>
                                 <div className="col-span-1 md:col-span-2 flex flex-col gap-2">
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Responsable Impl.</label>
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Responsable Impl.</label>
                                         <select
-                                            className={`border rounded-lg p-1.5 text-sm ${h.responsableEmail && !h.responsableManual ? 'border-green-300 bg-green-50 font-semibold' : 'border-slate-300 bg-white'}`}
+                                            className={`border rounded-lg p-1.5 text-sm ${h.responsableEmail && !h.responsableManual ? 'border-emerald-600 bg-emerald-900/30 text-emerald-400 font-semibold' : 'border-slate-700 bg-slate-800'}`}
                                             value={h.responsableManual ? '__manual__' : (h.responsableEmail ? `${h.responsable}|${h.responsableEmail}` : '')}
                                             onChange={(e) => {
                                                 const v = e.target.value;
@@ -586,71 +610,71 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                                                 }
                                             }}
                                         >
-                                            <option value="">Seleccione responsable...</option>
+                                            <option value="" className="bg-slate-800 text-slate-200">Seleccione responsable...</option>
                                             {contactos.map((c) => (
-                                                <option key={c.email} value={`${c.name}|${c.email}`}>{c.name}</option>
+                                                <option key={c.email} value={`${c.name}|${c.email}`} className="bg-slate-800 text-slate-200">{c.name}</option>
                                             ))}
-                                            <option value="__manual__">Otro (correo manual)</option>
+                                            <option value="__manual__" className="bg-slate-800 text-slate-200">➕ Agregar nuevo nombre manualmente...</option>
                                         </select>
                                         {h.responsableManual && (
                                             <div className="flex flex-col gap-1 mt-1">
-                                                <input placeholder="Nombre del responsable" className="w-full border border-slate-300 rounded-lg p-1.5 text-sm" value={h.responsable || ''} onChange={(e) => updateHallazgo(h.id, 'responsable', e.target.value)} />
-                                                <input placeholder="Correo del responsable" type="email" className="w-full border border-slate-300 rounded-lg p-1.5 text-sm" value={h.responsableEmail || ''} onChange={(e) => updateHallazgo(h.id, 'responsableEmail', e.target.value)} />
+                                                <input placeholder="Nombre del responsable (Ej. Juan Perez)" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-1.5 text-sm focus:border-emerald-500 outline-none" value={h.responsable || ''} onChange={(e) => updateHallazgo(h.id, 'responsable', e.target.value)} />
+                                                <input placeholder="Correo electrónico (Opcional)" type="email" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-1.5 text-sm focus:border-emerald-500 outline-none" value={h.responsableEmail || ''} onChange={(e) => updateHallazgo(h.id, 'responsableEmail', e.target.value)} />
                                             </div>
                                         )}
                                         {!h.responsableManual && h.responsableEmail && (
-                                            <span className="text-[10px] text-green-700 font-semibold break-all">📧 {h.responsableEmail}</span>
+                                            <span className="text-[10px] text-emerald-400 font-semibold break-all">📧 {h.responsableEmail}</span>
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                        <label className="text-xs font-semibold text-slate-600 uppercase">Fecha Prog.</label>
-                                        <input type="date" className="border border-slate-300 rounded-lg p-1.5 text-sm" value={h.fecha} onChange={e => updateHallazgo(h.id, 'fecha', e.target.value)} />
+                                        <label className="text-xs font-semibold text-slate-400 uppercase">Fecha Prog.</label>
+                                        <input type="date" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-1.5 text-sm" value={h.fecha} onChange={e => updateHallazgo(h.id, 'fecha', e.target.value)} />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {hallazgos.length === 0 && (
-                        <div className="text-center text-slate-500 py-6 border-2 border-dashed border-slate-300 rounded-xl">No hay hallazgos registrados.</div>
+                        <div className="text-center text-slate-400 py-6 border-2 border-dashed border-slate-700 rounded-xl">No hay hallazgos registrados.</div>
                     )}
                 </div>
             </div>
 
             {/* CONCLUSIONES Y CIERRE */}
             <div className="mb-8">
-                <h3 className="text-lg font-bold text-slate-800 mb-3 border-b pb-2">Conclusiones y Recomendaciones</h3>
-                <TextInputWithMic isTextArea={true} className="w-full border border-slate-300 rounded-xl p-4 h-24 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Escriba aquí las conclusiones finales..." value={conclusiones} onChange={(val: string) => setConclusiones(val)} />
+                <h3 className="text-lg font-bold text-slate-200 mb-3 border-b pb-2">Conclusiones y Recomendaciones</h3>
+                <TextInputWithMic isTextArea={true} className="w-full border border-slate-700 rounded-xl p-4 h-24 resize-none focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Escriba aquí las conclusiones finales..." value={conclusiones} onChange={(val: string) => setConclusiones(val)} />
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Responsable del Registro</h3>
+            <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 mb-8">
+                <h3 className="text-lg font-bold text-slate-200 mb-4 border-b pb-2">Responsable del Registro</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-slate-700">Nombres y Apellidos</label>
-                            <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={regNombre} onChange={setRegNombre} />
+                            <label className="text-sm font-semibold text-slate-400">Nombres y Apellidos</label>
+                            <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={regNombre} onChange={setRegNombre} />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-slate-700">Cargo</label>
-                            <TextInputWithMic className="border border-slate-300 rounded-lg p-2" value={regCargo} onChange={setRegCargo} />
+                            <label className="text-sm font-semibold text-slate-400">Cargo</label>
+                            <TextInputWithMic className="w-full border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={regCargo} onChange={setRegCargo} />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-slate-700">Fecha</label>
-                            <input type="date" className="border border-slate-300 rounded-lg p-2" value={regFecha} onChange={e => setRegFecha(e.target.value)} />
+                            <label className="text-sm font-semibold text-slate-400">Fecha</label>
+                            <input type="date" className="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none" value={regFecha} onChange={e => setRegFecha(e.target.value)} />
                         </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-slate-700">Firma Digital</label>
+                        <label className="text-sm font-semibold text-slate-400">Firma Digital</label>
                         <SignaturePad onSave={(data: string) => setRegFirma(data)} />
                     </div>
                 </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                 {generatedReport && (
                     <button 
                         onClick={() => setShowEmailModal(true)} 
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/30"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/30"
                     >
                         <Mail size={20} />
                         Enviar por Correo
@@ -671,7 +695,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             <EmailReportModal
                 isOpen={showEmailModal}
                 onClose={() => setShowEmailModal(false)}
-                onSend={handleSendEmail}
+                onSend={async (data) => { await submit(true, data); }}
                 defaultSubject={`Reporte de Inspección Interna SSOMA - ${proyecto || 'Proyecto'}${tipo ? ` (${tipo})` : ''}`}
                 isSending={isSendingEmail}
                 initialObservations={resumenHallazgos || conclusiones}

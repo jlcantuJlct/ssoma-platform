@@ -50,9 +50,28 @@ export async function POST(req: Request) {
         } catch (e) {}
 
         const items: any[] = [];
+        const groups: Record<string, any[]> = {};
         for (const h of hallazgos) {
-            if (!h.responsableEmail) continue;
+            if (!h.responsableEmail || !h.responsableEmail.trim()) continue;
+            const emailKey = h.responsableEmail.trim().toLowerCase();
+            if (!groups[emailKey]) groups[emailKey] = [];
+            groups[emailKey].push(h);
+
+        for (const email of Object.keys(groups)) {
+            const group = groups[email];
             const token = crypto.randomBytes(24).toString('hex');
+            
+            const descriptionLines = group.map(h => `${h.descripcion || 'Observación'}`).join('\n');
+            const fotosDefectos: Record<string, string[]> = {};
+            group.forEach(h => {
+                const lineKey = `${h.descripcion || 'Observación'}`;
+                let photos = h.fotosDefectos ? Object.values(h.fotosDefectos).flat() : (h.evidencia ? [h.evidencia] : []);
+                fotosDefectos[lineKey] = photos as string[];
+            });
+
+            const first = group[0];
+            const isMultiple = group.length > 1;
+
             await db.execute(
                 `INSERT INTO hallazgo_levantamientos
                     (token, module_name, hallazgo_index, description, riesgo, categoria, responsable, responsable_email, fecha_prog, template_json, answers_json, inspection_record_id, fotos_defectos_json)
@@ -60,23 +79,25 @@ export async function POST(req: Request) {
                 [
                     token,
                     moduleName || '',
-                    h.index ?? 0,
-                    h.descripcion || '',
-                    h.riesgo || '',
-                    h.categoria || '',
-                    h.responsable || '',
-                    h.responsableEmail || '',
-                    h.fecha || '',
+                    first.index ?? 0,
+                    descriptionLines,
+                    isMultiple ? 'Múltiples' : (first.riesgo || ''),
+                    isMultiple ? 'Varias' : (first.categoria || ''),
+                    first.responsable || '',
+                    email,
+                    first.fecha || '',
                     JSON.stringify(template || []),
                     JSON.stringify(answers || []),
-                    inspectionRecordId ?? null, h.fotosDefectos ? JSON.stringify(h.fotosDefectos) : null
+                    inspectionRecordId ?? null, 
+                    JSON.stringify(fotosDefectos)
                 ]
             );
+            
             items.push({
                 token,
-                email: h.responsableEmail,
-                responsable: h.responsable,
-                description: h.descripcion,
+                email: email,
+                responsable: first.responsable,
+                description: isMultiple ? `${group.length} observaciones pendientes` : first.descripcion,
             });
         }
 
