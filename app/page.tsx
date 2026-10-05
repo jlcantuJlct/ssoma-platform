@@ -86,17 +86,17 @@ export default function RootPage() {
               <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">
                 {section.category}
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                 {section.items.map((item, itemIdx) => (
                   <Link 
                     key={itemIdx} 
                     href={item.href}
-                    className="flex flex-col items-center justify-center gap-3 p-4 bg-slate-900 border border-slate-800 rounded-2xl hover:bg-slate-800 hover:border-emerald-500/50 transition-all group shadow-sm text-center"
+                    className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-900 border border-slate-800 rounded-2xl hover:bg-slate-800 hover:border-emerald-500/50 transition-all group shadow-sm text-center"
                   >
-                    <div className={`p-3 bg-slate-950 rounded-xl group-hover:scale-110 transition-transform ${item.color}`}>
-                      <item.icon size={24} />
+                    <div className={`p-2.5 sm:p-3 bg-slate-950 rounded-xl group-hover:scale-110 transition-transform ${item.color}`}>
+                      <item.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="text-xs font-medium text-slate-300 group-hover:text-emerald-400 line-clamp-2">
+                    <span className="text-[11px] sm:text-xs font-medium text-slate-300 group-hover:text-emerald-400 line-clamp-2 leading-tight px-1">
                       {item.name}
                     </span>
                   </Link>

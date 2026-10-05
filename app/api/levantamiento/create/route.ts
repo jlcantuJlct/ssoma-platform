@@ -56,6 +56,7 @@ export async function POST(req: Request) {
             const emailKey = h.responsableEmail.trim().toLowerCase();
             if (!groups[emailKey]) groups[emailKey] = [];
             groups[emailKey].push(h);
+        }
 
         for (const email of Object.keys(groups)) {
             const group = groups[email];

@@ -48,6 +48,7 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
 import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
+import { VehicleCustomForm } from '@/components/inspections/VehicleCustomForm';
 
 
 import { EmailReportModal } from '@/components/EmailReportModal';
@@ -138,6 +139,12 @@ export default function FillDigitalInspection() {
     };
 
     useEffect(() => {
+        const m = moduleName.toLowerCase();
+        const isCustom = m.includes('interna') || m.includes('botiquin') || m.includes('almac') || m.includes('taller') || m.includes('eléctrica') || m.includes('electrica') || m.includes('cocina') || m.includes('comedor') || m.includes('laboratorio') || m.includes('campamento') || m.includes('antiderrame') || m.includes('anti derrame') || m.includes('derrames') || m.includes('estacion') || m.includes('estación') || m.includes('008') || m.includes('epp') || m.includes('maquinaria') || m.includes('máquina') || m.includes('maquina') || m.includes('extintor') || m.includes('equipos de seguridad') || m.includes('equipo de seguridad') || m.includes('emergencia') || m.includes('vehículo') || m.includes('vehiculo');
+        if (isCustom) {
+            setLoading(false);
+            return;
+        }
         fetch(`/api/templates/get?module=${encodeURIComponent(moduleName)}`)
             .then(res => res.json())
             .then(data => {
@@ -575,6 +582,10 @@ export default function FillDigitalInspection() {
 
     if (moduleName.toLowerCase().includes('epp')) {
         return <EppCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('vehículo') || moduleName.toLowerCase().includes('vehiculo')) {
+        return <VehicleCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
     }
 
     if (moduleName.toLowerCase().includes('maquinaria') || moduleName.toLowerCase().includes('máquina') || moduleName.toLowerCase().includes('maquina')) {

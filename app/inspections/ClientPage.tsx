@@ -2021,7 +2021,7 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                         <Settings size={16} />
                     </button>
                 )}
-                <a href={mod.status === 'active' ? ((mod.name || '').includes('Vehículo') ? "/vehicle-inspections" : ((mod.name || '').includes('Vehículo') ? '/vehicle-inspections' : `/digital-inspections/${encodeURIComponent(mod.name || '')}/fill`)) : "#"} className="flex flex-col items-center w-full">
+                <a href={mod.status === 'active' ? `/digital-inspections/${encodeURIComponent(mod.name || '')}/fill` : "#"} className="flex flex-col items-center w-full">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}`}>
                         <ClipboardList size={32} />
                     </div>

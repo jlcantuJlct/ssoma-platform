@@ -27,7 +27,7 @@ export async function POST(req: Request) {
           "public",
           "templates",
           "digital",
-          "Extintores.xlsx",
+          "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia (2).xlsx",
         );
         if (fs.existsSync(alt)) templatePath = alt;
       } else if (moduleName && moduleName.toLowerCase().includes("botiquin")) {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
           "public",
           "templates",
           "digital",
-          "Botiquines.xlsx",
+          "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN.xlsx",
         );
         if (fs.existsSync(alt)) templatePath = alt;
       } else if (data.isEppMatrix || (moduleName && moduleName.toLowerCase().includes("epp"))) {
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
           "public",
           "templates",
           "digital",
-          "Inspección de EPP.xlsx",
+          "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03.xlsx",
         );
         if (fs.existsSync(alt)) templatePath = alt;
       }
@@ -77,19 +77,21 @@ export async function POST(req: Request) {
     const isCocinaComedor = data.isCocinaComedorMatrix || (moduleName && (moduleName.toLowerCase().includes("cocina") || moduleName.toLowerCase().includes("comedor")));
     const isLaboratorio = data.isLaboratorioMatrix || (moduleName && moduleName.toLowerCase().includes("laboratorio"));
     const isKitAntiderrame = data.isKitAntiderrameMatrix || (moduleName && moduleName.toLowerCase().includes('derrame'));
-    if (isKitAntiderrame) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Kit con derrames.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isKitAntiderrame) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
       const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
     const isEstacionEmergencia = data.isEstacionEmergenciaMatrix || (moduleName && (moduleName.toLowerCase().includes("estacion") || moduleName.toLowerCase().includes("estación")));
-    if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Botiquines.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isEstacionEmergencia) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de estación de primeros auxilios.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isEstacionEmergencia) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
     // Template Fallbacks
-    if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de Almacen.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isTalleres) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de talleres.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isCampamento) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de campamento.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isInstalacionesElectricas) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de instalaciones eléctricas.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isCocinaComedor) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de cocina y comedor.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isLaboratorio) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Laboratorio.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isTalleres) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de taller de soldadura mecanico F-SIG-079 Inspección de Talleres V02.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isCampamento) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de areas de campamento F-SIG-072.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (moduleName && (moduleName.toLowerCase().includes("vehículo") || moduleName.toLowerCase().includes("vehiculo"))) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehicul.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isMachinery && !(moduleName && (moduleName.toLowerCase().includes("vehículo") || moduleName.toLowerCase().includes("vehiculo")))) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isInstalacionesElectricas) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isCocinaComedor) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    if (isLaboratorio) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
 
     let worksheet: ExcelJS.Worksheet;
@@ -879,74 +881,195 @@ export async function POST(req: Request) {
       const checklist = data.checklist || {};
       const observaciones = data.observaciones || "";
 
-      worksheet.mergeCells("A1:F2");
-      const titleCell = worksheet.getCell("A1");
-      titleCell.value = "CHECKLIST DE INSPECCIÓN DE PRE-USO DE MAQUINARIA";
-      titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
-      titleCell.alignment = { horizontal: "center", vertical: "middle" };
-      titleCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFD97706" },
-      };
+      // Si existe la plantilla base, úsala para llenar.
+      if (fs.existsSync(templatePath)) {
+          // Llenar metadatos generales
+          const setIfFound = (label, val, rowOffset=0, colOffset=1) => {
+              for (let i = 1; i <= 100; i++) {
+                  const r = worksheet.getRow(i);
+                  let foundCol = -1;
+                  r.eachCell((cell, colN) => {
+                      if (cell.value) {
+                          let t = '';
+                          if (typeof cell.value === 'object' && cell.value.richText) t = cell.value.richText.map(rt => rt.text).join('').trim();
+                          else t = cell.value.toString().trim();
+                          if (t.includes(label)) foundCol = colN;
+                      }
+                  });
+                  if (foundCol !== -1) {
+                      worksheet.getRow(i + rowOffset).getCell(foundCol + colOffset).value = val;
+                      return;
+                  }
+              }
+          };
 
-      worksheet.getCell("A4").value = "Equipo:";
-      worksheet.getCell("B4").value = meta.equipo || "";
-      worksheet.getCell("D4").value = "Fecha:";
-      worksheet.getCell("E4").value =
-        meta.fecha || new Date().toISOString().split("T")[0];
-      worksheet.getCell("A5").value = "Marca/Modelo:";
-      worksheet.getCell("B5").value =
-        `${meta.marca || ""} ${meta.modelo || ""}`;
-      worksheet.getCell("D5").value = "Placa/Serie:";
-      worksheet.getCell("E5").value = meta.placa || "";
-      worksheet.getCell("A6").value = "Operador/Chofer:";
-      worksheet.getCell("B6").value = meta.chofer || meta.operador || "";
-      worksheet.getCell("D6").value = "Horómetro:";
-      worksheet.getCell("E6").value = meta.horometro || "";
-      ["A4", "D4", "A5", "D5", "A6", "D6"].forEach(
-        (c) => (worksheet.getCell(c).font = { bold: true }),
-      );
+          setIfFound('Proyecto:', meta.proyecto);
+          setIfFound('Equipo:', meta.equipo, 0, 2);
+          setIfFound('Marca:', meta.marca, 0, 2);
+          setIfFound('Modelo:', meta.modelo, 0, 1);
+          setIfFound('Serie:', meta.serie, 0, 2);
+          setIfFound('Serie / Placa:', meta.placa || meta.serie, 0, 2);
+          setIfFound('Operador de Equipo:', meta.chofer || meta.operador, 0, 2);
+          setIfFound('Chofer:', meta.chofer || meta.operador, 0, 2);
+          setIfFound('Turno:', meta.turno, 0, 2);
+          setIfFound('Fecha:', meta.fecha || new Date().toISOString().split('T')[0], 0, 1);
+          
+          const firmas = data.firmas || {};
+          const opName = firmas.operadorNombre || meta.chofer || meta.operador || "";
+          const capName = firmas.capatazNombre || meta.capataz || "";
+          
+          for (let i = 60; i <= 100; i++) {
+              const r = worksheet.getRow(i);
+              r.eachCell((cell, colN) => {
+                  if (cell.value) {
+                      let text = '';
+                      if (typeof cell.value === 'object' && cell.value.richText) text = cell.value.richText.map(rt => rt.text).join('');
+                      else text = cell.value.toString();
+                      
+                      if (text.includes('Nombre y Firma del Colaborador')) {
+                          worksheet.getRow(i).getCell(10).value = opName;
+                      } else if (text.includes('Nombre y Firma del Capataz')) {
+                          worksheet.getRow(i).getCell(10).value = capName;
+                      }
+                  }
+              });
+          }
+    
 
-      const headers = [
-        "N°",
-        "Componente / Sistema Evaluado",
-        "Evaluación (OK / R / M / F / N/A)",
-      ];
-      const headerRow = worksheet.getRow(8);
-      headers.forEach((h, idx) => {
-        const cell = headerRow.getCell(idx + 1);
-        cell.value = h;
-        cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFB45309" },
-        };
-      });
+          // Llenar checklist
+          const seenInRow = new Set();
+          
+          const headersToExclude = new Set([
+              'CHASIS', 'NEUMÁTICOS', 'CABINA OPERADOR', 'SEGURIDAD', 'FUGAS DE FLUIDO', 'NIVELES DE FLUIDO',
+              'CAMIONETAS', 'TRANSPORTE PERSONAL', 'CISTERNA DE AGUA', 'CISTERNA DE COMBUSTIBLE',
+              'CAMIONES BARANDA', 'CAMIONES VOLQUETES', 'TRACTO', 'CAMIONES LUBRICADORES', 'SEMIREMOLQUE',
+              'VEHÍCULO EN GENERAL', 'OK', 'R', 'M', 'F', 'N/A', 'RESUM', 'FUGA'
+          ]);
 
-      let rowIdx = 9;
-      Object.keys(checklist).forEach((item, idx) => {
-        const r = worksheet.getRow(rowIdx++);
-        r.getCell(1).value = idx + 1;
-        r.getCell(2).value = item;
-        r.getCell(3).value = checklist[item];
-        r.getCell(3).alignment = { horizontal: "center" };
-      });
+          
+          for (let i = 13; i <= 75; i++) {
+              const r = worksheet.getRow(i);
+              r.eachCell((cell, colN) => {
+                  // Only process the right-most column of the text cells to calculate offsets correctly
+                  if (colN === 1 || colN === 10 || colN === 19) return;
+                  
+                  if (cell.value) {
+                      let text = '';
+                      if (typeof cell.value === 'object' && cell.value.richText) text = cell.value.richText.map(rt => rt.text).join('').trim();
+                      else text = cell.value.toString().trim();
+                      
+                      const val = checklist[text];
+                      
+                      // For checking missing items (auto-N/A), since we only check col 2, 11, 20
+                      if (!val && !headersToExclude.has(text.toUpperCase())) {
+                          let offset = -1;
+                          if (i >= 49 && i <= 53 && colN === 2) offset = 1; // N/A is offset 1 for Fugas
+                          else offset = 5; // N/A is offset 5 for standard
+                          const targetCell = r.getCell(colN + offset);
+                          targetCell.value = 'X';
+                          targetCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                          targetCell.font = { bold: true };
+                          return;
+                      }
 
-      worksheet.getCell(`A${rowIdx + 1}`).value = "OBSERVACIONES:";
-      worksheet.getCell(`A${rowIdx + 1}`).font = { bold: true };
-      worksheet.getCell(`A${rowIdx + 2}`).value =
-        observaciones || "Sin observaciones adicionales.";
+                      if (val) {
+                          let offset = -1;
+                          if (i >= 49 && i <= 53 && colN === 2) {
+                              // Fugas section
+                              if (val === 'N/A') offset = 1;
+                              else if (val === 'RESUM') offset = 2;
+                              else if (val === 'FUGA') offset = 3; // Col 5
+                          } else {
+                              // Standard section
+                              if (val === 'OK') offset = 1;
+                              else if (val === 'R') offset = 2;
+                              else if (val === 'M') offset = 3;
+                              else if (val === 'F') offset = 4;
+                              else if (val === 'N/A') offset = 5;
+                          }
+                          
+                          if (offset !== -1) {
+                              const targetCell = r.getCell(colN + offset);
+                              targetCell.value = 'X';
+                              targetCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                              targetCell.font = { bold: true };
+                          }
+                      }
+                  }
+              });
+          }
 
-      worksheet.columns = [
-        { width: 6 },
-        { width: 45 },
-        { width: 28 },
-        { width: 15 },
-        { width: 15 },
-        { width: 15 },
-      ];
+                      }
+                  }
+              });
+          }
+
+          // Llenar observaciones
+          for (let i = 60; i <= 100; i++) {
+              const r = worksheet.getRow(i);
+              let found = false;
+              r.eachCell((cell, colN) => {
+                  let text = '';
+                  if (cell.value) {
+                      if (typeof cell.value === 'object' && cell.value.richText) text = cell.value.richText.map(rt => rt.text).join('');
+                      else text = cell.value.toString();
+                  }
+                  if (text.includes('OBSERVACIONES:')) {
+                      const obsCell = worksheet.getRow(i + 1).getCell(colN);
+                      obsCell.value = observaciones || "Sin observaciones adicionales.";
+                      obsCell.alignment = { wrapText: true, vertical: 'top' };
+                      found = true;
+                  }
+              });
+              if (found) break; // Solo llenar el primer bloque de observaciones
+          }
+
+      } else {
+          // Fallback al formato generado desde cero si no encuentra la plantilla
+          worksheet.mergeCells("A1:F2");
+          const titleCell = worksheet.getCell("A1");
+          titleCell.value = moduleName && moduleName.toLowerCase().includes('vehículo') ? "CHECKLIST DE INSPECCIÓN DE PRE-USO DE VEHÍCULOS Y EQUIPOS" : "CHECKLIST DE INSPECCIÓN DE PRE-USO DE MAQUINARIA";
+          titleCell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+          titleCell.alignment = { horizontal: "center", vertical: "middle" };
+          titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD97706" } };
+
+          worksheet.getCell("A4").value = "Equipo:";
+          worksheet.getCell("B4").value = meta.equipo || "";
+          worksheet.getCell("D4").value = "Fecha:";
+          worksheet.getCell("E4").value = meta.fecha || new Date().toISOString().split("T")[0];
+          worksheet.getCell("A5").value = "Marca/Modelo:";
+          worksheet.getCell("B5").value = `${meta.marca || ""} ${meta.modelo || ""}`;
+          worksheet.getCell("D5").value = "Placa/Serie:";
+          worksheet.getCell("E5").value = meta.placa || meta.serie || "";
+          worksheet.getCell("A6").value = "Operador/Chofer:";
+          worksheet.getCell("B6").value = meta.chofer || meta.operador || "";
+          worksheet.getCell("D6").value = "Turno:";
+          worksheet.getCell("E6").value = meta.turno || "";
+          ["A4", "D4", "A5", "D5", "A6", "D6"].forEach(c => worksheet.getCell(c).font = { bold: true });
+
+          const headers = ["N°", "Componente / Sistema Evaluado", "Evaluación (OK / R / M / F / N/A)"];
+          const headerRow = worksheet.getRow(8);
+          headers.forEach((h, idx) => {
+              const cell = headerRow.getCell(idx + 1);
+              cell.value = h;
+              cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB45309" } };
+          });
+
+          let rowIdx = 9;
+          Object.keys(checklist).forEach((item, idx) => {
+              const r = worksheet.getRow(rowIdx++);
+              r.getCell(1).value = idx + 1;
+              r.getCell(2).value = item;
+              r.getCell(3).value = checklist[item];
+              r.getCell(3).alignment = { horizontal: "center" };
+          });
+
+          worksheet.getCell(`A${rowIdx + 1}`).value = "OBSERVACIONES:";
+          worksheet.getCell(`A${rowIdx + 1}`).font = { bold: true };
+          worksheet.getCell(`A${rowIdx + 2}`).value = observaciones || "Sin observaciones adicionales.";
+          worksheet.columns = [{ width: 6 }, { width: 45 }, { width: 28 }, { width: 15 }, { width: 15 }, { width: 15 }];
+      }
     }
     // --- MANEJADOR INTERNAS ---
     else if (isInternas) {

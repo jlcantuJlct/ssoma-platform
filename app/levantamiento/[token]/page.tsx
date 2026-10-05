@@ -79,7 +79,7 @@ export default function LevantamientoPublico() {
                             setComentariosMap(cMap);
                         } catch(e){}
                     }
-                    if (splitted.length > 0 && (data.finding.moduleName.toLowerCase().includes('almacen') || data.finding.moduleName.toLowerCase().includes('taller') || data.finding.moduleName.toLowerCase().includes('campamento') || data.finding.moduleName.toLowerCase().includes('eléctrica') || data.finding.moduleName.toLowerCase().includes('electrica') || data.finding.moduleName.toLowerCase().includes('cocina') || data.finding.moduleName.toLowerCase().includes('comedor') || data.finding.moduleName.toLowerCase().includes('laboratorio') || data.finding.moduleName.toLowerCase().includes('botiquin') || data.finding.moduleName.toLowerCase().includes('botiquín') || data.finding.moduleName.toLowerCase().includes('kit antiderrame') || data.finding.moduleName.toLowerCase().includes('internas'))) {
+                    if (splitted.length > 0) {
                         setLines(splitted);
                     } else {
                         setLines([data.finding.description]);
