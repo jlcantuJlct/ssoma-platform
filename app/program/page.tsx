@@ -896,8 +896,28 @@ export default function ProgramPage() {
             const m = getMonthFromStr(exec.date);
             if (m < 0 || m > 11 || !hasEvidence(exec)) return;
 
+            // Determinar a qué objetivo pertenece según el tipo de inspección
+            let targetArea = 'obj3'; // Default: OBJ 03 (Seguridad)
+            let searchKeyword = 'seguridad';
+            const t = (exec.inspectionType || '').toLowerCase();
+            
+            if (t.includes('botiquin') || t.includes('campamento') || t.includes('cocina') || t.includes('comedor')) {
+                targetArea = 'obj6'; // SEG 01 (Salud)
+                searchKeyword = 'salud';
+            } else if (t.includes('derrame')) {
+                targetArea = 'obj8'; // SEG 03 (Medio Ambiente)
+                searchKeyword = 'ambiente';
+            }
+
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, exec.inspectionType);
+                let match = findMatch(areaKey, exec.inspectionType);
+                
+                // Forzar mapeo si no coincide naturalmente, buscando la fila genérica del objetivo
+                if (!match && areaKey === targetArea) {
+                    const keys = Object.keys(grouped[areaKey]);
+                    match = keys.find(k => k.toLowerCase().includes(searchKeyword) || k.toLowerCase().includes('inspeccion'));
+                }
+
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];

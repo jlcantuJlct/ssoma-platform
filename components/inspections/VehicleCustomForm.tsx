@@ -11,14 +11,12 @@ const generalSections = [
     { category: 'NEUMÁTICOS', items: ['Llantas delanteras (*)', 'Sistema de dirección (*)', 'Llantas posteriores (*)', 'Espárragos y Tuercas'] },
     { category: 'CABINA OPERADOR', items: ['Estribos (Peldaños)', 'Pasamanos', 'Llave de contacto', 'Cinturón de seguridad (*)', 'Espejos Retrovisiores (*)', 'Luces de Cabina', 'Limpiaparabrizas', 'Freno de mano (*)', 'Timón de dirección (*)', 'Pedales (*)', 'Palanca de velocidades (*)', 'Palanca de Tracción 4x4', 'Claxón (*)', 'Panel de control', 'Asientos', 'Vidrios de ventana', 'Neblineros (**)', 'Tapa tanque combustible'] },
     { category: 'SEGURIDAD', items: ['Circulina (**)', 'Alarma de retroceso (*)', 'Sistema de frenos (*)', 'Botiquín', 'Extintor', 'Conos/Triángulos de seguridad', 'Luces (*)'] },
-    { type: 'fugas', category: 'FUGAS DE FLUIDO', items: ['Aceite de Motor', 'Combustible', 'Aceite Dirección', 'Aceite Transmisión', 'Aceite Diferenciales'] },
-    { category: 'NIVELES DE FLUIDO', items: ['Aceite motor (*)', 'Refrigerente (*)', 'Aceite Dirección (*)', 'Plumilla', 'Combustible'] }
+    { type: 'fugas', category: 'FUGAS DE FLUIDO', items: ['Aceite de Motor', 'Combustible (Fugas)', 'Aceite Dirección', 'Aceite Transmisión', 'Aceite Diferenciales'] }
 ];
 
 const specificSections: Record<string, {category: string, items: string[]}[]> = {
     'Camioneta': [
-        { category: 'CAMIONETAS', items: ['Protección antivuelcos', 'Radio de Comunicación'] },
-        { category: 'TRANSPORTE PERSONAL', items: ['Asientos', 'Seguro Capot (*)', 'Cinturones de seguridad (*)', 'Ventanas', 'Luces Interiores'] }
+        { category: 'TRANSPORTE PERSONAL', items: ['Asientos (Personal)', 'Seguro Capot (*)', 'Cinturones de seguridad (*)', 'Ventanas', 'Luces Interiores'] }
     ],
     'Cisterna de Agua': [
         { category: 'CISTERNA DE AGUA', items: ['Tanque de Agua', 'Tapa superior', 'Motobomba de Agua', 'Manguera de succión', 'Válvula Check succión', 'Manguera de descarga', 'Escaleras / barandas ascenso', 'Válvulas de corte de fluido', 'Sistema de aspersión'] }
@@ -62,7 +60,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
         operador: '',
         turno: '',
         fecha: new Date().toISOString().split('T')[0],
-        tipoEquipo: 'Camioneta'
+        tipoEquipo: ''
     });
 
     const [checklist, setChecklist] = useState<Record<string, string>>({});
@@ -375,16 +373,19 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                                 template: checklist,
                                 answers: { ...meta, observaciones, firmas, fotosDefectos },
                                 inspectionRecordId,
-                                hallazgos: [{
-                                    index: 0,
-                                    descripcion: observaciones || "Observaciones de Vehículos y Equipos",
-                                    riesgo: 'Medio',
-                                    categoria: 'Condición Subestándar',
-                                    responsable: firmas.capatazNombre || user?.name || "Capataz",
-                                    responsableEmail: user?.email || "responsable@casacontratistas.com",
-                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
-                                    fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
-                                }]
+                                hallazgos: badItemsList.map(([item, status], i) => {
+                                    const cmmt = itemComments[item] || '';
+                                    return {
+                                        index: i,
+                                        descripcion: `- ${item} (${status}): ${cmmt}`.trim(),
+                                        riesgo: 'Medio',
+                                        categoria: 'Condición Subestándar',
+                                        responsable: firmas.capatazNombre || user?.name || "Capataz",
+                                        responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                        fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                        fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
+                                    };
+                                })
                             })
                         });
                         if (lvRes.ok) {

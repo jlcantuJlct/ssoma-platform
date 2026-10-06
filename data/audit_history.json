@@ -1,5 +1,901 @@
 [
   {
+    "id": "649c1a5d-934e-4211-b741-e5e377fc67eb",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790629500649",
+    "timestamp": "2026-10-06T12:36:44.315Z"
+  },
+  {
+    "id": "1dab91ef-1659-41db-be87-b344cd8cb7a6",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790628734387",
+    "timestamp": "2026-10-06T12:36:41.982Z"
+  },
+  {
+    "id": "49f9de0f-7ce7-4752-a0a1-88e08273cccd",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1787839551938",
+    "timestamp": "2026-10-06T12:36:39.129Z"
+  },
+  {
+    "id": "5193894e-8727-47ad-97a0-e2eed4d3f390",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790602601734",
+    "timestamp": "2026-10-06T12:36:37.964Z"
+  },
+  {
+    "id": "5d265c24-9b71-430a-bee7-fc8adc362113",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790616266841",
+    "timestamp": "2026-10-06T12:36:36.642Z"
+  },
+  {
+    "id": "01050333-f08d-4354-80b3-1c6314c82e9d",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790616591291",
+    "timestamp": "2026-10-06T12:36:34.128Z"
+  },
+  {
+    "id": "df4346b0-6fab-47cf-ad66-256a21999869",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790618634215",
+    "timestamp": "2026-10-06T12:36:32.428Z"
+  },
+  {
+    "id": "b2375801-7122-4656-8dce-fd4a75f17058",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790618935064",
+    "timestamp": "2026-10-06T12:36:31.108Z"
+  },
+  {
+    "id": "43216521-d124-4729-bedb-cc308c0a059f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790621372896",
+    "timestamp": "2026-10-06T12:36:29.803Z"
+  },
+  {
+    "id": "83b53fb3-04dc-4606-a961-4d85a42aa548",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790621833780",
+    "timestamp": "2026-10-06T12:36:27.791Z"
+  },
+  {
+    "id": "0d7e75bc-4302-44b9-8432-67950b572945",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790622037061",
+    "timestamp": "2026-10-06T12:36:26.055Z"
+  },
+  {
+    "id": "dc2ed11d-3b09-49d4-8374-0ad958de7474",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790623046434",
+    "timestamp": "2026-10-06T12:36:24.589Z"
+  },
+  {
+    "id": "f10e4296-6538-4766-9ef7-846084c4df46",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790623845985",
+    "timestamp": "2026-10-06T12:36:23.505Z"
+  },
+  {
+    "id": "e5a18782-ef27-46fb-9caa-4853a994f3f1",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790625319663",
+    "timestamp": "2026-10-06T12:36:21.854Z"
+  },
+  {
+    "id": "d8fd006a-75e8-46c1-99ac-24d0f8adddab",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790628107089",
+    "timestamp": "2026-10-06T12:36:20.233Z"
+  },
+  {
+    "id": "848d0522-3ce9-420b-820c-fbea672b3e10",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790631085062",
+    "timestamp": "2026-10-06T12:35:59.652Z"
+  },
+  {
+    "id": "b4007a15-d2b0-43e1-b3d5-148a4139c1ce",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790631479636",
+    "timestamp": "2026-10-06T12:35:58.795Z"
+  },
+  {
+    "id": "ca163b3f-ecf6-4f77-a5e1-de2f2e0dd054",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790631688932",
+    "timestamp": "2026-10-06T12:35:57.216Z"
+  },
+  {
+    "id": "023080c1-f6ae-40e7-8627-a67d91df6a20",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790632302850",
+    "timestamp": "2026-10-06T12:35:55.940Z"
+  },
+  {
+    "id": "f7d1844f-ec17-4cd3-a39c-fe6181e88664",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790633505939",
+    "timestamp": "2026-10-06T12:35:54.225Z"
+  },
+  {
+    "id": "2d8c0b86-f124-44ff-98f8-6e0ef6f9242b",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790634786699",
+    "timestamp": "2026-10-06T12:35:53.104Z"
+  },
+  {
+    "id": "2803eb80-4739-44c0-9fdd-0530e1ac0bdf",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790636513725",
+    "timestamp": "2026-10-06T12:35:50.936Z"
+  },
+  {
+    "id": "c0349ee9-65e8-47e1-b517-d40e72c704a1",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790688812599",
+    "timestamp": "2026-10-06T12:35:49.216Z"
+  },
+  {
+    "id": "234feb40-2f1f-4325-8794-f6551354a726",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790698725943",
+    "timestamp": "2026-10-06T12:30:33.662Z"
+  },
+  {
+    "id": "c5c6bab7-c2eb-4ac3-9b53-f8c564935af1",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790704516517",
+    "timestamp": "2026-10-06T12:30:32.536Z"
+  },
+  {
+    "id": "79f93b3c-476d-4683-897f-f3e7b98c807d",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790704533863",
+    "timestamp": "2026-10-06T12:30:30.768Z"
+  },
+  {
+    "id": "f758e974-02c0-48a0-a831-9ca2a6c62493",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790705383007",
+    "timestamp": "2026-10-06T12:30:28.717Z"
+  },
+  {
+    "id": "16ba3046-8dc6-45b5-87b6-72dafa5898d5",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790705963247",
+    "timestamp": "2026-10-06T12:30:27.385Z"
+  },
+  {
+    "id": "b280f030-1dfa-4c77-ab0c-02c93b365fbe",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790705989405",
+    "timestamp": "2026-10-06T12:30:25.809Z"
+  },
+  {
+    "id": "77ec1d0b-6b75-46f0-b6a8-4f9f71e6cd64",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790721033423",
+    "timestamp": "2026-10-06T12:30:23.784Z"
+  },
+  {
+    "id": "b6bb8ae4-1d86-4ea1-a043-7be6006927ba",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790721055621",
+    "timestamp": "2026-10-06T12:30:22.249Z"
+  },
+  {
+    "id": "d14d96eb-d0c3-4c21-8368-05d12765f198",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790721985022",
+    "timestamp": "2026-10-06T12:30:21.050Z"
+  },
+  {
+    "id": "27264afa-ca28-4a11-b46b-f5ee9c24f3b8",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790722195244",
+    "timestamp": "2026-10-06T12:30:19.146Z"
+  },
+  {
+    "id": "c85875e5-b7fb-4420-92ea-e69963efe8cf",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790723011529",
+    "timestamp": "2026-10-06T12:30:18.248Z"
+  },
+  {
+    "id": "db29f6ec-7b38-442d-bb90-e8c634ecc99f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790723062143",
+    "timestamp": "2026-10-06T12:30:16.981Z"
+  },
+  {
+    "id": "35af88cc-c670-41bb-9d44-0c9b7d9776ef",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790773242613",
+    "timestamp": "2026-10-06T12:30:15.874Z"
+  },
+  {
+    "id": "037e85b0-4513-4e26-bc9e-8106704efa78",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790774933851",
+    "timestamp": "2026-10-06T12:30:14.438Z"
+  },
+  {
+    "id": "fb879585-9ccc-45dd-8d29-c1c0deb7514d",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790774964819",
+    "timestamp": "2026-10-06T12:30:13.053Z"
+  },
+  {
+    "id": "ca5be5a4-78d2-48b3-9ea5-9942c7721a2f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790781302275",
+    "timestamp": "2026-10-06T12:30:11.426Z"
+  },
+  {
+    "id": "043d22a5-f719-4e88-835e-6350c9858162",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790781350668",
+    "timestamp": "2026-10-06T12:30:09.850Z"
+  },
+  {
+    "id": "360a4875-af42-4bf4-9e76-99694573d4e0",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790782172871",
+    "timestamp": "2026-10-06T12:30:08.527Z"
+  },
+  {
+    "id": "aaf784cf-8277-4afe-aa1f-d50ea2e7a308",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790782243825",
+    "timestamp": "2026-10-06T12:30:07.303Z"
+  },
+  {
+    "id": "4aa9cbe4-3590-4dd7-8d56-6c6059acd5ea",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790783356195",
+    "timestamp": "2026-10-06T12:30:05.429Z"
+  },
+  {
+    "id": "641511cd-7cda-4da9-802b-386d0a16741a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790786948953",
+    "timestamp": "2026-10-06T12:30:04.104Z"
+  },
+  {
+    "id": "0c400619-43c5-467b-8a4b-dd50564ffd81",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790783492815",
+    "timestamp": "2026-10-06T12:30:02.764Z"
+  },
+  {
+    "id": "46bfe855-854e-4288-ab6a-c2043d4fc846",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790787138022",
+    "timestamp": "2026-10-06T12:30:01.016Z"
+  },
+  {
+    "id": "7fab7cec-85d5-46b6-8589-2ac4d0098dc8",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790789981188",
+    "timestamp": "2026-10-06T12:29:59.730Z"
+  },
+  {
+    "id": "de205dc6-eb7f-4db1-9f02-8ef98079f206",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790790014022",
+    "timestamp": "2026-10-06T12:29:57.853Z"
+  },
+  {
+    "id": "be11b20d-d27c-4d38-b0a3-2dc0003e1163",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790790897923",
+    "timestamp": "2026-10-06T12:29:55.788Z"
+  },
+  {
+    "id": "2825246d-b771-4207-8cf5-386a91168fbd",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790795872129",
+    "timestamp": "2026-10-06T12:29:52.468Z"
+  },
+  {
+    "id": "4d287518-7e83-42b7-812c-15458d078e5a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790795894951",
+    "timestamp": "2026-10-06T12:29:51.234Z"
+  },
+  {
+    "id": "49d6cb1e-09b7-4ad9-a2c4-82444718117b",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790799141565",
+    "timestamp": "2026-10-06T12:29:50.089Z"
+  },
+  {
+    "id": "34e42d8e-4994-4cf2-9be0-7e66e9d0773f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790799272042",
+    "timestamp": "2026-10-06T12:29:47.740Z"
+  },
+  {
+    "id": "d3f0f8d2-eb07-4416-8210-abab6b26811a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790799833335",
+    "timestamp": "2026-10-06T12:29:46.196Z"
+  },
+  {
+    "id": "4dd14e9d-e1ef-4529-ac6b-700e04481531",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790799870873",
+    "timestamp": "2026-10-06T12:29:45.014Z"
+  },
+  {
+    "id": "f693d4c7-3e4b-47e9-8fe9-1eff8c5e1b85",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790800292298",
+    "timestamp": "2026-10-06T12:29:42.880Z"
+  },
+  {
+    "id": "ae9e40a5-9eb3-4287-bfb9-8fe1270b2f63",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790800267129",
+    "timestamp": "2026-10-06T12:29:40.767Z"
+  },
+  {
+    "id": "a2c3bc7e-36f8-4c0c-8561-9c56d139ba8a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790803170696",
+    "timestamp": "2026-10-06T12:29:39.470Z"
+  },
+  {
+    "id": "a5262825-6a84-41c7-b825-458f9ddfbb56",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790803075516",
+    "timestamp": "2026-10-06T12:29:36.904Z"
+  },
+  {
+    "id": "ba7b793f-1428-4186-a528-8dcfe8e6a670",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790805137987",
+    "timestamp": "2026-10-06T12:29:35.473Z"
+  },
+  {
+    "id": "57bfb082-b619-4784-8396-7dd2aaaffa49",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790805155888",
+    "timestamp": "2026-10-06T12:29:34.340Z"
+  },
+  {
+    "id": "f3d8f606-d5dd-4daf-b843-152171dc22b5",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790806220678",
+    "timestamp": "2026-10-06T12:29:32.936Z"
+  },
+  {
+    "id": "6e446d5e-95e0-4a80-a465-9d5a7c0a6cc2",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790806240104",
+    "timestamp": "2026-10-06T12:29:31.450Z"
+  },
+  {
+    "id": "a00a3ef6-1e64-4e34-8f39-91121ead3c84",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790880253074",
+    "timestamp": "2026-10-06T12:29:29.684Z"
+  },
+  {
+    "id": "3ed0ed0e-bfff-4103-b99c-129d1bdd7720",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790878779816",
+    "timestamp": "2026-10-06T12:29:28.536Z"
+  },
+  {
+    "id": "f8736de5-1bb5-427b-9365-2059be54ab0a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790881689486",
+    "timestamp": "2026-10-06T12:29:27.538Z"
+  },
+  {
+    "id": "672d03b0-34ff-4cbc-81b3-e99b5160f631",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790882054346",
+    "timestamp": "2026-10-06T12:29:25.477Z"
+  },
+  {
+    "id": "9d229001-21cd-448f-b7a7-a8eab51c69d2",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790882021738",
+    "timestamp": "2026-10-06T12:29:24.356Z"
+  },
+  {
+    "id": "0181675b-38ea-4020-a608-803e0f9a2e83",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790882730953",
+    "timestamp": "2026-10-06T12:29:22.642Z"
+  },
+  {
+    "id": "3e450a59-5891-4f2f-83b0-cbfaf2ee25b2",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790882686822",
+    "timestamp": "2026-10-06T12:29:21.399Z"
+  },
+  {
+    "id": "23a8462e-c491-4244-b532-b529d45aa332",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790896588700",
+    "timestamp": "2026-10-06T12:29:19.448Z"
+  },
+  {
+    "id": "767568f3-329b-410b-8b34-1b8ec03d15c9",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790896617702",
+    "timestamp": "2026-10-06T12:29:18.214Z"
+  },
+  {
+    "id": "8bf72502-9092-478f-8aa7-8b48a5752dc6",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790895666739",
+    "timestamp": "2026-10-06T12:29:17.283Z"
+  },
+  {
+    "id": "9b2e68d5-d9a7-437d-a477-efc7cc49d3a3",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790970938646",
+    "timestamp": "2026-10-06T12:29:15.756Z"
+  },
+  {
+    "id": "ad37fed4-6308-443b-a57f-2b27fe46858f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790970941930",
+    "timestamp": "2026-10-06T12:29:14.165Z"
+  },
+  {
+    "id": "441de856-98fe-4472-8f5d-5c1bb091aeed",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790970969670",
+    "timestamp": "2026-10-06T12:29:12.737Z"
+  },
+  {
+    "id": "18b093ca-725b-4bef-aee5-7ea547404ea4",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790972145011",
+    "timestamp": "2026-10-06T12:29:10.331Z"
+  },
+  {
+    "id": "2247f33d-2ae7-45ec-92f1-d69022677dcc",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790972531147",
+    "timestamp": "2026-10-06T12:29:08.729Z"
+  },
+  {
+    "id": "95d81347-2ca0-4555-9ede-e25ca9474563",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790972531160",
+    "timestamp": "2026-10-06T12:29:06.899Z"
+  },
+  {
+    "id": "d85b3519-c44c-4dbd-9c24-fded08af1bc6",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790973167784",
+    "timestamp": "2026-10-06T12:29:05.494Z"
+  },
+  {
+    "id": "47b15ba0-f192-4f74-ba98-2f0bc2729a2a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790973827059",
+    "timestamp": "2026-10-06T12:29:04.134Z"
+  },
+  {
+    "id": "f3f3a7c9-2796-4c12-8135-0243514d0315",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790974677157",
+    "timestamp": "2026-10-06T12:29:02.751Z"
+  },
+  {
+    "id": "9288f997-c3c2-4107-86ea-87714ac6e979",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790975029927",
+    "timestamp": "2026-10-06T12:29:01.356Z"
+  },
+  {
+    "id": "c500bc01-9d7c-4851-96b8-c9d70b996c11",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790975482303",
+    "timestamp": "2026-10-06T12:29:00.019Z"
+  },
+  {
+    "id": "0845b411-c489-4059-9e07-91a1569e6ce1",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790976670737",
+    "timestamp": "2026-10-06T12:28:58.901Z"
+  },
+  {
+    "id": "081d710b-4be8-48a0-8c9a-06c3c2d63a74",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790978545101",
+    "timestamp": "2026-10-06T12:28:57.600Z"
+  },
+  {
+    "id": "591792c5-3380-4009-a864-142432ee0744",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790979145186",
+    "timestamp": "2026-10-06T12:28:56.309Z"
+  },
+  {
+    "id": "256f0308-5af5-40c5-acd9-b7bcda0b280f",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1790979271376",
+    "timestamp": "2026-10-06T12:28:55.337Z"
+  },
+  {
+    "id": "9c84cb28-fcc9-4580-bd32-635bb9a6d4e7",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791031811591",
+    "timestamp": "2026-10-06T12:28:53.740Z"
+  },
+  {
+    "id": "c1a34058-089c-4145-af0a-04fa39b7a26c",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791031959673",
+    "timestamp": "2026-10-06T12:28:48.387Z"
+  },
+  {
+    "id": "c567cc60-b7c2-41c2-82dd-cd6c4c09ca49",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791032156682",
+    "timestamp": "2026-10-06T12:28:46.198Z"
+  },
+  {
+    "id": "c9277c8c-27fc-4c71-8891-ac2a4b9f4cc8",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791032891287",
+    "timestamp": "2026-10-06T12:28:44.924Z"
+  },
+  {
+    "id": "797bd8e8-d6b9-40cb-9d77-6d1466505163",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791039877234",
+    "timestamp": "2026-10-06T12:28:43.666Z"
+  },
+  {
+    "id": "960ded9a-a3df-4081-b162-c28410b32c31",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791041738995",
+    "timestamp": "2026-10-06T12:28:42.529Z"
+  },
+  {
+    "id": "2fb2664b-c9a5-40a0-b08d-22bf4b6ab4ee",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042004281",
+    "timestamp": "2026-10-06T12:28:40.285Z"
+  },
+  {
+    "id": "f8d7aad4-ea53-4003-8654-f12c25b2b437",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042022846",
+    "timestamp": "2026-10-06T12:28:39.055Z"
+  },
+  {
+    "id": "fdf8c033-a14e-4ebe-bb52-f8b9546e519a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042283327",
+    "timestamp": "2026-10-06T12:28:37.457Z"
+  },
+  {
+    "id": "79f0abc5-ff57-4411-812f-e78f2fb68597",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042295577",
+    "timestamp": "2026-10-06T12:28:35.822Z"
+  },
+  {
+    "id": "03b67ec9-abf5-4867-8a38-1b034b295d07",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042348142",
+    "timestamp": "2026-10-06T12:28:34.582Z"
+  },
+  {
+    "id": "cccbe7a8-5a96-448f-8ad2-30ca4dace8a7",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791042370029",
+    "timestamp": "2026-10-06T12:28:32.203Z"
+  },
+  {
+    "id": "b65f2a2a-08a2-4349-9f00-18c16543f82e",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791048140821",
+    "timestamp": "2026-10-06T12:28:30.558Z"
+  },
+  {
+    "id": "582922ac-047c-4080-86c6-5407d1c7cb80",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791048189102",
+    "timestamp": "2026-10-06T12:28:29.077Z"
+  },
+  {
+    "id": "2703c780-6acb-45a3-a930-2335b11d8c35",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791049788605",
+    "timestamp": "2026-10-06T12:28:27.894Z"
+  },
+  {
+    "id": "6510118d-0d49-4350-b50e-2b86fc353849",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791049814406",
+    "timestamp": "2026-10-06T12:28:25.840Z"
+  },
+  {
+    "id": "340a43ae-3cbe-410f-a3fb-03b3ee5951fa",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791051291871",
+    "timestamp": "2026-10-06T12:28:24.581Z"
+  },
+  {
+    "id": "d43387bd-2c89-4d7d-8c13-330013978bc7",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791051563709",
+    "timestamp": "2026-10-06T12:28:23.704Z"
+  },
+  {
+    "id": "e5e8638d-94b3-4584-b2c0-ef9edfba441c",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791051575168",
+    "timestamp": "2026-10-06T12:28:22.157Z"
+  },
+  {
+    "id": "7a2401af-eb67-4a1c-a76d-5b882c10f5d5",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791051695768",
+    "timestamp": "2026-10-06T12:28:20.962Z"
+  },
+  {
+    "id": "185acf58-0787-4f95-8696-7c52232076ca",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791052881791",
+    "timestamp": "2026-10-06T12:28:19.072Z"
+  },
+  {
+    "id": "bceb6fdd-c85c-463b-8ee2-1ba588b1aeed",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791235788263",
+    "timestamp": "2026-10-06T12:28:17.414Z"
+  },
+  {
+    "id": "957085a1-c2bc-4f15-8376-10d72ae88b18",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791239445427",
+    "timestamp": "2026-10-06T12:28:15.710Z"
+  },
+  {
+    "id": "f8b7e965-260c-439d-851d-d692bcccee3d",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791240943347",
+    "timestamp": "2026-10-06T12:28:13.473Z"
+  },
+  {
     "id": "28383085-4890-44af-9689-3e55be8c9b73",
     "user_name": "Admin",
     "action": "ELIMINACIÓN INSPECCIÓN",

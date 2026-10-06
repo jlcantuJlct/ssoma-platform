@@ -66,6 +66,9 @@ export async function POST(req: Request) {
       (moduleName &&
         (moduleName.toLowerCase().includes("maquinaria") ||
           moduleName.toLowerCase().includes("máquina") ||
+          moduleName.toLowerCase().includes("vehículo") ||
+          moduleName.toLowerCase().includes("vehiculo") ||
+          moduleName.toLowerCase().includes("equipos") ||
           moduleName.toLowerCase().includes("maquina")));
     const normName = (moduleName || "").toLowerCase().trim();
     const isInternas = normName.includes("interna") && normName.includes("ssoma");
@@ -879,10 +882,24 @@ export async function POST(req: Request) {
     else if (isMachinery) {
       const meta = data.meta || data.answers || {};
       const checklist = data.checklist || {};
-      const observaciones = data.observaciones || "";
+      const observaciones = data.observaciones || (data.answers && data.answers.observaciones) || "";
 
+      
       // Si existe la plantilla base, úsala para llenar.
       if (fs.existsSync(templatePath)) {
+          // Agregar logo en la esquina superior izquierda
+          try {
+              const path = require('path');
+              const logoPath = path.join(process.cwd(), "public", "templates", "digital", "official_casa_logo.jpg");
+              if (fs.existsSync(logoPath)) {
+                  worksheet.getCell("A1").value = "";
+                  worksheet.getCell("A2").value = "";
+                  worksheet.getCell("A3").value = "";
+                  const logoId = workbook.addImage({ buffer: fs.readFileSync(logoPath), extension: "jpeg" });
+                  worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 130, height: 45 } });
+              }
+          } catch(e) {}
+
           // Llenar metadatos generales
           const setIfFound = (label, val, rowOffset=0, colOffset=1) => {
               for (let i = 1; i <= 100; i++) {
@@ -914,11 +931,11 @@ export async function POST(req: Request) {
           setIfFound('Turno:', meta.turno, 0, 2);
           setIfFound('Fecha:', meta.fecha || new Date().toISOString().split('T')[0], 0, 1);
           
-          const firmas = data.firmas || {};
+          const firmas = (data.answers && data.answers.firmas) ? data.answers.firmas : (data.firmas || {});
           const opName = firmas.operadorNombre || meta.chofer || meta.operador || "";
           const capName = firmas.capatazNombre || meta.capataz || "";
           
-          for (let i = 60; i <= 100; i++) {
+          for (let i = 60; i <= 75; i++) {
               const r = worksheet.getRow(i);
               r.eachCell((cell, colN) => {
                   if (cell.value) {
@@ -928,8 +945,20 @@ export async function POST(req: Request) {
                       
                       if (text.includes('Nombre y Firma del Colaborador')) {
                           worksheet.getRow(i).getCell(10).value = opName;
+                          if (firmas.operadorFirma) {
+                              try {
+                                  const imgId = workbook.addImage({ base64: firmas.operadorFirma.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
+                                  worksheet.addImage(imgId, { tl: { col: 19, row: i - 1 }, ext: { width: 120, height: 35 } });
+                              } catch(e) {}
+                          }
                       } else if (text.includes('Nombre y Firma del Capataz')) {
                           worksheet.getRow(i).getCell(10).value = capName;
+                          if (firmas.capatazFirma) {
+                              try {
+                                  const imgId = workbook.addImage({ base64: firmas.capatazFirma.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
+                                  worksheet.addImage(imgId, { tl: { col: 19, row: i - 1 }, ext: { width: 120, height: 35 } });
+                              } catch(e) {}
+                          }
                       }
                   }
               });
@@ -947,21 +976,34 @@ export async function POST(req: Request) {
           ]);
 
           
-          for (let i = 13; i <= 75; i++) {
+          
+          for (let i = 13; i <= 60; i++) {
               const r = worksheet.getRow(i);
               r.eachCell((cell, colN) => {
-                  // Only process the right-most column of the text cells to calculate offsets correctly
-                  if (colN === 1 || colN === 10 || colN === 19) return;
+                  // Only process the exact columns where item text resides!
+                  if (colN !== 2 && colN !== 11 && colN !== 20) return;
                   
                   if (cell.value) {
                       let text = '';
                       if (typeof cell.value === 'object' && cell.value.richText) text = cell.value.richText.map(rt => rt.text).join('').trim();
                       else text = cell.value.toString().trim();
                       
-                      const val = checklist[text];
+                      if (!text) return;
+
+                      // Map duplicates to unique keys used in the digital form
+                      let lookupText = text;
+                      if (lookupText === 'Combustible') {
+                          if (i >= 49 && i <= 53) lookupText = 'Combustible (Fugas)';
+                          else lookupText = 'Combustible (Niveles)';
+                      }
+                      if (lookupText === 'Asientos') {
+                          if (colN === 10 || colN === 11) lookupText = 'Asientos (Personal)';
+                      }
                       
-                      // For checking missing items (auto-N/A), since we only check col 2, 11, 20
-                      if (!val && !headersToExclude.has(text.toUpperCase())) {
+                      const val = checklist[lookupText];
+                      
+                      // For checking missing items (auto-N/A)
+                      if (!val && !headersToExclude.has(lookupText.toUpperCase())) {
                           let offset = -1;
                           if (i >= 49 && i <= 53 && colN === 2) offset = 1; // N/A is offset 1 for Fugas
                           else offset = 5; // N/A is offset 5 for standard
@@ -999,11 +1041,6 @@ export async function POST(req: Request) {
               });
           }
 
-                      }
-                  }
-              });
-          }
-
           // Llenar observaciones
           for (let i = 60; i <= 100; i++) {
               const r = worksheet.getRow(i);
@@ -1015,14 +1052,90 @@ export async function POST(req: Request) {
                       else text = cell.value.toString();
                   }
                   if (text.includes('OBSERVACIONES:')) {
-                      const obsCell = worksheet.getRow(i + 1).getCell(colN);
+                      try { worksheet.mergeCells(i + 1, 1, i + 4, 26); } catch(e) {}
+                      const obsCell = worksheet.getRow(i + 1).getCell(1);
                       obsCell.value = observaciones || "Sin observaciones adicionales.";
-                      obsCell.alignment = { wrapText: true, vertical: 'top' };
+                      obsCell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+                      obsCell.font = { color: { argb: 'FF000000' }, size: 10 };
                       found = true;
                   }
               });
               if (found) break; // Solo llenar el primer bloque de observaciones
           }
+
+
+          // --- RENDERIZAR FOTOS DE DEFECTOS Y LEVANTAMIENTOS ---
+          let currentImgRow = 94; // A partir de la fila 94
+          
+          const badItemsKeys = Object.keys(checklist).filter(k => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(checklist[k]));
+          let evidenciasMapLocal = {};
+          if (data.evidenciaLevantamiento && data.evidenciaLevantamiento.startsWith('{')) {
+              try { evidenciasMapLocal = JSON.parse(data.evidenciaLevantamiento); } catch(e) {}
+          }
+          
+          badItemsKeys.forEach((item) => {
+              const photos = data.fotosDefectos ? data.fotosDefectos[item] : null;
+              
+              let matchImgLev = null;
+              let levComment = "";
+              if (data.comentarioLevantamiento && data.comentarioLevantamiento.startsWith('{')) {
+                  try {
+                      const commMap = JSON.parse(data.comentarioLevantamiento);
+                      const matchComm = Object.entries(commMap).find(([k,v]) => k.includes(item) && v);
+                      if (matchComm) levComment = matchComm[1];
+                  } catch(e) {}
+              }
+              if (Object.keys(evidenciasMapLocal).length > 0) {
+                  matchImgLev = Object.entries(evidenciasMapLocal).find(([k,v]) => k.includes(item) && v && typeof v === 'string' && v.length > 50);
+              }
+
+              if ((photos && photos.length > 0) || matchImgLev) {
+                  try { worksheet.mergeCells("B" + currentImgRow + ":F" + currentImgRow); } catch(e){}
+                  worksheet.getCell("B" + currentImgRow).value = "EVIDENCIA FOTOGRÁFICA DE LA CONDICIÓN INSEGURA: " + item;
+                  worksheet.getCell("B" + currentImgRow).font = { bold: true, size: 10 };
+                  worksheet.getCell("B" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+                  
+                  try { worksheet.mergeCells("H" + currentImgRow + ":K" + currentImgRow); } catch(e){}
+                  worksheet.getCell("H" + currentImgRow).value = "EVIDENCIA DEL LEVANTAMIENTO";
+                  worksheet.getCell("H" + currentImgRow).font = { bold: true, size: 10 };
+                  worksheet.getCell("H" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+                  currentImgRow += 2;
+                  
+                  try {
+                      const stripB64 = (b64) => b64.substring(b64.indexOf(",") + 1);
+                      let colCursor = 1; // Col B
+                      if (photos && photos.length > 0) {
+                          for (let i = 0; i < photos.length; i++) {
+                              if (photos[i] && typeof photos[i] === 'string' && photos[i].length > 50) {
+                                  const imgBase64 = stripB64(photos[i]);
+                                  const imgId = workbook.addImage({ base64: imgBase64, extension: "jpeg" });
+                                  worksheet.addImage(imgId, { tl: { col: colCursor, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                                  colCursor += 5;
+                                  if (colCursor > 6) break; // Max 1 image per row for original to leave space for levantamiento
+                              }
+                          }
+                      }
+                      
+                      if (matchImgLev) {
+                          let imgLev = stripB64(matchImgLev[1]);
+                          const imgId2 = workbook.addImage({ base64: imgLev, extension: "jpeg" });
+                          worksheet.addImage(imgId2, { tl: { col: 7, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                      }
+                      
+                      if (levComment) {
+                          try { worksheet.mergeCells("H" + (currentImgRow + 13) + ":L" + (currentImgRow + 15)); } catch(e){}
+                          worksheet.getCell("H" + (currentImgRow + 13)).value = "Comentario: " + levComment;
+                          worksheet.getCell("H" + (currentImgRow + 13)).alignment = { wrapText: true, vertical: 'top' };
+                          worksheet.getCell("H" + (currentImgRow + 13)).font = { size: 9 };
+                      }
+                      
+                      currentImgRow += 16;
+                  } catch (err) {
+                      console.error("Error insertando fotos en vehiculo:", err);
+                  }
+              }
+          });
+
 
       } else {
           // Fallback al formato generado desde cero si no encuentra la plantilla

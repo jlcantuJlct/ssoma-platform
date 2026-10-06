@@ -172,6 +172,9 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
     // Estado para Edición
     const [editingId, setEditingId] = useState<number | null>(null);
 
+    // Estado para Selección Múltiple
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
     // Estados para Drag and Drop
     const [isDraggingPdf, setIsDraggingPdf] = useState(false);
     const [isDraggingImgs, setIsDraggingImgs] = useState(false);
@@ -1197,6 +1200,15 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
         deleteInspectionRecord(id);
     };
 
+    const handleBulkDelete = () => {
+        if (!confirm(`¿Estás seguro de eliminar los ${selectedIds.length} registros seleccionados?`)) return;
+        setInspections(prev => prev.filter(i => !selectedIds.includes(i.id)));
+        for (const id of selectedIds) {
+            deleteInspectionRecord(id);
+        }
+        setSelectedIds([]);
+    };
+
     // Filtrado de datos
     const filteredInspections = inspections.filter(item => {
         const matchesResponsible = filterResponsible === '' || item.responsible === filterResponsible;
@@ -1478,15 +1490,39 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                                         <ClipboardCheck className="text-emerald-500" />
                                         Rastro de Registros
                                     </h2>
-                                    <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
-                                        Total: {filteredInspections.length}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        {selectedIds.length > 0 && (
+                                            <button
+                                                onClick={handleBulkDelete}
+                                                className="text-xs bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-semibold"
+                                            >
+                                                <Trash2 size={14} /> Eliminar Seleccionados ({selectedIds.length})
+                                            </button>
+                                        )}
+                                        <span className="text-xs font-mono text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                                            Total: {filteredInspections.length}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="overflow-auto flex-1">
                                     <table className="w-full text-left text-sm text-slate-400">
                                         <thead className="bg-slate-950 text-xs uppercase font-black text-slate-500 sticky top-0 z-10">
                                             <tr>
+                                                <th className="px-3 py-3 w-10">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={filteredInspections.length > 0 && selectedIds.length === filteredInspections.length}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedIds(filteredInspections.map(i => i.id));
+                                                            } else {
+                                                                setSelectedIds([]);
+                                                            }
+                                                        }}
+                                                        className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                                    />
+                                                </th>
                                                 <th className="px-3 py-3 tracking-wider text-xs">Fecha</th>
                                                 <th className="px-3 py-3 tracking-wider text-xs">Responsable</th>
                                                 <th className="px-3 py-3 tracking-wider text-xs">Tipo de Inspección</th>
@@ -1499,13 +1535,27 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                                         <tbody className="divide-y divide-slate-800/50">
                                             {filteredInspections.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-600 italic">
+                                                    <td colSpan={8} className="px-6 py-12 text-center text-slate-600 italic">
                                                         No se encontraron registros
                                                     </td>
                                                 </tr>
                                             ) : (
                                                 filteredInspections.map(item => (
                                                     <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
+                                                        <td className="px-3 py-3 w-10">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedIds.includes(item.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedIds(prev => [...prev, item.id]);
+                                                                    } else {
+                                                                        setSelectedIds(prev => prev.filter(id => id !== item.id));
+                                                                    }
+                                                                }}
+                                                                className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                                            />
+                                                        </td>
                                                         <td className="px-3 py-3 whitespace-nowrap font-mono text-white text-xs">
                                                             {item.date}
                                                         </td>

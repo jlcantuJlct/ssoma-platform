@@ -267,7 +267,11 @@ export default function LevantamientoPublico() {
                                     
                                     {/* Left side: Original photo (if exists) */}
                                     {(() => {
-const matchKey = Object.keys(finding.fotosDefectos || {}).find(k => line.replace(/[\u200B]/g, '').trim().startsWith(k.replace(/[\u200B]/g, '').trim()));
+const cleanLine = line.replace(/[\u200B]/g, '').trim();
+const matchKey = Object.keys(finding.fotosDefectos || {}).find(k => {
+    const cleanK = k.replace(/[\u200B]/g, '').trim();
+    return cleanLine.startsWith(cleanK) || cleanK.includes(cleanLine) || cleanK.startsWith(cleanLine);
+});
                                         let origPhotos = matchKey ? finding.fotosDefectos[matchKey] : [];
                                         if (lines.length === 1 && (!origPhotos || origPhotos.length === 0) && finding.fotosDefectos) {
                                             origPhotos = Object.values(finding.fotosDefectos).flat();
