@@ -1,5 +1,29 @@
 [
   {
+    "id": "e589de85-f677-4ce3-a53a-0e3abbe4ba17",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791310996137",
+    "timestamp": "2026-10-07T11:57:04.774Z"
+  },
+  {
+    "id": "bdce51b1-f00b-439c-bd72-48ab326f9e59",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791314273961",
+    "timestamp": "2026-10-07T11:57:03.001Z"
+  },
+  {
+    "id": "78a3247b-b8ed-4f30-af08-6251189e6491",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1791316653935",
+    "timestamp": "2026-10-07T11:56:57.315Z"
+  },
+  {
     "id": "649c1a5d-934e-4211-b741-e5e377fc67eb",
     "user_name": "Admin",
     "action": "ELIMINACIÓN INSPECCIÓN",
