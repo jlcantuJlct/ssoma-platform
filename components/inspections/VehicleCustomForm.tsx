@@ -344,7 +344,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                         data: {
                             date: meta.fecha || new Date().toISOString().split('T')[0],
                             responsible: meta.chofer || meta.operador || 'Operador',
-                            inspectionType: 'Vehículos y Equipos',
+                            inspectionType: 'Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010',
                             area: meta.proyecto || 'RED VIAL 6',
                             zone: meta.equipo || 'Inspección Digital',
                             status: 'Completado',

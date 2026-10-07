@@ -343,6 +343,27 @@ export default function FillDigitalInspection() {
                 const proyecto = lightAnswers[template.findIndex(t => t.text.toLowerCase().includes('proyecto'))]?.text || '';
                 const fecha = lightAnswers[template.findIndex(t => t.text.toLowerCase().includes('fecha'))]?.text || new Date().toISOString().split('T')[0];
                 
+                let exactInspectionType = decodeURIComponent(moduleName as string);
+                const modLower = exactInspectionType.toLowerCase();
+                
+                if (modLower.includes('botiquin')) {
+                    exactInspectionType = 'Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN';
+                } else if (modLower.includes('derrame')) {
+                    exactInspectionType = 'Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME';
+                } else if (modLower.includes('emergencia') && !modLower.includes('estacion')) {
+                    exactInspectionType = 'Inspección de equipos de emergencia F-SIG-008 INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS';
+                } else if (modLower.includes('estacion') || modLower.includes('estación')) {
+                    exactInspectionType = 'Inspección de Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS';
+                } else if (modLower.includes('almacen')) {
+                    exactInspectionType = 'Inspección de almacenes F-SIG-028 Inspeccion Almacén V09';
+                } else if (modLower.includes('taller')) {
+                    exactInspectionType = 'Inspección de taller de soldadura mecanico F-SIG-079 Inspección de Talleres V02';
+                } else if (modLower.includes('campamento')) {
+                    exactInspectionType = 'Inspección de areas de campamento F-SIG-072';
+                } else if (modLower.includes('extintor')) {
+                    exactInspectionType = 'Inspecciones de Extintores (F-SIG-029) INSPECCION DE EXTINTORES PORTATILES';
+                }
+                
                 await fetch('/api/inspections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -351,7 +372,7 @@ export default function FillDigitalInspection() {
                         data: {
                             date: fecha,
                             responsible: inspector,
-                            inspectionType: decodeURIComponent(moduleName as string),
+                            inspectionType: exactInspectionType,
                             area: proyecto,
                             zone: 'Inspección Digital',
                             status: 'Completado',
