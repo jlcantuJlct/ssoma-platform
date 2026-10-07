@@ -14,7 +14,7 @@ export function ActivityTable({ activities, onUpdateActivity, selectedMonthIndex
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
     return (
-        <div className="space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {activities.map((activity) => (
                 <div key={activity.id} className="group border border-slate-200 rounded-3xl p-8 shadow-sm bg-white hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 relative overflow-hidden">
                     {/* Background accent */}
