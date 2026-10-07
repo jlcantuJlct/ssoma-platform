@@ -853,7 +853,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-900 px-8 py-5 rounded-2xl shadow-2xl ring-1 ring-white/10 shrink-0">
+                                <div className="grid grid-cols-2 gap-4 md:gap-8 bg-slate-900 px-8 py-5 rounded-2xl shadow-2xl ring-1 ring-white/10 shrink-0">
                                     <StatItem label="Meta" value="100%" color="text-blue-400" />
                                     <StatItem label="Logro" value={`${Math.round(activeSection.activities.reduce((a: number, b: any) => {
                                         const tp = b.data.plan.reduce((p: number, c: number) => p + c, 0);

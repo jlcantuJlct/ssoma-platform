@@ -14,15 +14,15 @@ export function ActivityTable({ activities, onUpdateActivity, selectedMonthIndex
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 gap-4 md:gap-4 md:p-8">
             {activities.map((activity) => (
-                <div key={activity.id} className="group border border-slate-200 rounded-3xl p-8 shadow-sm bg-white hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 relative overflow-hidden">
+                <div key={activity.id} className="group border border-slate-200 rounded-3xl p-4 md:p-8 shadow-sm bg-white hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 relative overflow-hidden">
                     {/* Background accent */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-[100px] -mr-10 -mt-10 group-hover:bg-blue-100/50 transition-colors duration-500"></div>
 
-                    <div className="flex flex-col md:flex-row justify-between items-start mb-8 relative z-10 gap-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start mb-8 relative z-10 gap-3 md:gap-6">
                         <div className="space-y-3">
-                            <h3 className="font-black text-2xl text-slate-900 tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
+                            <h3 className="font-black text-lg md:text-2xl text-slate-900 tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
                                 {activity.name}
                             </h3>
                             <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
