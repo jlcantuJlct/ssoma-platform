@@ -115,12 +115,12 @@ export default function Sidebar() {
                 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="p-6 border-b border-slate-800">
-                    <div className="flex items-center gap-2 mb-1">
+                    <Link href="/" className="flex items-center gap-2 mb-1 hover:opacity-80 transition-opacity">
                         <Shield size={24} className="text-emerald-500" />
                         <h1 className="text-xl font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent tracking-tighter">
                             DASHBOARD SSOMA
                         </h1>
-                    </div>
+                    </Link>
                     <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black">Sistema de Gestión</p>
                     
                     {/* Consumo de Red Compacto */}
@@ -135,6 +135,12 @@ export default function Sidebar() {
                         <div className="px-3 py-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Principal</span>
                         </div>
+                        <SidebarItem
+                            icon={<div className="p-1 bg-emerald-500/20 rounded"><ShieldCheck size={16} className="text-emerald-400" /></div>}
+                            label="Panel de Herramientas"
+                            href="/"
+                            active={pathname === '/'}
+                        />
                         <SidebarItem
                             icon={<BarChart2 size={16} className="text-sky-400" />}
                             label="Dashboard"
