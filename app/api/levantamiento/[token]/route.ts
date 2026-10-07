@@ -191,7 +191,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        to: [smtpUser],
+                        to: [smtpUser, 'jcancino@casacontratistas.com'],
                         subject: `✅ Hallazgo levantado - ${row.module_name}`,
                         text: `El responsable ${row.responsable} levantó la observación:\n\n"${row.description}"\n\nComentario: ${comentario || '-'}\n\nReporte actualizado: ${driveUrl || 'Pendiente'}`,
                         html: `<p>El responsable <b>${row.responsable}</b> levantó la siguiente observación:</p><p style="background:#fef3c7;padding:12px;border-radius:8px;"><i>"${row.description}"</i></p><p><b>Comentario del responsable:</b> ${comentario || '-'}</p>${driveUrl ? `<p>📄 <a href="${driveUrl}" style="color:#1a73e8;font-weight:bold;">Ver reporte actualizado en Drive</a></p>` : ''}`,
