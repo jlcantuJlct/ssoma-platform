@@ -2024,7 +2024,7 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                             </div>
                             <div className="p-6 overflow-y-auto">
                                 <p className="text-slate-400 mb-6">Selecciona el tipo de inspección digital que deseas realizar o gestionar:</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-3 gap-2 md:gap-4">
                                         {inspectionModules.map((mod, idx) => {
             if (!mod) return null;
             return (
