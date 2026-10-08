@@ -1814,7 +1814,7 @@ function ImageDropZone({ tag, docType, refSrc, isDragOver, onDragOver, onDragLea
                             </div>
                         )}
                         {/* Overlay botones siempre parcialmente visible o visible al hover */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-start gap-1.5 pt-4 pb-2"
+                        <div className="absolute inset-0 bg-black/50 opacity-100 md:opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-start gap-1.5 pt-4 pb-2"
                              style={{ zIndex: 10 }}>
                             <div className="flex gap-2">
                                 <button

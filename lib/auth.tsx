@@ -12,6 +12,7 @@ export interface User {
     role: UserRole;
     email?: string;
     phone?: string;
+    workspace?: string;
 }
 
 // Interfaz para la lista pública de usuarios
@@ -26,29 +27,32 @@ export interface FullUser extends User {
     password?: string;
 }
 
-export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone: string }> = {
+export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone: string, workspace: string, deactivated?: boolean }> = {
     'jose.cancino': {
         password: '161976Jlct',
         name: 'Jose Luis Cancino',
         role: 'developer',
         email: 'jlcancino@example.com',
-        phone: '+51949260281'
+        phone: '+51949260281',
+        workspace: 'Red Vial 6'
     },
     'gerencia': {
         password: 'GerenciaSSO2026',
         name: 'Gerencia General',
         role: 'manager',
         email: 'gerencia@antigravity.com',
-        phone: '+51900000000'
+        phone: '+51900000000',
+        workspace: 'Red Vial 6'
     },
-    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com', phone: '+51986103867' },
-    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com', phone: '+51929906173' },
-    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
-    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51943697255' },
-    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000' },
-    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000' },
-    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799' },
-    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023', deactivated: true },
+    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com', phone: '+51986103867', workspace: 'Red Vial 6' },
+    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com', phone: '+51929906173', workspace: 'Red Vial 6' },
+    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280', workspace: 'Red Vial 6' },
+    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51943697255', workspace: 'Red Vial 6' },
+    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000', workspace: 'Red Vial 6' },
+    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000', workspace: 'Red Vial 6' },
+    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799', workspace: 'Red Vial 6' },
+    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023', deactivated: true, workspace: 'Red Vial 6' },
+    'tramo4.admin': { password: 'Tramo4@2026', name: 'Admin Tramo 4', role: 'manager', email: 'tramo4@example.com', phone: '+51900000000', workspace: 'Longitudinal tramo 4' },
 };
 
 // Exportar lista para el Login y Selectores Activos (Solo usuarios activos)
@@ -160,7 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 username,
                 name: foundUser.name,
                 role: foundUser.role,
-                email: foundUser.email
+                email: foundUser.email,
+                workspace: foundUser.workspace
             };
             setUser(userData);
             localStorage.setItem('ssoma_user', JSON.stringify(userData));

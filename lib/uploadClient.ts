@@ -280,7 +280,16 @@ export async function uploadEvidence(
         }
     }
 
-    // 3. Folder Selection mapping (Hierarchical)
+    // 4. Folder Selection mapping (Hierarchical)
+    let workspaceName = 'General Workspace';
+    try {
+        const storedUser = localStorage.getItem('ssoma_user');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            if (user.workspace) workspaceName = user.workspace.replace(/[^a-zA-Z0-9\s-_]/g, '').trim();
+        }
+    } catch (e) { console.error(e); }
+
     let standardArea = area ? area.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().toUpperCase() : 'GENERAL';
     if (standardArea.includes('MEDIO') || standardArea.includes('AMBIENTE')) {
         standardArea = 'MEDIO AMBIENTE';
@@ -308,13 +317,13 @@ export async function uploadEvidence(
     // LOGICA 1: ESTRUCTURA PARA PMA (Solicitud Específica)
     if (context === 'PMA' && objective) {
         const safeCategory = objective.replace(/[^a-zA-Z0-9\s\-\_]/g, '').trim().toUpperCase();
-        folderName = `${safeCategory}/${monthName}/${safeLugar}`;
+        folderName = `${workspaceName}/${safeCategory}/${monthName}/${safeLugar}`;
     }
     // LOGICA 2: ESTRUCTURA PARA OBJETIVOS GENERICOS
     else if (objective) {
         const safeObjective = objective.replace(/[^a-zA-Z0-9\s\-\_]/g, '').trim().toUpperCase();
         const safeActivity = title.replace(/[^a-zA-Z0-9\s\-\_]/g, '').substring(0, 50).trim().toUpperCase();
-        folderName = `${safeObjective}/${safeActivity}/${monthName}/${safeLugar}`;
+        folderName = `${workspaceName}/${safeObjective}/${safeActivity}/${monthName}/${safeLugar}`;
     }
     // LOGICA 3: ESTRUCTURA PARA INSPECCIONES
     else {
@@ -333,7 +342,7 @@ export async function uploadEvidence(
         else if (activityCategory.toLowerCase().includes('inspecc')) activityCategory = 'INSPECCIONES';
         else activityCategory = activityCategory.replace(/[^a-zA-Z0-9\s]/g, '').toUpperCase();
 
-        folderName = `${safeArea}/${monthName}/${activityCategory}/${safeLugar}`;
+        folderName = `${workspaceName}/${safeArea}/${monthName}/${activityCategory}/${safeLugar}`;
     }
 
     const tipoMap: Record<string, string> = {

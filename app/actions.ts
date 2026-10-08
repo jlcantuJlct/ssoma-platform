@@ -172,7 +172,8 @@ export async function ensureInspectionTable() {
             status VARCHAR(50),
             observations TEXT,
             evidence_pdf TEXT,
-            evidence_imgs TEXT
+            evidence_imgs TEXT,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
     await db.execute(`
@@ -182,26 +183,30 @@ export async function ensureInspectionTable() {
             type VARCHAR(200),
             quantity INT,
             month INT,
-            area VARCHAR(50)
+            area VARCHAR(50),
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    // Añadimos ALTER TABLE por si las tablas ya existen (ignora error si ya existe la columna)
+    try { await db.execute("ALTER TABLE inspection_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE monthly_program_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-export async function saveMonthlyProgram(items: any[], type: string, month: number) {
+export async function saveMonthlyProgram(items: any[], type: string, month: number, workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
         // Clear old ones for this area and month
         if (type !== 'General') {
-            await db.execute('DELETE FROM monthly_program_records WHERE area = ? AND month = ?', [type, month]);
+            await db.execute('DELETE FROM monthly_program_records WHERE area = ? AND month = ? AND workspace = ?', [type, month, workspace]);
         } else {
             // General import overwrites all
-            await db.execute('DELETE FROM monthly_program_records');
+            await db.execute('DELETE FROM monthly_program_records WHERE workspace = ?', [workspace]);
         }
 
         for (const item of items) {
             await db.execute(
-                'INSERT INTO monthly_program_records (id, responsible, type, quantity, month, area) VALUES (?, ?, ?, ?, ?, ?)',
-                [crypto.randomUUID(), item.responsible, item.type, item.quantity, item.month, item.area]
+                'INSERT INTO monthly_program_records (id, responsible, type, quantity, month, area, workspace) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [crypto.randomUUID(), item.responsible, item.type, item.quantity, item.month, item.area, workspace]
             );
         }
         return { success: true };
@@ -210,10 +215,10 @@ export async function saveMonthlyProgram(items: any[], type: string, month: numb
     }
 }
 
-export async function getMonthlyProgram() {
+export async function getMonthlyProgram(workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
-        const rows = await db.fetchAll('SELECT * FROM monthly_program_records');
+        const rows = await db.fetchAll('SELECT * FROM monthly_program_records WHERE workspace = ?', [workspace]);
         
         const mapped = rows.map((r: any) => ({
             ...r,
@@ -228,13 +233,13 @@ export async function getMonthlyProgram() {
     }
 }
 
-export async function saveInspection(record: any, userName: string = 'Usuario') {
+export async function saveInspection(record: any, userName: string = 'Usuario', workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
         await db.execute(`
-            INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_pdf, evidence_imgs)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [record.id, record.date, record.responsible, record.inspectionType, record.area, record.zone, record.status, record.observations, record.evidencePdf || '', JSON.stringify(record.evidenceImgs || [])]);
+            INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_pdf, evidence_imgs, workspace)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [record.id, record.date, record.responsible, record.inspectionType, record.area, record.zone, record.status, record.observations, record.evidencePdf || '', JSON.stringify(record.evidenceImgs || []), workspace]);
 
         await logActivity(userName, `NUEVA INSPECCIÓN: ${record.inspectionType}`, 'Inspecciones', `Lugar: ${record.zone}`);
         revalidatePath('/inspections');
@@ -244,14 +249,14 @@ export async function saveInspection(record: any, userName: string = 'Usuario') 
     }
 }
 
-export async function updateInspection(record: any) {
+export async function updateInspection(record: any, workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
 
         await db.execute(`
             UPDATE inspection_records 
             SET date = ?, responsible = ?, inspection_type = ?, area = ?, zone = ?, status = ?, observations = ?, evidence_pdf = ?, evidence_imgs = ?
-            WHERE id = ?
+            WHERE id = ? AND workspace = ?
         `, [
             record.date,
             record.responsible,
@@ -262,7 +267,8 @@ export async function updateInspection(record: any) {
             record.observations,
             record.evidencePdf || '',
             JSON.stringify(record.evidenceImgs || []),
-            record.id
+            record.id,
+            workspace
         ]);
 
         await logActivity(record.responsible || 'Usuario', `ACTUALIZACIÓN INSPECCIÓN: ${record.inspectionType}`, 'Inspecciones', `ID: ${record.id}`);
@@ -275,10 +281,10 @@ export async function updateInspection(record: any) {
 }
 
 
-export async function getInspections() {
+export async function getInspections(workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
-        const rows = await db.fetchAll('SELECT * FROM inspection_records ORDER BY COALESCE(updated_at, id) DESC');
+        const rows = await db.fetchAll('SELECT * FROM inspection_records WHERE workspace = ? ORDER BY COALESCE(updated_at, id) DESC', [workspace]);
 
         // Map back to frontend structure
         // Map back to frontend structure with safe parsing and sanitization
@@ -321,10 +327,10 @@ export async function getInspections() {
     }
 }
 
-export async function deleteInspectionRecord(id: number) {
+export async function deleteInspectionRecord(id: number, workspace: string = 'Red Vial 6') {
     try {
         await ensureInspectionTable();
-        await db.execute('DELETE FROM inspection_records WHERE id = ?', [id]);
+        await db.execute('DELETE FROM inspection_records WHERE id = ? AND workspace = ?', [id, workspace]);
         await logActivity('Admin', `ELIMINACIÓN INSPECCIÓN`, 'Inspecciones', `ID: ${id}`);
         revalidatePath('/inspections');
         return { success: true };
