@@ -680,6 +680,9 @@ export default function GeneradorInformesPage() {
     const assignImage = async (tagName: string, file: File) => {
         const userInitials = user ? user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : '';
         
+        // Remover de la lista de borrados si es que fue borrado antes
+        deletedFieldsRef.current = deletedFieldsRef.current.filter(name => name !== tagName);
+
         // Show loading state immediately without heavy preview
         setTags(prev => prev.map(t =>
             t.name === tagName ? { ...t, loading: true, uploaderInitials: userInitials, uploaderName: user?.name, driveUrl: undefined } : t
@@ -735,16 +738,34 @@ export default function GeneradorInformesPage() {
     };
 
     const updateTextValue = (tagName: string, value: string) => {
+        deletedFieldsRef.current = deletedFieldsRef.current.filter(name => name !== tagName);
         setTags(prev => prev.map(t =>
             t.name === tagName ? { ...t, value } : t
         ));
     };
 
-    const clearTag = (tagName: string) => {
+    const clearTag = async (tagName: string) => {
         deletedFieldsRef.current.push(tagName);
         setTags(prev => prev.map(t =>
             t.name === tagName ? { ...t, file: undefined, preview: undefined, value: '', remoteUrl: undefined, uploaderInitials: undefined, uploaderName: undefined, driveUrl: undefined } : t
         ));
+
+        // SYNC: Eliminar explícitamente del borrador en la base de datos para que no vuelva a cargar
+        if (templateFile) {
+            const docType = templateFile.name;
+            try {
+                await fetch('/api/draft', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        docType,
+                        fields: { [tagName]: null } // Enviar null borra el campo en la BD
+                    })
+                });
+            } catch (e) {
+                console.error("No se pudo sincronizar la eliminación con el servidor", e);
+            }
+        }
     };
 
     // ─── Worker de Sincronización en Segundo Plano (Background Sync) ───────
