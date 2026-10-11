@@ -205,6 +205,21 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
         }
     }, []);
 
+    // Sincronización dinámica de Espacio de Trabajo (Multi-Tenant)
+    useEffect(() => {
+        if (!user?.workspace) return;
+        getInspections(user.workspace).then(res => {
+            if (res && res.success && res.data) {
+                setInspections(res.data);
+            }
+        });
+        getMonthlyProgram(user.workspace).then(res => {
+            if (res && res.success && res.data) {
+                setMonthlyProgram(res.data);
+            }
+        });
+    }, [user?.workspace]);
+
     // Dynamic Modules States
     const [inspectionModules, setInspectionModules] = useState<any[]>([]);
     const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
@@ -1032,7 +1047,7 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
 
             setInspections(prev => prev.map(i => i.id === editingId ? updatedRecord : i));
 
-            updateInspection(updatedRecord).then(res => {
+            updateInspection(updatedRecord, user?.workspace || 'Red Vial 6').then(res => {
                 if (res.success) {
                     console.log("✅ Inspección actualizada correctamente");
                     setEditingId(null);
@@ -1073,7 +1088,7 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
 
             // Save to DB
             console.log("💾 Guardando inspección:", newInspection);
-            saveInspection(newInspection).then(res => {
+            saveInspection(newInspection, user?.name || 'Usuario', user?.workspace || 'Red Vial 6').then(res => {
                 if (!res.success) {
                     console.error("Save error:", res.error);
                     alert("Error al guardar en servidor: " + (res.error || "Error desconocido"));
@@ -1197,14 +1212,14 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
     const deleteInspection = (id: number) => {
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
         setInspections(prev => prev.filter(i => i.id !== id));
-        deleteInspectionRecord(id);
+        deleteInspectionRecord(id, user?.workspace || 'Red Vial 6');
     };
 
     const handleBulkDelete = () => {
         if (!confirm(`¿Estás seguro de eliminar los ${selectedIds.length} registros seleccionados?`)) return;
         setInspections(prev => prev.filter(i => !selectedIds.includes(i.id)));
         for (const id of selectedIds) {
-            deleteInspectionRecord(id);
+            deleteInspectionRecord(id, user?.workspace || 'Red Vial 6');
         }
         setSelectedIds([]);
     };

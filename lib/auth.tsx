@@ -113,7 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const storedUser = localStorage.getItem('ssoma_user');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            const parsed = JSON.parse(storedUser);
+            setUser(parsed);
+            if (parsed.workspace) {
+                document.cookie = `ssoma_workspace=${encodeURIComponent(parsed.workspace)}; path=/; max-age=31536000; SameSite=Lax`;
+            }
         }
         setLoading(false);
 
@@ -172,6 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
             setUser(userData);
             localStorage.setItem('ssoma_user', JSON.stringify(userData));
+            const ws = foundUser.workspace || 'Red Vial 6';
+            document.cookie = `ssoma_workspace=${encodeURIComponent(ws)}; path=/; max-age=31536000; SameSite=Lax`;
             router.push('/');
             return true;
         }
@@ -181,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('ssoma_user');
+        document.cookie = 'ssoma_workspace=; path=/; max-age=0; SameSite=Lax';
         router.push('/login');
     };
 
@@ -189,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = { ...user, workspace: newWorkspace };
         setUser(updatedUser);
         localStorage.setItem('ssoma_user', JSON.stringify(updatedUser));
+        document.cookie = `ssoma_workspace=${encodeURIComponent(newWorkspace)}; path=/; max-age=31536000; SameSite=Lax`;
         window.location.reload();
     };
 

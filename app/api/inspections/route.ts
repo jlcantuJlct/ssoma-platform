@@ -18,16 +18,20 @@ async function ensureTable() {
             observations TEXT,
             evidence_pdf TEXT,
             evidence_imgs TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 }
 
 // GET - Obtener todas las inspecciones
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM inspection_records ORDER BY id DESC');
+        const cookieWs = req.cookies.get('ssoma_workspace')?.value;
+        const queryWs = req.nextUrl.searchParams.get('workspace');
+        const workspace = queryWs || (cookieWs ? decodeURIComponent(cookieWs) : 'Red Vial 6');
+        const records = await db.fetchAll('SELECT * FROM inspection_records WHERE workspace = ? ORDER BY id DESC', [workspace]);
 
         const parsed = records.map((r: any) => {
             let evidenceImgs: string[] = [];
@@ -48,7 +52,8 @@ export async function GET() {
                 observations: r.observations,
                 evidenceImgs,
                 evidencePdf: r.evidence_pdf || '',
-                status: r.status || 'Pendiente'
+                status: r.status || 'Pendiente',
+                workspace: r.workspace || 'Red Vial 6'
             };
         });
 
@@ -107,8 +112,8 @@ export async function POST(req: NextRequest) {
 
             const recordId = data.id || Date.now();
             await db.execute(
-                `INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_imgs, evidence_pdf)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO inspection_records (id, date, responsible, inspection_type, area, zone, status, observations, evidence_imgs, evidence_pdf, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     recordId,
                     data.date || '',
@@ -119,7 +124,8 @@ export async function POST(req: NextRequest) {
                     data.status || 'Pendiente',
                     data.observations || data.description || '',
                     JSON.stringify(data.evidenceImgs || []),
-                    data.evidencePdf || ''
+                    data.evidencePdf || '',
+                    data.workspace || req.cookies.get('ssoma_workspace')?.value || 'Red Vial 6'
                 ]
             );
             revalidatePath('/inspections');
