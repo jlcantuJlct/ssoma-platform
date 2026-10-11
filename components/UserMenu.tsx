@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useAuth, ALL_USER_LIST } from "@/lib/auth";
+import { useAuth, ALL_USER_LIST, AVAILABLE_WORKSPACES } from "@/lib/auth";
 import { LogOut, User as UserIcon, Settings, ChevronDown, Activity, AlertTriangle } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -103,7 +103,7 @@ export default function UserMenu() {
     const router = useRouter();
     if (pathname?.startsWith('/levantamiento') || pathname?.startsWith('/public')) return null;
     
-    const { user, logout } = useAuth();
+    const { user, logout, switchWorkspace } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -369,7 +369,12 @@ export default function UserMenu() {
                 <div className="absolute top-14 md:top-16 right-0 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-30">
                     <div className="p-4 border-b border-slate-800 bg-slate-950/50">
                         <p className="text-sm font-black text-white truncate">{user.name}</p>
-                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-1">{user.role}</p>
+                        <div className="flex items-center justify-between mt-1">
+                            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">{user.role}</span>
+                            <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold border border-slate-700">
+                                {user.workspace || 'Red Vial 6'}
+                            </span>
+                        </div>
                     </div>
                     <div className="p-2 flex flex-col gap-1">
                         <button 

@@ -44,11 +44,11 @@ import {
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, AVAILABLE_WORKSPACES } from '@/lib/auth';
 import NetworkHealthWidget from '@/components/dashboard/NetworkHealthWidget';
 
 export default function Sidebar() {
-    const { user } = useAuth();
+    const { user, switchWorkspace } = useAuth();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
@@ -125,6 +125,44 @@ export default function Sidebar() {
                     
                     {/* Consumo de Red Compacto */}
                     <NetworkHealthWidget />
+
+                    {/* Selector de Proyecto Multi-Tenant */}
+                    {user && (
+                        <div className="mt-4 pt-3 border-t border-slate-800">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5">
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    PROYECTO ACTIVO
+                                </span>
+                                {(user.role === 'developer' || user.role === 'manager') && (
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono font-bold">
+                                        MANAGER
+                                    </span>
+                                )}
+                            </div>
+
+                            {(user.role === 'developer' || user.role === 'manager') ? (
+                                <select
+                                    value={user.workspace || 'Red Vial 6'}
+                                    onChange={(e) => switchWorkspace?.(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 hover:border-emerald-500 text-xs text-white rounded-lg px-2.5 py-2 font-bold transition-all outline-none cursor-pointer shadow-inner focus:ring-1 focus:ring-emerald-500"
+                                    title="Cambiar de Proyecto (Vista Manager)"
+                                >
+                                    {AVAILABLE_WORKSPACES.map(ws => (
+                                        <option key={ws} value={ws} className="bg-slate-950 text-white py-1">
+                                            {ws === 'Red Vial 6' ? '🏗️ Red Vial 6' : '🛣️ Longitudinal tramo 4'}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div className="bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-2 flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-200 truncate">
+                                        {user.workspace === 'Longitudinal tramo 4' ? '🛣️ Longitudinal tramo 4' : '🏗️ Red Vial 6'}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">

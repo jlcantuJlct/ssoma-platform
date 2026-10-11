@@ -69,10 +69,13 @@ export const ALL_USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS).map(key =>
     name: INITIAL_USERS[key].name
 }));
 
+export const AVAILABLE_WORKSPACES = ['Red Vial 6', 'Longitudinal tramo 4'] as const;
+
 interface AuthContextType {
     user: User | null;
     login: (username: string, pass: string) => boolean;
     logout: () => void;
+    switchWorkspace: (workspace: string) => void;
     sendRecoveryEmail: (username: string) => Promise<boolean>;
     updatePassword: (username: string, newPass: string) => boolean;
     recoverCredential: (username: string) => string | null;
@@ -181,6 +184,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/login');
     };
 
+    const switchWorkspace = (newWorkspace: string) => {
+        if (!user) return;
+        const updatedUser = { ...user, workspace: newWorkspace };
+        setUser(updatedUser);
+        localStorage.setItem('ssoma_user', JSON.stringify(updatedUser));
+        window.location.reload();
+    };
+
     // Simular envío de correo
     const sendRecoveryEmail = async (username: string) => {
         return new Promise<boolean>((resolve) => {
@@ -246,6 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             login,
             logout,
+            switchWorkspace,
             sendRecoveryEmail,
             updatePassword,
             recoverCredential,
