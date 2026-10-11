@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 async function ensureTable() {
     await db.execute(`
@@ -22,12 +23,14 @@ async function ensureTable() {
     `);
     try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN accion_inmediata TEXT'); } catch(e) {}
     try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN descripcion TEXT'); } catch(e) {}
+    try { await db.execute("ALTER TABLE reporte_ac_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM reporte_ac_records ORDER BY created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM reporte_ac_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
         return NextResponse.json({ success: true, records });
     } catch (error: any) {
         console.error('Error fetching Reporte A/C records:', error);
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
         await ensureTable();
         const { records, userName } = await req.json();
         const actingUser = userName || 'Usuario';
+        const workspace = getRequestWorkspace(req);
 
         if (!Array.isArray(records)) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
@@ -53,8 +57,8 @@ export async function POST(req: NextRequest) {
             
             if (existing.length === 0) {
                 await db.execute(
-                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url, accion_inmediata, descripcion)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url, accion_inmediata, descripcion, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         rid,
                         r.date || '',
@@ -65,7 +69,8 @@ export async function POST(req: NextRequest) {
                         r.location || '',
                         r.pdfUrl || '',
                         r.accion_inmediata || '',
-                        r.descripcion || ''
+                        r.descripcion || '',
+                        workspace
                     ]
                 );
                 inserted++;

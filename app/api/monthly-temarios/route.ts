@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 async function ensureTable() {
     await db.execute(`
@@ -10,14 +11,16 @@ async function ensureTable() {
             year INTEGER NOT NULL,
             url TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(month, year)
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE monthly_temarios ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 export async function GET(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const url = new URL(req.url);
         const month = url.searchParams.get('month');
         const year = url.searchParams.get('year');
@@ -26,7 +29,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Faltan parámetros month o year' }, { status: 400 });
         }
 
-        const res = await db.fetchAll('SELECT url FROM monthly_temarios WHERE month = ? AND year = ?', [Number(month), Number(year)]);
+        const res = await db.fetchAll('SELECT url FROM monthly_temarios WHERE month = ? AND year = ? AND workspace = ?', [Number(month), Number(year), workspace]);
         
         if (res && res.length > 0) {
             return NextResponse.json({ success: true, url: res[0].url });
@@ -42,6 +45,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
         const { month, year, url } = body;
 
@@ -49,10 +53,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Faltan campos obligatorios' }, { status: 400 });
         }
 
-        await db.execute('DELETE FROM monthly_temarios WHERE month = ? AND year = ?', [Number(month), Number(year)]);
+        await db.execute('DELETE FROM monthly_temarios WHERE month = ? AND year = ? AND workspace = ?', [Number(month), Number(year), workspace]);
         await db.execute(
-            'INSERT INTO monthly_temarios (month, year, url) VALUES (?, ?, ?)',
-            [Number(month), Number(year), url]
+            'INSERT INTO monthly_temarios (month, year, url, workspace) VALUES (?, ?, ?, ?)',
+            [Number(month), Number(year), url, workspace]
         );
 
         return NextResponse.json({ success: true, message: 'URL guardada exitosamente' });
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const url = new URL(req.url);
         const month = url.searchParams.get('month');
         const year = url.searchParams.get('year');
@@ -73,7 +78,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Faltan parámetros month o year' }, { status: 400 });
         }
 
-        await db.execute('DELETE FROM monthly_temarios WHERE month = ? AND year = ?', [Number(month), Number(year)]);
+        await db.execute('DELETE FROM monthly_temarios WHERE month = ? AND year = ? AND workspace = ?', [Number(month), Number(year), workspace]);
         return NextResponse.json({ success: true, message: 'Temario eliminado exitosamente' });
     } catch (error: any) {
         console.error('Error deleting monthly temario:', error);

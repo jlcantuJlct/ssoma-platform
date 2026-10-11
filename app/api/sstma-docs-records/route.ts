@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 export async function GET(req: NextRequest) {
     try {
         const isPostgres = !!process.env.POSTGRES_URL;
@@ -17,15 +19,18 @@ export async function GET(req: NextRequest) {
                     zona TEXT,
                     file_url TEXT,
                     file_urls TEXT,
-                    created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP
+                    created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP,
+                    workspace VARCHAR(100) DEFAULT 'Red Vial 6'
                 )
             `);
             if (isPostgres) {
                 await db.execute('ALTER TABLE sstma_docs_records ALTER COLUMN id TYPE BIGINT');
             }
+            await db.execute("ALTER TABLE sstma_docs_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'");
         } catch (e) {}
 
-        const records = await db.fetchAll('SELECT * FROM sstma_docs_records ORDER BY created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM sstma_docs_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
         
         const formattedRecords = records.map((r: any) => ({
             ...r,
@@ -41,6 +46,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         // 1. MODO ACCION (Delta Sync)
@@ -50,8 +56,8 @@ export async function POST(req: NextRequest) {
                 if (!r) throw new Error('Falta el record para CREATE');
 
                 const res = await db.execute(
-                    `INSERT INTO sstma_docs_records (date, document_type, description, responsable, zona, file_url, file_urls)
-                     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO sstma_docs_records (date, document_type, description, responsable, zona, file_url, file_urls, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         r.date || '',
                         r.documentType || '',
@@ -59,7 +65,8 @@ export async function POST(req: NextRequest) {
                         r.responsable || r.responsible || '',
                         r.zona || r.location || '',
                         r.fileUrl || (r.fileUrls?.[0] || ''),
-                        JSON.stringify(r.fileUrls || [])
+                        JSON.stringify(r.fileUrls || []),
+                        workspace
                     ]
                 );
                 const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;

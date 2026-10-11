@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -14,16 +15,19 @@ async function ensureTable() {
             location VARCHAR(200),
             description TEXT,
             files JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE epp_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener todos los registros EPP
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM epp_records ORDER BY month DESC, date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM epp_records WHERE workspace = ? ORDER BY month DESC, date DESC, id DESC', [workspace]);
 
         // Mapear al formato esperado por el frontend
         const parsed = records.map((r: any) => ({
@@ -51,18 +55,20 @@ export async function POST(req: NextRequest) {
 
         const { action, data, id, userName } = body;
         const actingUser = userName || (data && data.responsible) || 'Usuario';
+        const workspace = data?.workspace || getRequestWorkspace(req);
 
         if (action === 'create') {
             const res = await db.execute(
-                `INSERT INTO epp_records (month, date, responsible, location, description, files)
-                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+                `INSERT INTO epp_records (month, date, responsible, location, description, files, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     data.month || '',
                     data.date || '',
                     data.responsible || '',
                     data.location || '',
                     data.description || '',
-                    JSON.stringify(data.files || [])
+                    JSON.stringify(data.files || []),
+                    workspace
                 ]
             );
             await logActivity(actingUser, `NUEVO REGISTRO EPP: ${data.location}`, 'EPP', `Mes: ${data.month}`);

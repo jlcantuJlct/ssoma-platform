@@ -4,6 +4,8 @@ import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
 import crypto from 'crypto';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 // Crear tablas si no existen
 async function ensureTables() {
     // Tabla de Actas (Cabecera)
@@ -13,7 +15,8 @@ async function ensureTables() {
             date VARCHAR(20) NOT NULL,
             place VARCHAR(200),
             report_number VARCHAR(100) UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 
@@ -29,17 +32,22 @@ async function ensureTables() {
             lifting_number INT,
             evidence_img TEXT,
             evidence_pdf TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+
+    try { await db.execute("ALTER TABLE actas_supervision ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE actas_levantamiento ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener todos los registros
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTables();
-        const actas = await db.fetchAll('SELECT * FROM actas_supervision ORDER BY date DESC, created_at DESC');
-        const levantamientos = await db.fetchAll('SELECT * FROM actas_levantamiento ORDER BY date DESC, created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const actas = await db.fetchAll('SELECT * FROM actas_supervision WHERE workspace = ? ORDER BY date DESC, created_at DESC', [workspace]);
+        const levantamientos = await db.fetchAll('SELECT * FROM actas_levantamiento WHERE workspace = ? ORDER BY date DESC, created_at DESC', [workspace]);
 
         return NextResponse.json({ 
             success: true, 
@@ -57,6 +65,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTables();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
         const { action, type, data, id, userName } = body;
         const actingUser = userName || 'Usuario';
@@ -65,15 +74,15 @@ export async function POST(req: NextRequest) {
             const newId = crypto.randomUUID();
             if (type === 'acta') {
                 await db.execute(
-                    `INSERT INTO actas_supervision (id, date, place, report_number)
-                     VALUES (?, ?, ?, ?)`,
-                    [newId, data.date, data.place, data.reportNumber]
+                    `INSERT INTO actas_supervision (id, date, place, report_number, workspace)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [newId, data.date, data.place, data.reportNumber, workspace]
                 );
                 await logActivity(actingUser, `NUEVA ACTA SUPERVISIÓN: ${data.reportNumber}`, 'Actas', `Lugar: ${data.place}`);
             } else if (type === 'levantamiento') {
                 await db.execute(
-                    `INSERT INTO actas_levantamiento (id, report_number, date, place, responsible, lifting_number, evidence_img, evidence_pdf)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO actas_levantamiento (id, report_number, date, place, responsible, lifting_number, evidence_img, evidence_pdf, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         newId, 
                         data.reportNumber, 
@@ -82,7 +91,8 @@ export async function POST(req: NextRequest) {
                         data.responsible, 
                         data.liftingNumber, 
                         data.evidenceImg || '', 
-                        data.evidencePdf || ''
+                        data.evidencePdf || '',
+                        workspace
                     ]
                 );
                 await logActivity(actingUser, `NUEVO LEVANTAMIENTO: ${data.reportNumber} - #${data.liftingNumber}`, 'Actas', `Responsable: ${data.responsible}`);

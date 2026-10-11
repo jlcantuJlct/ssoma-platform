@@ -36,7 +36,8 @@ export default function AlertaBanner() {
     const [loading, setLoading]     = useState(false);
 
     const checkPending = useCallback(async () => {
-        if (!user || !ALERT_USERNAMES.includes(user.username)) return;
+        // No alertar si no hay usuario, o si está desactivado, o si es desarrollador/gerencia
+        if (!user || user.deactivated || user.role === 'developer' || user.role === 'manager') return;
 
         // Verificar si ya fue descartado hoy
         const dismissKey = `ssoma_alert_dismissed_${new Date().toISOString().split('T')[0]}_${user.username}`;
@@ -47,7 +48,8 @@ export default function AlertaBanner() {
 
         setLoading(true);
         try {
-            const res = await fetch(`/api/check-pending?username=${user.username}&name=${encodeURIComponent(user.name)}`);
+            const ws = user.workspace || 'Red Vial 6';
+            const res = await fetch(`/api/check-pending?username=${user.username}&name=${encodeURIComponent(user.name)}&workspace=${encodeURIComponent(ws)}&deactivated=${user.deactivated ? 'true' : 'false'}`);
             const data = await res.json();
             if (data.pending && data.pending.length > 0) {
                 setPending(data.pending);
@@ -69,7 +71,7 @@ export default function AlertaBanner() {
         setDismissed(true);
     };
 
-    if (!user || !ALERT_USERNAMES.includes(user.username)) return null;
+    if (!user || user.deactivated || user.role === 'developer' || user.role === 'manager') return null;
     if (dismissed || loading || pending.length === 0) return null;
 
     return (

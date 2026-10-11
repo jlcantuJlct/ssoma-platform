@@ -68,7 +68,7 @@ export default function MonitoringPage() {
 
     useEffect(() => {
         const performMigrationAndLoad = async () => {
-            const stored = localStorage.getItem('monitoring_records_v1');
+            const stored = null;
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);

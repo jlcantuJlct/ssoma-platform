@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS manifiesto_records (
@@ -14,7 +16,8 @@ async function ensureTable() {
             unit VARCHAR(20),
             location VARCHAR(200),
             files JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 
@@ -24,12 +27,16 @@ async function ensureTable() {
     try {
         await db.execute(`ALTER TABLE manifiesto_records ADD COLUMN document_type VARCHAR(100) DEFAULT 'Manifiesto';`);
     } catch(e) {}
+    try {
+        await db.execute(`ALTER TABLE manifiesto_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6';`);
+    } catch(e) {}
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM manifiesto_records ORDER BY date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM manifiesto_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
 
         const parsed = records.map((r: any) => ({
             id: r.id,
@@ -55,6 +62,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         // 1. MODO ACCION (Delta Sync)
@@ -68,8 +76,8 @@ export async function POST(req: NextRequest) {
                 const legacyUnit = r.unit || (r.items && r.items[0]?.unit) || 'kg';
 
                 const res = await db.execute(
-                    `INSERT INTO manifiesto_records (date, manifest_number, transport_company, waste_type, quantity, unit, location, files, items, document_type)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO manifiesto_records (date, manifest_number, transport_company, waste_type, quantity, unit, location, files, items, document_type, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         r.date || '',
                         r.manifestNumber || '',
@@ -80,7 +88,8 @@ export async function POST(req: NextRequest) {
                         r.location || '',
                         JSON.stringify(r.files || []),
                         JSON.stringify(r.items || []),
-                        r.documentType || 'Manifiesto'
+                        r.documentType || 'Manifiesto',
+                        workspace
                     ]
                 );
                 const newId = res.rows?.[0]?.id;

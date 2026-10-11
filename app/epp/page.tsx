@@ -143,7 +143,7 @@ export default function EPPPage() {
 
     useEffect(() => {
         const performMigrationAndLoad = async () => {
-            const stored = localStorage.getItem('epp_records_v2');
+            const stored = null;
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);

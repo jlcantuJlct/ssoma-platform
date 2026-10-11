@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -12,16 +13,19 @@ async function ensureTable() {
             tema TEXT,
             area VARCHAR(50) DEFAULT 'seguridad',
             tipo VARCHAR(50) DEFAULT 'capacitacion',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE training_program ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener programa de formación
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM training_program ORDER BY date ASC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM training_program WHERE workspace = ? ORDER BY date ASC', [workspace]);
         return NextResponse.json({ success: true, records });
     } catch (error: any) {
         console.error('Error fetching training program:', error);
@@ -33,6 +37,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
         const { action, data, id, userName } = body;
         const actingUser = userName || 'Admin';
@@ -43,8 +48,8 @@ export async function POST(req: NextRequest) {
             let insertedCount = 0;
             for (const r of newRecords) {
                 await db.execute(
-                    `INSERT INTO training_program (date, tema, area, tipo) VALUES (?, ?, ?, ?)`,
-                    [r.date || '', r.tema || '', r.area || 'seguridad', r.tipo || 'capacitacion']
+                    `INSERT INTO training_program (date, tema, area, tipo, workspace) VALUES (?, ?, ?, ?, ?)`,
+                    [r.date || '', r.tema || '', r.area || 'seguridad', r.tipo || 'capacitacion', workspace]
                 );
                 insertedCount++;
             }
@@ -57,8 +62,8 @@ export async function POST(req: NextRequest) {
         // 2. MODO ACCIONES
         if (action === 'create') {
             const res = await db.execute(
-                `INSERT INTO training_program (date, tema, area, tipo) VALUES (?, ?, ?, ?) RETURNING id`,
-                [data.date || '', data.tema || '', data.area || 'seguridad', data.tipo || 'capacitacion']
+                `INSERT INTO training_program (date, tema, area, tipo, workspace) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+                [data.date || '', data.tema || '', data.area || 'seguridad', data.tipo || 'capacitacion', workspace]
             );
             await logActivity(actingUser, `NUEVO TEMA FORMACIÓN: ${data.tema}`, 'Formación', `Fecha: ${data.date}`);
             return NextResponse.json({ success: true, id: res.rows?.[0]?.id || 0 });
@@ -88,7 +93,7 @@ export async function POST(req: NextRequest) {
             const monthStr = String(month + 1).padStart(2, '0');
             const pattern = `${year}-${monthStr}-%`;
 
-            await db.execute('DELETE FROM training_program WHERE date LIKE ?', [pattern]);
+            await db.execute('DELETE FROM training_program WHERE date LIKE ? AND workspace = ?', [pattern, workspace]);
             await logActivity(actingUser, `LIMPIEZA MES PROGRAMA`, 'Formación', `Mes: ${monthStr}, Año: ${year}`);
             return NextResponse.json({ success: true });
         }
@@ -98,8 +103,8 @@ export async function POST(req: NextRequest) {
             let count = 0;
             for (const r of data) {
                 await db.execute(
-                    `INSERT INTO training_program (date, tema, area, tipo) VALUES (?, ?, ?, ?)`,
-                    [r.date || '', r.tema || '', r.area || 'seguridad', r.tipo || 'capacitacion']
+                    `INSERT INTO training_program (date, tema, area, tipo, workspace) VALUES (?, ?, ?, ?, ?)`,
+                    [r.date || '', r.tema || '', r.area || 'seguridad', r.tipo || 'capacitacion', workspace]
                 );
                 count++;
             }

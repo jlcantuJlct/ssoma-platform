@@ -44,13 +44,23 @@ import {
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useAuth, AVAILABLE_WORKSPACES } from '@/lib/auth';
+import { useAuth } from '@/lib/auth';
+import { getAvailableWorkspaces } from '@/lib/locations';
 import NetworkHealthWidget from '@/components/dashboard/NetworkHealthWidget';
 
 export default function Sidebar() {
     const { user, switchWorkspace } = useAuth();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    const [currentWorkspaces, setCurrentWorkspaces] = useState<string[]>([]);
+
+    useEffect(() => {
+        const updateWs = () => setCurrentWorkspaces(getAvailableWorkspaces());
+        updateWs();
+        window.addEventListener('ssoma_workspaces_updated', updateWs);
+        return () => window.removeEventListener('ssoma_workspaces_updated', updateWs);
+    }, []);
 
     const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
         security: true,
@@ -148,9 +158,9 @@ export default function Sidebar() {
                                     className="w-full bg-slate-900 border border-slate-700 hover:border-emerald-500 text-xs text-white rounded-lg px-2.5 py-2 font-bold transition-all outline-none cursor-pointer shadow-inner focus:ring-1 focus:ring-emerald-500"
                                     title="Cambiar de Proyecto (Vista Manager)"
                                 >
-                                    {AVAILABLE_WORKSPACES.map(ws => (
+                                    {(currentWorkspaces.length > 0 ? currentWorkspaces : ['Red Vial 6', 'Longitudinal tramo 4']).map(ws => (
                                         <option key={ws} value={ws} className="bg-slate-950 text-white py-1">
-                                            {ws === 'Red Vial 6' ? '🏗️ Red Vial 6' : '🛣️ Longitudinal tramo 4'}
+                                            {ws === 'Red Vial 6' ? '🏗️ Red Vial 6' : ws === 'Longitudinal tramo 4' ? '🛣️ Longitudinal tramo 4' : `📁 ${ws}`}
                                         </option>
                                     ))}
                                 </select>
@@ -280,7 +290,7 @@ export default function Sidebar() {
                                 <SidebarItem icon={<FileText size={16} className="text-amber-500" />} label="Anexos OSITRAN" href="/ositran-report" active={pathname === '/ositran-report'} />
                                 <SidebarItem icon={<ExternalLink size={16} className="text-cyan-500" />} label="Archivo Central SharePoint" href="/export-center" active={pathname === '/export-center'} />
                                 <SidebarItem icon={<ClipboardList size={16} className="text-indigo-400" />} label="Auditoría / Actividad" href="/auditoria" active={pathname === '/auditoria'} />
-                                {user?.role === 'developer' && (
+                                {(user?.role === 'developer' || user?.role === 'manager') && (
                                     <SidebarItem icon={<Settings size={16} className="text-pink-500" />} label="Configuración Maestros" href="/settings" active={pathname === '/settings'} />
                                 )}
                             </>

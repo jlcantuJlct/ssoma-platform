@@ -11,9 +11,14 @@ export default function LoginPage() {
     const userList = useMemo(() => {
         if (getAllUsers) {
             const users = getAllUsers();
-            return Object.entries(users).map(([k, v]) => ({ username: k, name: v.name }));
+            return Object.entries(users).map(([k, v]) => ({
+                username: k,
+                name: v.name,
+                workspace: v.workspace,
+                deactivated: !!v.deactivated
+            }));
         }
-        return STATIC_USER_LIST || [];
+        return (STATIC_USER_LIST || []).map(u => ({ ...u, workspace: 'Red Vial 6', deactivated: false }));
     }, [getAllUsers]);
 
     // States
@@ -21,6 +26,11 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+
+    const isSelectedUserDeactivated = useMemo(() => {
+        const u = userList.find(x => x.username === selectedUser);
+        return !!u?.deactivated;
+    }, [userList, selectedUser]);
 
     // Recovery States
     const [isRecoveryMode, setIsRecoveryMode] = useState(false);
@@ -38,21 +48,30 @@ export default function LoginPage() {
             return;
         }
 
+        if (isSelectedUserDeactivated) {
+            setError('⚠️ Este usuario está DESACTIVADO. No tiene autorización para ingresar a los proyectos de la plataforma.');
+            return;
+        }
+
         // ACCESO DIRECTO GERENCIA
         if (selectedUser === 'gerencia') {
-            // FIX: Envía la contraseña real definida en auth.tsx
-            if (login('gerencia', 'GerenciaSSO2026')) {
-                return; // Redirección ocurre en login()
+            const res = login('gerencia', 'GerenciaSSO2026');
+            if (res.success) {
+                return;
+            } else if (res.error) {
+                setError(res.error);
+                return;
             }
         }
 
-        if (login(selectedUser, password)) {
+        const res = login(selectedUser, password);
+        if (res.success) {
             // Log successful login
             import('@/app/actions').then(({ logActivity }) => {
                 logActivity(selectedUser, 'INICIO DE SESIÓN', 'Auth', 'Ingreso exitoso a la plataforma');
             });
         } else {
-            setError('Credenciales incorrectas. Intente nuevamente.');
+            setError(res.error || 'Credenciales incorrectas. Intente nuevamente.');
         }
     };
 
@@ -135,13 +154,22 @@ export default function LoginPage() {
                                     >
                                         <option value="" disabled>-- Seleccione su cuenta --</option>
                                         {userList.map(u => (
-                                            <option key={u.username} value={u.username} className="bg-slate-900">
-                                                {u.name}
+                                            <option 
+                                                key={u.username} 
+                                                value={u.username} 
+                                                className={u.deactivated ? "bg-rose-950/80 text-rose-300 font-semibold" : "bg-slate-900"}
+                                            >
+                                                {u.name} {u.workspace ? `[${u.workspace}]` : ''} {u.deactivated ? '⛔ (INACTIVO / DESACTIVADO)' : ''}
                                             </option>
                                         ))}
                                     </select>
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={20} />
                                 </div>
+                                {isSelectedUserDeactivated && (
+                                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2 mt-2">
+                                        <span>⛔ <strong>Usuario Desactivado:</strong> Esta cuenta ha sido dada de baja o trasladada y no tiene acceso a los proyectos. Contacte a la administración.</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Password Field - HIDDEN FOR GERENCIA */}

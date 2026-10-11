@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -13,16 +14,19 @@ async function ensureTable() {
             location VARCHAR(200),
             type VARCHAR(50),
             file_url TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE petar_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener todos los registros PETAR
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM petar_records ORDER BY date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM petar_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
 
         // Mapear nombres de columnas a camelCase para el frontend
         const parsed = records.map((r: any) => ({
@@ -51,6 +55,7 @@ export async function POST(req: NextRequest) {
         // MODO ACCIONES
         const { action, data, id, userName } = body;
         const actingUser = userName || (data && data.responsible) || 'Usuario';
+        const workspace = data?.workspace || getRequestWorkspace(req);
 
         if (action === 'create') {
             // VALIDACIÓN: Requiere archivo adjunto
@@ -62,14 +67,15 @@ export async function POST(req: NextRequest) {
             }
 
             const res = await db.execute(
-                `INSERT INTO petar_records (date, responsible, location, type, file_url)
-                 VALUES (?, ?, ?, ?, ?) RETURNING id`,
+                `INSERT INTO petar_records (date, responsible, location, type, file_url, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     data.date || '',
                     data.responsible || '',
                     data.location || '',
                     data.type || 'Caliente',
-                    data.fileUrl || ''
+                    data.fileUrl || '',
+                    workspace
                 ]
             );
             await logActivity(actingUser, `NUEVO PETAR: ${data.type}`, 'PETAR', `Lugar: ${data.location}`);

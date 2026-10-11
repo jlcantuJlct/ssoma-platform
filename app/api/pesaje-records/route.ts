@@ -7,6 +7,8 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2t
 const BACKUP_FOLDER = "BACKUPS/Pesaje de Residuos";
 const BACKUP_FILE   = "pesaje_records_backup.csv";
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS pesaje_records (
@@ -17,9 +19,11 @@ async function ensureTable() {
             location VARCHAR(200),
             category VARCHAR(50),
             files JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE pesaje_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // ── BACKUP AUTOMÁTICO A GOOGLE DRIVE ────────────────────────────────────────
@@ -75,10 +79,11 @@ async function backupToDrive() {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM pesaje_records ORDER BY date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM pesaje_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
 
         const parsed = records.map((r: any) => ({
             id: r.id,
@@ -100,6 +105,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         // MODO ACCION (Delta Sync)
@@ -109,15 +115,16 @@ export async function POST(req: NextRequest) {
                 if (!r) throw new Error('Falta el record para CREATE');
 
                 const res = await db.execute(
-                    `INSERT INTO pesaje_records (date, waste_type, weight, location, category, files)
-                     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO pesaje_records (date, waste_type, weight, location, category, files, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         r.date || '',
                         r.wasteType || '',
                         Number(r.weight) || 0,
                         r.location || '',
                         r.category || '',
-                        JSON.stringify(r.files || [])
+                        JSON.stringify(r.files || []),
+                        workspace
                     ]
                 );
                 const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;

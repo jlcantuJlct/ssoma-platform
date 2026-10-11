@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS vehicle_inspection_records (
@@ -21,20 +23,24 @@ async function ensureTable() {
             drive_url TEXT,
             status VARCHAR(50) DEFAULT 'Con Observaciones',
             fotos_levantamiento TEXT DEFAULT '[]',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
     // Agregar columnas si ya existía la tabla sin ellas
     try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN fotos_levantamiento TEXT DEFAULT '[]'`); } catch(e){}
     try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN status VARCHAR(50) DEFAULT 'Con Observaciones'`); } catch(e){}
+    try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'`); } catch(e){}
 }
 
 // GET - Obtener todas las inspecciones de vehículos
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const records = await db.fetchAll(
-            'SELECT * FROM vehicle_inspection_records ORDER BY created_at DESC'
+            'SELECT * FROM vehicle_inspection_records WHERE workspace = ? ORDER BY created_at DESC',
+            [workspace]
         );
         return NextResponse.json({ success: true, records });
     } catch (error: any) {

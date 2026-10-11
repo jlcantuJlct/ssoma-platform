@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth, USER_LIST } from "@/lib/auth";
-import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { useAuth } from "@/lib/auth";
+import { getLocationsForWorkspace } from "@/lib/locations";
 import { uploadEvidence } from "@/lib/uploadClient";
 import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
@@ -24,7 +24,6 @@ import {
     X
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
-import { RESPONSIBLES } from "@/lib/categories";
 import { generateFilename, getInitials, canDeleteRecord } from "@/lib/utils";
 
 // --- TYPES ---
@@ -37,13 +36,23 @@ type AtsRecord = {
 };
 
 export default function AtsPage() {
-    const { user } = useAuth();
+    const { user, getAllUsers } = useAuth();
 
     // STATE
     const [records, setRecords] = useState<AtsRecord[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
     const [isLoaded, setIsLoaded] = useState(false);
+
+    const currentWorkspace = user?.workspace || 'Red Vial 6';
+    const projectLocations = getLocationsForWorkspace(currentWorkspace);
+
+    // Usuarios del proyecto actual (solo activos)
+    const allUsers = typeof window !== 'undefined' ? getAllUsers() : {};
+    const projectUsers = Object.values(allUsers).filter((u: any) => 
+        !u.deactivated && ((u.workspace || 'Red Vial 6') === currentWorkspace || u.role === 'developer' || u.role === 'manager')
+    );
+    const projectResponsibles = projectUsers.map((u: any) => u.name);
 
     const [form, setForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -220,54 +229,11 @@ export default function AtsPage() {
                 if (data.success && Array.isArray(data.records)) {
                     apiRecords = data.records;
                 }
-
-                const stored = localStorage.getItem('ats_records');
-                let mergedRecords = [...apiRecords];
-                let hasUnsyncedLocal = false;
-                let localRecordsToSync: any[] = [];
-
-                if (stored) {
-                    try {
-                        const localRecords = JSON.parse(stored);
-                        if (Array.isArray(localRecords) && localRecords.length > 0) {
-                            for (const localRec of localRecords) {
-                                const exists = apiRecords.find(r => 
-                                    r.date === localRec.date && 
-                                    r.responsible === localRec.responsible &&
-                                    r.location === localRec.location
-                                );
-                                if (!exists) {
-                                    mergedRecords.push(localRec);
-                                    localRecordsToSync.push(localRec);
-                                    hasUnsyncedLocal = true;
-                                }
-                            }
-                        }
-                    } catch (parseErr) {
-                        console.error("Error parsing ats_records", parseErr);
-                    }
-                }
-
-                if (hasUnsyncedLocal && localRecordsToSync.length > 0) {
-                    fetch('/api/ats-records', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'bulk-create', data: localRecordsToSync })
-                    }).catch(console.error);
-                }
-
-                mergedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setRecords(mergedRecords);
+                apiRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(apiRecords);
             } catch (e) {
                 console.error("Error loading ATS records from API:", e);
-                const stored = localStorage.getItem('ats_records');
-                if (stored) {
-                    try {
-                        setRecords(JSON.parse(stored));
-                    } catch (parseErr) {
-                        console.error("Error parsing ats_records", parseErr);
-                    }
-                }
+                setRecords([]);
             }
             setIsLoaded(true);
         };
@@ -278,13 +244,6 @@ export default function AtsPage() {
             setForm(prev => ({ ...prev, responsible: user.name }));
         }
     }, [user]);
-
-    // Sync to localStorage as backup (but API is primary)
-    useEffect(() => {
-        if (isLoaded && records.length > 0) {
-            localStorage.setItem('ats_records', JSON.stringify(records));
-        }
-    }, [records, isLoaded]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -511,8 +470,8 @@ export default function AtsPage() {
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-teal-500 outline-none transition-colors"
                                             >
                                                 <option value="">Seleccionar...</option>
-                                                {USER_LIST.map(u => (
-                                                    <option key={u.username} value={u.name}>{u.name}</option>
+                                                {projectUsers.map((u: any) => (
+                                                    <option key={u.username || u.name} value={u.name}>{u.name}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -526,7 +485,7 @@ export default function AtsPage() {
                                                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-teal-500 outline-none transition-colors"
                                             >
                                                 <option value="">Seleccionar...</option>
-                                                {SSOMA_LOCATIONS.map(loc => (
+                                                {projectLocations.map(loc => (
                                                     <option key={loc} value={loc}>{loc}</option>
                                                 ))}
                                             </select>
@@ -655,7 +614,7 @@ export default function AtsPage() {
                                         </div>
                                         <SearchableSelect 
                                             name="filtro_responsable"
-                                            options={RESPONSIBLES}
+                                            options={projectResponsibles}
                                             value={filterResponsible}
                                             onChange={(val) => setFilterResponsible(val)}
                                             placeholder="Todos los responsables..."
@@ -673,7 +632,7 @@ export default function AtsPage() {
                                         </div>
                                         <SearchableSelect 
                                             name="filtro_lugar"
-                                            options={SSOMA_LOCATIONS}
+                                            options={projectLocations}
                                             value={filterLocation}
                                             onChange={(val) => setFilterLocation(val)}
                                             placeholder="Todos los lugares..."

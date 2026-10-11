@@ -104,7 +104,7 @@ export default function DetourPage() {
         loadRecords();
 
         // Load stored records as fallback
-        const stored = localStorage.getItem('desvio_evidence_records');
+        const stored = null;
         if (stored) {
             try {
                 setRecords(JSON.parse(stored));

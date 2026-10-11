@@ -341,10 +341,11 @@ export async function deleteInspectionRecord(id: number, workspace: string = 'Re
 
 // --- DASHBOARD SYNC ACTIONS (Objectives 1-11) ---
 
-export async function getDashboardActivities() {
+export async function getDashboardActivities(workspace: string = 'Red Vial 6') {
     try {
-        // Fetch all activities
-        const activities = await db.fetchAll('SELECT * FROM activities');
+        try { await db.execute("ALTER TABLE activities ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+        // Fetch all activities for workspace
+        const activities = await db.fetchAll('SELECT * FROM activities WHERE workspace = ?', [workspace]);
 
         // Fetch all progress
         const progress = await db.fetchAll('SELECT * FROM progress');

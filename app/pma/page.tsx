@@ -112,7 +112,7 @@ export default function PMAPage() {
     useEffect(() => {
         const init = async () => {
             // 1. Load stored records first
-            const stored = localStorage.getItem('pma_evidence_records');
+            const stored = null;
             let initialRecords: PMAEvidenceRecord[] = [];
             if (stored) {
                 try {

@@ -149,59 +149,11 @@ export default function PetarPage() {
                     apiRecords = data.records;
                 }
 
-                const stored = localStorage.getItem('petar_records');
-                let mergedRecords = [...apiRecords];
-                let hasUnsyncedLocal = false;
-                let localRecordsToSync: any[] = [];
-
-                if (stored) {
-                    try {
-                        const localRecords = JSON.parse(stored);
-                        if (Array.isArray(localRecords) && localRecords.length > 0) {
-                            // Encontrar registros locales que no estén en la base de datos (por fecha, tipo, etc. O simplemente por ID temporal)
-                            // Como los IDs de DB son números pequeños, los locales antiguos pueden tener IDs generados por Date.now()
-                            for (const localRec of localRecords) {
-                                // Comprobación simple para evitar duplicados exactos
-                                const exists = apiRecords.find(r => 
-                                    r.date === localRec.date && 
-                                    r.responsible === localRec.responsible &&
-                                    r.type === localRec.type
-                                );
-                                if (!exists) {
-                                    mergedRecords.push(localRec);
-                                    localRecordsToSync.push(localRec);
-                                    hasUnsyncedLocal = true;
-                                }
-                            }
-                        }
-                    } catch (parseErr) {
-                        console.error("Error parsing petar_records", parseErr);
-                    }
-                }
-
-                if (hasUnsyncedLocal && localRecordsToSync.length > 0) {
-                    // Sincronizar automáticamente con la base de datos
-                    fetch('/api/petar-records', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'bulk-create', data: localRecordsToSync })
-                    }).catch(console.error);
-                }
-                
-                // Ordenar por fecha descendente
-                mergedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setRecords(mergedRecords);
+                apiRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setRecords(apiRecords);
             } catch (e) {
                 console.error("Error loading PETAR records from API:", e);
-                // Fallback: try localStorage
-                const stored = localStorage.getItem('petar_records');
-                if (stored) {
-                    try {
-                        setRecords(JSON.parse(stored));
-                    } catch (parseErr) {
-                        console.error("Error parsing petar_records", parseErr);
-                    }
-                }
+                setRecords([]);
             }
             setIsLoaded(true);
         };
@@ -212,13 +164,6 @@ export default function PetarPage() {
             setForm(prev => ({ ...prev, responsible: user.name }));
         }
     }, [user]);
-
-    // Sync to localStorage as backup (but API is primary)
-    useEffect(() => {
-        if (isLoaded && records.length > 0) {
-            localStorage.setItem('petar_records', JSON.stringify(records));
-        }
-    }, [records, isLoaded]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 export async function GET(req: NextRequest) {
     try {
         const isPostgres = !!process.env.POSTGRES_URL;
@@ -17,12 +19,15 @@ export async function GET(req: NextRequest) {
                     zona TEXT,
                     file_url TEXT,
                     file_urls TEXT,
-                    created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP
+                    created_at ${isPostgres ? 'TIMESTAMP' : 'DATETIME'} DEFAULT CURRENT_TIMESTAMP,
+                    workspace VARCHAR(100) DEFAULT 'Red Vial 6'
                 )
             `);
+            await db.execute("ALTER TABLE informes_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'");
         } catch (e) {}
 
-        const records = await db.fetchAll('SELECT * FROM informes_records ORDER BY created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM informes_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
         
         const formattedRecords = records.map((r: any) => ({
             ...r,
@@ -37,6 +42,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
         const records = Array.isArray(body) ? body : body.records;
         if (!records) return NextResponse.json({ success: false, error: 'No records provided' });
@@ -49,13 +55,13 @@ export async function POST(req: NextRequest) {
             // Check if record exists based on fileUrl or description
             const fileUrl = record.fileUrl || (record.fileUrls?.[0] || '');
             const existing = await db.fetchAll(
-                'SELECT id FROM informes_records WHERE file_url = ? OR description = ?', 
-                [fileUrl, record.description || '']
+                'SELECT id FROM informes_records WHERE workspace = ? AND (file_url = ? OR description = ?)', 
+                [workspace, fileUrl, record.description || '']
             );
             
             if (existing.length === 0) {
                 await db.execute(
-                    'INSERT INTO informes_records (date, month, description, responsable, zona, file_url, file_urls) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO informes_records (date, month, description, responsable, zona, file_url, file_urls, workspace) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                     [
                         record.date,
                         record.month || '',
@@ -63,7 +69,8 @@ export async function POST(req: NextRequest) {
                         record.responsable || record.responsible || '',
                         record.zona || record.location || '',
                         fileUrl,
-                        JSON.stringify(record.fileUrls || [])
+                        JSON.stringify(record.fileUrls || []),
+                        workspace
                     ]
                 );
                 inserted++;

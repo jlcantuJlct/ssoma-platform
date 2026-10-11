@@ -202,10 +202,13 @@ export async function POST(req: Request) {
     `);
     try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN fotos_levantamiento TEXT DEFAULT '[]'`); } catch(e){}
     try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN status VARCHAR(50) DEFAULT 'Completado'`); } catch(e){}
+    try { await db.execute(`ALTER TABLE vehicle_inspection_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'`); } catch(e){}
+
+    const targetWs = data.workspace || (data.proyecto?.toLowerCase().includes('longitudinal') ? 'Longitudinal tramo 4' : 'Red Vial 6');
 
     await db.execute(`
-        INSERT INTO vehicle_inspection_records (id, correlativo, fecha, proyecto, equipo, marca, modelo, placa, chofer, turno, observaciones, nombre_colaborador, nombre_capataz, drive_url, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO vehicle_inspection_records (id, correlativo, fecha, proyecto, equipo, marca, modelo, placa, chofer, turno, observaciones, nombre_colaborador, nombre_capataz, drive_url, status, workspace)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
         Date.now(),
         correlativo,
@@ -221,7 +224,8 @@ export async function POST(req: Request) {
         data.nombre_colaborador || data.chofer || '',
         data.nombre_capataz || '',
         driveUrl,
-        data.observaciones ? 'Con Observaciones' : 'Completado'
+        data.observaciones ? 'Con Observaciones' : 'Completado',
+        targetWs
     ]);
 
     return NextResponse.json({ success: true, url: driveUrl, correlativo });

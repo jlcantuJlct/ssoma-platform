@@ -9,16 +9,21 @@ async function ensureTable() {
             id SERIAL PRIMARY KEY,
             objective_id VARCHAR(20) NOT NULL,
             data_json TEXT,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6',
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+    try { await db.execute("ALTER TABLE annual_program ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener datos del programa anual
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM annual_program');
+        const cookieWs = req.cookies.get('ssoma_workspace')?.value;
+        const queryWs = req.nextUrl.searchParams.get('workspace');
+        const workspace = queryWs || (cookieWs ? decodeURIComponent(cookieWs) : 'Red Vial 6');
+        const records = await db.fetchAll('SELECT * FROM annual_program WHERE workspace = ?', [workspace]);
 
         // Convertir a formato de objeto { obj1: [...], obj2: [...], ... }
         const programData: Record<string, any[]> = {};
@@ -52,14 +57,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Formato de datos no válido' }, { status: 400 });
         }
 
+        const cookieWs = req.cookies.get('ssoma_workspace')?.value;
+        const ws = body.workspace || (cookieWs ? decodeURIComponent(cookieWs) : 'Red Vial 6');
+
         const objIds = Object.keys(updateData);
         if (objIds.length > 0) {
             for (const objId of objIds) {
-                // Borrar anterior para este objetivo e insertar nuevo registro con updated_at
-                await db.execute(`DELETE FROM annual_program WHERE objective_id = ?`, [objId]);
+                // Borrar anterior para este objetivo y espacio de trabajo
+                await db.execute(`DELETE FROM annual_program WHERE objective_id = ? AND workspace = ?`, [objId, ws]);
                 await db.execute(
-                    `INSERT INTO annual_program (objective_id, data_json) VALUES (?, ?)`,
-                    [objId, JSON.stringify(updateData[objId] || [])]
+                    `INSERT INTO annual_program (objective_id, data_json, workspace) VALUES (?, ?, ?)`,
+                    [objId, JSON.stringify(updateData[objId] || []), ws]
                 );
             }
         }

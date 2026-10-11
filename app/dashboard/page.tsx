@@ -1,6 +1,7 @@
 import Link from "next/link"; // Rebuild trigger - v2.4 Premium UI & HHC Fix
 import fs from "fs";
 import path from "path";
+import { cookies } from "next/headers";
 import { parseCSV } from "@/lib/csv-parser";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
@@ -10,10 +11,10 @@ export const dynamic = 'force-dynamic';
 import { getDashboardActivities, syncInitialData } from "@/app/actions";
 
 // Function to read and parse CSV and SEED DB if empty
-async function seedAndGetData() {
+async function seedAndGetData(workspace: string = 'Red Vial 6') {
   // 1. Check if DB has data
   try {
-    const dbRes = await getDashboardActivities();
+    const dbRes = await getDashboardActivities(workspace);
     if (dbRes.success && dbRes.data.length > 0) {
       // DB is already populated.
       // We can return an empty structure or the CSV data just for SSR placeholder, 
@@ -53,7 +54,9 @@ async function seedAndGetData() {
 }
 
 export default async function Home() {
-  const dashboardData = await seedAndGetData();
+  const cookieStore = await cookies();
+  const workspace = decodeURIComponent(cookieStore.get('ssoma_workspace')?.value || 'Red Vial 6');
+  const dashboardData = await seedAndGetData(workspace);
 
   return (
     <div className="p-8 space-y-8 min-h-screen bg-transparent">

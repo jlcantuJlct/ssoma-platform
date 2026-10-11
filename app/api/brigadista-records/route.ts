@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 // Crear tabla si no existe
 async function ensureTable() {
@@ -13,16 +14,19 @@ async function ensureTable() {
             brigadista_type VARCHAR(100),
             location VARCHAR(200),
             file_url TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE brigadista_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener todos los registros de brigadistas
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM brigadista_records ORDER BY date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM brigadista_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
 
         const parsed = records.map((r: any) => ({
             id: r.id,
@@ -47,17 +51,19 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { action, data, id, userName } = body;
         const actingUser = userName || (data && data.responsible) || 'Usuario';
+        const workspace = data?.workspace || getRequestWorkspace(req);
 
         if (action === 'create') {
             const res = await db.execute(
-                `INSERT INTO brigadista_records (date, responsible, brigadista_type, location, file_url)
-                 VALUES (?, ?, ?, ?, ?) RETURNING id`,
+                `INSERT INTO brigadista_records (date, responsible, brigadista_type, location, file_url, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     data.date || '',
                     data.responsible || '',
                     data.brigadistaType || '',
                     data.location || '',
-                    data.fileUrl || ''
+                    data.fileUrl || '',
+                    workspace
                 ]
             );
             await logActivity(actingUser, `NUEVO BRIGADISTA: ${data.brigadistaType}`, 'Brigadistas', `Lugar: ${data.location}`);

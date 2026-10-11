@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 // Crear tabla si no existe
 async function ensureTable() {
     await db.execute(`
@@ -17,9 +19,11 @@ async function ensureTable() {
             zona VARCHAR(200),
             file_url TEXT,
             file_type VARCHAR(50),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE evidence_center_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener registros de evidencias (soporta filtros para el Asistente SSOMA)
@@ -33,10 +37,12 @@ export async function GET(req: NextRequest) {
         const monthParam = searchParams.get('month');
         const limit = parseInt(searchParams.get('limit') || '100');
 
+        const workspace = getRequestWorkspace(req);
+
         // MIGRATION: Convert old 'EMO' objective to 'OBJ 05'
         await db.execute("UPDATE evidence_center_records SET objective = 'OBJ 05' WHERE objective = 'EMO'");
 
-        let rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records ORDER BY created_at DESC');
+        let rawRecords = await db.fetchAll('SELECT * FROM evidence_center_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
         
         // Deduplicate and filter in JS for better fuzzy matching
         const uniqueRecords = [];
@@ -98,6 +104,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         // 1. MODO ACCION (Delta Sync)
@@ -115,8 +122,8 @@ export async function POST(req: NextRequest) {
                 }
 
                 const res = await db.execute(
-                    `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         String(r.id || r.record_id || Date.now()),
                         r.date || '',
@@ -126,7 +133,8 @@ export async function POST(req: NextRequest) {
                         r.responsable || r.responsible || '',
                         r.zona || r.location || r.zone || '',
                         finalFileUrl,
-                        r.fileType || r.file_type || ''
+                        r.fileType || r.file_type || '',
+                        workspace
                     ]
                 );
                 

@@ -233,13 +233,15 @@ export default function ProgramPage() {
         const loadData = async () => {
             try {
                 // 1. Load annual program from cloud
-                const progRes = await fetch('/api/annual-program?_t=' + Date.now(), { cache: 'no-store' });
+                const currentWs = user?.workspace || 'Red Vial 6';
+                const wsParam = encodeURIComponent(currentWs);
+                const progRes = await fetch(`/api/annual-program?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
                 const progData = await progRes.json();
                 if (progData.success && Object.keys(progData.programData).length > 0) {
                     setProgramData(progData.programData);
-                    localStorage.setItem('annual_program_data', JSON.stringify(progData.programData));
+                    localStorage.setItem('annual_program_data_' + currentWs, JSON.stringify(progData.programData));
                 } else {
-                    const storedData = localStorage.getItem('annual_program_data');
+                    const storedData = localStorage.getItem('annual_program_data_' + currentWs);
                     if (storedData && storedData !== 'undefined' && storedData !== 'null') {
                         try {
                             const parsed = JSON.parse(storedData);
@@ -254,7 +256,7 @@ export default function ProgramPage() {
                 }
 
                 // 2. Load inspections from cloud
-                const inspRes = await fetch('/api/inspections?_t=' + Date.now(), { cache: 'no-store' });
+                const inspRes = await fetch(`/api/inspections?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
                 const inspData = await inspRes.json();
                 if (inspData.success && inspData.records.length > 0) {
                     setExecutedInspections(inspData.records);
@@ -345,7 +347,7 @@ export default function ProgramPage() {
             }
         };
         loadData();
-    }, []);
+    }, [user?.workspace]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLE OBSERVATION (NO CONFORME)
@@ -389,12 +391,13 @@ export default function ProgramPage() {
     const syncToCloud = async (newProgramData: Record<string, ProgramItem[]>, objId?: string, records?: ProgramItem[]) => {
         try {
             setIsSaving(true);
-            localStorage.setItem('annual_program_data', JSON.stringify(newProgramData));
+            const currentWs = user?.workspace || 'Red Vial 6';
+            localStorage.setItem('annual_program_data_' + currentWs, JSON.stringify(newProgramData));
 
             // Si se pasa un objetivo específico, enviamos actualización atómica directa
             const payload = (objId && records)
-                ? { objectiveId: objId, records }
-                : { programData: newProgramData };
+                ? { objectiveId: objId, records, workspace: currentWs }
+                : { programData: newProgramData, workspace: currentWs };
 
             const res = await fetch('/api/annual-program', {
                 method: 'POST',

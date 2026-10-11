@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 async function ensureTable() {
     await db.execute(`
@@ -14,15 +15,18 @@ async function ensureTable() {
             description TEXT,
             location VARCHAR(100),
             images TEXT, -- Stored as JSON array string
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE desvio_evidence_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM desvio_evidence_records ORDER BY created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM desvio_evidence_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
         return NextResponse.json({ success: true, records });
     } catch (error: any) {
         console.error('Error fetching Desvio records:', error);
@@ -35,6 +39,7 @@ export async function POST(req: NextRequest) {
         await ensureTable();
         const { records, userName } = await req.json();
         const actingUser = userName || 'Usuario';
+        const workspace = getRequestWorkspace(req);
 
         if (!Array.isArray(records)) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
@@ -55,8 +60,8 @@ export async function POST(req: NextRequest) {
             const existing = await db.fetchAll('SELECT id FROM desvio_evidence_records WHERE record_id = ? OR id = ?', [rid, numericId]);
             if (existing.length === 0) {
                 await db.execute(
-                    `INSERT INTO desvio_evidence_records (record_id, date, responsible, category, description, location, images)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO desvio_evidence_records (record_id, date, responsible, category, description, location, images, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         rid,
                         r.date || '',
@@ -64,7 +69,8 @@ export async function POST(req: NextRequest) {
                         r.category || '',
                         r.description || '',
                         r.location || '',
-                        JSON.stringify(r.images || [])
+                        JSON.stringify(r.images || []),
+                        workspace
                     ]
                 );
             }

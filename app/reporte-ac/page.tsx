@@ -194,7 +194,7 @@ export default function ReporteACPage() {
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
         const init = async () => {
-            const stored = localStorage.getItem('reporte_ac_records');
+            const stored = null;
             if (stored) {
                 try { setRecords(JSON.parse(stored)); } catch (e) { }
             }

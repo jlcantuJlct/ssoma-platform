@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 // Crear tabla si no existe y verificar columnas
 async function ensureTable() {
@@ -21,7 +22,8 @@ async function ensureTable() {
             evidence_imgs TEXT,
             evidence_pdf TEXT,
             lugar VARCHAR(200),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 
@@ -50,13 +52,15 @@ async function ensureTable() {
             console.warn('Could not add lugar column:', e.message);
         }
     }
+    try { await db.execute("ALTER TABLE hhc_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-// GET - Obtener todos los registros
-export async function GET() {
+// GET - Obtener todos los registros filtrados por espacio
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM hhc_records ORDER BY date DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM hhc_records WHERE workspace = ? ORDER BY date DESC', [workspace]);
 
         // Parsear evidence_imgs de JSON string a array (con manejo de errores)
         const parsed = records.map((r: any) => {
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
 
         const { action, data, id, userName } = body;
         const actingUser = userName || (data && data.responsable) || 'Usuario';
+        const workspace = data?.workspace || getRequestWorkspace(req);
 
         // 1. MODO LEGADO (Protección contra sobreescritura accidental)
         if (body.records && Array.isArray(body.records) && !action) {
@@ -146,12 +151,13 @@ export async function POST(req: NextRequest) {
             }
 
             const res = await withRetry(() => db.execute(
-                `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                `INSERT INTO hhc_records (date, hhc, hht, hombres, mujeres, area, tipo, tema, responsable, evidence_imgs, evidence_pdf, lugar, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     data.date || '', data.hhc || 0, data.hht || 0, data.hombres || 0, data.mujeres || 0,
                     data.area || 'seguridad', data.tipo || 'capacitacion', data.tema || '', data.responsable || '',
-                    JSON.stringify(data.evidenceImgs || []), data.evidencePdf || '', data.lugar || ''
+                    JSON.stringify(data.evidenceImgs || []), data.evidencePdf || '', data.lugar || '',
+                    workspace
                 ]
             ));
             await logActivity(actingUser, `NUEVO REGISTRO HHC/HHT: ${data.tema}`, 'HHC', `HHC: ${data.hhc}, HHT: ${data.hht}`);

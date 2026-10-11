@@ -13,6 +13,7 @@ export interface User {
     email?: string;
     phone?: string;
     workspace?: string;
+    deactivated?: boolean;
 }
 
 // Interfaz para la lista pública de usuarios
@@ -22,12 +23,13 @@ export interface PublicUser {
 }
 
 // Configuración de Usuarios (Base de datos simulada)
-// En una app real, esto vendría de una DB.
+// En una real, esto vendría de una DB.
 export interface FullUser extends User {
     password?: string;
+    deactivated?: boolean;
 }
 
-export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone: string, workspace: string, deactivated?: boolean }> = {
+export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone?: string, workspace: string, deactivated?: boolean }> = {
     'jose.cancino': {
         password: '161976Jlct',
         name: 'Jose Luis Cancino',
@@ -73,7 +75,7 @@ export const AVAILABLE_WORKSPACES = ['Red Vial 6', 'Longitudinal tramo 4'] as co
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string, pass: string) => boolean;
+    login: (username: string, pass: string) => { success: boolean; error?: string };
     logout: () => void;
     switchWorkspace: (workspace: string) => void;
     sendRecoveryEmail: (username: string) => Promise<boolean>;
@@ -83,6 +85,7 @@ interface AuthContextType {
     getAllUsers: () => Record<string, FullUser>;
     saveUser: (username: string, userData: FullUser) => void;
     deleteUser: (username: string) => void;
+    toggleUserStatus: (username: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,18 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const updated = { ...prev };
             let changed = false;
             
-            // 1. Update or add users from INITIAL_USERS
+            // 1. Update or add users from INITIAL_USERS if not customized
             Object.entries(INITIAL_USERS).forEach(([key, val]) => {
-                if (JSON.stringify(updated[key]) !== JSON.stringify(val)) {
+                if (!updated[key]) {
                     updated[key] = val;
-                    changed = true;
-                }
-            });
-            
-            // 2. Remove any ghost users that were deleted or renamed in INITIAL_USERS
-            Object.keys(updated).forEach(key => {
-                if (!INITIAL_USERS[key as keyof typeof INITIAL_USERS]) {
-                    delete updated[key as keyof typeof INITIAL_USERS];
                     changed = true;
                 }
             });
@@ -163,25 +158,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user, loading, pathname, router]);
 
-    const login = (username: string, pass: string) => {
+    const login = (username: string, pass: string): { success: boolean; error?: string } => {
         const foundUser = mockUsers[username];
 
-        if (foundUser && foundUser.password === pass) {
-            const userData: User = {
-                username,
-                name: foundUser.name,
-                role: foundUser.role,
-                email: foundUser.email,
-                workspace: foundUser.workspace
-            };
-            setUser(userData);
-            localStorage.setItem('ssoma_user', JSON.stringify(userData));
-            const ws = foundUser.workspace || 'Red Vial 6';
-            document.cookie = `ssoma_workspace=${encodeURIComponent(ws)}; path=/; max-age=31536000; SameSite=Lax`;
-            router.push('/');
-            return true;
+        if (!foundUser) {
+            return { success: false, error: 'Usuario no encontrado.' };
         }
-        return false;
+
+        if (foundUser.deactivated) {
+            return { 
+                success: false, 
+                error: 'Este usuario se encuentra DESACTIVADO. No tiene autorización para ingresar a los proyectos de la plataforma.' 
+            };
+        }
+
+        if (foundUser.password !== pass) {
+            return { success: false, error: 'Credenciales incorrectas. Intente nuevamente.' };
+        }
+
+        const userData: User = {
+            username,
+            name: foundUser.name,
+            role: foundUser.role,
+            email: foundUser.email,
+            workspace: foundUser.workspace,
+            deactivated: false
+        };
+        setUser(userData);
+        localStorage.setItem('ssoma_user', JSON.stringify(userData));
+        const ws = foundUser.workspace || 'Red Vial 6';
+        document.cookie = `ssoma_workspace=${encodeURIComponent(ws)}; path=/; max-age=31536000; SameSite=Lax`;
+        router.push('/');
+        return { success: true };
     };
 
     const logout = () => {
@@ -246,10 +254,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             [username]: {
                 name: userData.name,
                 role: userData.role,
+                workspace: userData.workspace || 'Red Vial 6',
                 email: userData.email || '',
-                password: userData.password || prev[username]?.password || 'default123'
+                phone: userData.phone || prev[username]?.phone || '+51900000000',
+                password: userData.password || prev[username]?.password || 'default123',
+                deactivated: userData.deactivated !== undefined ? userData.deactivated : (prev[username]?.deactivated || false)
             }
         }));
+    };
+
+    const toggleUserStatus = (username: string) => {
+        setMockUsers(prev => {
+            if (!prev[username]) return prev;
+            const willBeDeactivated = !prev[username].deactivated;
+            const updated = {
+                ...prev,
+                [username]: {
+                    ...prev[username],
+                    deactivated: willBeDeactivated
+                }
+            };
+            // Si el usuario actualmente logueado es desactivado, forzar logout
+            if (user?.username === username && willBeDeactivated) {
+                localStorage.removeItem('ssoma_user');
+                setUser(null);
+                router.push('/login');
+            }
+            return updated;
+        });
     };
 
     const deleteUser = (username: string) => {
@@ -271,7 +303,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             recoverCredential,
             getAllUsers,
             saveUser,
-            deleteUser
+            deleteUser,
+            toggleUserStatus
         }}>
             {children}
         </AuthContext.Provider>

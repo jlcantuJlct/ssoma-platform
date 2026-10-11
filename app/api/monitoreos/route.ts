@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 // Crear tabla si no existe
 async function ensureTable() {
     await db.execute(`
@@ -13,16 +15,19 @@ async function ensureTable() {
             parameter VARCHAR(200) NOT NULL,
             location VARCHAR(200) NOT NULL,
             files JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE monitoring_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
 // GET - Obtener todos los registros de monitoreo
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM monitoring_records ORDER BY date DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM monitoring_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
 
         // Mapear al formato esperado por el frontend
         const parsed = records.map((r: any) => ({
@@ -45,6 +50,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         const { action, data, id, userName } = body;
@@ -52,14 +58,15 @@ export async function POST(req: NextRequest) {
 
         if (action === 'create') {
             const res = await db.execute(
-                `INSERT INTO monitoring_records (date, agent_type, parameter, location, files)
-                 VALUES (?, ?, ?, ?, ?) RETURNING id`,
+                `INSERT INTO monitoring_records (date, agent_type, parameter, location, files, workspace)
+                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     data.date || '',
                     data.agentType || '',
                     data.parameter || '',
                     data.location || '',
-                    JSON.stringify(data.files || [])
+                    JSON.stringify(data.files || []),
+                    workspace
                 ]
             );
             await logActivity(actingUser, `NUEVO MONITOREO: ${data.parameter}`, 'MONITOREOS', `Lugar: ${data.location}`);
@@ -79,14 +86,15 @@ export async function POST(req: NextRequest) {
             // Migración
             for (const r of data) {
                 await db.execute(
-                    `INSERT INTO monitoring_records (date, agent_type, parameter, location, files)
-                     VALUES (?, ?, ?, ?, ?)`,
+                    `INSERT INTO monitoring_records (date, agent_type, parameter, location, files, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
                     [
                         r.date || '',
                         r.agentType || '',
                         r.parameter || '',
                         r.location || '',
-                        JSON.stringify(r.files || [])
+                        JSON.stringify(r.files || []),
+                        workspace
                     ]
                 );
                 count++;

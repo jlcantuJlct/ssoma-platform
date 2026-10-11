@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS pma_evidence_records (
@@ -14,15 +16,18 @@ async function ensureTable() {
             description TEXT,
             location VARCHAR(100),
             images TEXT, -- Stored as JSON array string
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE pma_evidence_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const rawRecords = await db.fetchAll('SELECT * FROM pma_evidence_records ORDER BY date DESC, created_at DESC');
+        const workspace = getRequestWorkspace(req);
+        const rawRecords = await db.fetchAll('SELECT * FROM pma_evidence_records WHERE workspace = ? ORDER BY date DESC, created_at DESC', [workspace]);
         
         // Deduplicate in JS to handle existing DB duplicates gracefully
         const uniqueRecords = [];
@@ -54,6 +59,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const { records, userName } = await req.json();
         const actingUser = userName || 'Usuario';
 
@@ -98,8 +104,8 @@ export async function POST(req: NextRequest) {
                 );
             } else {
                 await db.execute(
-                    `INSERT INTO pma_evidence_records (id, record_id, date, responsible, category, description, location, images)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO pma_evidence_records (id, record_id, date, responsible, category, description, location, images, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         rid,
                         String(r.id),
@@ -108,7 +114,8 @@ export async function POST(req: NextRequest) {
                         r.category || '',
                         r.description || '',
                         r.location || '',
-                        JSON.stringify(r.images || [])
+                        JSON.stringify(r.images || []),
+                        workspace
                     ]
                 );
             }

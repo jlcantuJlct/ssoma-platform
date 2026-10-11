@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getRequestWorkspace } from '@/lib/workspace';
 
 async function ensureTables() {
     await db.execute(`
@@ -10,7 +11,8 @@ async function ensureTables() {
             video_url TEXT NOT NULL,
             category TEXT DEFAULT 'Todos',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_active BOOLEAN DEFAULT true
+            is_active BOOLEAN DEFAULT true,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 
@@ -41,27 +43,23 @@ async function ensureTables() {
             score INTEGER NOT NULL,
             passed BOOLEAN NOT NULL,
             selected_options TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
 
     // Add columns if they don't exist (for existing tables)
-    try {
-        await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_dni VARCHAR(20);");
-    } catch (e) {
-        // Ignorar si ya existe
-    }
-    try {
-        await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_position VARCHAR(255);");
-    } catch (e) {
-        // Ignorar si ya existe
-    }
+    try { await db.execute("ALTER TABLE virtual_trainings ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE virtual_training_results ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_dni VARCHAR(20)"); } catch (e) {}
+    try { await db.execute("ALTER TABLE virtual_training_results ADD COLUMN user_position VARCHAR(255)"); } catch (e) {}
 }
 
 export async function GET(req: NextRequest) {
     try {
         await ensureTables();
-        const trainings = await db.fetchAll('SELECT * FROM virtual_trainings ORDER BY id DESC');
+        const workspace = getRequestWorkspace(req);
+        const trainings = await db.fetchAll('SELECT * FROM virtual_trainings WHERE workspace = ? ORDER BY id DESC', [workspace]);
         return NextResponse.json({ success: true, trainings });
     } catch (e: any) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
@@ -71,6 +69,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTables();
+        const workspace = getRequestWorkspace(req);
         const { title, video_url, category } = await req.json();
         
         if (!title || !video_url) {
@@ -80,8 +79,8 @@ export async function POST(req: NextRequest) {
         const finalCategory = category || 'Todos';
 
         const result = await db.execute(
-            'INSERT INTO virtual_trainings (title, video_url, category) VALUES (?, ?, ?)',
-            [title, video_url, finalCategory]
+            'INSERT INTO virtual_trainings (title, video_url, category, workspace) VALUES (?, ?, ?, ?)',
+            [title, video_url, finalCategory, workspace]
         );
 
         return NextResponse.json({ success: true, id: result.rows?.[0]?.id });

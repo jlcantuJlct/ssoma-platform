@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { logActivity } from '@/app/actions';
 
+import { getRequestWorkspace } from '@/lib/workspace';
+
 async function ensureTable() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS accidentes_records (
@@ -14,15 +16,18 @@ async function ensureTable() {
             description TEXT,
             involved_person VARCHAR(200),
             files JSONB DEFAULT '[]'::jsonb,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            workspace VARCHAR(100) DEFAULT 'Red Vial 6'
         )
     `);
+    try { await db.execute("ALTER TABLE accidentes_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const records = await db.fetchAll('SELECT * FROM accidentes_records ORDER BY date DESC, time DESC, id DESC');
+        const workspace = getRequestWorkspace(req);
+        const records = await db.fetchAll('SELECT * FROM accidentes_records WHERE workspace = ? ORDER BY date DESC, time DESC, id DESC', [workspace]);
 
         const parsed = records.map((r: any) => ({
             id: r.id,
@@ -45,6 +50,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
+        const workspace = getRequestWorkspace(req);
         const body = await req.json();
 
         // 1. MODO ACCION (Delta Sync)
@@ -54,8 +60,8 @@ export async function POST(req: NextRequest) {
                 if (!r) throw new Error('Falta el record para CREATE');
 
                 const res = await db.execute(
-                    `INSERT INTO accidentes_records (date, time, location, type, description, involved_person, files)
-                     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO accidentes_records (date, time, location, type, description, involved_person, files, workspace)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         r.date || '',
                         r.time || '',
@@ -63,7 +69,8 @@ export async function POST(req: NextRequest) {
                         r.type || '',
                         r.description || '',
                         r.involvedPerson || r.involved_person || '',
-                        JSON.stringify(r.files || [])
+                        JSON.stringify(r.files || []),
+                        workspace
                     ]
                 );
                 const newId = res.rows?.[0]?.id || res.rows?.[0]?.lastInsertRowid;
