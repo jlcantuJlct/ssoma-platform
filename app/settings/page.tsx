@@ -7,7 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { 
     Settings, Plus, Trash2, Save, User, MapPin, Leaf, RotateCcw, 
     CloudDownload, HardDrive, Loader2, Bell, BookOpen, Briefcase, 
-    Layers, Users, CheckCircle2, ChevronRight, UserCheck, UserX
+    Layers, Users, CheckCircle2, ChevronRight, UserCheck, UserX,
+    Key, Eye, EyeOff, Copy
 } from 'lucide-react';
 import AdminAlertas from '@/components/AdminAlertas';
 import ContactsManager from '@/components/ContactsManager';
@@ -60,6 +61,7 @@ export default function SettingsPage() {
     const [userWorkspace, setUserWorkspace] = useState<string>('Red Vial 6');
     const [userDeactivated, setUserDeactivated] = useState<boolean>(false);
     const [isEditingUser, setIsEditingUser] = useState(false);
+    const [showPasswords, setShowPasswords] = useState<boolean>(true);
 
     // Locations per project
     const [zonesByProject, setZonesByProject] = useState<Record<string, string[]>>({});
@@ -510,11 +512,21 @@ export default function SettingsPage() {
 
                         {/* PANELES SEPARADOS LADO A LADO PARA CADA PROYECTO */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                                <Layers size={18} className="text-emerald-400" />
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-                                    Paneles de Usuarios por Proyecto
-                                </h3>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Layers size={18} className="text-emerald-400" />
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                                        Paneles de Usuarios por Proyecto
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => setShowPasswords(!showPasswords)}
+                                    className="self-start sm:self-auto text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-600 transition-colors shadow-sm"
+                                    title="Alternar visibilidad de contraseñas de usuarios"
+                                >
+                                    {showPasswords ? <EyeOff size={13} className="text-amber-400" /> : <Eye size={13} className="text-amber-400" />}
+                                    <span className="font-medium">{showPasswords ? 'Ocultar Contraseñas' : 'Ver Contraseñas'}</span>
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -595,7 +607,7 @@ export default function SettingsPage() {
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                                         <span className="text-[10px] text-slate-500 font-mono">ID: {key}</span>
                                                                         <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono font-bold ${
                                                                             u.role === 'developer' 
@@ -606,6 +618,29 @@ export default function SettingsPage() {
                                                                         }`}>
                                                                             {u.role}
                                                                         </span>
+
+                                                                        {/* CONTRASEÑA VISIBLE PARA ADMINISTRADOR */}
+                                                                        <div className="flex items-center gap-1 bg-slate-900/90 border border-amber-500/30 rounded-md px-1.5 py-0.5">
+                                                                            <Key size={10} className="text-amber-400 shrink-0" />
+                                                                            <span className="text-[9px] text-slate-400 font-medium">Clave:</span>
+                                                                            <span className="font-mono text-amber-300 font-bold text-[10px] select-all tracking-wide">
+                                                                                {showPasswords ? (u.password || 'Sin clave') : '••••••••'}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    if (u.password) {
+                                                                                        navigator.clipboard.writeText(u.password);
+                                                                                        alert(`Contraseña copiada para ${u.name}:\n${u.password}`);
+                                                                                    }
+                                                                                }}
+                                                                                className="text-slate-500 hover:text-amber-300 ml-0.5 p-0.5 transition-colors"
+                                                                                title="Copiar contraseña"
+                                                                            >
+                                                                                <Copy size={10} />
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
