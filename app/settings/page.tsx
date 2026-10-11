@@ -193,8 +193,18 @@ export default function SettingsPage() {
             return;
         }
         toggleUserStatus(key);
-        const all = getAllUsers();
-        setUsersList(all);
+        setUsersList(prev => {
+            const current = prev[key] || {};
+            const nextStatus = !current.deactivated;
+            const updated = {
+                ...prev,
+                [key]: {
+                    ...current,
+                    deactivated: nextStatus
+                }
+            };
+            return updated;
+        });
     };
 
     const handleDeleteUser = (key: string) => {
@@ -864,7 +874,7 @@ export default function SettingsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4 px-0 pb-0">
-                                <AdminAlertas />
+                                <AdminAlertas users={usersList} onToggleUserStatus={handleToggleUserStatus} />
                             </CardContent>
                         </Card>
 

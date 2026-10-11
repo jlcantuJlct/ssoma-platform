@@ -112,14 +112,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
 
-    // Persistencia de sesión simple
+    // Persistencia de sesión simple con validación estricta de estado activo
     useEffect(() => {
         const storedUser = localStorage.getItem('ssoma_user');
         if (storedUser) {
-            const parsed = JSON.parse(storedUser);
-            setUser(parsed);
-            if (parsed.workspace) {
-                document.cookie = `ssoma_workspace=${encodeURIComponent(parsed.workspace)}; path=/; max-age=31536000; SameSite=Lax`;
+            try {
+                const parsed = JSON.parse(storedUser);
+                const storedDb = localStorage.getItem('ssoma_users_db');
+                const usersDb = storedDb ? JSON.parse(storedDb) : INITIAL_USERS;
+                const dbUser = usersDb[parsed.username] || INITIAL_USERS[parsed.username];
+
+                // Si el usuario está desactivado, borrar su sesión completamente
+                if (dbUser?.deactivated) {
+                    localStorage.removeItem('ssoma_user');
+                    document.cookie = 'ssoma_workspace=; path=/; max-age=0; SameSite=Lax';
+                    setUser(null);
+                } else {
+                    setUser(parsed);
+                    if (parsed.workspace) {
+                        document.cookie = `ssoma_workspace=${encodeURIComponent(parsed.workspace)}; path=/; max-age=31536000; SameSite=Lax`;
+                    }
+                }
+            } catch (e) {
+                localStorage.removeItem('ssoma_user');
+                setUser(null);
             }
         }
         setLoading(false);
@@ -146,17 +162,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('ssoma_users_db', JSON.stringify(mockUsers));
     }, [mockUsers]);
 
-    // Proteger rutas (excepto login y rutas públicas)
+    // Proteger rutas y expulsar a usuarios desactivados en tiempo real
     useEffect(() => {
         const isPublicRoute = 
             pathname === '/login' || 
             pathname.startsWith('/public') || 
             pathname.startsWith('/formacion-virtual');
 
-        if (!loading && !user && !isPublicRoute) {
-            router.push('/login');
+        if (!loading) {
+            if (!user && !isPublicRoute) {
+                router.push('/login');
+            } else if (user) {
+                // Verificar si fue desactivado mientras navegaba
+                const currentRecord = mockUsers[user.username];
+                if (currentRecord?.deactivated) {
+                    localStorage.removeItem('ssoma_user');
+                    document.cookie = 'ssoma_workspace=; path=/; max-age=0; SameSite=Lax';
+                    setUser(null);
+                    router.push('/login');
+                }
+            }
         }
-    }, [user, loading, pathname, router]);
+    }, [user, loading, pathname, router, mockUsers]);
 
     const login = (username: string, pass: string): { success: boolean; error?: string } => {
         const foundUser = mockUsers[username];

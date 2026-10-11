@@ -85,6 +85,11 @@ export default function LoginPage() {
             return;
         }
 
+        if (isSelectedUserDeactivated) {
+            setError('⚠️ Este usuario está DESACTIVADO y no tiene acceso a la plataforma ni a recuperación de credenciales.');
+            return;
+        }
+
         // 1. Obtener Credencial (Sin validar correo)
         const currentPass = recoverCredential(selectedUser);
 
@@ -102,6 +107,10 @@ export default function LoginPage() {
     };
 
     const handleSendEmail = async () => {
+        if (isSelectedUserDeactivated) {
+            setError('⚠️ Este usuario está desactivado.');
+            return;
+        }
         setRecoveryStatus('sending');
         const success = await sendRecoveryEmail(selectedUser);
         if (success) {

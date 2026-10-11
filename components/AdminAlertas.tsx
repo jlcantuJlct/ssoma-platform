@@ -17,8 +17,13 @@ interface AlertResult {
     error?: string;
 }
 
-export default function AdminAlertas() {
-    const { user, getAllUsers } = useAuth();
+interface AdminAlertasProps {
+    users?: Record<string, any>;
+    onToggleUserStatus?: (username: string) => void;
+}
+
+export default function AdminAlertas({ users: propUsers, onToggleUserStatus }: AdminAlertasProps = {}) {
+    const { user, getAllUsers, toggleUserStatus } = useAuth();
     const workspaces = getAvailableWorkspaces();
     const [selectedWorkspace, setSelectedWorkspace] = useState<string>(user?.workspace || 'Red Vial 6');
     const [loading, setLoading]     = useState(false);
@@ -26,8 +31,10 @@ export default function AdminAlertas() {
     const [sent, setSent]           = useState(false);
     const [error, setError]         = useState('');
 
-    // Obtener los usuarios de la base de datos local / autenticación
-    const allUsers = typeof window !== 'undefined' ? getAllUsers() : {};
+    // Obtener los usuarios actualizados reactivamente desde props o AuthContext
+    const allUsers = propUsers || (typeof window !== 'undefined' ? getAllUsers() : {});
+
+    const handleToggle = onToggleUserStatus || toggleUserStatus;
 
     // Filtrar usuarios ACTIVOS (no desactivados) pertenecientes al proyecto seleccionado
     const activeProjectUsers = useMemo(() => {
@@ -54,7 +61,8 @@ export default function AdminAlertas() {
             })
             .map(([key, u]: [string, any]) => ({
                 username: key,
-                name: u.name
+                name: u.name,
+                workspace: u.workspace || 'Red Vial 6'
             }));
     }, [allUsers, selectedWorkspace]);
 
@@ -195,28 +203,55 @@ export default function AdminAlertas() {
                                     </div>
                                     <p className="usuario-email">{u.email}</p>
                                 </div>
-                                {results.length > 0 && (() => {
-                                    const r = results.find(res => res.user === u.name);
-                                    if (!r) return null;
-                                    return r.status === 'sent'
-                                        ? <span className="badge badge-sent">Alerta Enviada</span>
-                                        : r.status === 'ok'
-                                        ? <span className="badge badge-ok">Al Día</span>
-                                        : <span className="badge badge-error">Error</span>;
-                                })()}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {results.length > 0 && (() => {
+                                        const r = results.find(res => res.user === u.name);
+                                        if (!r) return null;
+                                        return r.status === 'sent'
+                                            ? <span className="badge badge-sent">Alerta Enviada</span>
+                                            : r.status === 'ok'
+                                            ? <span className="badge badge-ok">Al Día</span>
+                                            : <span className="badge badge-error">Error</span>;
+                                    })()}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggle(u.username)}
+                                        className="text-[10px] text-rose-400 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-700/50 px-2 py-0.5 rounded font-bold transition-all"
+                                        title="Desactivar este usuario y excluirlo de alertas"
+                                    >
+                                        Desactivar
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
 
-                    {/* Exclusión de usuarios desactivados */}
+                    {/* Exclusión de usuarios desactivados con opción de activar */}
                     {inactiveProjectUsers.length > 0 && (
-                        <div className="mt-3 p-2.5 rounded-lg bg-rose-500/5 border border-rose-500/20 flex items-center justify-between">
-                            <span className="text-[11px] text-rose-400 flex items-center gap-1.5 font-medium">
-                                <span>⛔</span> {inactiveProjectUsers.length} usuario(s) desactivado(s) excluidos de alertas
-                            </span>
-                            <span className="text-[10px] text-rose-500 font-mono">
-                                {inactiveProjectUsers.map(x => x.name.split(' ')[0]).join(', ')}
-                            </span>
+                        <div className="mt-3 p-3 rounded-xl bg-rose-950/20 border border-rose-900/40 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-rose-400 flex items-center gap-1.5 font-bold">
+                                    <span>⛔</span> {inactiveProjectUsers.length} usuario(s) desactivado(s) — EXCLUIDOS DE ALERTAS:
+                                </span>
+                            </div>
+                            <div className="space-y-1.5">
+                                {inactiveProjectUsers.map(iu => (
+                                    <div key={iu.username} className="flex items-center justify-between bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-rose-300 line-through font-medium">{iu.name}</span>
+                                            <span className="text-[9px] text-slate-500 font-mono">({iu.username})</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggle(iu.username)}
+                                            className="text-[10px] text-emerald-400 bg-emerald-950/50 hover:bg-emerald-800/40 border border-emerald-700/50 px-2 py-0.5 rounded font-bold transition-all"
+                                            title="Activar usuario e incluirlo en alertas"
+                                        >
+                                            Activar
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
