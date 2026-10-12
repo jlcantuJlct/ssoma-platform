@@ -55,6 +55,8 @@ export const INITIAL_USERS: Record<string, { password: string, name: string, rol
     'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799', workspace: 'Red Vial 6' },
     'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023', deactivated: true, workspace: 'Red Vial 6' },
     'tramo4.admin': { password: 'Tramo4@2026', name: 'Admin Tramo 4', role: 'manager', email: 'tramo4@example.com', phone: '+51900000000', workspace: 'Longitudinal tramo 4' },
+    'Luis.cancino': { password: '161976Jlct', name: 'Jose Luis Cancino Tueros', role: 'developer', email: 'jlcancino@example.com', phone: '+51949260281', workspace: 'Longitudinal tramo 4' },
+    'A.suarez': { password: 'ASuarez@2026', name: 'Adrián Suárez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51943697255', workspace: 'Longitudinal tramo 4' },
 };
 
 // Exportar lista para el Login y Selectores Activos (Solo usuarios activos)
@@ -100,7 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const stored = localStorage.getItem('ssoma_users_db');
             if (stored) {
                 try {
-                    return JSON.parse(stored);
+                    const parsed = JSON.parse(stored);
+                    return { ...INITIAL_USERS, ...parsed };
                 } catch (e) {
                     console.error('Error parsing stored users', e);
                 }
