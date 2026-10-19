@@ -45,7 +45,7 @@ import {
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { getAvailableWorkspaces } from '@/lib/locations';
+import { getAvailableWorkspaces, syncMasterLocationsToServer, getMasterLocationsPayload } from '@/lib/locations';
 import NetworkHealthWidget from '@/components/dashboard/NetworkHealthWidget';
 
 export default function Sidebar() {
@@ -58,6 +58,7 @@ export default function Sidebar() {
     useEffect(() => {
         const updateWs = () => setCurrentWorkspaces(getAvailableWorkspaces());
         updateWs();
+        syncMasterLocationsToServer();
         window.addEventListener('ssoma_workspaces_updated', updateWs);
         return () => window.removeEventListener('ssoma_workspaces_updated', updateWs);
     }, []);
@@ -202,7 +203,12 @@ export default function Sidebar() {
                                 onClick={async () => {
                                     alert('Enviando actualizacion a Vercel. Por favor espere...');
                                     try {
-                                        const res = await fetch('/api/deploy', { method: 'POST' });
+                                        const payload = getMasterLocationsPayload();
+                                        const res = await fetch('/api/deploy', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload)
+                                        });
                                         const data = await res.json();
                                         if (data.success) {
                                             alert(data.message || 'Exito: Los cambios han sido enviados a Vercel. Tardara unos minutos en reflejarse publicamente.');

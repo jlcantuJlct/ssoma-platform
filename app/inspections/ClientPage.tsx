@@ -57,7 +57,7 @@ const AREAS = [
     "Medioambiente"
 ];
 
-import { SSOMA_LOCATIONS } from '@/lib/locations';
+import { SSOMA_LOCATIONS, getLocationsForWorkspace } from '@/lib/locations';
 
 const INITIAL_ZONES = SSOMA_LOCATIONS;
 
@@ -119,17 +119,19 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
     // MASTER DATA (Dynamic from Storage)
     // We use capitalized names to match existing code usage (RESPONSIBLES.map...)
     const [RESPONSIBLES, setRESPONSIBLES] = useState<string[]>(INITIAL_RESPONSIBLES);
-    const [ZONES, setZONES] = useState<string[]>(INITIAL_ZONES);
+    const [ZONES, setZONES] = useState<string[]>(() => getLocationsForWorkspace(user?.workspace));
 
     useEffect(() => {
         // Load Master Data updates
         if (typeof window !== 'undefined') {
             const storedR = localStorage.getItem('ssoma_responsibles');
-            const storedZ = localStorage.getItem('ssoma_zones');
             if (storedR) setRESPONSIBLES(JSON.parse(storedR));
-            if (storedZ) setZONES(JSON.parse(storedZ));
+            const updateZones = () => setZONES(getLocationsForWorkspace(user?.workspace));
+            updateZones();
+            window.addEventListener('ssoma_locations_updated', updateZones);
+            return () => window.removeEventListener('ssoma_locations_updated', updateZones);
         }
-    }, []);
+    }, [user?.workspace]);
 
     // Estado de Cuotas por Usuario (Inicializado en 4)
     const [userQuotas, setUserQuotas] = useState<Record<string, number>>(() => {
