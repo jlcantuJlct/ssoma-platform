@@ -40,7 +40,8 @@ import {
     Wind,
     PlugZap,
     FlaskConical,
-    User
+    User,
+    LogOut
 } from "lucide-react";
 
 const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20, activeColorClass: string = 'text-[#f97316]') => {
@@ -116,6 +117,7 @@ export default function PublicReporteACPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [exited, setExited] = useState(false);
 
     useEffect(() => {
         // 1. Determinar el proyecto desde la URL del QR (?workspace=...) o desde el workspace activo
@@ -303,6 +305,40 @@ export default function PublicReporteACPage() {
         }
     };
 
+    const handleExit = () => {
+        if (typeof window !== 'undefined') {
+            const hasSession = !!localStorage.getItem('ssoma_user');
+            try {
+                window.close();
+            } catch (e) {}
+            if (hasSession) {
+                window.location.href = '/reporte-ac';
+            } else {
+                setExited(true);
+            }
+        }
+    };
+
+    if (exited) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-4">
+                <div className={`bg-slate-900 border ${isLongitudinal ? 'border-emerald-500/40' : 'border-orange-500/40'} p-8 rounded-[2rem] shadow-2xl text-center max-w-md w-full`}>
+                    <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-5">
+                        <LogOut size={30} className="text-slate-300" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white mb-2">Has salido del formulario</h2>
+                    <p className="text-slate-400 mb-6 text-sm">Ya puedes cerrar esta pestaña en tu navegador o volver a ingresar si deseas registrar un nuevo reporte.</p>
+                    <button
+                        onClick={() => setExited(false)}
+                        className={`w-full ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'} text-white font-bold py-3 px-6 rounded-full transition-colors`}
+                    >
+                        Volver al Formulario
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (submitted) {
         return (
             <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-4">
@@ -313,24 +349,32 @@ export default function PublicReporteACPage() {
                     <h2 className="text-2xl font-black text-white mb-2">¡Reporte Enviado!</h2>
                     <p className="text-slate-400 mb-2">Proyecto: <strong className={isLongitudinal ? "text-emerald-400" : "text-orange-400"}>{projectWorkspace}</strong></p>
                     <p className="text-slate-400 mb-8 text-sm">Gracias por contribuir a la seguridad. Su reporte ha sido registrado en Drive y en el sistema exitosamente.</p>
-                    <button 
-                        onClick={() => {
-                            setSubmitted(false);
-                            setForm({
-                                ...form,
-                                actos_checked: [],
-                                condiciones_checked: [],
-                                accion_inmediata: '',
-                                descripcion: '',
-                                responsible: '',
-                                location: ''
-                            });
-                            setPdfFile(null);
-                        }}
-                        className={`w-full ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'} text-white font-bold py-3 px-6 rounded-full transition-colors`}
-                    >
-                        Enviar Otro Reporte
-                    </button>
+                    <div className="space-y-3">
+                        <button 
+                            onClick={() => {
+                                setSubmitted(false);
+                                setForm({
+                                    ...form,
+                                    actos_checked: [],
+                                    condiciones_checked: [],
+                                    accion_inmediata: '',
+                                    descripcion: '',
+                                    responsible: '',
+                                    location: ''
+                                });
+                                setPdfFile(null);
+                            }}
+                            className={`w-full ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'} text-white font-bold py-3 px-6 rounded-full transition-colors`}
+                        >
+                            Enviar Otro Reporte
+                        </button>
+                        <button
+                            onClick={handleExit}
+                            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 px-6 rounded-full transition-colors flex items-center justify-center gap-2 border border-slate-700"
+                        >
+                            <LogOut size={16} /> Salir
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -351,9 +395,17 @@ export default function PublicReporteACPage() {
                                     Reporte TOP - {projectWorkspace}
                                 </h1>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
                                 <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Código: F-SIG-060</span>
                                 <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Versión: 01</span>
+                                <button
+                                    type="button"
+                                    onClick={handleExit}
+                                    className="bg-red-500/80 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1.5 transition-all shadow-md"
+                                    title="Salir del formulario"
+                                >
+                                    <LogOut size={14} /> Salir
+                                </button>
                             </div>
                         </div>
                         <p className="text-white font-bold text-sm sm:text-lg mb-1">
@@ -457,7 +509,7 @@ export default function PublicReporteACPage() {
                         <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
 
-                    <div className="pt-6">
+                    <div className="pt-6 space-y-3">
                         <button 
                             onClick={handleSave}
                             disabled={isUploading}
@@ -465,6 +517,13 @@ export default function PublicReporteACPage() {
                         >
                             {isUploading ? <Activity className="animate-spin" size={24} /> : null}
                             Registrar Reporte ({projectWorkspace})
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleExit}
+                            className="w-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white font-bold py-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 border border-slate-700 text-sm"
+                        >
+                            <LogOut size={16} /> Salir del Formulario
                         </button>
                     </div>
                 </div>
