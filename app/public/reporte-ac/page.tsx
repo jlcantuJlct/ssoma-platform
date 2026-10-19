@@ -417,19 +417,6 @@ export default function PublicReporteACPage() {
                         <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
 
-                    <div className="space-y-1 pt-4">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Evidencia (Opcional)</label>
-                        <div className="relative group" onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(e) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) { setPdfFile(e.dataTransfer.files[0]); } }}>
-                            <input name="input_2296" type="file" accept="image/*,.pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full" />
-                            <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${isDragging ? 'border-[#f97316] bg-[#f97316]/20' : pdfFile ? 'border-[#f97316]/50 bg-transparent' : 'border-slate-700 bg-transparent group-hover:border-[#f97316]/50'}`}>
-                                <Upload className={`mx-auto mb-2 ${isDragging || pdfFile ? 'text-[#f97316]' : 'text-slate-600'} ${isDragging ? 'animate-bounce' : ''}`} size={20} />
-                                <p className={`text-[10px] font-bold uppercase tracking-tighter ${isDragging ? 'text-[#f97316]' : 'text-slate-500'}`}>
-                                    {isDragging ? '¡SUELTA EL ARCHIVO AQUÍ!' : pdfFile ? pdfFile.name : 'Subir Foto o PDF'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="pt-6">
                         <button 
                             onClick={handleSave}
