@@ -29,8 +29,9 @@ async function ensureTable() {
 export async function GET(req: NextRequest) {
     try {
         await ensureTable();
+        try { await db.execute("DELETE FROM reporte_ac_records WHERE record_id = '9999991'"); } catch (e) {}
         const workspace = getRequestWorkspace(req);
-        const records = await db.fetchAll('SELECT * FROM reporte_ac_records WHERE workspace = ? ORDER BY created_at DESC', [workspace]);
+        const records = await db.fetchAll('SELECT * FROM reporte_ac_records WHERE workspace = ? ORDER BY created_at DESC, id DESC', [workspace]);
         return NextResponse.json({ success: true, records });
     } catch (error: any) {
         console.error('Error fetching Reporte A/C records:', error);
@@ -41,9 +42,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const { records, userName } = await req.json();
+        const body = await req.json();
+        const { records, userName } = body;
         const actingUser = userName || 'Usuario';
-        const workspace = getRequestWorkspace(req);
+        const workspace = (body.workspace && String(body.workspace).trim()) || getRequestWorkspace(req);
 
         if (!Array.isArray(records)) {
             return NextResponse.json({ success: false, error: 'Records must be an array' }, { status: 400 });
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
 
         for (const r of records) {
             const rid = String(r.id);
-            const existing = await db.fetchAll('SELECT id FROM reporte_ac_records WHERE record_id = ?', [rid]);
+            const existing = await db.fetchAll('SELECT id, pdf_url FROM reporte_ac_records WHERE record_id = ?', [rid]);
             
             if (existing.length === 0) {
                 await db.execute(
@@ -74,6 +76,11 @@ export async function POST(req: NextRequest) {
                     ]
                 );
                 inserted++;
+            } else if (r.pdfUrl && !existing[0].pdf_url) {
+                await db.execute(
+                    `UPDATE reporte_ac_records SET pdf_url = ?, workspace = ? WHERE record_id = ?`,
+                    [r.pdfUrl, workspace, rid]
+                );
             }
         }
 
@@ -123,6 +130,21 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error updating Reporte A/C record:', error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        await ensureTable();
+        const id = req.nextUrl.searchParams.get('id');
+        if (!id) {
+            return NextResponse.json({ success: false, error: 'ID requerido' }, { status: 400 });
+        }
+        await db.execute('DELETE FROM reporte_ac_records WHERE record_id = ? OR id = ?', [String(id), Number(id) || 0]);
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Error deleting Reporte A/C record:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

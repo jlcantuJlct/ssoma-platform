@@ -1894,9 +1894,35 @@ export async function POST(req: Request) {
     if (data.saveToDrive) {
       const APPS_SCRIPT_URL =
         "https://script.google.com/macros/s/AKfycbyzUxEDgad2mc2tfsWwfAlh4RHa0QKA_mJLcUN7AEe1jjEKOznkZ1myAIHe79zhxUB4/exec";
-      const base64 = buffer.toString("base64");
-      const fileName = `INSP_${moduleName}_${new Date().getTime()}.xlsx`;
-      const folderPath = `INSPECCIONES/${new Date().getFullYear()}/${moduleName.toUpperCase()}`;
+      const nodeBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+      const base64 = nodeBuf.toString("base64");
+      const meta = data.meta || data.answers || data || {};
+      const monthNames = [
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+      ];
+      const dObj = (meta.date || meta.fecha) ? new Date((meta.date || meta.fecha) + "T12:00:00") : new Date();
+      const monthName = !isNaN(dObj.getTime()) ? monthNames[dObj.getMonth()] : "GENERAL";
+      const cleanProj = String(meta.proyecto || "RED VIAL 6").replace(/[^a-zA-Z0-9\s-_]/g, "").trim().toUpperCase();
+      const cleanLoc = String(meta.location || meta.lugar || "GENERAL").replace(/[^a-zA-Z0-9\s-_]/g, "").trim().toUpperCase();
+
+      const fileName = isTop
+        ? `F-SIG-060_TOP_${meta.date || new Date().toISOString().split("T")[0]}_${meta.reportNumber || new Date().getTime()}.xlsx`
+        : `INSP_${moduleName}_${new Date().getTime()}.xlsx`;
+      const folderPath = isTop
+        ? `${cleanProj}/SEGURIDAD/${monthName}/TARJETAS_TOP/${cleanLoc}`
+        : `INSPECCIONES/${new Date().getFullYear()}/${moduleName.toUpperCase()}`;
+
+      // Guardado en disco local si existe D:/
+      try {
+        if (fs.existsSync("D:/")) {
+          const localDir = path.join("D:/Evidencia del sistema de gestion CASA 2026", folderPath);
+          fs.mkdirSync(localDir, { recursive: true });
+          fs.writeFileSync(path.join(localDir, fileName), nodeBuf);
+        }
+      } catch (localErr) {
+        console.warn("No se pudo guardar copia local en D:/:", localErr);
+      }
 
       const payload = {
         filename: fileName,
@@ -1910,26 +1936,31 @@ export async function POST(req: Request) {
         folderName: folderPath,
       };
 
-      const driveRes = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain" },
-        redirect: "follow",
-      });
-
       let driveUrl = "";
-      if (driveRes.ok) {
-        const text = await driveRes.text();
-        const driveData = JSON.parse(text);
-        if (driveData.result === "success") {
-          driveUrl = driveData.url || driveData.viewLink || "";
+      try {
+        const driveRes = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "text/plain" },
+          redirect: "follow",
+        });
+
+        if (driveRes.ok) {
+          const text = await driveRes.text();
+          const driveData = JSON.parse(text);
+          if (driveData.result === "success") {
+            driveUrl = driveData.viewLink || driveData.url || "";
+          }
         }
+      } catch (driveErr) {
+        console.error("Error subiendo Excel a Google Drive:", driveErr);
       }
 
       return NextResponse.json({
         success: true,
         driveUrl,
         fileBase64: base64,
+        fileName,
       });
     }
 

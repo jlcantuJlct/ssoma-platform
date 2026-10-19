@@ -249,10 +249,19 @@ export default function PublicReporteACPage() {
                 });
             });
 
-            await fetch('/api/reporte-ac-records', {
+            const activeWs = getActiveWorkspace() || 'Red Vial 6';
+            try {
+                const wsKey = `reporte_ac_records_${activeWs}`;
+                const existingLocal = JSON.parse(localStorage.getItem(wsKey) || '[]');
+                const updatedLocal = [...newRecords, ...existingLocal];
+                localStorage.setItem(wsKey, JSON.stringify(updatedLocal));
+                localStorage.setItem('reporte_ac_records', JSON.stringify(updatedLocal));
+            } catch (e) {}
+
+            await fetch(`/api/reporte-ac-records?workspace=${encodeURIComponent(activeWs)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: newRecords, userName: form.responsible })
+                body: JSON.stringify({ records: newRecords, userName: form.responsible, workspace: activeWs })
             });
 
             setSubmitted(true);

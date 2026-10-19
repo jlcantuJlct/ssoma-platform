@@ -194,16 +194,20 @@ export default function ReporteACPage() {
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
         const init = async () => {
-            const stored = null;
-            if (stored) {
-                try { setRecords(JSON.parse(stored)); } catch (e) { }
+            const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
+            const wsKey = `reporte_ac_records_${activeWs}`;
+            let localList: ReporteACRecord[] = [];
+
+            const storedWs = localStorage.getItem(wsKey);
+            if (storedWs) {
+                try { localList = JSON.parse(storedWs); setRecords(localList); } catch (e) { }
             }
 
             try {
-                const res = await fetch('/api/reporte-ac-records');
+                const res = await fetch(`/api/reporte-ac-records?workspace=${encodeURIComponent(activeWs)}`);
                 const data = await res.json();
-                if (data.success && data.records.length > 0) {
-                    const mapped = data.records.map((r: any) => ({
+                if (data.success && Array.isArray(data.records)) {
+                    const mapped: ReporteACRecord[] = data.records.map((r: any) => ({
                         id: Number(r.record_id) || r.id,
                         date: r.date,
                         responsible: r.responsible,
@@ -215,22 +219,28 @@ export default function ReporteACPage() {
                         accion_inmediata: r.accion_inmediata,
                         descripcion: r.descripcion
                     }));
-                    setRecords(mapped);
-                    localStorage.setItem('reporte_ac_records', JSON.stringify(mapped));
+                    // Combinar registros locales aún no sincronizados con los de base de datos
+                    const serverIds = new Set(mapped.map(m => m.id));
+                    const unsyncedLocal = localList.filter(l => !serverIds.has(l.id));
+                    const combined = [...unsyncedLocal, ...mapped];
+                    setRecords(combined);
+                    localStorage.setItem(wsKey, JSON.stringify(combined));
+                    localStorage.setItem('reporte_ac_records', JSON.stringify(combined));
                 }
             } catch (e) { }
             setIsLoaded(true);
         };
         init();
-    }, []);
+    }, [user?.workspace]);
 
     const handleSync = async (currentRecords: ReporteACRecord[]) => {
         setIsSyncing(true);
         try {
-            await fetch('/api/reporte-ac-records', {
+            const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
+            await fetch(`/api/reporte-ac-records?workspace=${encodeURIComponent(activeWs)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: currentRecords, userName: user?.name })
+                body: JSON.stringify({ records: currentRecords, userName: user?.name, workspace: activeWs })
             });
         } catch (e) {
             console.error("Sync error:", e);
@@ -276,9 +286,10 @@ export default function ReporteACPage() {
                 );
             }
 
-            // Generar Registro Nativo Excel F-SIG-060 (Motor de Tarjeta TOP)
+            // 1. Generar Registro Nativo Excel F-SIG-060 y Guardarlo en Google Drive
+            const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
             const reportNum = String(records.length + 1).padStart(3, '0');
-            const proyectoActivo = (user?.workspace || getActiveWorkspace() || 'RED VIAL 6').toUpperCase();
+            const proyectoActivo = activeWs.toUpperCase();
             const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
             try {
@@ -307,7 +318,7 @@ export default function ReporteACPage() {
 
                 if (excelRes.ok) {
                     const excelData = await excelRes.json();
-                    if (excelData.driveUrl && !uploadedUrl) {
+                    if (excelData.driveUrl) {
                         uploadedUrl = excelData.driveUrl;
                     }
                     if (excelData.fileBase64) {
@@ -329,6 +340,7 @@ export default function ReporteACPage() {
                 console.error("Error generando Excel F-SIG-060:", excelErr);
             }
 
+            // 2. Registrar en Registros Recientes y sincronizar con la Base de Datos
             const newRecords: ReporteACRecord[] = [];
             const baseId = Date.now();
 
@@ -364,13 +376,22 @@ export default function ReporteACPage() {
 
             const updated = [...newRecords, ...records];
             setRecords(updated);
+            const wsKey = `reporte_ac_records_${activeWs}`;
+            localStorage.setItem(wsKey, JSON.stringify(updated));
             localStorage.setItem('reporte_ac_records', JSON.stringify(updated));
-            handleSync(updated);
+
+            // Limpiar filtros activos para que el nuevo registro se vea de inmediato en Registros Recientes
+            setFilterDate('');
+            setFilterLocation('');
+            setFilterActo('');
+            setFilterMonths([]);
+
+            await handleSync(newRecords);
 
             // Reset
             setForm({ ...form, actos_checked: [], condiciones_checked: [], accion_inmediata: '', descripcion: '' });
             setPdfFile(null);
-            alert(`✅ ${newRecords.length} reporte(s) de A/C registrado(s) y formato F-SIG-060 generado con éxito.`);
+            alert(`✅ Reporte TOP registrado en Registros Recientes, Excel F-SIG-060 descargado y guardado en Google Drive con éxito.`);
         } catch (error) {
             console.error("Save error:", error);
             alert("❌ Error al guardar el reporte.");
@@ -421,17 +442,23 @@ export default function ReporteACPage() {
         }
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         const record = records.find(r => r.id === id);
         if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
             alert('⏱️ No se puede eliminar este registro.\nLos usuarios solo pueden eliminar documentos dentro de las primeras 24 horas de su ingreso.\nContacte al administrador si necesita realizar esta acción.');
             return;
         }
         if (!confirm("¿Eliminar este registro?")) return;
+        const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
         const updated = records.filter(r => r.id !== id);
         setRecords(updated);
+        localStorage.setItem(`reporte_ac_records_${activeWs}`, JSON.stringify(updated));
         localStorage.setItem('reporte_ac_records', JSON.stringify(updated));
-        handleSync(updated);
+        try {
+            await fetch(`/api/reporte-ac-records?id=${id}&workspace=${encodeURIComponent(activeWs)}`, { method: 'DELETE' });
+        } catch (e) {
+            console.error("Delete error:", e);
+        }
     };
 
     const handleUpdate = async () => {
