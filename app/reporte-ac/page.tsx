@@ -161,6 +161,7 @@ export default function ReporteACPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
     const [showQR, setShowQR] = useState(false);
+    const [qrMode, setQrMode] = useState<'cloud' | 'lan'>('cloud');
 
     // Edit State
     const [editingRecord, setEditingRecord] = useState<ReporteACRecord | null>(null);
@@ -610,7 +611,12 @@ export default function ReporteACPage() {
 
     const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
     const isLongitudinal = activeWs.toLowerCase().includes('longitudinal');
-    const qrBaseUrl = typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac';
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const cloudBaseUrl = 'https://ssoma-platform.vercel.app/public/reporte-ac';
+    const lanBaseUrl = 'http://192.168.17.86:3000/public/reporte-ac';
+    const qrBaseUrl = isLocalhost
+        ? (qrMode === 'cloud' ? cloudBaseUrl : lanBaseUrl)
+        : (typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : cloudBaseUrl);
     const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(activeWs)}`;
 
     return (
@@ -656,26 +662,53 @@ export default function ReporteACPage() {
 
                 {showQR && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className={`bg-slate-900 border-2 ${isLongitudinal ? 'border-emerald-500/60 shadow-[0_0_40px_rgba(16,185,129,0.25)]' : 'border-orange-500/60 shadow-[0_0_40px_rgba(249,115,22,0.25)]'} rounded-3xl p-8 max-w-md w-full text-center relative`}>
+                        <div className={`bg-slate-900 border-2 ${isLongitudinal ? 'border-emerald-500/60 shadow-[0_0_40px_rgba(16,185,129,0.25)]' : 'border-orange-500/60 shadow-[0_0_40px_rgba(249,115,22,0.25)]'} rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative`}>
                             <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 rounded-full p-1">
                                 <X size={20} />
                             </button>
-                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3 border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-orange-500/20 text-orange-300 border-orange-500/40'}`}>
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-orange-500/20 text-orange-300 border-orange-500/40'}`}>
                                 <MapPin size={12} /> {activeWs}
                             </div>
-                            <QrCode size={44} className={`${isLongitudinal ? 'text-emerald-400' : 'text-orange-500'} mx-auto mb-2`} />
                             <h2 className="text-2xl font-black text-white mb-1 tracking-tight">QR Exclusivo - {activeWs}</h2>
-                            <p className="text-slate-400 text-xs mb-5">
-                                Escanee este código QR para reportar Tarjetas TOP directamente en <strong className={isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}>{activeWs}</strong> con sus lugares y usuarios independientes.
+                            <p className="text-slate-400 text-xs mb-4">
+                                Escanee desde su celular para reportar Tarjetas TOP en <strong className={isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}>{activeWs}</strong>.
                             </p>
-                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-5 border-4 ${isLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
+
+                            {isLocalhost && (
+                                <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-4 text-[11px] font-bold">
+                                    <button
+                                        type="button"
+                                        onClick={() => setQrMode('cloud')}
+                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'cloud' ? (isLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        🌐 Celular (4G / Internet)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setQrMode('lan')}
+                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'lan' ? (isLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        📶 Wi-Fi Local (PC)
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-4 border-4 ${isLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=${isLongitudinal ? '065f46' : '9a3412'}&data=${encodeURIComponent(qrFullUrl)}`} alt={`QR Code ${activeWs}`} className="w-48 h-48" />
                             </div>
-                            <div className="bg-slate-800/70 p-3 rounded-xl border border-slate-700">
-                                <p className="text-[11px] text-slate-300 font-mono break-all select-all">
+                            <div className="bg-slate-800/70 p-2.5 rounded-xl border border-slate-700 mb-3">
+                                <p className="text-[10px] text-slate-300 font-mono break-all select-all">
                                     {qrFullUrl}
                                 </p>
                             </div>
+                            <a
+                                href={`/public/reporte-ac?workspace=${encodeURIComponent(activeWs)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}
+                            >
+                                <Eye size={14} /> Abrir Formulario Público Aquí
+                            </a>
                         </div>
                     </div>
                 )}
