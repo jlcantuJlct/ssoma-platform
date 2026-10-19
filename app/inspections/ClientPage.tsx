@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useAuth, USER_LIST, ALL_USER_LIST } from '@/lib/auth';
+import { useAuth, USER_LIST, ALL_USER_LIST, getUsersForWorkspace } from '@/lib/auth';
 import { saveMonthlyProgram, getMonthlyProgram, saveInspection, updateInspection, getInspections, deleteInspectionRecord, syncProgramToDashboard } from '@/app/actions';
 import { ChevronDown, ClipboardList, Plus, FileSpreadsheet, ListTodo, Edit3 } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -116,20 +116,21 @@ const INSPECTION_TYPES_BY_AREA = {
 export default function InspectionsPage({ initialInspections, initialProgram }: { initialInspections: any[], initialProgram: any[] }) {
     const { user } = useAuth();
 
-    // MASTER DATA (Dynamic from Storage)
+    // MASTER DATA (Dynamic from Storage per Workspace)
     // We use capitalized names to match existing code usage (RESPONSIBLES.map...)
-    const [RESPONSIBLES, setRESPONSIBLES] = useState<string[]>(INITIAL_RESPONSIBLES);
+    const [RESPONSIBLES, setRESPONSIBLES] = useState<string[]>(() => getUsersForWorkspace(user?.workspace).map(u => u.name));
     const [ZONES, setZONES] = useState<string[]>(() => getLocationsForWorkspace(user?.workspace));
 
     useEffect(() => {
-        // Load Master Data updates
+        // Load Master Data updates per active workspace
         if (typeof window !== 'undefined') {
-            const storedR = localStorage.getItem('ssoma_responsibles');
-            if (storedR) setRESPONSIBLES(JSON.parse(storedR));
-            const updateZones = () => setZONES(getLocationsForWorkspace(user?.workspace));
-            updateZones();
-            window.addEventListener('ssoma_locations_updated', updateZones);
-            return () => window.removeEventListener('ssoma_locations_updated', updateZones);
+            const updateMasterData = () => {
+                setRESPONSIBLES(getUsersForWorkspace(user?.workspace).map(u => u.name));
+                setZONES(getLocationsForWorkspace(user?.workspace));
+            };
+            updateMasterData();
+            window.addEventListener('ssoma_locations_updated', updateMasterData);
+            return () => window.removeEventListener('ssoma_locations_updated', updateMasterData);
         }
     }, [user?.workspace]);
 

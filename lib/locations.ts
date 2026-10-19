@@ -56,6 +56,17 @@ export function getActiveWorkspace(): string {
 }
 
 /**
+ * Obtiene la Ubicación / Dirección geográfica del proyecto activo
+ */
+export function getActiveProjectLocation(workspace?: string): string {
+    const ws = (workspace || getActiveWorkspace()).toLowerCase();
+    if (ws.includes('longitudinal')) {
+        return 'Pisco a Ayacucho';
+    }
+    return 'Lima - Ica';
+}
+
+/**
  * Obtiene los lugares de un proyecto determinado leyendo de localStorage (personalizado) o del default
  */
 export function getLocationsForWorkspace(workspace?: string): string[] {
@@ -115,15 +126,24 @@ export const SSOMA_LOCATIONS: string[] = new Proxy([] as string[], {
 });
 
 /**
- * Recopila la configuración actual de proyectos y lugares desde localStorage
+ * Recopila la configuración actual de proyectos, lugares y usuarios desde localStorage
  */
-export function getMasterLocationsPayload(): { workspaces: string[]; locationsByProject: Record<string, string[]> } {
+export function getMasterLocationsPayload(): { workspaces: string[]; locationsByProject: Record<string, string[]>; usersDb?: Record<string, any> } {
     const workspaces = getAvailableWorkspaces();
     const locationsByProject: Record<string, string[]> = {};
     workspaces.forEach(ws => {
         locationsByProject[ws] = getLocationsForWorkspace(ws);
     });
-    return { workspaces, locationsByProject };
+    let usersDb: Record<string, any> | undefined = undefined;
+    if (typeof window !== 'undefined') {
+        try {
+            const storedUsers = localStorage.getItem('ssoma_users_db');
+            if (storedUsers) {
+                usersDb = JSON.parse(storedUsers);
+            }
+        } catch (e) {}
+    }
+    return { workspaces, locationsByProject, usersDb };
 }
 
 /**

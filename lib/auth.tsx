@@ -29,49 +29,187 @@ export interface FullUser extends User {
     deactivated?: boolean;
 }
 
+import { getActiveWorkspace, syncMasterLocationsToServer } from '@/lib/locations';
+
+// === START_MASTER_USERS ===
 export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone?: string, workspace: string, deactivated?: boolean }> = {
-    'jose.cancino': {
-        password: '161976Jlct',
-        name: 'Jose Luis Cancino',
-        role: 'developer',
-        email: 'jlcancino@example.com',
-        phone: '+51949260281',
-        workspace: 'Red Vial 6'
+    "jose.cancino": {
+        "password": "161976Jlct",
+        "name": "Jose Luis Cancino",
+        "role": "developer",
+        "email": "jlcancino@example.com",
+        "phone": "+51949260281",
+        "workspace": "Red Vial 6"
     },
-    'gerencia': {
-        password: 'GerenciaSSO2026',
-        name: 'Gerencia General',
-        role: 'manager',
-        email: 'gerencia@antigravity.com',
-        phone: '+51900000000',
-        workspace: 'Red Vial 6'
+    "gerencia": {
+        "password": "GerenciaSSO2026",
+        "name": "Gerencia General",
+        "role": "manager",
+        "email": "gerencia@antigravity.com",
+        "phone": "+51900000000",
+        "workspace": "Red Vial 6"
     },
-    'jose.galliquio': { password: 'JGalliq@2026', name: 'Jose Galliquio Montesinos', role: 'user', email: 'josegamontesinos@gmail.com', phone: '+51986103867', workspace: 'Red Vial 6' },
-    'albert.chuquispuma': { password: 'AChuqui@2026', name: 'Albert Chuquispuma Santos', role: 'user', email: 'albertscorpio99@gmail.com', phone: '+51929906173', workspace: 'Red Vial 6' },
-    'jesus.villalovos': { password: 'JVillal@2026', name: 'Jesus Villalobos Levano', role: 'user', email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280', workspace: 'Red Vial 6' },
-    'adrian.suarez': { password: 'ASuarez@2026', name: 'Adrian Suarez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51943697255', workspace: 'Red Vial 6' },
-    'fabricio.galvez': { password: 'FGalvez@2026', name: 'Fabricio Galvez', role: 'user', email: 'fgalvez@casacontratistas.com', phone: '+51900000000', workspace: 'Red Vial 6' },
-    'benjy.vega': { password: 'BVega@2026', name: 'Benjy Vega', role: 'user', email: 'bvega@casacontratistas.com', phone: '+51900000000', workspace: 'Red Vial 6' },
-    'gladis.aroste': { password: 'GAroste@2026', name: 'Gladis Aroste Huertas', role: 'user', email: 'gladys.aroste123@gmail.com', phone: '+51969683799', workspace: 'Red Vial 6' },
-    'brayan.pena': { password: 'BPeña@2026', name: 'Brayan Jeanpool Peña Villafuerte', role: 'user', email: '20173143@unica.edu.pe', phone: '+51971087023', deactivated: true, workspace: 'Red Vial 6' },
-    'tramo4.admin': { password: 'Tramo4@2026', name: 'Admin Tramo 4', role: 'manager', email: 'tramo4@example.com', phone: '+51900000000', workspace: 'Longitudinal tramo 4' },
-    'Luis.cancino': { password: '161976Jlct', name: 'Jose Luis Cancino Tueros', role: 'developer', email: 'jlcancino@example.com', phone: '+51949260281', workspace: 'Longitudinal tramo 4' },
-    'A.suarez': { password: 'ASuarez@2026', name: 'Adrián Suárez Soto', role: 'user', email: 'adrian142005@hotmail.com', phone: '+51943697255', workspace: 'Longitudinal tramo 4' },
+    "jose.galliquio": {
+        "password": "JGalliq@2026",
+        "name": "Jose Galliquio Montesinos",
+        "role": "user",
+        "email": "josegamontesinos@gmail.com",
+        "phone": "+51986103867",
+        "workspace": "Red Vial 6",
+        "deactivated": true
+    },
+    "albert.chuquispuma": {
+        "password": "AChuqui@2026",
+        "name": "Albert Chuquispuma Santos",
+        "role": "user",
+        "email": "albertscorpio99@gmail.com",
+        "phone": "+51929906173",
+        "workspace": "Red Vial 6",
+        "deactivated": true
+    },
+    "jesus.villalovos": {
+        "password": "JVillal@2026",
+        "name": "Jesus Villalobos Levano",
+        "role": "user",
+        "email": "jesusvillaloboslevano4@gmail.com",
+        "phone": "+51928893280",
+        "workspace": "Red Vial 6",
+        "deactivated": true
+    },
+    "adrian.suarez": {
+        "password": "ASuarez@2026",
+        "name": "Adrian Suarez Soto",
+        "role": "user",
+        "email": "adrian142005@hotmail.com",
+        "phone": "+51943697255",
+        "workspace": "Red Vial 6"
+    },
+    "fabricio.galvez": {
+        "password": "FGalvez@2026",
+        "name": "Fabricio Galvez",
+        "role": "user",
+        "email": "fgalvez@casacontratistas.com",
+        "phone": "+51900000000",
+        "workspace": "Red Vial 6",
+        "deactivated": true
+    },
+    "benjy.vega": {
+        "password": "BVega@2026",
+        "name": "Benjy Vega",
+        "role": "user",
+        "email": "bvega@casacontratistas.com",
+        "phone": "+51900000000",
+        "workspace": "Red Vial 6",
+        "deactivated": true
+    },
+    "gladis.aroste": {
+        "password": "GAroste@2026",
+        "name": "Gladis Aroste Huertas",
+        "role": "user",
+        "email": "gladys.aroste123@gmail.com",
+        "phone": "+51969683799",
+        "workspace": "Red Vial 6"
+    },
+    "brayan.pena": {
+        "password": "BPeña@2026",
+        "name": "Brayan Jeanpool Peña Villafuerte",
+        "role": "user",
+        "email": "20173143@unica.edu.pe",
+        "phone": "+51971087023",
+        "deactivated": true,
+        "workspace": "Red Vial 6"
+    },
+    "tramo4.admin": {
+        "password": "Tramo4@2026",
+        "name": "Admin Tramo 4",
+        "role": "manager",
+        "email": "tramo4@example.com",
+        "phone": "+51900000000",
+        "workspace": "Longitudinal tramo 4"
+    },
+    "Luis.cancino": {
+        "name": "Jose Luis Cancino Tueros",
+        "role": "developer",
+        "workspace": "Longitudinal tramo 4",
+        "email": "Luis.cancino@example.com",
+        "phone": "+51900000000",
+        "password": "161976",
+        "deactivated": false
+    },
+    "A.suarez": {
+        "name": "Adrián Suárez Soto",
+        "role": "user",
+        "workspace": "Longitudinal tramo 4",
+        "email": "A.suarez@example.com",
+        "phone": "+51900000000",
+        "password": "ASuarez2026",
+        "deactivated": false
+    }
 };
+// === END_MASTER_USERS ===
 
-// Exportar lista para el Login y Selectores Activos (Solo usuarios activos)
-export const USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS)
-    .filter(key => !(INITIAL_USERS[key] as any).deactivated)
-    .map(key => ({
-        username: key,
-        name: INITIAL_USERS[key].name
-    }));
+export function getActiveUsersDb(): typeof INITIAL_USERS {
+    if (typeof window !== 'undefined') {
+        try {
+            const stored = localStorage.getItem('ssoma_users_db');
+            if (stored) {
+                return { ...INITIAL_USERS, ...JSON.parse(stored) };
+            }
+        } catch (e) {}
+    }
+    return INITIAL_USERS;
+}
 
-// Exportar lista completa para Filtros e Historial (Incluye desactivados para mantener trazabilidad)
-export const ALL_USER_LIST: PublicUser[] = Object.keys(INITIAL_USERS).map(key => ({
-    username: key,
-    name: INITIAL_USERS[key].name
-}));
+export function getUsersForWorkspace(workspace?: string, includeDeactivated = false): PublicUser[] {
+    const targetWs = workspace || getActiveWorkspace();
+    const db = getActiveUsersDb();
+    return Object.keys(db)
+        .filter(key => {
+            const u = db[key] as any;
+            if (!u) return false;
+            if (!includeDeactivated && u.deactivated) return false;
+            const userWs = u.workspace || 'Red Vial 6';
+            return userWs === targetWs;
+        })
+        .map(key => ({
+            username: key,
+            name: db[key].name
+        }));
+}
+
+function createUsersProxy(includeDeactivated: boolean): PublicUser[] {
+    return new Proxy([] as PublicUser[], {
+        get(_target, prop) {
+            const arr = getUsersForWorkspace(undefined, includeDeactivated);
+            if (prop === 'sort' || prop === 'reverse' || prop === 'splice') {
+                return (...args: any[]) => ([...arr] as any)[prop](...args);
+            }
+            const val = Reflect.get(arr, prop, arr);
+            return typeof val === 'function' ? val.bind(arr) : val;
+        },
+        has(_target, prop) {
+            return Reflect.has(getUsersForWorkspace(undefined, includeDeactivated), prop);
+        },
+        ownKeys() {
+            return Reflect.ownKeys(getUsersForWorkspace(undefined, includeDeactivated));
+        },
+        getOwnPropertyDescriptor(_target, prop) {
+            const arr = getUsersForWorkspace(undefined, includeDeactivated);
+            if (prop === 'length') {
+                return { value: arr.length, writable: true, enumerable: false, configurable: false };
+            }
+            const desc = Object.getOwnPropertyDescriptor(arr, prop);
+            if (desc) desc.configurable = true;
+            return desc;
+        }
+    });
+}
+
+// Exportar lista para Selectores Activos (Solo usuarios activos del proyecto actual)
+export const USER_LIST: PublicUser[] = createUsersProxy(false);
+
+// Exportar lista para Filtros e Historial del proyecto actual (Incluye desactivados del proyecto actual)
+export const ALL_USER_LIST: PublicUser[] = createUsersProxy(true);
 
 export const AVAILABLE_WORKSPACES = ['Red Vial 6', 'Longitudinal tramo 4'] as const;
 

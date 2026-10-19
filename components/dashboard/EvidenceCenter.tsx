@@ -34,6 +34,7 @@ import JSZip from 'jszip';
 import { SSOMA_LOCATIONS } from "@/lib/locations";
 import { Save as SaveIcon } from "lucide-react"; // I noticed SaveIcon was missing or inconsistent
 import { USER_LIST, useAuth } from "@/lib/auth";
+import { RESPONSIBLES } from "@/lib/categories";
 
 
 interface EvidencePageProps {
@@ -47,8 +48,6 @@ const INITIAL_EMO_ACTIVITIES = ["Exámenes Médico Ocupacional (EMO)"];
 const TARGET_OBJECTIVES = [
     { id: 'OBJ 05', label: 'Control de EMO' },
 ];
-
-const RESPONSIBLES = USER_LIST.map(user => user.name);
 
 type EvidenceRecord = {
     id: number;

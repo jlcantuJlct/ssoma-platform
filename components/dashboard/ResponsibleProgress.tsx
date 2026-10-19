@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { ComplianceGauge } from './ComplianceGauge';
 import { User, MapPin, Activity } from 'lucide-react';
+import { useAuth, getUsersForWorkspace } from '@/lib/auth';
+import { getActiveWorkspace } from '@/lib/locations';
 
 // Configuration Presets for original team to preserve custom mappings
 const PRESETS: Record<string, any> = {
@@ -58,6 +60,7 @@ const PRESETS: Record<string, any> = {
 };
 
 export function ResponsibleProgress() {
+    const { user } = useAuth();
     const [stats, setStats] = useState<Record<string, { executed: number, total: number, percent: number }>>({});
     const [activeConfigs, setActiveConfigs] = useState<Record<string, any>>({});
     const [monthName, setMonthName] = useState("");
@@ -65,6 +68,7 @@ export function ResponsibleProgress() {
     useEffect(() => {
         const loadAllData = async () => {
             try {
+                const currentWs = user?.workspace || getActiveWorkspace();
                 // 1. Fetch Cloud Data for PMA first to ensure dashboard is updated
                 let cloudPma = [];
                 try {
@@ -81,28 +85,27 @@ export function ResponsibleProgress() {
                 // 2. Load Other Data
                 const hhcStored = localStorage.getItem('hhc_records');
                 const programStored = localStorage.getItem('monthly_training_program');
-                const responsiblesStored = localStorage.getItem('ssoma_responsibles');
                 const inspectionsStored = localStorage.getItem('inspections_records');
                 const pmaStored = localStorage.getItem('pma_evidence_records');
                 const annualStored = localStorage.getItem('annual_program_data');
 
                 const hhcRecords: any[] = hhcStored ? JSON.parse(hhcStored) : [];
                 const trainingProgram: any[] = programStored ? JSON.parse(programStored) : [];
-                const responsiblesList: string[] = responsiblesStored ? JSON.parse(responsiblesStored) : Object.keys(PRESETS);
+                const responsiblesList: string[] = getUsersForWorkspace(currentWs).map(u => u.name);
                 const inspectionRecords: any[] = inspectionsStored ? JSON.parse(inspectionsStored) : [];
                 const pmaRecords: any[] = cloudPma.length > 0 ? cloudPma : (pmaStored ? JSON.parse(pmaStored) : []);
                 const annualProgram: any = annualStored ? JSON.parse(annualStored) : {};
 
-                calculateStats(hhcRecords, trainingProgram, responsiblesList, inspectionRecords, pmaRecords, annualProgram);
+                calculateStats(hhcRecords, trainingProgram, responsiblesList, inspectionRecords, pmaRecords, annualProgram, currentWs);
             } catch (error) {
                 console.error("ResponsibleProgress Data Error:", error);
             }
         };
 
         loadAllData();
-    }, []);
+    }, [user?.workspace]);
 
-    const calculateStats = (hhcRecords: any[], program: any[], responsiblesList: string[], inspectionRecords: any[], pmaRecords: any[], annualProgram: any) => {
+    const calculateStats = (hhcRecords: any[], program: any[], responsiblesList: string[], inspectionRecords: any[], pmaRecords: any[], annualProgram: any, currentWs: string = 'Red Vial 6') => {
         // Filter for Current Month
         const now = new Date();
         const currentYear = now.getFullYear();
@@ -115,10 +118,10 @@ export function ResponsibleProgress() {
 
         responsiblesList.forEach(name => {
             // EXCLUDE Developer/Admin
-            if (name === 'Jose Luis Cancino' || name.toLowerCase().includes('gerencia')) return;
+            if (name.toLowerCase().includes('cancino') || name.toLowerCase().includes('gerencia') || name.toLowerCase().includes('admin')) return;
 
-            // Use Preset if exists, else Default
-            if (PRESETS[name]) {
+            // Use Preset if exists and in Red Vial 6, else Default
+            if (currentWs === 'Red Vial 6' && PRESETS[name]) {
                 newConfigs[name] = PRESETS[name];
             } else {
                 newConfigs[name] = {

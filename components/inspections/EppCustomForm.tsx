@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -179,7 +180,7 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
     
     // Metadata Header
     const [meta, setMeta] = useState({
-        proyecto: 'RED VIAL 6',
+        proyecto: getActiveWorkspace().toUpperCase(),
         area: '',
         fecha: new Date().toISOString().split('T')[0],
         nTrabajadores: '',
@@ -492,7 +493,7 @@ ${obsAdd}` : obsAdd;
                             date: meta.fecha || new Date().toISOString().split('T')[0],
                             responsible: meta.supervisor || meta.inspector || 'Supervisor SSOMA',
                             inspectionType: 'Inspección de EPP',
-                            area: meta.proyecto || 'RED VIAL 6',
+                            area: meta.proyecto || getActiveWorkspace().toUpperCase(),
                             zone: meta.area || 'Inspección Digital',
                             status: 'Completado',
                             observations: `${workers.length} trabajadores inspeccionados.`,

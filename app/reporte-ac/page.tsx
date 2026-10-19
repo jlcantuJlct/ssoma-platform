@@ -622,7 +622,7 @@ export default function ReporteACPage() {
                                     </div>
                                     <div>
                                         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Tarjeta de Observación Preventiva</h1>
-                                        <p className="text-slate-400 text-sm">Proyecto: Red Vial 6</p>
+                                        <p className="text-slate-400 text-sm">Proyecto: {user?.workspace || 'Red Vial 6'}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">

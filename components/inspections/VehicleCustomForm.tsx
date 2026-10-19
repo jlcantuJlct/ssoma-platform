@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -52,7 +53,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
     
     // Metadata
     const [meta, setMeta] = useState({
-        proyecto: 'RED VIAL 6',
+        proyecto: getActiveWorkspace().toUpperCase(),
         equipo: '',
         marca: '',
         modelo: '',
@@ -345,7 +346,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                             date: meta.fecha || new Date().toISOString().split('T')[0],
                             responsible: meta.chofer || meta.operador || 'Operador',
                             inspectionType: 'Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010',
-                            area: meta.proyecto || 'RED VIAL 6',
+                            area: meta.proyecto || getActiveWorkspace().toUpperCase(),
                             zone: meta.equipo || 'Inspección Digital',
                             status: 'Completado',
                             observations: observaciones || 'Pre-uso de maquinaria generado.',

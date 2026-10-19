@@ -1,9 +1,37 @@
 // SSOMA Categories and Types - Centralized Configuration
 // Use this file as the single source of truth for categories across the platform.
-import { USER_LIST, ALL_USER_LIST } from "@/lib/auth";
+import { getUsersForWorkspace } from "@/lib/auth";
 
-export const RESPONSIBLES = USER_LIST.map(user => user.name);
-export const ALL_RESPONSIBLES = ALL_USER_LIST.map(user => user.name);
+function createResponsiblesProxy(includeDeactivated: boolean): string[] {
+    return new Proxy([] as string[], {
+        get(_target, prop) {
+            const arr = getUsersForWorkspace(undefined, includeDeactivated).map(u => u.name);
+            if (prop === 'sort' || prop === 'reverse' || prop === 'splice') {
+                return (...args: any[]) => ([...arr] as any)[prop](...args);
+            }
+            const val = Reflect.get(arr, prop, arr);
+            return typeof val === 'function' ? val.bind(arr) : val;
+        },
+        has(_target, prop) {
+            return Reflect.has(getUsersForWorkspace(undefined, includeDeactivated).map(u => u.name), prop);
+        },
+        ownKeys() {
+            return Reflect.ownKeys(getUsersForWorkspace(undefined, includeDeactivated).map(u => u.name));
+        },
+        getOwnPropertyDescriptor(_target, prop) {
+            const arr = getUsersForWorkspace(undefined, includeDeactivated).map(u => u.name);
+            if (prop === 'length') {
+                return { value: arr.length, writable: true, enumerable: false, configurable: false };
+            }
+            const desc = Object.getOwnPropertyDescriptor(arr, prop);
+            if (desc) desc.configurable = true;
+            return desc;
+        }
+    });
+}
+
+export const RESPONSIBLES: string[] = createResponsiblesProxy(false);
+export const ALL_RESPONSIBLES: string[] = createResponsiblesProxy(true);
 
 export type PMACategory = {
     id: string;

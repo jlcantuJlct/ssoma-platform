@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { getActiveWorkspace, getActiveProjectLocation } from '@/lib/locations';
 import { Camera, Trash2, ArrowLeft, Mail, PlusCircle, Check, Loader2, ChevronDown, ChevronUp, User, MapPin, Clock, Calendar, AlertTriangle, FileText, List, CheckCircle2, Mic, MicOff, Save } from "lucide-react";
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
@@ -90,8 +91,8 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [generatedReport, setGeneratedReport] = useState<{ fileBase64: string; driveUrl: string; fileName: string } | null>(null);
-    const [proyecto, setProyecto] = useState('RED VIAL 6');
-    const [direccion, setDireccion] = useState('');
+    const [proyecto, setProyecto] = useState(() => getActiveWorkspace().toUpperCase());
+    const [direccion, setDireccion] = useState(() => getActiveProjectLocation());
     const [responsableArea, setResponsableArea] = useState('');
     const [area, setArea] = useState('');
     const [tipo, setTipo] = useState('');

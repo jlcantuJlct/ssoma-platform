@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -127,7 +128,7 @@ export function KitAntiderrameCustomForm({ moduleName, version, SignaturePad }: 
 
     // Metadata Header
     const [meta, setMeta] = useState({
-        proyecto: 'RED VIAL 6',
+        proyecto: getActiveWorkspace().toUpperCase(),
         lugar: '',
         fecha: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' }),
         tipoInspeccion: 'Planeada',
@@ -333,7 +334,7 @@ export function KitAntiderrameCustomForm({ moduleName, version, SignaturePad }: 
                                     date: meta.fecha || new Date().toISOString().split('T')[0],
                                     responsible: meta.inspector || 'Supervisor SSOMA',
                                     inspectionType: 'Kit Antiderrame',
-                                    area: meta.proyecto || 'RED VIAL 6',
+                                    area: meta.proyecto || getActiveWorkspace().toUpperCase(),
                                     zone: meta.lugar || 'Inspección Digital',
                                     status: badKits.length > 0 ? 'Abierto' : 'Cerrado',
                                     observations: `${kits.length} kits inspeccionados. ${badKits.length > 0 ? badKits.length + " con observaciones." : ""}`,

@@ -14,10 +14,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        // Sincronizar lugares/proyectos de localStorage en lib/locations.ts antes del commit
+        // Sincronizar lugares/proyectos/usuarios de localStorage antes del commit
         try {
             const body = await req.json().catch(() => ({}));
-            const { workspaces, locationsByProject } = body || {};
+            const { workspaces, locationsByProject, usersDb } = body || {};
 
             const finalWorkspaces: string[] = Array.isArray(workspaces) && workspaces.length > 0
                 ? workspaces
@@ -61,6 +61,33 @@ ${endMarker}`;
                     }
                 }
             }
+
+            if (usersDb && typeof usersDb === 'object' && Object.keys(usersDb).length > 0) {
+                const authFilePath = path.join(process.cwd(), 'lib', 'auth.tsx');
+                if (fs.existsSync(authFilePath)) {
+                    const currentAuth = fs.readFileSync(authFilePath, 'utf8');
+                    const startUsersMarker = '// === START_MASTER_USERS ===';
+                    const endUsersMarker = '// === END_MASTER_USERS ===';
+
+                    const sIdx = currentAuth.indexOf(startUsersMarker);
+                    const eIdx = currentAuth.indexOf(endUsersMarker);
+
+                    if (sIdx !== -1 && eIdx !== -1 && eIdx > sIdx) {
+                        const usersBlock = `${startUsersMarker}
+export const INITIAL_USERS: Record<string, { password: string, name: string, role: UserRole, email: string, phone?: string, workspace: string, deactivated?: boolean }> = ${JSON.stringify(usersDb, null, 4)};
+${endUsersMarker}`;
+
+                        const updatedAuth =
+                            currentAuth.slice(0, sIdx) +
+                            usersBlock +
+                            currentAuth.slice(eIdx + endUsersMarker.length);
+
+                        if (updatedAuth !== currentAuth) {
+                            fs.writeFileSync(authFilePath, updatedAuth, 'utf8');
+                        }
+                    }
+                }
+            }
         } catch (syncErr) {
             console.warn('Error sincronizando maestros previos al deploy:', syncErr);
         }
@@ -68,7 +95,6 @@ ${endMarker}`;
         const { stdout, stderr } = await execPromise('git add . && git commit -m "Actualizacion rapida desde plataforma" && git push origin main');
         return NextResponse.json({ success: true, stdout, stderr });
     } catch (error: any) {
-        // Si no hay cambios locales para commitear, igual intentar git push por si quedaron commits pendientes
         if (error.stdout && error.stdout.includes('nothing to commit')) {
             try {
                 await execPromise('git push origin main');

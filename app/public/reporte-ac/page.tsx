@@ -260,7 +260,7 @@ export default function PublicReporteACPage() {
                             Tarjeta de Observación Preventiva de Seguridad
                         </p>
                         <p className="text-white/80 font-medium text-xs flex items-center gap-1">
-                            <MapPin size={12} /> Proyecto: Red Vial 6
+                            <MapPin size={12} /> Proyecto: {typeof window !== 'undefined' ? (JSON.parse(localStorage.getItem('ssoma_user') || '{}')?.workspace || 'Red Vial 6') : 'Red Vial 6'}
                         </p>
                     </div>
                 </div>

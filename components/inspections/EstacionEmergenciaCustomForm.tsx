@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { Mic, MicOff, Camera, Save, Loader2, ArrowLeft, Mail, X, AlertCircle } from 'lucide-react';
@@ -46,7 +47,7 @@ export default function EstacionEmergenciaCustomForm({ SignaturePad }: { Signatu
 
     const [meta, setMeta] = useState({
         hora: (() => { const now = new Date(); return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`; })(),
-        proyecto: 'RED VIAL 6',
+        proyecto: getActiveWorkspace().toUpperCase(),
         area: '',
         fecha: new Date().toISOString().split('T')[0],
         inspector: user?.name || '',

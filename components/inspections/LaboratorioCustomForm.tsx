@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { Mic, MicOff, Camera, Save, Loader2, ArrowLeft, Mail, X, AlertCircle } from 'lucide-react';
@@ -38,7 +39,7 @@ export default function LaboratorioCustomForm({ SignaturePad }: { SignaturePad: 
     const { user } = useAuth();
 
     const [meta, setMeta] = useState({
-        proyecto: 'RED VIAL 6',
+        proyecto: getActiveWorkspace().toUpperCase(),
         area: '',
         fecha: new Date().toISOString().split('T')[0],
         inspector: user?.name || '',

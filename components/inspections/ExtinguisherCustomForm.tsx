@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import { getActiveWorkspace, getActiveProjectLocation } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -123,8 +124,8 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         ruc: '20109565017',
         domicilio: 'Avenida Javier Prado Este No. 4109. Santiago de Surco. Lima 33, Perú',
         nTrabajadores: '',
-        proyecto: 'RED VIAL 6',
-        ubicacionProyecto: 'Lima - Ica',
+        proyecto: getActiveWorkspace().toUpperCase(),
+        ubicacionProyecto: getActiveProjectLocation(),
         inspector: '',
         cargoInspector: '',
         fechaFirma: new Date().toISOString().split('T')[0],
@@ -372,7 +373,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                 date: meta.fecha || new Date().toISOString().split('T')[0],
                                 responsible: meta.inspector || 'Supervisor SSOMA',
                                 inspectionType: 'Extintores',
-                                area: meta.proyecto || 'RED VIAL 6',
+                                area: meta.proyecto || getActiveWorkspace().toUpperCase(),
                                 zone: meta.ubicacionProyecto || 'Inspección Digital',
                                 status: badItems.length > 0 ? 'Abierto' : 'Cerrado',
                                 observations: `${extinguishers.length} equipos inspeccionados. ${badItems.length > 0 ? badItems.length + " con observaciones." : ""}`,

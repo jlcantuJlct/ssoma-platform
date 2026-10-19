@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
+import { getActiveWorkspace, getActiveProjectLocation } from '@/lib/locations';
 import { useParams, useRouter } from 'next/navigation';
 import { Mic, MicOff, Trash2, Camera, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, X , Mail} from 'lucide-react';
 
@@ -186,7 +187,8 @@ export default function FillDigitalInspection() {
                         const t = item.text.toUpperCase();
                         if (t.includes('RAZON SOCIAL') || t.includes('RAZÓN SOCIAL')) defaultText = 'Construccion y Administracion S.A.';
                         else if (t.includes('DOMICILIO')) defaultText = 'Av. Javier Prado Este 4109, Lima 15023';
-                        else if (t.includes('PROYECTO')) defaultText = 'RED VIAL 6';
+                        else if ((t.includes('UBICACI') || t.includes('DIRECCI')) && t.includes('PROYECTO')) defaultText = getActiveProjectLocation();
+                        else if (t.includes('PROYECTO')) defaultText = getActiveWorkspace().toUpperCase();
                         
                         let defaultQty = item.qty || '';
                         
