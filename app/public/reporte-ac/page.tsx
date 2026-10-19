@@ -43,9 +43,9 @@ import {
     User
 } from "lucide-react";
 
-const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20) => {
+const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20, activeColorClass: string = 'text-[#f97316]') => {
     const t = text.toLowerCase();
-    const color = isChecked ? 'text-[#f97316]' : 'text-slate-500';
+    const color = isChecked ? activeColorClass : 'text-slate-500';
     if (t.includes('conducir') && t.includes('autorización')) return <BadgeMinus size={size} className={color} />;
     if (t.includes('vehícul') || t.includes('móviles') || t.includes('conducir')) return <Car size={size} className={color} />;
     if (t.includes('guardas') || t.includes('barandas')) return <ShieldOff size={size} className={color} />;
@@ -80,12 +80,15 @@ const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20) =>
     return <AlertTriangle size={size} className={color} />;
 };
 import { uploadEvidence } from "@/lib/uploadClient";
-import { SSOMA_LOCATIONS, getActiveWorkspace } from "@/lib/locations";
+import { getActiveWorkspace, getLocationsForWorkspace } from "@/lib/locations";
+import { getUsersForWorkspace } from "@/lib/auth";
 import { ACTOS_LIST, CONDICIONES_LIST } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 import InstallPWAPrompt from "@/components/InstallPWAPrompt";
 
 export default function PublicReporteACPage() {
+    const [projectWorkspace, setProjectWorkspace] = useState<string>('Red Vial 6');
+    const [projectLocations, setProjectLocations] = useState<string[]>([]);
     const [sctrNames, setSctrNames] = useState<{id: string, label: string}[]>([]);
     
     // Form State
@@ -115,12 +118,37 @@ export default function PublicReporteACPage() {
     const [submitted, setSubmitted] = useState(false);
 
     useEffect(() => {
+        // 1. Determinar el proyecto desde la URL del QR (?workspace=...) o desde el workspace activo
+        let targetWs = 'Red Vial 6';
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const wsParam = params.get('workspace');
+            if (wsParam && wsParam.trim()) {
+                targetWs = wsParam.trim();
+            } else {
+                targetWs = getActiveWorkspace() || 'Red Vial 6';
+            }
+        }
+        setProjectWorkspace(targetWs);
+        setProjectLocations(getLocationsForWorkspace(targetWs));
+
+        // 2. Cargar usuarios propios del proyecto + SCTR si corresponde
+        const projectUsers = getUsersForWorkspace(targetWs).map(u => u.name);
+        const initialOptions = projectUsers.map(n => ({ id: n, label: n }));
+        setSctrNames(initialOptions);
+
         const fetchNames = async () => {
             try {
+                // Para Longitudinal tramo 4 mostramos prioritariamente su personal propio
+                if (targetWs.toLowerCase().includes('longitudinal')) {
+                    setSctrNames(initialOptions);
+                    return;
+                }
                 const res = await fetch('/api/sctr-names');
                 const data = await res.json();
-                if (data.success && data.names) {
-                    setSctrNames(data.names.map((n: string) => ({ id: n, label: n })));
+                if (data.success && Array.isArray(data.names)) {
+                    const combined = Array.from(new Set([...projectUsers, ...data.names]));
+                    setSctrNames(combined.map((n: string) => ({ id: n, label: n })));
                 }
             } catch (e) {
                 console.error("Error fetching SCTR names:", e);
@@ -128,6 +156,8 @@ export default function PublicReporteACPage() {
         };
         fetchNames();
     }, []);
+
+    const isLongitudinal = projectWorkspace.toLowerCase().includes('longitudinal');
 
     const handleSave = async () => {
         if (form.actos_checked.length === 0 && form.condiciones_checked.length === 0) {
@@ -167,7 +197,7 @@ export default function PublicReporteACPage() {
 
             const baseId = Date.now();
             const reportNum = String(baseId).slice(-4);
-            const proyectoActivo = getActiveWorkspace().toUpperCase();
+            const proyectoActivo = projectWorkspace.toUpperCase();
             const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
             try {
@@ -249,7 +279,7 @@ export default function PublicReporteACPage() {
                 });
             });
 
-            const activeWs = getActiveWorkspace() || 'Red Vial 6';
+            const activeWs = projectWorkspace || 'Red Vial 6';
             try {
                 const wsKey = `reporte_ac_records_${activeWs}`;
                 const existingLocal = JSON.parse(localStorage.getItem(wsKey) || '[]');
@@ -276,12 +306,13 @@ export default function PublicReporteACPage() {
     if (submitted) {
         return (
             <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] shadow-2xl text-center max-w-md w-full">
-                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle2 size={40} className="text-green-500" />
+                <div className={`bg-slate-900 border ${isLongitudinal ? 'border-emerald-500/40' : 'border-orange-500/40'} p-8 rounded-[2rem] shadow-2xl text-center max-w-md w-full`}>
+                    <div className={`w-20 h-20 ${isLongitudinal ? 'bg-emerald-500/20' : 'bg-orange-500/20'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+                        <CheckCircle2 size={40} className={isLongitudinal ? "text-emerald-400" : "text-orange-500"} />
                     </div>
                     <h2 className="text-2xl font-black text-white mb-2">¡Reporte Enviado!</h2>
-                    <p className="text-slate-400 mb-8">Gracias por contribuir a la seguridad. Su reporte ha sido registrado exitosamente.</p>
+                    <p className="text-slate-400 mb-2">Proyecto: <strong className={isLongitudinal ? "text-emerald-400" : "text-orange-400"}>{projectWorkspace}</strong></p>
+                    <p className="text-slate-400 mb-8 text-sm">Gracias por contribuir a la seguridad. Su reporte ha sido registrado en Drive y en el sistema exitosamente.</p>
                     <button 
                         onClick={() => {
                             setSubmitted(false);
@@ -296,7 +327,7 @@ export default function PublicReporteACPage() {
                             });
                             setPdfFile(null);
                         }}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-full transition-colors"
+                        className={`w-full ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'} text-white font-bold py-3 px-6 rounded-full transition-colors`}
                     >
                         Enviar Otro Reporte
                     </button>
@@ -311,60 +342,60 @@ export default function PublicReporteACPage() {
             <div className="max-w-2xl mx-auto space-y-6">
                 
                 {/* Header */}
-                <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-6 sm:p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
+                <div className={`bg-gradient-to-br ${isLongitudinal ? 'from-emerald-600 via-teal-700 to-teal-900 shadow-[0_10px_30px_rgba(16,185,129,0.25)]' : 'from-orange-600 to-orange-800 shadow-[0_10px_30px_rgba(249,115,22,0.25)]'} p-6 sm:p-8 rounded-[2rem] relative overflow-hidden`}>
                     <div className="relative z-10">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                             <div className="flex items-center gap-3">
                                 <AlertTriangle size={32} className="text-white" />
                                 <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tighter">
-                                    Reporte TOP
+                                    Reporte TOP - {projectWorkspace}
                                 </h1>
                             </div>
                             <div className="flex gap-2">
-                                <span className="bg-black/20 text-white/90 text-[10px] font-bold px-2 py-1 rounded border border-white/10 uppercase">Código: F-SIG-060</span>
-                                <span className="bg-black/20 text-white/90 text-[10px] font-bold px-2 py-1 rounded border border-white/10 uppercase">Versión: 01</span>
+                                <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Código: F-SIG-060</span>
+                                <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Versión: 01</span>
                             </div>
                         </div>
                         <p className="text-white font-bold text-sm sm:text-lg mb-1">
                             Tarjeta de Observación Preventiva de Seguridad
                         </p>
-                        <p className="text-white/80 font-medium text-xs flex items-center gap-1">
-                            <MapPin size={12} /> Proyecto: {typeof window !== 'undefined' ? (JSON.parse(localStorage.getItem('ssoma_user') || '{}')?.workspace || 'Red Vial 6') : 'Red Vial 6'}
+                        <p className="text-white/90 font-bold text-xs flex items-center gap-1.5 bg-black/20 w-fit px-3 py-1 rounded-full border border-white/10 mt-2">
+                            <MapPin size={12} /> Proyecto Exclusivo: {projectWorkspace}
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-[#1c222b] border border-slate-700/50 p-5 sm:p-8 rounded-[2rem] shadow-2xl space-y-6 relative">
+                <div className={`bg-[#1c222b] border ${isLongitudinal ? 'border-emerald-500/40' : 'border-slate-700/50'} p-5 sm:p-8 rounded-[2rem] shadow-2xl space-y-6 relative`}>
                     
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
                             <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Calendar size={12}/> Fecha:</label>
                             <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
                         </div>
                         
-                        <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
-                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por (Búsqueda SCTR):</label>
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
+                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por ({projectWorkspace}):</label>
                             <SearchableSelect name="form_responsible" 
                                 options={sctrNames}
                                 value={form.responsible}
                                 onChange={(val) => setForm({...form, responsible: val})}
-                                placeholder="Escribe tu nombre..."
+                                placeholder="Escribe o selecciona tu nombre..."
                                 className="[&>div]:bg-[#1c222b] [&>div]:border-none [&>div]:p-0"
                             />
                         </div>
                         
-                        <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
-                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación:</label>
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
+                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación ({projectWorkspace}):</label>
                             <select name="form_location" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
-                                <option value="">Seleccionar...</option>
-                                {SSOMA_LOCATIONS.map((r: string)=><option key={r} value={r}>{r}</option>)}
+                                <option value="">Seleccionar lugar de {projectWorkspace}...</option>
+                                {projectLocations.map((r: string)=><option key={r} value={r}>{r}</option>)}
                             </select>
                         </div>
                     </div>
 
                     <div className="flex justify-center mt-6 mb-4">
                         <div className="flex bg-[#232a35] rounded-full p-1 border border-slate-700/50 w-full relative">
-                            <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f97316] rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
+                            <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] ${isLongitudinal ? 'bg-emerald-500' : 'bg-[#f97316]'} rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
                             <button type="button" onClick={() => setForm({...form, type: 'acto'})} className={`relative flex-1 px-2 py-2.5 text-xs font-bold uppercase tracking-wider z-10 flex items-center justify-center gap-1 sm:gap-2 transition-colors ${form.type === 'acto' ? 'text-black' : 'text-slate-400 hover:text-slate-200'}`}>
                                 <CheckCircle2 size={14} /> Acto Inseguro
                             </button>
@@ -378,13 +409,13 @@ export default function PublicReporteACPage() {
                         {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                             const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                             return (
-                                <label key={item} className={`relative flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all gap-2.5 text-left min-h-[48px] ${isChecked ? 'border-[#f97316] bg-[#f97316]/15 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'border-slate-700/80 bg-slate-900/40 hover:border-slate-500 hover:bg-slate-800/50'}`}>
+                                <label key={item} className={`relative flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all gap-2.5 text-left min-h-[48px] ${isChecked ? (isLongitudinal ? 'border-emerald-500 bg-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.15)]' : 'border-[#f97316] bg-[#f97316]/15 shadow-[0_0_10px_rgba(249,115,22,0.15)]') : 'border-slate-700/80 bg-slate-900/40 hover:border-slate-500 hover:bg-slate-800/50'}`}>
                                     <div className="shrink-0">
-                                        {getCategoryIcon(item, isChecked, 16)}
+                                        {getCategoryIcon(item, isChecked, 16, isLongitudinal ? 'text-emerald-400' : 'text-[#f97316]')}
                                     </div>
                                     <span className={`flex-1 text-[10px] font-semibold leading-snug pr-4 ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
                                     <div className="shrink-0">
-                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-[#f97316] border-[#f97316]' : 'border-slate-500 bg-transparent'}`}>
+                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? (isLongitudinal ? 'bg-emerald-500 border-emerald-500' : 'bg-[#f97316] border-[#f97316]') : 'border-slate-500 bg-transparent'}`}>
                                             {isChecked && <CheckCircle2 size={10} className="text-white" />}
                                         </div>
                                     </div>
@@ -416,12 +447,12 @@ export default function PublicReporteACPage() {
                         })}
                     </div>
 
-                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
+                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent`}>
                         <label className="text-xs text-slate-400 mb-2 block">Descripción detallada de la observación...</label>
                         <textarea name="form_descripcion" value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
                     </div>
 
-                    <div className="border border-[#b35922] rounded-xl p-4 bg-transparent">
+                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent`}>
                         <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata (Opcional)</label>
                         <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
@@ -430,10 +461,10 @@ export default function PublicReporteACPage() {
                         <button 
                             onClick={handleSave}
                             disabled={isUploading}
-                            className="w-full bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] hover:from-[#ff8c00] hover:to-[#ffa600] text-white font-bold py-4 px-8 rounded-2xl shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-lg"
+                            className={`w-full ${isLongitudinal ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]' : 'bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] hover:from-[#ff8c00] hover:to-[#ffa600] shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)]'} text-white font-bold py-4 px-8 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-lg`}
                         >
                             {isUploading ? <Activity className="animate-spin" size={24} /> : null}
-                            Registrar Reporte
+                            Registrar Reporte ({projectWorkspace})
                         </button>
                     </div>
                 </div>

@@ -58,9 +58,9 @@ import {
     User
 } from "lucide-react";
 
-const getCategoryIcon = (text: string, isChecked: boolean, size: number = 24) => {
+const getCategoryIcon = (text: string, isChecked: boolean, size: number = 24, activeColorClass: string = 'text-[#f97316]') => {
     const t = text.toLowerCase();
-    const color = isChecked ? 'text-[#f97316]' : 'text-slate-500';
+    const color = isChecked ? activeColorClass : 'text-slate-500';
     if (t.includes('conducir') && t.includes('autorización')) return <BadgeMinus size={size} className={color} />;
     if (t.includes('vehícul') || t.includes('móviles') || t.includes('conducir')) return <Car size={size} className={color} />;
     if (t.includes('guardas') || t.includes('barandas')) return <ShieldOff size={size} className={color} />;
@@ -108,8 +108,8 @@ import { generateFilename, getDriveViewerUrl, canDeleteRecord} from '@/lib/utils
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
-import { SSOMA_LOCATIONS, getActiveWorkspace } from "@/lib/locations";
-import { useAuth } from "@/lib/auth";
+import { SSOMA_LOCATIONS, getActiveWorkspace, getLocationsForWorkspace } from "@/lib/locations";
+import { useAuth, getUsersForWorkspace } from "@/lib/auth";
 import { ACTOS_LIST, CONDICIONES_LIST, RESPONSIBLES } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 
@@ -608,36 +608,46 @@ export default function ReporteACPage() {
 
     if (!isLoaded) return <div className="h-screen bg-slate-950 flex items-center justify-center text-white">Cargando...</div>;
 
+    const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
+    const isLongitudinal = activeWs.toLowerCase().includes('longitudinal');
+    const qrBaseUrl = typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac';
+    const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(activeWs)}`;
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 
                 {/* Header */}
-                <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-full md:w-64 h-64 bg-orange-500/10 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
+                <div className={`bg-slate-900 border ${isLongitudinal ? 'border-teal-800/60' : 'border-slate-800'} p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl`}>
+                    <div className={`absolute top-0 right-0 w-full md:w-64 h-64 ${isLongitudinal ? 'bg-emerald-500/15' : 'bg-orange-500/10'} blur-[80px] -mr-32 -mt-32 rounded-full`}></div>
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-orange-500/20 text-orange-400 border-orange-500/40'}`}>
+                                    Proyecto Activo: {activeWs}
+                                </span>
+                            </div>
                             <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4 mb-2">
-                                <AlertTriangle size={40} className="text-orange-500" />
+                                <AlertTriangle size={40} className={isLongitudinal ? "text-emerald-400" : "text-orange-500"} />
                                 Control de Tarjeta de Observación Preventiva (TOP)
                             </h1>
                             <p className="text-slate-400 font-bold max-w-2xl">
-                                Herramienta para el registro de actos y condiciones inseguras identificadas en campo, sincronizado con el OBJ 04 del Programa Anual.
+                                Herramienta para el registro de actos y condiciones inseguras identificadas en campo ({activeWs}), sincronizado con el OBJ 04 del Programa Anual.
                             </p>
                         </div>
                         <div className="flex gap-4">
                             <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px]">
-                                <p className="text-[10px] font-black text-orange-500 uppercase">Actos</p>
+                                <p className={`text-[10px] font-black ${isLongitudinal ? 'text-emerald-400' : 'text-orange-500'} uppercase`}>Actos</p>
                                 <p className="text-2xl font-black text-white">{records.filter(r => r.acto).length}</p>
                             </div>
                             <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px]">
                                 <p className="text-[10px] font-black text-blue-500 uppercase">Condiciones</p>
                                 <p className="text-2xl font-black text-white">{records.filter(r => r.condicion).length}</p>
                             </div>
-                            <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer hover:bg-slate-900 transition-colors" onClick={() => setShowQR(true)}>
+                            <div className={`bg-slate-950 border ${isLongitudinal ? 'border-emerald-500/40 hover:bg-emerald-950/30' : 'border-orange-500/40 hover:bg-orange-950/30'} p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer transition-colors`} onClick={() => setShowQR(true)}>
                                 <div className="text-center">
-                                    <QrCode size={32} className="text-white mx-auto mb-1" />
-                                    <p className="text-[10px] font-black text-white uppercase">Obtener QR</p>
+                                    <QrCode size={32} className={`mx-auto mb-1 ${isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}`} />
+                                    <p className="text-[10px] font-black text-white uppercase">QR {isLongitudinal ? 'Longitudinal' : 'Red Vial 6'}</p>
                                 </div>
                             </div>
                         </div>
@@ -646,19 +656,24 @@ export default function ReporteACPage() {
 
                 {showQR && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center relative shadow-2xl">
+                        <div className={`bg-slate-900 border-2 ${isLongitudinal ? 'border-emerald-500/60 shadow-[0_0_40px_rgba(16,185,129,0.25)]' : 'border-orange-500/60 shadow-[0_0_40px_rgba(249,115,22,0.25)]'} rounded-3xl p-8 max-w-md w-full text-center relative`}>
                             <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 rounded-full p-1">
                                 <X size={20} />
                             </button>
-                            <QrCode size={48} className="text-orange-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">QR de Acceso Libre</h2>
-                            <p className="text-slate-400 text-sm mb-6">Escanee este código QR para acceder al reporte TOP desde cualquier dispositivo móvil sin contraseña.</p>
-                            <div className="bg-white p-4 rounded-2xl inline-block mx-auto mb-6 shadow-inner">
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac')}`} alt="QR Code" className="w-48 h-48" />
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3 border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-orange-500/20 text-orange-300 border-orange-500/40'}`}>
+                                <MapPin size={12} /> {activeWs}
                             </div>
-                            <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                <p className="text-xs text-slate-300 font-mono break-all select-all">
-                                    {typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : 'https://ssoma-platform.vercel.app/public/reporte-ac'}
+                            <QrCode size={44} className={`${isLongitudinal ? 'text-emerald-400' : 'text-orange-500'} mx-auto mb-2`} />
+                            <h2 className="text-2xl font-black text-white mb-1 tracking-tight">QR Exclusivo - {activeWs}</h2>
+                            <p className="text-slate-400 text-xs mb-5">
+                                Escanee este código QR para reportar Tarjetas TOP directamente en <strong className={isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}>{activeWs}</strong> con sus lugares y usuarios independientes.
+                            </p>
+                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-5 border-4 ${isLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
+                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=${isLongitudinal ? '065f46' : '9a3412'}&data=${encodeURIComponent(qrFullUrl)}`} alt={`QR Code ${activeWs}`} className="w-48 h-48" />
+                            </div>
+                            <div className="bg-slate-800/70 p-3 rounded-xl border border-slate-700">
+                                <p className="text-[11px] text-slate-300 font-mono break-all select-all">
+                                    {qrFullUrl}
                                 </p>
                             </div>
                         </div>
@@ -738,36 +753,36 @@ export default function ReporteACPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     <div className="lg:col-span-5 space-y-6">
-                        <div className="bg-[#1c222b] border border-slate-700/50 p-6 md:p-8 rounded-[2rem] shadow-2xl space-y-6 relative overflow-hidden">
+                        <div className={`bg-[#1c222b] border ${isLongitudinal ? 'border-emerald-500/40' : 'border-slate-700/50'} p-6 md:p-8 rounded-[2rem] shadow-2xl space-y-6 relative overflow-hidden`}>
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700/50 pb-6">
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-[#b35922] p-3 rounded-2xl shadow-lg">
+                                    <div className={`${isLongitudinal ? 'bg-emerald-600' : 'bg-[#b35922]'} p-3 rounded-2xl shadow-lg`}>
                                         <AlertTriangle size={32} className="text-[#1c222b] fill-current" />
                                     </div>
                                     <div>
                                         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Tarjeta de Observación Preventiva</h1>
-                                        <p className="text-slate-400 text-sm">Proyecto: {user?.workspace || 'Red Vial 6'}</p>
+                                        <p className={`text-sm font-bold ${isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}`}>Proyecto: {activeWs}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <span className="bg-[#b35922]/20 text-[#f97316] text-[10px] font-bold px-2 py-1 rounded border border-[#b35922]/50 uppercase">Código: F-SIG-060</span>
-                                    <span className="bg-[#b35922]/20 text-[#f97316] text-[10px] font-bold px-2 py-1 rounded border border-[#b35922]/50 uppercase">Versión: 01</span>
+                                    <span className={`${isLongitudinal ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/50' : 'bg-[#b35922]/20 text-[#f97316] border-[#b35922]/50'} text-[10px] font-bold px-2 py-1 rounded border uppercase`}>Código: F-SIG-060</span>
+                                    <span className={`${isLongitudinal ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/50' : 'bg-[#b35922]/20 text-[#f97316] border-[#b35922]/50'} text-[10px] font-bold px-2 py-1 rounded border uppercase`}>Versión: 01</span>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
                                     <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Calendar size={12}/> Fecha:</label>
                                     <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
                                 </div>
-                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
                                     <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por:</label>
                                     <select name="form_responsible" value={form.responsible} onChange={e=>setForm({...form, responsible: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
                                         <option value="">Seleccionar...</option>
                                         {RESPONSIBLES.map(r=><option key={r} value={r}>{r}</option>)}
                                     </select>
                                 </div>
-                                <div className="border border-[#b35922] rounded-xl p-3 bg-transparent flex flex-col justify-center">
+                                <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
                                     <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación:</label>
                                     <select name="form_location" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
                                         <option value="">Seleccionar...</option>
@@ -778,7 +793,7 @@ export default function ReporteACPage() {
 
                             <div className="flex justify-center my-6">
                                 <div className="flex bg-[#232a35] rounded-full p-1 border border-slate-700/50 w-full sm:w-auto relative">
-                                    <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f97316] rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
+                                    <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] ${isLongitudinal ? 'bg-emerald-500' : 'bg-[#f97316]'} rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
                                     <button type="button" onClick={() => setForm({...form, type: 'acto'})} className={`relative flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider z-10 flex items-center justify-center gap-2 transition-colors ${form.type === 'acto' ? 'text-black' : 'text-slate-400 hover:text-slate-200'}`}>
                                         <CheckCircle2 size={14} /> Acto Inseguro
                                     </button>
@@ -792,13 +807,13 @@ export default function ReporteACPage() {
                                 {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                                     const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                                     return (
-                                        <label key={item} className={`relative flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all gap-2.5 text-left min-h-[48px] ${isChecked ? 'border-[#f97316] bg-[#f97316]/15 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'border-slate-700/80 bg-slate-900/40 hover:border-slate-500 hover:bg-slate-800/50'}`}>
+                                        <label key={item} className={`relative flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all gap-2.5 text-left min-h-[48px] ${isChecked ? (isLongitudinal ? 'border-emerald-500 bg-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.15)]' : 'border-[#f97316] bg-[#f97316]/15 shadow-[0_0_10px_rgba(249,115,22,0.15)]') : 'border-slate-700/80 bg-slate-900/40 hover:border-slate-500 hover:bg-slate-800/50'}`}>
                                             <div className="shrink-0">
-                                                {getCategoryIcon(item, isChecked, 16)}
+                                                {getCategoryIcon(item, isChecked, 16, isLongitudinal ? 'text-emerald-400' : 'text-[#f97316]')}
                                             </div>
                                             <span className={`flex-1 text-[10px] font-semibold leading-snug pr-4 ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
                                             <div className="shrink-0">
-                                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-[#f97316] border-[#f97316]' : 'border-slate-500 bg-transparent'}`}>
+                                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? (isLongitudinal ? 'bg-emerald-500 border-emerald-500' : 'bg-[#f97316] border-[#f97316]') : 'border-slate-500 bg-transparent'}`}>
                                                     {isChecked && <CheckCircle2 size={10} className="text-white" />}
                                                 </div>
                                             </div>
@@ -830,7 +845,7 @@ export default function ReporteACPage() {
                                 })}
                             </div>
 
-                            <div className="border border-[#b35922] rounded-xl p-4 bg-transparent relative group">
+                            <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent relative group`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="text-xs text-slate-400">Descripción detallada de la observación...</label>
                                     <VoiceDictation 
@@ -841,7 +856,7 @@ export default function ReporteACPage() {
                                 <textarea name="form_descripcion" value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
                             </div>
 
-                            <div className="border border-[#b35922] rounded-xl p-4 bg-transparent mt-4 relative group">
+                            <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent mt-4 relative group`}>
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="text-xs text-slate-400">Acción Inmediata (Opcional)</label>
                                     <VoiceDictation 
@@ -856,7 +871,7 @@ export default function ReporteACPage() {
                                 <button 
                                     onClick={handleSave}
                                     disabled={isUploading}
-                                    className="w-full md:w-auto md:min-w-[250px] bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] hover:from-[#ff8c00] hover:to-[#ffa600] text-white font-bold py-3.5 px-8 rounded-full shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:-translate-y-1"
+                                    className={`w-full md:w-auto md:min-w-[250px] ${isLongitudinal ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]' : 'bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] hover:from-[#ff8c00] hover:to-[#ffa600] shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)]'} text-white font-bold py-3.5 px-8 rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:-translate-y-1`}
                                 >
                                     {isUploading ? <Activity className="animate-spin" size={18} /> : null}
                                     Registrar Reporte ↑
