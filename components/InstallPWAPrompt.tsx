@@ -24,13 +24,14 @@ export default function InstallPWAPrompt() {
         
         checkStandalone();
 
-        // Detect iOS Safari
+        // Detect Mobile Device (Android / iOS)
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+        const isMobileDevice = /android|iphone|ipad|ipod|mobile|iemobile|opera mini/.test(userAgent);
         setIsIOS(isIosDevice);
 
-        // Always show the instructional prompt after a short delay if not standalone
-        if (!isStandalone) {
+        // Only show the instructional prompt on mobile devices if not standalone
+        if (isMobileDevice && !isStandalone) {
             const dismissed = localStorage.getItem('pwaPromptDismissed');
             if (!dismissed) {
                 const timer = setTimeout(() => {
@@ -49,7 +50,7 @@ export default function InstallPWAPrompt() {
     if (isStandalone || !showInstallPrompt) return null;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-10 fade-in duration-500">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden animate-in slide-in-from-bottom-10 fade-in duration-500">
             <div className="bg-slate-900 border border-[#f97316]/50 rounded-2xl shadow-2xl p-4 sm:p-5 flex flex-col gap-3 relative">
                 <button 
                     onClick={dismissPrompt}
