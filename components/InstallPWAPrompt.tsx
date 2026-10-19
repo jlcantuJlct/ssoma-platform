@@ -105,6 +105,8 @@ export default function InstallPWAPrompt({
     const btnBg = isLongitudinal 
         ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' 
         : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500';
+    const iconSrc = isLongitudinal ? '/icons/l4-192.png' : '/icons/rv6-192.png';
+    const appTitle = isLongitudinal ? 'TOP - Longitudinal 4' : 'TOP - Red Vial 6';
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden animate-in slide-in-from-bottom-10 fade-in duration-500">
@@ -118,14 +120,12 @@ export default function InstallPWAPrompt({
                 </button>
 
                 <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-                    <div className={`${accentBg} p-2.5 rounded-xl flex-shrink-0`}>
-                        <Smartphone size={22} />
-                    </div>
+                    <img src={iconSrc} alt={appTitle} className="w-12 h-12 rounded-xl shadow-md border border-white/10" />
                     <div>
                         <h4 className="text-white font-bold text-sm flex items-center gap-1.5">
-                            Agregar Icono a Pantalla
+                            {appTitle}
                         </h4>
-                        <p className="text-slate-400 text-xs">Acceso directo en tu celular para {workspace}</p>
+                        <p className="text-slate-400 text-xs">Icono exclusivo para {workspace}</p>
                     </div>
                 </div>
 

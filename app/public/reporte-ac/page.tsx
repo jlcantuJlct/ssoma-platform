@@ -137,7 +137,30 @@ export default function PublicReporteACPage() {
         setProjectWorkspace(targetWs);
         setProjectLocations(getLocationsForWorkspace(targetWs));
 
-        // 2. Cargar usuarios propios del proyecto + SCTR si corresponde
+        // 2. Vincular el manifest y el icono exclusivo del proyecto al navegador
+        try {
+            const isLong = targetWs.toLowerCase().includes('longitudinal');
+            const targetManifest = isLong ? '/manifest-l4.json' : '/manifest-rv6.json';
+            const targetAppleIcon = isLong ? '/icons/l4-192.png' : '/icons/rv6-192.png';
+
+            let manifestTag = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+            if (!manifestTag) {
+                manifestTag = document.createElement('link');
+                manifestTag.rel = 'manifest';
+                document.head.appendChild(manifestTag);
+            }
+            manifestTag.href = targetManifest;
+
+            let appleIconTag = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+            if (!appleIconTag) {
+                appleIconTag = document.createElement('link');
+                appleIconTag.rel = 'apple-touch-icon';
+                document.head.appendChild(appleIconTag);
+            }
+            appleIconTag.href = targetAppleIcon;
+        } catch (e) {}
+
+        // 3. Cargar usuarios propios del proyecto + SCTR si corresponde
         const projectUsers = getUsersForWorkspace(targetWs).map(u => u.name);
         const initialOptions = projectUsers.map(n => ({ id: n, label: n }));
         setSctrNames(initialOptions);

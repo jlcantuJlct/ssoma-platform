@@ -162,6 +162,7 @@ export default function ReporteACPage() {
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
     const [showQR, setShowQR] = useState(false);
     const [qrMode, setQrMode] = useState<'cloud' | 'lan'>('cloud');
+    const [qrSelectedProject, setQrSelectedProject] = useState<string>('auto');
 
     // Edit State
     const [editingRecord, setEditingRecord] = useState<ReporteACRecord | null>(null);
@@ -611,13 +612,18 @@ export default function ReporteACPage() {
 
     const activeWs = user?.workspace || getActiveWorkspace() || 'Red Vial 6';
     const isLongitudinal = activeWs.toLowerCase().includes('longitudinal');
+    const effectiveQrProject = qrSelectedProject === 'auto' ? activeWs : qrSelectedProject;
+    const isQrLongitudinal = effectiveQrProject.toLowerCase().includes('longitudinal');
+
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const cloudBaseUrl = 'https://ssoma-platform.vercel.app/public/reporte-ac';
     const lanBaseUrl = 'http://192.168.17.86:3000/public/reporte-ac';
     const qrBaseUrl = isLocalhost
         ? (qrMode === 'cloud' ? cloudBaseUrl : lanBaseUrl)
         : (typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : cloudBaseUrl);
-    const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(activeWs)}`;
+    const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(effectiveQrProject)}`;
+    const qrIconSrc = isQrLongitudinal ? '/icons/l4-192.png' : '/icons/rv6-192.png';
+    const qrAppTitle = isQrLongitudinal ? 'TOP - Longitudinal 4' : 'TOP - Red Vial 6';
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
@@ -650,7 +656,7 @@ export default function ReporteACPage() {
                                 <p className="text-[10px] font-black text-blue-500 uppercase">Condiciones</p>
                                 <p className="text-2xl font-black text-white">{records.filter(r => r.condicion).length}</p>
                             </div>
-                            <div className={`bg-slate-950 border ${isLongitudinal ? 'border-emerald-500/40 hover:bg-emerald-950/30' : 'border-orange-500/40 hover:bg-orange-950/30'} p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer transition-colors`} onClick={() => setShowQR(true)}>
+                            <div className={`bg-slate-950 border ${isLongitudinal ? 'border-emerald-500/40 hover:bg-emerald-950/30' : 'border-orange-500/40 hover:bg-orange-950/30'} p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer transition-colors`} onClick={() => { setQrSelectedProject('auto'); setShowQR(true); }}>
                                 <div className="text-center">
                                     <QrCode size={32} className={`mx-auto mb-1 ${isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}`} />
                                     <p className="text-[10px] font-black text-white uppercase">QR {isLongitudinal ? 'Longitudinal' : 'Red Vial 6'}</p>
@@ -662,52 +668,80 @@ export default function ReporteACPage() {
 
                 {showQR && (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className={`bg-slate-900 border-2 ${isLongitudinal ? 'border-emerald-500/60 shadow-[0_0_40px_rgba(16,185,129,0.25)]' : 'border-orange-500/60 shadow-[0_0_40px_rgba(249,115,22,0.25)]'} rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative`}>
+                        <div className={`bg-slate-900 border-2 ${isQrLongitudinal ? 'border-emerald-500/60 shadow-[0_0_40px_rgba(16,185,129,0.25)]' : 'border-orange-500/60 shadow-[0_0_40px_rgba(249,115,22,0.25)]'} rounded-3xl p-6 sm:p-8 max-w-md w-full text-center relative max-h-[92vh] overflow-y-auto`}>
                             <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-800 rounded-full p-1">
                                 <X size={20} />
                             </button>
-                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-orange-500/20 text-orange-300 border-orange-500/40'}`}>
-                                <MapPin size={12} /> {activeWs}
+
+                            {/* Selector de Proyecto para el QR */}
+                            <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 mb-4 text-xs font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setQrSelectedProject('Longitudinal tramo 4')}
+                                    className={`flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${isQrLongitudinal ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    🟢 Longitudinal 4
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setQrSelectedProject('Red Vial 6')}
+                                    className={`flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${!isQrLongitudinal ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    🟠 Red Vial 6
+                                </button>
                             </div>
-                            <h2 className="text-2xl font-black text-white mb-1 tracking-tight">QR Exclusivo - {activeWs}</h2>
-                            <p className="text-slate-400 text-xs mb-4">
-                                Escanee desde su celular para reportar Tarjetas TOP en <strong className={isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}>{activeWs}</strong>.
+
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 border ${isQrLongitudinal ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-orange-500/20 text-orange-300 border-orange-500/40'}`}>
+                                <MapPin size={12} /> {effectiveQrProject}
+                            </div>
+                            <h2 className="text-2xl font-black text-white mb-1 tracking-tight">QR Exclusivo - {effectiveQrProject}</h2>
+                            <p className="text-slate-400 text-xs mb-3">
+                                Cada proyecto tiene su propio enlace QR e icono de instalación independiente.
                             </p>
+
+                            {/* Vista previa del icono PWA de este proyecto */}
+                            <div className="flex items-center justify-center gap-3 bg-slate-950/70 p-2.5 rounded-2xl border border-slate-800 mb-4">
+                                <img src={qrIconSrc} alt={qrAppTitle} className="w-10 h-10 rounded-xl shadow-md border border-white/10" />
+                                <div className="text-left">
+                                    <p className="text-white text-xs font-bold">{qrAppTitle}</p>
+                                    <p className="text-slate-400 text-[10px]">Icono que se instalará en el celular</p>
+                                </div>
+                            </div>
 
                             {isLocalhost && (
                                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-4 text-[11px] font-bold">
                                     <button
                                         type="button"
                                         onClick={() => setQrMode('cloud')}
-                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'cloud' ? (isLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
+                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'cloud' ? (isQrLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
                                     >
                                         🌐 Celular (4G / Internet)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setQrMode('lan')}
-                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'lan' ? (isLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
+                                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all ${qrMode === 'lan' ? (isQrLongitudinal ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
                                     >
                                         📶 Wi-Fi Local (PC)
                                     </button>
                                 </div>
                             )}
 
-                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-4 border-4 ${isLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=${isLongitudinal ? '065f46' : '9a3412'}&data=${encodeURIComponent(qrFullUrl)}`} alt={`QR Code ${activeWs}`} className="w-48 h-48" />
+                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-3 border-4 ${isQrLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
+                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=${isQrLongitudinal ? '065f46' : '9a3412'}&data=${encodeURIComponent(qrFullUrl)}`} alt={`QR Code ${effectiveQrProject}`} className="w-44 h-44" />
                             </div>
-                            <div className="bg-slate-800/70 p-2.5 rounded-xl border border-slate-700 mb-3">
+                            <div className="bg-slate-800/70 p-2 rounded-xl border border-slate-700 mb-3">
                                 <p className="text-[10px] text-slate-300 font-mono break-all select-all">
                                     {qrFullUrl}
                                 </p>
                             </div>
                             <a
-                                href={`/public/reporte-ac?workspace=${encodeURIComponent(activeWs)}`}
+                                href={`/public/reporte-ac?workspace=${encodeURIComponent(effectiveQrProject)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}
+                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all ${isQrLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}
                             >
-                                <Eye size={14} /> Abrir Formulario Público Aquí
+                                <Eye size={14} /> Abrir Formulario de {effectiveQrProject}
                             </a>
                         </div>
                     </div>
