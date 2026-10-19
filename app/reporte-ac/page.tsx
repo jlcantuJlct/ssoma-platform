@@ -769,18 +769,20 @@ export default function ReporteACPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1.5 custom-scrollbar mb-4">
                                 {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
                                     const isChecked = form.type === 'acto' ? form.actos_checked.includes(item) : form.condiciones_checked.includes(item);
                                     return (
-                                        <label key={item} className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all aspect-square justify-center items-center text-center gap-2 ${isChecked ? 'border-[#f97316] bg-[#f97316]/10 shadow-[0_0_15px_rgba(249,115,22,0.15)] scale-[1.02]' : 'border-slate-700 bg-transparent hover:border-slate-500 hover:bg-slate-800/50'}`}>
-                                            <div className="absolute top-2 right-2">
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-[#f97316] border-[#f97316]' : 'border-slate-500 bg-transparent'}`}>
-                                                    {isChecked && <CheckCircle2 size={12} className="text-white" />}
+                                        <label key={item} className={`relative flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all gap-2.5 text-left min-h-[48px] ${isChecked ? 'border-[#f97316] bg-[#f97316]/15 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'border-slate-700/80 bg-slate-900/40 hover:border-slate-500 hover:bg-slate-800/50'}`}>
+                                            <div className="shrink-0">
+                                                {getCategoryIcon(item, isChecked, 16)}
+                                            </div>
+                                            <span className={`flex-1 text-[10px] font-semibold leading-snug pr-4 ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
+                                            <div className="shrink-0">
+                                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-[#f97316] border-[#f97316]' : 'border-slate-500 bg-transparent'}`}>
+                                                    {isChecked && <CheckCircle2 size={10} className="text-white" />}
                                                 </div>
                                             </div>
-                                            {getCategoryIcon(item, isChecked, 24)}
-                                            <span className={`text-[10px] font-bold leading-tight ${isChecked ? 'text-white' : 'text-slate-300'}`}>{item}</span>
                                             <input name="input_6170" 
                                                 type="checkbox" 
                                                 className="hidden"
