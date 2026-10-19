@@ -1646,17 +1646,6 @@ export async function POST(req: Request) {
           worksheet.getCell("H6").value = `Hora: ${hora}`;
           worksheet.getCell("A7").value = `Lugar: ${lugar}`;
 
-          if (topHasActo) {
-            worksheet.getCell("C9").value = "X";
-            worksheet.getCell("C9").font = { name: "Arial", size: 11, bold: true };
-            worksheet.getCell("C9").alignment = { horizontal: "center", vertical: "middle" };
-          }
-          if (topHasCondicion) {
-            worksheet.getCell("G9").value = "X";
-            worksheet.getCell("G9").font = { name: "Arial", size: 11, bold: true };
-            worksheet.getCell("G9").alignment = { horizontal: "center", vertical: "middle" };
-          }
-
           // Descripción observada (Filas 10 a 13, columnas B:G)
           try { worksheet.mergeCells("B11:G11"); } catch (e) {}
           const rawDesc = (
@@ -1709,29 +1698,21 @@ export async function POST(req: Request) {
               .replace(/[\u0300-\u036f]/g, "")
               .replace(/[^a-z0-9]/g, "");
 
-          // Clasificación Condición Insegura (Filas 20 a 24, textos en B,D,F,H -> marca en A,C,E,G)
+          // Clasificación Condición Insegura (Filas 20 a 24, textos en B,D,F,H -> marca solo en el círculo Oval)
           for (let r = 20; r <= 24; r++) {
             for (const c of [2, 4, 6, 8]) {
               const cellText = String(worksheet.getRow(r).getCell(c).value || "");
               if (cellText && condicionesChecked.some((item) => normStr(item) === normStr(cellText))) {
-                const markCell = worksheet.getRow(r).getCell(c - 1);
-                markCell.value = "X";
-                markCell.font = { name: "Arial", size: 10, bold: true };
-                markCell.alignment = { horizontal: "center", vertical: "middle" };
                 topMarkedOvals.add(`${c - 2},${r - 1}`);
               }
             }
           }
 
-          // Clasificación Acto Inseguro (Filas 28 a 32, textos en B,D,F,H -> marca en A,C,E,G)
+          // Clasificación Acto Inseguro (Filas 28 a 32, textos en B,D,F,H -> marca solo en el círculo Oval)
           for (let r = 28; r <= 32; r++) {
             for (const c of [2, 4, 6, 8]) {
               const cellText = String(worksheet.getRow(r).getCell(c).value || "");
               if (cellText && actosChecked.some((item) => normStr(item) === normStr(cellText))) {
-                const markCell = worksheet.getRow(r).getCell(c - 1);
-                markCell.value = "X";
-                markCell.font = { name: "Arial", size: 10, bold: true };
-                markCell.alignment = { horizontal: "center", vertical: "middle" };
                 topMarkedOvals.add(`${c - 2},${r - 1}`);
               }
             }
