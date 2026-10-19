@@ -1,5 +1,29 @@
 [
   {
+    "id": "aa05eadd-bc88-4f60-9b0a-e06f7b1d14eb",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-10-19T18:38:50.570Z"
+  },
+  {
+    "id": "eb4dad92-6b5d-4017-9f0b-b692e1501860",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-10-19T18:27:49.387Z"
+  },
+  {
+    "id": "715427cf-342f-47a2-af73-cf5ffcf5a378",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-10-19T18:20:37.329Z"
+  },
+  {
     "id": "e589de85-f677-4ce3-a53a-0e3abbe4ba17",
     "user_name": "Admin",
     "action": "ELIMINACIÓN INSPECCIÓN",
