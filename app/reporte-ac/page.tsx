@@ -108,7 +108,7 @@ import { generateFilename, getDriveViewerUrl, canDeleteRecord} from '@/lib/utils
 import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
-import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { SSOMA_LOCATIONS, getActiveWorkspace } from "@/lib/locations";
 import { useAuth } from "@/lib/auth";
 import { ACTOS_LIST, CONDICIONES_LIST, RESPONSIBLES } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -261,7 +261,17 @@ export default function ReporteACPage() {
         setIsUploading(true);
         try {
             let uploadedUrl = "";
+            let fotoEvidenciaB64 = "";
+
             if (pdfFile) {
+                if (pdfFile.type.startsWith("image/")) {
+                    fotoEvidenciaB64 = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(String(reader.result || ""));
+                        reader.onerror = () => resolve("");
+                        reader.readAsDataURL(pdfFile);
+                    });
+                }
                 uploadedUrl = await uploadEvidence(
                     pdfFile,
                     'ActosInseguros' as any,
@@ -272,6 +282,59 @@ export default function ReporteACPage() {
                     'SEGURIDAD',
                     form.location
                 );
+            }
+
+            // Generar Registro Nativo Excel F-SIG-060 (Motor de Tarjeta TOP)
+            const reportNum = String(records.length + 1).padStart(3, '0');
+            const proyectoActivo = (user?.workspace || getActiveWorkspace() || 'RED VIAL 6').toUpperCase();
+            const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+            try {
+                const excelRes = await fetch('/api/export-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moduleName: 'F-SIG-060 Tarjeta TOP',
+                        isTopMatrix: true,
+                        saveToDrive: true,
+                        meta: {
+                            reportNumber: reportNum,
+                            proyecto: proyectoActivo,
+                            responsible: form.responsible,
+                            date: form.date,
+                            hora: horaActual,
+                            location: form.location,
+                            descripcion: form.descripcion,
+                            accion_inmediata: form.accion_inmediata,
+                            actos_checked: form.actos_checked,
+                            condiciones_checked: form.condiciones_checked,
+                            fotoEvidencia: fotoEvidenciaB64
+                        }
+                    })
+                });
+
+                if (excelRes.ok) {
+                    const excelData = await excelRes.json();
+                    if (excelData.driveUrl && !uploadedUrl) {
+                        uploadedUrl = excelData.driveUrl;
+                    }
+                    if (excelData.fileBase64) {
+                        const byteCharacters = atob(excelData.fileBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `F-SIG-060_TOP_${form.date}_${reportNum}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                }
+            } catch (excelErr) {
+                console.error("Error generando Excel F-SIG-060:", excelErr);
             }
 
             const newRecords: ReporteACRecord[] = [];
@@ -315,12 +378,54 @@ export default function ReporteACPage() {
             // Reset
             setForm({ ...form, actos_checked: [], condiciones_checked: [], accion_inmediata: '', descripcion: '' });
             setPdfFile(null);
-            alert(`✅ ${newRecords.length} reporte(s) de A/C registrado(s) con éxito.`);
+            alert(`✅ ${newRecords.length} reporte(s) de A/C registrado(s) y formato F-SIG-060 generado con éxito.`);
         } catch (error) {
             console.error("Save error:", error);
             alert("❌ Error al guardar el reporte.");
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleDownloadExcelTop = async (r: ReporteACRecord) => {
+        try {
+            const proyectoActivo = (user?.workspace || getActiveWorkspace() || 'RED VIAL 6').toUpperCase();
+            const res = await fetch('/api/export-excel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    moduleName: 'F-SIG-060 Tarjeta TOP',
+                    isTopMatrix: true,
+                    saveToDrive: false,
+                    meta: {
+                        reportNumber: String(r.id).slice(-4),
+                        proyecto: proyectoActivo,
+                        responsible: r.responsible,
+                        date: r.date,
+                        hora: '08:00',
+                        location: r.location,
+                        descripcion: r.descripcion || r.acto || r.condicion || '',
+                        accion_inmediata: r.accion_inmediata || '',
+                        actos_checked: r.acto ? [r.acto] : [],
+                        condiciones_checked: r.condicion ? [r.condicion] : []
+                    }
+                })
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `F-SIG-060_TOP_${r.date}_${String(r.id).slice(-4)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                alert("❌ Error al descargar el formato Excel F-SIG-060.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("❌ Error al generar el archivo Excel.");
         }
     };
 
@@ -950,9 +1055,16 @@ export default function ReporteACPage() {
                                                             </div>
                                                         )}
                                                         <button 
+                                                            onClick={() => handleDownloadExcelTop(r)}
+                                                            className="p-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-all border border-green-500/20" 
+                                                            title="Descargar Formato Oficial Excel (F-SIG-060)"
+                                                        >
+                                                            <Download size={16} />
+                                                        </button>
+                                                        <button 
                                                             onClick={() => exportRecordToPDF('Detalle de Reporte A/C', r, `ReporteAC_${r.id}.pdf`)}
                                                             className="p-2 text-slate-600 hover:text-blue-400 transition-colors" 
-                                                            title="Descargar Fila"
+                                                            title="Descargar Fila PDF"
                                                         >
                                                             <DownloadCloud size={16} />
                                                         </button>

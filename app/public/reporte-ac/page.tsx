@@ -80,7 +80,7 @@ const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20) =>
     return <AlertTriangle size={size} className={color} />;
 };
 import { uploadEvidence } from "@/lib/uploadClient";
-import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { SSOMA_LOCATIONS, getActiveWorkspace } from "@/lib/locations";
 import { ACTOS_LIST, CONDICIONES_LIST } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 import InstallPWAPrompt from "@/components/InstallPWAPrompt";
@@ -143,7 +143,16 @@ export default function PublicReporteACPage() {
         setIsUploading(true);
         try {
             let uploadedUrl = "";
+            let fotoEvidenciaB64 = "";
             if (pdfFile) {
+                if (pdfFile.type.startsWith("image/")) {
+                    fotoEvidenciaB64 = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(String(reader.result || ""));
+                        reader.onerror = () => resolve("");
+                        reader.readAsDataURL(pdfFile);
+                    });
+                }
                 uploadedUrl = await uploadEvidence(
                     pdfFile,
                     'ActosInseguros' as any,
@@ -156,8 +165,59 @@ export default function PublicReporteACPage() {
                 );
             }
 
-            const newRecords: any[] = [];
             const baseId = Date.now();
+            const reportNum = String(baseId).slice(-4);
+            const proyectoActivo = getActiveWorkspace().toUpperCase();
+            const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+            try {
+                const excelRes = await fetch('/api/export-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moduleName: 'F-SIG-060 Tarjeta TOP',
+                        isTopMatrix: true,
+                        saveToDrive: true,
+                        meta: {
+                            reportNumber: reportNum,
+                            proyecto: proyectoActivo,
+                            responsible: form.responsible,
+                            date: form.date,
+                            hora: horaActual,
+                            location: form.location,
+                            descripcion: form.descripcion,
+                            accion_inmediata: form.accion_inmediata,
+                            actos_checked: form.actos_checked,
+                            condiciones_checked: form.condiciones_checked,
+                            fotoEvidencia: fotoEvidenciaB64
+                        }
+                    })
+                });
+                if (excelRes.ok) {
+                    const excelData = await excelRes.json();
+                    if (excelData.driveUrl && !uploadedUrl) {
+                        uploadedUrl = excelData.driveUrl;
+                    }
+                    if (excelData.fileBase64) {
+                        const byteCharacters = atob(excelData.fileBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `F-SIG-060_TOP_${form.date}_${reportNum}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                }
+            } catch (excelErr) {
+                console.error("Error generando Excel F-SIG-060:", excelErr);
+            }
+
+            const newRecords: any[] = [];
 
             form.actos_checked.forEach((actoStr, i) => {
                 newRecords.push({

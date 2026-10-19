@@ -95,6 +95,11 @@ export async function POST(req: Request) {
     if (isInstalacionesElectricas) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
     if (isCocinaComedor) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
     if (isLaboratorio) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    const isTop = data.isTopMatrix || (moduleName && (moduleName.toLowerCase().includes("f-sig-060") || moduleName.toLowerCase().includes("tarjeta") || moduleName.toLowerCase().includes("observacion preventiva") || moduleName.toLowerCase().includes("observación preventiva") || moduleName.toLowerCase() === "top"));
+    if (isTop) { const alt = path.join(process.cwd(), "public", "templates", "digital", "F-SIG-060 Tarj Obs Preventiva de Seguridad V01 07.11.2022.XLSX"); if(fs.existsSync(alt)) templatePath = alt; }
+    const topMarkedOvals = new Set<string>();
+    let topHasActo = false;
+    let topHasCondicion = false;
 
 
     let worksheet: ExcelJS.Worksheet;
@@ -1609,6 +1614,148 @@ export async function POST(req: Request) {
               });
           }
       }
+      // --- MANEJADOR 7: TARJETA DE OBSERVACIÓN PREVENTIVA DE SEGURIDAD (Calibrado a F-SIG-060) ---
+      else if (isTop) {
+        const meta = data.meta || data.answers || data || {};
+        const actosChecked: string[] = Array.isArray(meta.actos_checked)
+          ? meta.actos_checked
+          : meta.acto
+            ? [meta.acto]
+            : [];
+        const condicionesChecked: string[] = Array.isArray(meta.condiciones_checked)
+          ? meta.condiciones_checked
+          : meta.condicion
+            ? [meta.condicion]
+            : [];
+
+        topHasActo = actosChecked.filter(Boolean).length > 0;
+        topHasCondicion = condicionesChecked.filter(Boolean).length > 0;
+
+        if (fs.existsSync(templatePath)) {
+          const reportNum = meta.reportNumber || meta.id || "001";
+          const proyecto = meta.proyecto || "RED VIAL 6";
+          const reportadoPor = meta.responsible || meta.inspector || "";
+          const fecha = meta.date || meta.fecha || new Date().toISOString().split("T")[0];
+          const hora = meta.hora || new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+          const lugar = meta.location || meta.lugar || "";
+
+          worksheet.getCell("G4").value = `N° De Reporte : ${reportNum}`;
+          worksheet.getCell("A5").value = `Proyecto / Instalación: ${proyecto}`;
+          worksheet.getCell("A6").value = `Reportado por: ${reportadoPor}`;
+          worksheet.getCell("F6").value = `Fecha: ${fecha}`;
+          worksheet.getCell("H6").value = `Hora: ${hora}`;
+          worksheet.getCell("A7").value = `Lugar: ${lugar}`;
+
+          if (topHasActo) {
+            worksheet.getCell("C9").value = "X";
+            worksheet.getCell("C9").font = { name: "Arial", size: 11, bold: true };
+            worksheet.getCell("C9").alignment = { horizontal: "center", vertical: "middle" };
+          }
+          if (topHasCondicion) {
+            worksheet.getCell("G9").value = "X";
+            worksheet.getCell("G9").font = { name: "Arial", size: 11, bold: true };
+            worksheet.getCell("G9").alignment = { horizontal: "center", vertical: "middle" };
+          }
+
+          // Descripción observada (Filas 10 a 13, columnas B:G)
+          try { worksheet.mergeCells("B11:G11"); } catch (e) {}
+          const rawDesc = (
+            meta.descripcion ||
+            [...actosChecked, ...condicionesChecked].filter(Boolean).join(" / ") ||
+            ""
+          ).trim();
+          const splitTextIntoLines = (txt: string, maxLen: number, maxLines: number) => {
+            if (!txt) return [];
+            const paragraphs = txt.split(/\r?\n/);
+            const lines: string[] = [];
+            for (const p of paragraphs) {
+              let rem = p.trim();
+              while (rem.length > maxLen && lines.length < maxLines - 1) {
+                let cut = rem.lastIndexOf(" ", maxLen);
+                if (cut <= 0) cut = maxLen;
+                lines.push(rem.slice(0, cut).trim());
+                rem = rem.slice(cut).trim();
+              }
+              if (rem) {
+                if (lines.length < maxLines) lines.push(rem);
+                else lines[maxLines - 1] += " " + rem;
+              }
+            }
+            return lines.slice(0, maxLines);
+          };
+
+          const descLines = splitTextIntoLines(rawDesc, 90, 4);
+          [10, 11, 12, 13].forEach((r, idx) => {
+            const c = worksheet.getCell(`B${r}`);
+            c.value = descLines[idx] || "";
+            c.font = { name: "Arial", size: 9 };
+            c.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          });
+
+          // Acción Inmediata (Filas 15 a 17, columnas A:G)
+          const rawAccion = (meta.accion_inmediata || meta.accionInmediata || "").trim();
+          const accionLines = splitTextIntoLines(rawAccion, 100, 3);
+          [15, 16, 17].forEach((r, idx) => {
+            const c = worksheet.getCell(`A${r}`);
+            c.value = accionLines[idx] || "";
+            c.font = { name: "Arial", size: 9 };
+            c.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+          });
+
+          const normStr = (s: string) =>
+            String(s || "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]/g, "");
+
+          // Clasificación Condición Insegura (Filas 20 a 24, textos en B,D,F,H -> marca en A,C,E,G)
+          for (let r = 20; r <= 24; r++) {
+            for (const c of [2, 4, 6, 8]) {
+              const cellText = String(worksheet.getRow(r).getCell(c).value || "");
+              if (cellText && condicionesChecked.some((item) => normStr(item) === normStr(cellText))) {
+                const markCell = worksheet.getRow(r).getCell(c - 1);
+                markCell.value = "X";
+                markCell.font = { name: "Arial", size: 10, bold: true };
+                markCell.alignment = { horizontal: "center", vertical: "middle" };
+                topMarkedOvals.add(`${c - 2},${r - 1}`);
+              }
+            }
+          }
+
+          // Clasificación Acto Inseguro (Filas 28 a 32, textos en B,D,F,H -> marca en A,C,E,G)
+          for (let r = 28; r <= 32; r++) {
+            for (const c of [2, 4, 6, 8]) {
+              const cellText = String(worksheet.getRow(r).getCell(c).value || "");
+              if (cellText && actosChecked.some((item) => normStr(item) === normStr(cellText))) {
+                const markCell = worksheet.getRow(r).getCell(c - 1);
+                markCell.value = "X";
+                markCell.font = { name: "Arial", size: 10, bold: true };
+                markCell.alignment = { horizontal: "center", vertical: "middle" };
+                topMarkedOvals.add(`${c - 2},${r - 1}`);
+              }
+            }
+          }
+
+          // Evidencia fotográfica opcional debajo de la tarjeta (fila 36)
+          if (meta.fotoEvidencia && typeof meta.fotoEvidencia === "string" && meta.fotoEvidencia.includes("base64,")) {
+            try {
+              worksheet.mergeCells("A36:H36");
+              const evHeader = worksheet.getCell("A36");
+              evHeader.value = "EVIDENCIA FOTOGRÁFICA DE LA OBSERVACIÓN PREVENTIVA:";
+              evHeader.font = { name: "Arial", size: 10, bold: true };
+              const base64Data = meta.fotoEvidencia.replace(/^data:image\/\w+;base64,/, "");
+              const imgId = workbook.addImage({ base64: base64Data, extension: "jpeg" });
+              worksheet.addImage(imgId, {
+                tl: { col: 1, row: 37 },
+                ext: { width: 360, height: 250 },
+              });
+            } catch (e) {
+              console.error("Error adjuntando foto TOP:", e);
+            }
+          }
+        }
+      }
 
       // --- MANEJADOR 6: INSPECCIONES DIGITALES GENÉRICAS (Almacén, Escaleras, etc.) ---
     else {
@@ -1676,7 +1823,73 @@ export async function POST(req: Request) {
         ];
       }
     }
-    const buffer = await workbook.xlsx.writeBuffer();
+    let buffer: any = await workbook.xlsx.writeBuffer();
+
+    // Preservar formas (círculos Oval, casillas Rectángulo e ilustraciones originales) de F-SIG-060
+    if (isTop && fs.existsSync(templatePath)) {
+      try {
+        const JSZip = require("jszip");
+        const origZip = await JSZip.loadAsync(fs.readFileSync(templatePath));
+        const outZip = await JSZip.loadAsync(buffer);
+        if (origZip.files["xl/drawings/drawing1.xml"] && outZip.files["xl/drawings/drawing1.xml"]) {
+          const origDrawingXml = await origZip.files["xl/drawings/drawing1.xml"].async("string");
+          const outDrawingXml = await outZip.files["xl/drawings/drawing1.xml"].async("string");
+
+          // Extraer fotos adicionales (ej. rId3) si se agregó fotoEvidencia
+          const extraPicAnchors: string[] = [];
+          for (const part of outDrawingXml.split("</xdr:twoCellAnchor>")) {
+            const idx = part.indexOf("<xdr:twoCellAnchor");
+            if (idx === -1) continue;
+            const anchor = part.slice(idx) + "</xdr:twoCellAnchor>";
+            if (anchor.includes('r:embed="rId3"') || anchor.includes('r:embed="rId4"')) {
+              extraPicAnchors.push(anchor);
+            }
+          }
+
+          // Reconstruir drawing1.xml a partir del original para conservar intactos Picture 171, Imagen 45, 40 Ovals y 2 Rectángulos
+          const rebuiltAnchors: string[] = [];
+          for (const part of origDrawingXml.split("</xdr:twoCellAnchor>")) {
+            const idx = part.indexOf("<xdr:twoCellAnchor");
+            if (idx === -1) continue;
+            let anchorXml = part.slice(idx) + "</xdr:twoCellAnchor>";
+            if (anchorXml.includes("<xdr:sp ")) {
+              const colMatch = anchorXml.match(/<xdr:from>[\s\S]*?<xdr:col>(\d+)<\/xdr:col>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/);
+              const nameMatch = anchorXml.match(/name="([^"]+)"/);
+              const col0 = colMatch ? Number(colMatch[1]) : -1;
+              const row0 = colMatch ? Number(colMatch[2]) : -1;
+              const shapeName = nameMatch ? nameMatch[1] : "";
+
+              const isRectActo = shapeName.includes("40") && topHasActo;
+              const isRectCond = shapeName.includes("41") && topHasCondicion;
+              const isMarkedOval = shapeName.includes("Oval") && topMarkedOvals.has(`${col0},${row0}`);
+
+              if (isRectActo || isRectCond || isMarkedOval) {
+                anchorXml = anchorXml.replace(
+                  /<a:solidFill><a:schemeClr val="bg1"\/><\/a:solidFill>/g,
+                  '<a:solidFill><a:srgbClr val="F97316"/></a:solidFill>'
+                );
+                anchorXml = anchorXml.replace(
+                  /<xdr:txBody>[\s\S]*?<\/xdr:txBody>/,
+                  '<xdr:txBody><a:bodyPr vertOverflow="overflow" horzOverflow="overflow" lIns="0" tIns="0" rIns="0" bIns="0" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="es-PE" sz="900" b="1"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:rPr><a:t>X</a:t></a:r></a:p></xdr:txBody>'
+                );
+              }
+            }
+            rebuiltAnchors.push(anchorXml);
+          }
+
+          const finalDrawingXml =
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' +
+            rebuiltAnchors.join("") +
+            extraPicAnchors.join("") +
+            "</xdr:wsDr>";
+
+          outZip.file("xl/drawings/drawing1.xml", finalDrawingXml);
+          buffer = await outZip.generateAsync({ type: "nodebuffer" });
+        }
+      } catch (zipErr) {
+        console.error("Error restaurando formas F-SIG-060:", zipErr);
+      }
+    }
 
     if (data.saveToDrive) {
       const APPS_SCRIPT_URL =
