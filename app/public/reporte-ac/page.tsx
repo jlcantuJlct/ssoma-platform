@@ -86,6 +86,7 @@ import { getUsersForWorkspace } from "@/lib/auth";
 import { ACTOS_LIST, CONDICIONES_LIST } from "@/lib/categories";
 import SearchableSelect from "@/components/SearchableSelect";
 import InstallPWAPrompt from "@/components/InstallPWAPrompt";
+import VoiceDictation from "@/components/VoiceDictation";
 
 export default function PublicReporteACPage() {
     const [projectWorkspace, setProjectWorkspace] = useState<string>('Red Vial 6');
@@ -499,13 +500,25 @@ export default function PublicReporteACPage() {
                         })}
                     </div>
 
-                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent`}>
-                        <label className="text-xs text-slate-400 mb-2 block">Descripción detallada de la observación...</label>
+                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent relative group`}>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-xs text-slate-400">Descripción detallada de la observación...</label>
+                            <VoiceDictation 
+                                onResult={(text) => setForm({...form, descripcion: form.descripcion ? form.descripcion + ' ' + text : text})} 
+                                onClear={() => setForm({...form, descripcion: ''})}
+                            />
+                        </div>
                         <textarea name="form_descripcion" value={form.descripcion} onChange={e=>setForm({...form, descripcion: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-20" placeholder="Ingresar detalles aquí..." />
                     </div>
 
-                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent`}>
-                        <label className="text-xs text-slate-400 mb-2 block">Acción Inmediata (Opcional)</label>
+                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-4 bg-transparent relative group`}>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-xs text-slate-400">Acción Inmediata (Opcional)</label>
+                            <VoiceDictation 
+                                onResult={(text) => setForm({...form, accion_inmediata: form.accion_inmediata ? form.accion_inmediata + ' ' + text : text})} 
+                                onClear={() => setForm({...form, accion_inmediata: ''})}
+                            />
+                        </div>
                         <textarea name="form_accion_inmediata" value={form.accion_inmediata} onChange={e=>setForm({...form, accion_inmediata: e.target.value})} className="w-full bg-transparent text-white text-sm outline-none resize-none h-16" placeholder="Describir acción..." />
                     </div>
 
