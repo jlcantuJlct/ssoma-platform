@@ -790,8 +790,20 @@ export default function ReporteACPage() {
                                                 onChange={(e) => {
                                                     const list = form.type === 'acto' ? form.actos_checked : form.condiciones_checked;
                                                     const newChecked = e.target.checked ? [...list, item] : list.filter(x => x !== item);
-                                                    if (form.type === 'acto') setForm({...form, actos_checked: newChecked});
-                                                    else setForm({...form, condiciones_checked: newChecked});
+                                                    let updatedDesc = form.descripcion || '';
+                                                    if (e.target.checked) {
+                                                        if (!updatedDesc.includes(item)) {
+                                                            updatedDesc = updatedDesc.trim() ? `${updatedDesc.trim()}\n- ${item}` : `- ${item}`;
+                                                        }
+                                                    } else {
+                                                        updatedDesc = updatedDesc
+                                                            .split('\n')
+                                                            .filter(line => line.trim() !== `- ${item}` && line.trim() !== item)
+                                                            .join('\n')
+                                                            .trim();
+                                                    }
+                                                    if (form.type === 'acto') setForm({...form, actos_checked: newChecked, descripcion: updatedDesc});
+                                                    else setForm({...form, condiciones_checked: newChecked, descripcion: updatedDesc});
                                                 }}
                                             />
                                         </label>
