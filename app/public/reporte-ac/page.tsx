@@ -119,6 +119,7 @@ export default function PublicReporteACPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [exited, setExited] = useState(false);
+    const [showManualInstall, setShowManualInstall] = useState(false);
 
     useEffect(() => {
         // 1. Determinar el proyecto desde la URL del QR (?workspace=...) o desde el workspace activo
@@ -128,8 +129,9 @@ export default function PublicReporteACPage() {
             const wsParam = params.get('workspace');
             if (wsParam && wsParam.trim()) {
                 targetWs = wsParam.trim();
+                localStorage.setItem('ssoma_qr_workspace', targetWs);
             } else {
-                targetWs = getActiveWorkspace() || 'Red Vial 6';
+                targetWs = localStorage.getItem('ssoma_qr_workspace') || getActiveWorkspace() || 'Red Vial 6';
             }
         }
         setProjectWorkspace(targetWs);
@@ -383,7 +385,12 @@ export default function PublicReporteACPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 pb-20">
-            <InstallPWAPrompt />
+            <InstallPWAPrompt 
+                workspace={projectWorkspace}
+                isLongitudinal={isLongitudinal}
+                manualOpen={showManualInstall}
+                onCloseManual={() => setShowManualInstall(false)}
+            />
             <div className="max-w-2xl mx-auto space-y-6">
                 
                 {/* Header */}
@@ -396,9 +403,16 @@ export default function PublicReporteACPage() {
                                     Reporte TOP - {projectWorkspace}
                                 </h1>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Código: F-SIG-060</span>
-                                <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">Versión: 01</span>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="bg-black/25 text-white/95 text-[10px] font-bold px-2.5 py-1 rounded border border-white/15 uppercase">F-SIG-060</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowManualInstall(true)}
+                                    className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1.5 transition-all shadow-md backdrop-blur-sm"
+                                    title="Instalar como icono en la pantalla del celular"
+                                >
+                                    📲 Instalar Icono
+                                </button>
                                 <button
                                     type="button"
                                     onClick={handleExit}

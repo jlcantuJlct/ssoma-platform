@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   keywords: ["SSOMA", "Seguridad", "Salud Ocupacional", "Medio Ambiente", "Gestión de Riesgos", "SCSST", "Dashboard"],
   robots: "index, follow",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
   appleWebApp: {
     title: "TOP",
     statusBarStyle: "black-translucent",
