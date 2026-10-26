@@ -9,120 +9,106 @@ export async function POST(req: Request) {
     const data = await req.json();
     const { moduleName, answers, template } = data;
 
-    let templatePath = path.join(
-      process.cwd(),
-      "public",
-      "templates",
-      "digital",
-      `${moduleName}.xlsx`,
-    );
-    if (!fs.existsSync(templatePath)) {
-      if (
-        moduleName &&
-        (moduleName.toLowerCase().includes("extintor") ||
-          moduleName.toLowerCase().includes("emergencia"))
-      ) {
-        const alt = path.join(
-          process.cwd(),
-          "public",
-          "templates",
-          "digital",
-          "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia (2).xlsx",
-        );
-        if (fs.existsSync(alt)) templatePath = alt;
-      } else if (moduleName && moduleName.toLowerCase().includes("botiquin")) {
-        const alt = path.join(
-          process.cwd(),
-          "public",
-          "templates",
-          "digital",
-          "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN.xlsx",
-        );
-        if (fs.existsSync(alt)) templatePath = alt;
-      } else if (data.isEppMatrix || (moduleName && moduleName.toLowerCase().includes("epp"))) {
-        const alt = path.join(
-          process.cwd(),
-          "public",
-          "templates",
-          "digital",
-          "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03.xlsx",
-        );
-        if (fs.existsSync(alt)) templatePath = alt;
-      }
-    }
-    let workbook = new ExcelJS.Workbook();
+    const cleanStr = (s: string) =>
+      (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
 
-    // removed old isBotiquin
-    const isEpp =
+    const normName = cleanStr(moduleName);
+
+    const isCaidas = Boolean(
+      normName.includes("caida") ||
+      normName.includes("arnes") ||
+      normName.includes("017")
+    );
+    const isEpp = Boolean(
       data.isEppMatrix ||
-      (moduleName && moduleName.toLowerCase().includes("epp"));
-    const isExtintor =
+      (normName.includes("epp") && !isCaidas)
+    );
+    const isExtintor = Boolean(
       data.isExtinguisherMatrix ||
-      (moduleName &&
-        (moduleName.toLowerCase().includes("extintor") ||
-          (moduleName.toLowerCase().includes("emergencia") && !moduleName.toLowerCase().includes("estaci"))));
-    const isMachinery =
+      normName.includes("extintor") ||
+      normName.includes("058") ||
+      (normName.includes("emergencia") && !normName.includes("estacion"))
+    );
+    const isVehiculo = Boolean(
+      normName.includes("vehiculo") ||
+      normName.includes("camion") ||
+      normName.includes("volquete") ||
+      normName.includes("010")
+    );
+    const isMachinery = Boolean(
       data.isMachineryMatrix ||
-      (moduleName &&
-        (moduleName.toLowerCase().includes("maquinaria") ||
-          moduleName.toLowerCase().includes("máquina") ||
-          moduleName.toLowerCase().includes("vehículo") ||
-          moduleName.toLowerCase().includes("vehiculo") ||
-          moduleName.toLowerCase().includes("equipos") ||
-          moduleName.toLowerCase().includes("maquina")));
-    const normName = (moduleName || "").toLowerCase().trim();
+      normName.includes("maquinaria") ||
+      normName.includes("maquina") ||
+      normName.includes("015") ||
+      normName.includes("linea amarilla") ||
+      normName.includes("pesada") ||
+      normName.includes("equipos") ||
+      isVehiculo
+    );
     const isInternas = Boolean(
       data.isInternasMatrix ||
       normName.includes("interna") ||
       normName.includes("073") ||
       (normName.includes("soma") && normName.includes("intern"))
     );
+    const isAlmacen = Boolean(data.isAlmacenMatrix || normName.includes("almacen") || normName.includes("028"));
+    const isTalleres = Boolean(data.isTalleresMatrix || normName.includes("taller") || normName.includes("079"));
+    const isCampamento = Boolean(data.isCampamentoMatrix || normName.includes("campamento") || normName.includes("072"));
+    const isInstalacionesElectricas = Boolean(data.isInstalacionesElectricasMatrix || normName.includes("electrica") || normName.includes("075"));
+    const isCocinaComedor = Boolean(data.isCocinaComedorMatrix || normName.includes("cocina") || normName.includes("comedor") || normName.includes("074"));
+    const isLaboratorio = Boolean(data.isLaboratorioMatrix || normName.includes("laboratorio") || normName.includes("077"));
+    const isKitAntiderrame = Boolean(data.isKitAntiderrameMatrix || normName.includes("derrame") || normName.includes("076"));
+    const isBotiquin = Boolean(data.isBotiquinesMatrix || normName.includes("botiquin") || normName.includes("030"));
+    const isEstacionEmergencia = Boolean(data.isEstacionEmergenciaMatrix || normName.includes("estacion") || normName.includes("008"));
+    const isTop = Boolean(data.isTopMatrix || normName.includes("060") || normName.includes("tarjeta") || normName.includes("observacion preventiva") || normName === "top");
 
-    const isAlmacen = data.isAlmacenMatrix || (moduleName && moduleName.toLowerCase().includes("almacen"));
-    const isTalleres = data.isTalleresMatrix || (moduleName && (moduleName.toLowerCase().includes("taller") || moduleName.toLowerCase().includes("talleres")));
-    const isCampamento = data.isCampamentoMatrix || (moduleName && (moduleName.toLowerCase().includes("campamento") || moduleName.toLowerCase().includes("campamentos")));
-    const isInstalacionesElectricas = data.isInstalacionesElectricasMatrix || (moduleName && (moduleName.toLowerCase().includes("eléctrica") || moduleName.toLowerCase().includes("electrica")));
-    const isCocinaComedor = data.isCocinaComedorMatrix || (moduleName && (moduleName.toLowerCase().includes("cocina") || moduleName.toLowerCase().includes("comedor")));
-    const isLaboratorio = data.isLaboratorioMatrix || (moduleName && moduleName.toLowerCase().includes("laboratorio"));
-    const isKitAntiderrame = data.isKitAntiderrameMatrix || (moduleName && moduleName.toLowerCase().includes('derrame'));
-    if (isKitAntiderrame) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-      const isBotiquin = data.isBotiquinesMatrix || (moduleName && (moduleName.toLowerCase().includes("botiquin") || moduleName.toLowerCase().includes("botiquín")));
-    const isEstacionEmergencia = data.isEstacionEmergenciaMatrix || (moduleName && (moduleName.toLowerCase().includes("estacion") || moduleName.toLowerCase().includes("estación")));
-    if (isBotiquin) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isEstacionEmergencia) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
+    const templateDir = path.join(process.cwd(), "public", "templates", "digital");
+    let templatePath = path.join(templateDir, `${moduleName}.xlsx`);
 
-    // Template Fallbacks
-    if (isInternas) {
-      const alt = path.join(
-        process.cwd(),
-        "public",
-        "templates",
-        "digital",
-        "Inspecciones Internas  de seguridad, saluden el trabajo y medio ambiente (F-SIG-073).xlsx"
-      );
-      const alt2 = path.join(
-        process.cwd(),
-        "public",
-        "templates",
-        "digital",
-        "Inspecciones Internas de seguridad, salud en el trabajo y medio ambiente (F-SIG-073).xlsx"
-      );
-      if (fs.existsSync(alt)) {
-        templatePath = alt;
-      } else if (fs.existsSync(alt2)) {
-        templatePath = alt2;
+    // Si no existe con el nombre exacto de módulo, resolver por plantilla física oficial
+    if (!fs.existsSync(templatePath)) {
+      if (isTop) {
+        templatePath = path.join(templateDir, "F-SIG-060 Tarj Obs Preventiva de Seguridad V01 07.11.2022.XLSX");
+      } else if (isCaidas) {
+        templatePath = path.join(templateDir, "Inspección de Equipo contra caídas (arnés, línea de vida, etc.) F-OP-017 INSPECCIÓN DE EQUIPOS CONTRA CAIDA.xlsx");
+      } else if (isInternas) {
+        const alt = path.join(templateDir, "Inspecciones Internas  de seguridad, saluden el trabajo y medio ambiente (F-SIG-073).xlsx");
+        const alt2 = path.join(templateDir, "Inspecciones Internas de seguridad, salud en el trabajo y medio ambiente (F-SIG-073).xlsx");
+        templatePath = fs.existsSync(alt) ? alt : (fs.existsSync(alt2) ? alt2 : path.join(templateDir, "Inspecciones Internas SSOMA.xlsx"));
+      } else if (isEstacionEmergencia) {
+        templatePath = path.join(templateDir, "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS.xlsx");
+      } else if (isKitAntiderrame) {
+        templatePath = path.join(templateDir, "Inspección de Kit antiderrames F-SIG-076 INSPECCION DE KIT ANTIDERRAME.xlsx");
+      } else if (isBotiquin) {
+        templatePath = path.join(templateDir, "Inspecciones botiquines F-SIG-030 INSPECCIÓN DE BOTIQUÍN.xlsx");
+      } else if (isExtintor) {
+        templatePath = path.join(templateDir, "Inspección de Equipos de Emergencia (Extintores) F-SIG-058 Registro de inspección de equipos de seguridad o emergencia (2).xlsx");
+      } else if (isAlmacen) {
+        templatePath = path.join(templateDir, "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09.xlsx");
+      } else if (isTalleres) {
+        templatePath = path.join(templateDir, "Inspección de taller de soldadura mecanico F-SIG-079 Inspección de Talleres V02.xlsx");
+      } else if (isCampamento) {
+        templatePath = path.join(templateDir, "Inspección de areas de campamento F-SIG-072.xlsx");
+      } else if (isInstalacionesElectricas) {
+        templatePath = path.join(templateDir, "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01.xlsx");
+      } else if (isCocinaComedor) {
+        templatePath = path.join(templateDir, "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR.xlsx");
+      } else if (isLaboratorio) {
+        templatePath = path.join(templateDir, "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO.xlsx");
+      } else if (isVehiculo) {
+        templatePath = path.join(templateDir, "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehicul.xlsx");
+      } else if (isMachinery) {
+        templatePath = path.join(templateDir, "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua.xlsx");
+      } else if (isEpp) {
+        templatePath = path.join(templateDir, "Inspección de EPP básico o especifico (Cantidad refiere a la cantidad de personas) F-SIG-044 Inspección de EPP V03.xlsx");
       }
     }
-    if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isTalleres) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de taller de soldadura mecanico F-SIG-079 Inspección de Talleres V02.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isCampamento) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de areas de campamento F-SIG-072.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (moduleName && (moduleName.toLowerCase().includes("vehículo") || moduleName.toLowerCase().includes("vehiculo"))) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010 V02 22.12.16 Vehicul.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isMachinery && !(moduleName && (moduleName.toLowerCase().includes("vehículo") || moduleName.toLowerCase().includes("vehiculo")))) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones y observaciones maquinaria Línea amarilla (Excavadoras, retro, cargador, tractor, moto niveladora, cisterna de agua.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isInstalacionesElectricas) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de generador, tableros eléctrico F-SIG-075 Inspeccion de Instalaciones Eléctricas V01.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isCocinaComedor) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de Cocina y comedor F-SIG-074 INSPECCIÓN DE COCINA Y COMEDOR.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    if (isLaboratorio) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspeccion de laboratorio F-SIG-077 INSPECCIÓN DE LABORATORIO.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
-    const isTop = data.isTopMatrix || (moduleName && (moduleName.toLowerCase().includes("f-sig-060") || moduleName.toLowerCase().includes("tarjeta") || moduleName.toLowerCase().includes("observacion preventiva") || moduleName.toLowerCase().includes("observación preventiva") || moduleName.toLowerCase() === "top"));
-    if (isTop) { const alt = path.join(process.cwd(), "public", "templates", "digital", "F-SIG-060 Tarj Obs Preventiva de Seguridad V01 07.11.2022.XLSX"); if(fs.existsSync(alt)) templatePath = alt; }
+
+    let workbook = new ExcelJS.Workbook();
     const topMarkedOvals = new Set<string>();
     let topHasActo = false;
     let topHasCondicion = false;
@@ -1457,7 +1443,7 @@ export async function POST(req: Request) {
     }
     
       // --- MANEJADOR 5: ALMACEN MATRICIAL ---
-      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin || isEstacionEmergencia) {
+      else if (isAlmacen || isTalleres || isCampamento || isInstalacionesElectricas || isCocinaComedor || isLaboratorio || isBotiquin || isEstacionEmergencia || isCaidas) {
           const meta = data.meta || data.answers || {};
           let checklist = data.checklist || (data.template && !Array.isArray(data.template) ? data.template : {});
           const cleanCheck = {};
