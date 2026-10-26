@@ -71,7 +71,12 @@ export async function POST(req: Request) {
           moduleName.toLowerCase().includes("equipos") ||
           moduleName.toLowerCase().includes("maquina")));
     const normName = (moduleName || "").toLowerCase().trim();
-    const isInternas = normName.includes("interna") && normName.includes("ssoma");
+    const isInternas = Boolean(
+      data.isInternasMatrix ||
+      normName.includes("interna") ||
+      normName.includes("073") ||
+      (normName.includes("soma") && normName.includes("intern"))
+    );
 
     const isAlmacen = data.isAlmacenMatrix || (moduleName && moduleName.toLowerCase().includes("almacen"));
     const isTalleres = data.isTalleresMatrix || (moduleName && (moduleName.toLowerCase().includes("taller") || moduleName.toLowerCase().includes("talleres")));
@@ -87,6 +92,27 @@ export async function POST(req: Request) {
     if (isEstacionEmergencia) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspecciones Estaciones de emergencia (F-SIG-008) INSPECCIÓN DE ESTACIÒN DE PRIMEROS AUXILIOS.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
 
     // Template Fallbacks
+    if (isInternas) {
+      const alt = path.join(
+        process.cwd(),
+        "public",
+        "templates",
+        "digital",
+        "Inspecciones Internas  de seguridad, saluden el trabajo y medio ambiente (F-SIG-073).xlsx"
+      );
+      const alt2 = path.join(
+        process.cwd(),
+        "public",
+        "templates",
+        "digital",
+        "Inspecciones Internas de seguridad, salud en el trabajo y medio ambiente (F-SIG-073).xlsx"
+      );
+      if (fs.existsSync(alt)) {
+        templatePath = alt;
+      } else if (fs.existsSync(alt2)) {
+        templatePath = alt2;
+      }
+    }
     if (isAlmacen) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de almacenes F-SIG-028 Inspeccion Almacén V09.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
     if (isTalleres) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de taller de soldadura mecanico F-SIG-079 Inspección de Talleres V02.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
     if (isCampamento) { const alt = path.join(process.cwd(), "public", "templates", "digital", "Inspección de areas de campamento F-SIG-072.xlsx"); if(fs.existsSync(alt)) templatePath = alt; }
@@ -1191,6 +1217,13 @@ export async function POST(req: Request) {
     }
     // --- MANEJADOR INTERNAS ---
     else if (isInternas) {
+      // Limpiar posible error #VALUE! de la celda de imagen original
+      for (let r = 1; r <= 2; r++) {
+        for (let c = 1; c <= 4; c++) {
+          worksheet.getRow(r).getCell(c).value = "";
+        }
+      }
+
       // Reinsertar el logo (ExcelJS pierde las imágenes incrustadas al reescribir el archivo)
       try {
         const logoPath = path.join(

@@ -250,7 +250,7 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleName, version, ...payload, saveToDrive: true })
+                body: JSON.stringify({ moduleName, version, ...payload, isInternasMatrix: true, saveToDrive: true })
             });
 
             if (res.ok) {

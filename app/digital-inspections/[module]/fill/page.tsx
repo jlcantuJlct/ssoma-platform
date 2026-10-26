@@ -561,7 +561,7 @@ export default function FillDigitalInspection() {
 
     if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
 
-    if (moduleName.toLowerCase().includes('internas')) {
+    if (moduleName.toLowerCase().includes('interna') || moduleName.toLowerCase().includes('073')) {
         return <InternasCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
     }
 
