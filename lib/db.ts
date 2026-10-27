@@ -110,11 +110,20 @@ if (process.env.POSTGRES_URL) {
         };
     }
 
+    function postgresToSqlite(sql: string): string {
+        return sql
+            .replace(/SERIAL PRIMARY KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT')
+            .replace(/BIGINT PRIMARY KEY/gi, 'INTEGER PRIMARY KEY')
+            .replace(/VARCHAR\(\d+\)/gi, 'TEXT')
+            .replace(/TIMESTAMP DEFAULT CURRENT_TIMESTAMP/gi, 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+    }
+
     client = {
         async query(text: string, params: any[] = []) {
             try {
-                const stmt = sqlite.prepare(text);
-                const isQuery = text.trim().toUpperCase().startsWith('SELECT') || text.toUpperCase().includes(' RETURNING ');
+                const cleanText = postgresToSqlite(text);
+                const stmt = sqlite.prepare(cleanText);
+                const isQuery = cleanText.trim().toUpperCase().startsWith('SELECT') || cleanText.toUpperCase().includes(' RETURNING ');
                 if (isQuery) {
                     const rows = stmt.all(...params);
                     return { rows, rowCount: rows.length };
@@ -128,18 +137,21 @@ if (process.env.POSTGRES_URL) {
             }
         },
         async execute(text, params = []) {
-            const stmt = sqlite.prepare(text);
+            const cleanText = postgresToSqlite(text);
+            const stmt = sqlite.prepare(cleanText);
             const info = stmt.run(...params);
             // If it's an INSERT, we can return the lastInsertRowid in a format similar to Postgres RETURNING
-            const rows = (text.trim().toUpperCase().startsWith('INSERT')) ? [{ id: info.lastInsertRowid }] : [];
+            const rows = (cleanText.trim().toUpperCase().startsWith('INSERT')) ? [{ id: info.lastInsertRowid }] : [];
             return { rows, rowCount: info.changes };
         },
         async fetchOne(text, params = []) {
-            const stmt = sqlite.prepare(text);
+            const cleanText = postgresToSqlite(text);
+            const stmt = sqlite.prepare(cleanText);
             return stmt.get(...params);
         },
         async fetchAll(text, params = []) {
-            const stmt = sqlite.prepare(text);
+            const cleanText = postgresToSqlite(text);
+            const stmt = sqlite.prepare(cleanText);
             return stmt.all(...params);
         },
         async transaction(fn) {

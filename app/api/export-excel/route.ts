@@ -1913,15 +1913,15 @@ export async function POST(req: Request) {
         ? `${cleanProj}/SEGURIDAD/${monthName}/TARJETAS_TOP/${cleanLoc}`
         : `INSPECCIONES/${new Date().getFullYear()}/${moduleName.toUpperCase()}`;
 
-      // Guardado en disco local si existe D:/
+      // Guardado en disco local (D:/ si existe, o en .data/reports del proyecto)
       try {
-        if (fs.existsSync("D:/")) {
-          const localDir = path.join("D:/Evidencia del sistema de gestion CASA 2026", folderPath);
-          fs.mkdirSync(localDir, { recursive: true });
-          fs.writeFileSync(path.join(localDir, fileName), nodeBuf);
-        }
+        const localTargetDir = fs.existsSync("D:/")
+          ? path.join("D:/Evidencia del sistema de gestion CASA 2026", folderPath)
+          : path.join(process.cwd(), ".data", "reports", folderPath);
+        fs.mkdirSync(localTargetDir, { recursive: true });
+        fs.writeFileSync(path.join(localTargetDir, fileName), nodeBuf);
       } catch (localErr) {
-        console.warn("No se pudo guardar copia local en D:/:", localErr);
+        console.warn("No se pudo guardar copia local en disco:", localErr);
       }
 
       const payload = {
@@ -1953,7 +1953,7 @@ export async function POST(req: Request) {
           }
         }
       } catch (driveErr) {
-        console.error("Error subiendo Excel a Google Drive:", driveErr);
+        console.warn("Modo Offline / Google Drive no disponible:", (driveErr as any)?.message || driveErr);
       }
 
       return NextResponse.json({
@@ -1961,6 +1961,7 @@ export async function POST(req: Request) {
         driveUrl,
         fileBase64: base64,
         fileName,
+        isOffline: !driveUrl
       });
     }
 

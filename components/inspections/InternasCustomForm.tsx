@@ -340,17 +340,21 @@ export function InternasCustomForm({ moduleName, version, SignaturePad }: any) {
                 }
 
                 const abiertosSinCorreo = hallazgos.filter((h: any) => h.estado !== 'Cerrado' && !h.responsableEmail).length;
-                let mensajeFinal = '✅ Excel generado, guardado en Drive y registrado en el sistema.';
+                let mensajeFinal = data.isOffline
+                    ? '✅ Excel generado y descargado exitosamente en este equipo (Modo Local Offline).'
+                    : '✅ Excel generado, guardado en Drive y registrado en el sistema.';
                 if (enlacesEnviados > 0) {
-                    mensajeFinal = `✅ Excel generado, guardado en Drive y registrado.\n📧 Se enviaron ${enlacesEnviados} enlace(s) de levantamiento a los responsables.`;
+                    mensajeFinal = `✅ Excel generado y registrado.\n📧 Se enviaron ${enlacesEnviados} enlace(s) de levantamiento a los responsables.`;
                 }
-                if (abiertosSinCorreo > 0) {
+                if (abiertosSinCorreo > 0 && !data.isOffline) {
                     mensajeFinal += `\n\n⚠️ ATENCIÓN: ${abiertosSinCorreo} hallazgo(s) abierto(s) NO recibieron enlace de levantamiento porque no tienen responsable con correo asignado en la tarjeta del hallazgo.`;
                 }
                 alert(mensajeFinal);
 
-                // 3. Abrir el modal de correo con el enlace de Drive
-                setShowEmailModal(true);
+                // 3. Abrir el modal de correo si se cuenta con enlace de Drive
+                if (driveUrl) {
+                    setShowEmailModal(true);
+                }
             } else {
                 alert("Error al generar Excel");
             }
