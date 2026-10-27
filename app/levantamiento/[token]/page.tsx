@@ -210,12 +210,16 @@ export default function LevantamientoPublico() {
                                 📄 Ver reporte actualizado
                             </a>
                         )}
-                        {fileBase64 && (
+                        {(fileBase64 || finding.status === 'Cerrado' || done) && (
                             <button onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + fileBase64;
-                                link.download = 'Reporte_Levantamiento.xlsx';
-                                link.click();
+                                if (fileBase64) {
+                                    const link = document.createElement('a');
+                                    link.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + fileBase64;
+                                    link.download = 'Reporte_Levantamiento.xlsx';
+                                    link.click();
+                                } else {
+                                    window.open(`/api/levantamiento/${token}?download=excel`, '_blank');
+                                }
                             }} className="text-emerald-600 font-bold hover:underline inline-flex items-center gap-1.5 justify-center w-full bg-emerald-900/30 py-3 rounded-xl border border-emerald-800/50 mb-3">
                                 ⬇️ Descargar Excel
                             </button>

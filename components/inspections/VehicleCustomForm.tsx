@@ -5,13 +5,14 @@ import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail} from 'lucide-react';
+import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail, Sparkles} from 'lucide-react';
+import { InteractiveVehicleInspector } from './InteractiveVehicleInspector';
 
-const generalSections = [
+const generalSections: { type?: string; category: string; items: string[] }[] = [
     { category: 'CHASIS', items: ['Sistema de suspensión'] },
     { category: 'NEUMÁTICOS', items: ['Llantas delanteras (*)', 'Sistema de dirección (*)', 'Llantas posteriores (*)', 'Espárragos y Tuercas'] },
     { category: 'CABINA OPERADOR', items: ['Estribos (Peldaños)', 'Pasamanos', 'Llave de contacto', 'Cinturón de seguridad (*)', 'Espejos Retrovisiores (*)', 'Luces de Cabina', 'Limpiaparabrizas', 'Freno de mano (*)', 'Timón de dirección (*)', 'Pedales (*)', 'Palanca de velocidades (*)', 'Palanca de Tracción 4x4', 'Claxón (*)', 'Panel de control', 'Asientos', 'Vidrios de ventana', 'Neblineros (**)', 'Tapa tanque combustible'] },
-    { category: 'SEGURIDAD', items: ['Circulina (**)', 'Alarma de retroceso (*)', 'Sistema de frenos (*)', 'Botiquín', 'Extintor', 'Conos/Triángulos de seguridad', 'Luces (*)'] },
+    { category: 'SEGURIDAD', items: ['Circulina (**)', 'Alarma de retroceso (*)', 'Sistema de frenos (*)', 'Botiquín', 'Extintor', 'Conos/Triángulos de seguridad', 'Tacos de seguridad', 'Kit Antiderrame', 'Cintas reflectivas de seguridad (**)', 'Luces (*)'] },
     { type: 'fugas', category: 'FUGAS DE FLUIDO', items: ['Aceite de Motor', 'Combustible (Fugas)', 'Aceite Dirección', 'Aceite Transmisión', 'Aceite Diferenciales'] }
 ];
 
@@ -31,11 +32,11 @@ const specificSections: Record<string, {category: string, items: string[]}[]> = 
     'Volquete': [
         { category: 'CAMIONES VOLQUETES', items: ['Palanca activación pistón', 'Pistón de Levante Tolva*', 'Motor Hidráulico', 'Pines y seguro de tolva', 'Tolva', 'Compuerta de Tolva'] }
     ],
-    'Tracto': [
-        { category: 'TRACTO', items: ['Tornamesa', 'Acoples sistema de frenos (*)', 'Válvulas (*)'] }
-    ],
     'Camión Lubricador': [
         { category: 'CAMIONES LUBRICADORES', items: ['Depósitos de lubricantes', 'Depósito de aceite usado', 'Bombas Neumáticas', 'Manómetros de bomba', 'Depósito de refrigerantes', 'Compresor', 'Motor de compresor', 'Válvulas de seguridad', 'Espacios para herramientas', 'Dispensadores lubricantes'] }
+    ],
+    'Cama Baja': [
+        { category: 'CAMA BAJA (SEMIRREMOLQUE)', items: ['Plataforma Cama Baja', 'Rampas de acceso / levante', 'Cuello de cisne / Tornamesa (*)', 'Pernos y trabas de rampas', 'Ganchos de trinca y cadenas', 'Ejes y suspensión posterior (*)', 'Válvulas y acoples de frenos (*)'] }
     ],
     'Semiremolque': [
         { category: 'SEMIREMOLQUE', items: ['Acople a Tornamesa (*)', 'Acoples sistema de frenos (*)', 'Válvulas (*)'] }
@@ -61,7 +62,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
         operador: '',
         turno: '',
         fecha: new Date().toISOString().split('T')[0],
-        tipoEquipo: ''
+        tipoEquipo: 'Camioneta'
     });
 
     const [checklist, setChecklist] = useState<Record<string, string>>({});
@@ -70,20 +71,36 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
     useEffect(() => {
         const newChecklist: Record<string, string> = {};
         const activeSpecific = specificSections[meta.tipoEquipo] || [];
-        [...generalSections, ...activeSpecific].forEach(section => {
-              section.items.forEach(item => {
-                  if (section.type === 'fugas') {
-                      newChecklist[item] = 'N/A';
-                  } else {
-                      newChecklist[item] = 'OK';
-                  }
-              });
-          });
+
+        const cabinaExceptions = [
+            'Claxón (*)',
+            'Asientos',
+            'Limpiaparabrizas',
+            'Luces de Cabina',
+            'Espejos Retrovisiores (*)',
+            'Cinturón de seguridad (*)'
+        ];
+
+        [...generalSections, ...activeSpecific].forEach((section: any) => {
+            section.items.forEach((item: string) => {
+                if (section.type === 'fugas' || section.category === 'FUGAS DE FLUIDO') {
+                    newChecklist[item] = 'N/A';
+                } else if (section.category === 'CHASIS' && item === 'Sistema de suspensión') {
+                    newChecklist[item] = 'N/A';
+                } else if (section.category === 'CABINA OPERADOR') {
+                    newChecklist[item] = cabinaExceptions.includes(item) ? 'OK' : 'N/A';
+                } else {
+                    newChecklist[item] = 'OK';
+                }
+            });
+        });
         
         setChecklist(newChecklist);
     }, [meta.tipoEquipo]);
 
     const [observaciones, setObservaciones] = useState('');
+    const [showVisualInspector, setShowVisualInspector] = useState(true);
+    const [showChecklistDetails, setShowChecklistDetails] = useState(false);
     const [fotosDefectos, setFotosDefectos] = useState<Record<string, string[]>>({});
 
     useEffect(() => {
@@ -248,12 +265,19 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
 
     const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
         setIsSaving(true);
+        let generatedLevantamientoLink: string | null = cachedLevantamientoLink;
         try {
             
             const combinedObs = Object.entries(itemComments)
                 .filter(([_, c]) => c.trim().length > 0)
                 .map(([item, c]) => `${item}: ${c}`)
                 .join('\n') + (observaciones ? `\n\nGenerales: ${observaciones}` : '');
+
+            const finalFirmas = {
+                ...firmas,
+                operadorNombre: firmas.operadorNombre || (meta as any).chofer || meta.operador || '',
+                capatazNombre: firmas.capatazNombre || user?.name || ''
+            };
 
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
@@ -264,7 +288,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                     meta,
                     checklist,
                     observaciones,
-                    firmas,
+                    firmas: finalFirmas,
                     fotosDefectos,
                     saveToDrive: true
                 })
@@ -272,121 +296,78 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
 
             if (res.ok) {
                 const data = await res.json();
-
-                if (data.fileBase64) {
+                const driveLink = data.driveUrl || '';
+                if (data.driveUrl) {
                     setCachedDriveUrl(data.driveUrl);
-                    const byteCharacters = atob(data.fileBase64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-                    
-                    if (isEmailing && customEmailData) {
-                        try {
-                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
-                            const driveLink = data.driveUrl || '';
-                            let bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                ? customEmailData.message.replace(
-                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
-                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
-                                )
-                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
-
-                            if (generatedLevantamientoLink) {
-                                bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
-                            }
-
-                            let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
-                            
-                            if (generatedLevantamientoLink) {
-                                htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
-                            }
-
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: htmlBody,
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                })
-                            });
-                            if (!emailRes.ok) {
-                            const errData = await emailRes.json().catch(() => ({}));
-                            throw new Error(errData.error || 'Error enviando correo');
-                        }
-                            alert('✅ Correo enviado correctamente.');
-                            window.location.href = '/inspections?openDigital=true';
-                        } catch (e: any) {
-                        console.error(e);
-                        alert('Hubo un error al enviar el correo, pero el reporte se generó => ' + (e.message || 'Desconocido'));
-                    }
-                    } else {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                    a.download = `INSP_Vehiculos_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                        a.remove();
-                    }
                 }
 
-                const recRes = await fetch('/api/inspections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'create',
-                        data: {
-                            date: meta.fecha || new Date().toISOString().split('T')[0],
-                            responsible: meta.chofer || meta.operador || 'Operador',
-                            inspectionType: 'Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010',
-                            area: meta.proyecto || getActiveWorkspace().toUpperCase(),
-                            zone: meta.equipo || 'Inspección Digital',
-                            status: 'Completado',
-                            observations: observaciones || 'Pre-uso de maquinaria generado.',
-                            evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
-                        }
-                    })
-                });
+                // 1. Guardar en registros de inspecciones
                 let inspectionRecordId = null;
-                if (recRes.ok) {
-                    const recData = await recRes.json();
-                    inspectionRecordId = recData.id;
-                }
+                try {
+                    const recRes = await fetch('/api/inspections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create',
+                            data: {
+                                date: meta.fecha || new Date().toISOString().split('T')[0],
+                                responsible: (meta as any).chofer || meta.operador || 'Operador',
+                                inspectionType: 'Inspecciones y observaciones vehículos (Volquetes, camionetas, camiones.) F-OP-010',
+                                area: meta.proyecto || getActiveWorkspace().toUpperCase(),
+                                zone: meta.equipo || 'Inspección Digital',
+                                status: 'Completado',
+                                observations: observaciones || 'Pre-uso de maquinaria generado.',
+                                evidencePdf: driveLink,
+                                evidenceImgs: []
+                            }
+                        })
+                    });
+                    if (recRes.ok) {
+                        const recData = await recRes.json();
+                        inspectionRecordId = recData.id;
+                    }
+                } catch(e) { console.error("Error guardando inspección:", e); }
 
+                // 2. Generar Levantamiento de Observaciones ANTES de enviar el correo
                 const badItemsList = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
-                let generatedLevantamientoLink = cachedLevantamientoLink;
-
-                if (badItemsList.length > 0 && !generatedLevantamientoLink) {
+                const hasObservations = badItemsList.length > 0 || (observaciones && observaciones.trim().length > 0);
+                
+                if (hasObservations && !generatedLevantamientoLink) {
                     try {
+                        const hallazgosList = badItemsList.length > 0
+                            ? badItemsList.map(([item, status], i) => {
+                                const cmmt = itemComments[item] || '';
+                                return {
+                                    index: i,
+                                    descripcion: `- ${item} (${status}): ${cmmt}`.trim(),
+                                    riesgo: 'Medio',
+                                    categoria: 'Condición Subestándar',
+                                    responsable: finalFirmas.capatazNombre || user?.name || "Capataz",
+                                    responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                    fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
+                                };
+                            })
+                            : [{
+                                index: 0,
+                                descripcion: observaciones || "Observaciones de Vehículos",
+                                riesgo: 'Medio',
+                                categoria: 'Condición Subestándar',
+                                responsable: finalFirmas.capatazNombre || user?.name || "Capataz",
+                                responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                            }];
+
                         const lvRes = await fetch('/api/levantamiento/create', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 moduleName: 'Vehículos y Equipos',
                                 template: checklist,
-                                answers: { ...meta, observaciones, firmas, fotosDefectos },
+                                answers: { ...meta, observaciones, firmas: finalFirmas, fotosDefectos },
                                 inspectionRecordId,
-                                hallazgos: badItemsList.map(([item, status], i) => {
-                                    const cmmt = itemComments[item] || '';
-                                    return {
-                                        index: i,
-                                        descripcion: `- ${item} (${status}): ${cmmt}`.trim(),
-                                        riesgo: 'Medio',
-                                        categoria: 'Condición Subestándar',
-                                        responsable: firmas.capatazNombre || user?.name || "Capataz",
-                                        responsableEmail: user?.email || "responsable@casacontratistas.com",
-                                        fecha: meta.fecha || new Date().toISOString().split('T')[0],
-                                        fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
-                                    };
-                                })
+                                hallazgos: hallazgosList
                             })
                         });
                         if (lvRes.ok) {
@@ -394,32 +375,70 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                             if (lvData.items && lvData.items.length > 0) {
                                 generatedLevantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
                                 setCachedLevantamientoLink(generatedLevantamientoLink);
-                                
-                                // Memorias Ganadas: Enviar correo automático de levantamiento al responsable
-                                try {
-                                    const mailRes = await fetch('/api/send-email', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            to: [lvData.items[0].email],
-                                            subject: `⚠️ Acción requerida: Levantar hallazgo - Vehículos y Equipos`,
-                                            text: `Hola ${lvData.items[0].responsable},\n\nSe te asignó levantar la siguiente observación:\n"${lvData.items[0].description}"\n\nIngresa al siguiente enlace para subir tu evidencia y cerrar la observación:\n${generatedLevantamientoLink}\n\n📄 Ver reporte de inspección completo (Excel): ${data.driveUrl || ''}`,
-                                            html: `<p>Hola <b>${lvData.items[0].responsable}</b>,</p><p>Se te asignó levantar la siguiente observación de Vehículos y Equipos:</p><p style="background:#fef3c7;padding:12px;border-radius:8px;white-space:pre-wrap;"><i>${lvData.items[0].description}</i></p><p><a href="${generatedLevantamientoLink}" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">✅ Levantar mi observación</a></p><p>Si el botón no funciona, copia este enlace:<br>${generatedLevantamientoLink}</p><br><hr style="border:0;border-top:1px solid #ccc;"><p>📄 <b>Ver reporte de inspección completo (Excel):</b><br><a href="${data.driveUrl || ''}" style="color:#2563eb;">${data.driveUrl || 'No disponible'}</a></p>`
-                                        })
-                                    });
-                                    if (mailRes.ok) {
-                                        console.log("Correo automático de levantamiento enviado a", lvData.items[0].email);
-                                    }
-                                } catch (emailErr) {
-                                    console.error("Error enviando correo de levantamiento:", emailErr);
-                                }
                             }
                         }
                     } catch(err) { console.error("Error generating levantamiento:", err); }
                 }
 
-                if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                // 3. Si se está enviando por correo: enviar ahora que ya se tienen driveLink y generatedLevantamientoLink
+                if (isEmailing && customEmailData) {
+                    try {
+                        let bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                            ? customEmailData.message.replace(
+                                '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                            )
+                            : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                        if (generatedLevantamientoLink) {
+                            bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
+                        }
+
+                        let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                        
+                        if (generatedLevantamientoLink) {
+                            htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                        }
+
+                        const emailRes = await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: customEmailData.to,
+                                cc: customEmailData.cc,
+                                subject: customEmailData.subject,
+                                text: bodyWithLink,
+                                html: htmlBody,
+                                fromEmail: customEmailData.fromEmail,
+                                fromName: customEmailData.fromName
+                            })
+                        });
+                        if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
+                        }
+                        alert('✅ Correo enviado correctamente con el enlace de levantamiento de observaciones.');
+                        window.location.href = '/inspections?openDigital=true';
+                    } catch (e: any) {
+                        console.error(e);
+                        alert('Hubo un error al enviar el correo => ' + (e.message || 'Desconocido'));
+                    }
+                } else if (data.fileBase64) {
+                    // Descargar archivo Excel localmente
+                    const byteCharacters = atob(data.fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INSP_Vehiculos_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (con su enlace de levantamiento).\n3. Si quieres salir, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
                     } else {
                         window.location.href = '/inspections?openDigital=true';
@@ -557,8 +576,8 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                                     <option value="Cisterna de Combustible">Cisterna de Combustible</option>
                                     <option value="Camión Baranda">Camión Baranda</option>
                                     <option value="Volquete">Camiones Volquetes</option>
-                                    <option value="Tracto">Tracto</option>
                                     <option value="Camión Lubricador">Camiones Lubricadores</option>
+                                    <option value="Cama Baja">Camión Remolque Cama Baja</option>
                                     <option value="Semiremolque">Semiremolque</option>
                                     <option value="Vehículo">Otro / General</option>
                                 </select>
@@ -571,128 +590,178 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                     </div>
                 </div>
 
-                {/* LEGEND */}
-                <div className="bg-slate-100 p-3 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-[10px] sm:text-xs text-slate-600 border border-slate-200">
-                    <div className="flex items-center gap-1"><span className="font-black bg-green-500 text-white px-1 rounded">OK</span> Conforme</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-yellow-500 text-white px-1 rounded">R</span> Regular, pero operar, programar cambio</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-orange-500 text-white px-1 rounded">M</span> En mal estado. Reparar a la brevedad</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-red-500 text-white px-1 rounded">F</span> Faltante</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-slate-400 text-white px-1 rounded">N/A</span> No aplica</div>
+                {/* 1. INSPECTOR VISUAL INTERACTIVO CON GIRO 3D (PROMINENTE) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 sm:p-5 flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2">
+                            <Sparkles size={16} className="text-yellow-500" />
+                            <h3 className="font-bold text-slate-800 text-sm uppercase">Inspector Visual del Vehículo (Giro 3D y Hotspots)</h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                            Unidad: {meta.tipoEquipo || 'Camioneta'}
+                        </span>
+                    </div>
+
+                    <InteractiveVehicleInspector
+                        vehicleCode={meta.equipo || 'Vehículo'}
+                        vehicleType={meta.tipoEquipo || 'Camioneta'}
+                        observations={observaciones}
+                        onUpdateObservations={(newObs) => setObservaciones(newObs)}
+                        onUpdateChecklist={(item, status) => setChecklist(prev => ({ ...prev, [item]: status }))}
+                        onSwitchType={(newType) => setMeta(prev => ({ ...prev, tipoEquipo: newType }))}
+                    />
                 </div>
 
-                {/* CHECKLIST */}
-                <div className="space-y-6">
-                    <h2 className="text-xl font-black text-slate-800 text-center uppercase tracking-wider">Lista de Chequeo</h2>
-                    {sectionsToRender.map((section, sIdx) => (
-                        <div key={sIdx} className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                            <div className="bg-slate-800 p-3">
-                                <h3 className="font-bold text-yellow-400 text-sm uppercase">{section.category}</h3>
+                {/* 2. OBSERVACIONES DEL CHEQUEO (AUTO-DESCRIPCIÓN DE PUNTOS MARCADOS + DICTADO) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones del Chequeo</label>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setObservaciones('')}
+                                className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"
+                                title="Borrar observaciones"
+                            >
+                                <X size={12} /> Borrar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => toggleDictation('observaciones')}
+                                className={"p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold " + (isRecordingMeta === 'observaciones' ? "bg-red-100 text-red-500 animate-pulse shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-500")}
+                            >
+                                <Mic size={12} /> {isRecordingMeta === 'observaciones' ? 'Escuchando...' : 'Dictar'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea 
+                        value={observaciones} 
+                        onChange={e => setObservaciones(e.target.value)} 
+                        className={"w-full border p-3 text-sm rounded-lg outline-none min-h-[90px] " + (isRecordingMeta === 'observaciones' ? "border-red-400 bg-red-50/30" : "border-slate-200 focus:border-yellow-500")} 
+                        placeholder="Los defectos marcados en la figura 3D se describen aquí automáticamente con su acción correctiva. Puede complementar escribiendo o dictando..."
+                    />
+                </div>
+
+                {/* 3. CAJONES DE CHEQUEO (MINIMIZADOS POR DEFECTO CON BOTÓN PARA VER DETALLE) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => setShowChecklistDetails(prev => !prev)}
+                        className="w-full p-3 sm:p-4 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left transition-colors border-b border-slate-200 cursor-pointer"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-600 flex items-center justify-center font-black text-sm">
+                                📋
                             </div>
-                            <div className="divide-y divide-slate-100">
-                                {section.items.map((item) => {
-                                    const status = checklist[item];
-                                    const isBad = ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(status);
-                                    return (
-                                    <div key={item} className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-slate-50 transition-colors">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                            <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
-                                                {item}
-                                            </div>
-                                            <div>
-                                                {(section as any).type === 'fugas' 
-                                                    ? renderRadioGroup(item, ['N/A', 'RESUM', 'FUGA'])
-                                                    : renderRadioGroup(item, ['OK', 'R', 'M', 'F', 'N/A'])}
-                                            </div>
-                                        </div>
-                                        {isBad && (
-                                            <div className="w-full sm:w-96 bg-orange-50 p-2 rounded-lg border border-orange-200 flex flex-col gap-1.5 self-start sm:self-end shadow-sm">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-[10px] font-black text-orange-600 uppercase">Detalle del Hallazgo:</span>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-xs sm:text-sm uppercase tracking-wide">
+                                    Tabla Detallada de Chequeo (OK / R / M / F / N/A)
+                                </h3>
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                    {showChecklistDetails 
+                                        ? 'Click para minimizar cajones de marcado' 
+                                        : 'Minimizado: los estados se automarcan directamente al tocar los puntos en la figura'}
+                                </p>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors shrink-0">
+                            {showChecklistDetails ? 'Minimizar cajones ▲' : 'Ver cajones ▼'}
+                        </span>
+                    </button>
+
+                    {showChecklistDetails && (
+                        <div className="p-4 space-y-6">
+                            {/* LEGEND */}
+                            <div className="bg-slate-100 p-3 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-[10px] sm:text-xs text-slate-600 border border-slate-200">
+                                <div className="flex items-center gap-1"><span className="font-black bg-green-500 text-white px-1 rounded">OK</span> Conforme</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-yellow-500 text-white px-1 rounded">R</span> Regular, pero operar, programar cambio</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-orange-500 text-white px-1 rounded">M</span> En mal estado. Reparar a la brevedad</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-red-500 text-white px-1 rounded">F</span> Faltante</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-slate-400 text-white px-1 rounded">N/A</span> No aplica</div>
+                            </div>
+
+                            {/* SECTIONS LIST */}
+                            {sectionsToRender.map((section, sIdx) => (
+                                <div key={sIdx} className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                                    <div className="bg-slate-800 p-3">
+                                        <h3 className="font-bold text-yellow-400 text-sm uppercase">{section.category}</h3>
+                                    </div>
+                                    <div className="divide-y divide-slate-100">
+                                        {section.items.map((item) => {
+                                            const status = checklist[item];
+                                            const isBad = ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(status);
+                                            return (
+                                            <div key={item} className="p-3 sm:p-4 flex flex-col gap-3 hover:bg-slate-50 transition-colors">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                    <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
+                                                        {item}
+                                                    </div>
+                                                    <div>
+                                                        {(section as any).type === 'fugas' 
+                                                            ? renderRadioGroup(item, ['N/A', 'RESUM', 'FUGA'])
+                                                            : renderRadioGroup(item, ['OK', 'R', 'M', 'F', 'N/A'])}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 bg-white border border-orange-200 rounded-md focus-within:border-orange-400 overflow-hidden pr-2">
-                                                    <input 
-                                                        type="text" 
-                                                        value={itemComments[item] || ''}
-                                                        onChange={e => handleItemComment(item, e.target.value)}
-                                                        placeholder="Describe el problema aquí..."
-                                                        className="flex-1 text-xs outline-none p-1.5 bg-transparent font-bold text-slate-700"
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => {
-                                                            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                                                            if (!SpeechRecognition) return alert('Tu navegador no soporta dictado por voz.');
-                                                            const recognition = new SpeechRecognition();
-                                                            recognition.lang = 'es-ES';
-                                                            recognition.interimResults = false;
-                                                            recognition.onresult = (event: any) => {
-                                                                const transcript = event.results[0][0].transcript;
-                                                                handleItemComment(item, (itemComments[item] || "") + " " + transcript);
-                                                            };
-                                                            recognition.start();
-                                                        }} 
-                                                        className="text-slate-400 hover:text-blue-500 transition-colors p-1 mr-1" 
-                                                        title="Dictar por voz"
-                                                    >
-                                                        <Mic size={14}/>
-                                                    </button>
-                                                    <button type="button" onClick={() => handleItemComment(item, "")} className="text-slate-400 hover:text-red-500 transition-colors p-1" title="Borrar texto"><X size={14}/></button>
-                                                </div>
-                                                <div className="flex items-center gap-3 mt-2">
-                                                    <label className="cursor-pointer bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1 shadow-sm">
-                                                        <Camera size={14} /> <span>Agregar Foto</span>
-                                                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePhotoUploadDefecto(item, e)} />
-                                                    </label>
-                                                </div>
-                                                {(fotosDefectos[item] && fotosDefectos[item].length > 0) && (
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                        {fotosDefectos[item].map((photoStr, idx) => (
-                                                            <div key={idx} className="relative group">
-                                                                <img src={photoStr} className="h-16 w-16 object-cover rounded-lg border border-orange-200 shadow-sm" alt="Defecto" />
-                                                                <button onClick={() => removePhotoDefecto(item, idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"><X size={12}/></button>
+                                                {isBad && (
+                                                    <div className="w-full sm:w-96 bg-orange-50 p-2 rounded-lg border border-orange-200 flex flex-col gap-1.5 self-start sm:self-end shadow-sm">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-[10px] font-black text-orange-600 uppercase">Detalle del Hallazgo:</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 bg-white border border-orange-200 rounded-md focus-within:border-orange-400 overflow-hidden pr-2">
+                                                            <input 
+                                                                type="text" 
+                                                                value={itemComments[item] || ''}
+                                                                onChange={e => handleItemComment(item, e.target.value)}
+                                                                placeholder="Describe el problema aquí..."
+                                                                className="flex-1 text-xs outline-none p-1.5 bg-transparent font-bold text-slate-700"
+                                                            />
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => {
+                                                                    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                                                                    if (!SpeechRecognition) return alert('Tu navegador no soporta dictado por voz.');
+                                                                    const recognition = new SpeechRecognition();
+                                                                    recognition.lang = 'es-ES';
+                                                                    recognition.interimResults = false;
+                                                                    recognition.onresult = (event: any) => {
+                                                                        const transcript = event.results[0][0].transcript;
+                                                                        handleItemComment(item, (itemComments[item] || "") + " " + transcript);
+                                                                    };
+                                                                    recognition.start();
+                                                                }} 
+                                                                className="text-slate-400 hover:text-blue-500 transition-colors p-1 mr-1" 
+                                                                title="Dictar por voz"
+                                                            >
+                                                                <Mic size={14}/>
+                                                            </button>
+                                                            <button type="button" onClick={() => handleItemComment(item, "")} className="text-slate-400 hover:text-red-500 transition-colors p-1" title="Borrar texto"><X size={14}/></button>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 mt-2">
+                                                            <label className="cursor-pointer bg-white border border-slate-200 text-slate-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-50 transition-colors flex items-center gap-1 shadow-sm">
+                                                                <Camera size={14} /> <span>Agregar Foto</span>
+                                                                <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePhotoUploadDefecto(item, e)} />
+                                                            </label>
+                                                        </div>
+                                                        {(fotosDefectos[item] && fotosDefectos[item].length > 0) && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {fotosDefectos[item].map((photoStr, idx) => (
+                                                                    <div key={idx} className="relative group">
+                                                                        <img src={photoStr} className="h-16 w-16 object-cover rounded-lg border border-orange-200 shadow-sm" alt="Defecto" />
+                                                                        <button onClick={() => removePhotoDefecto(item, idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"><X size={12}/></button>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
+                                        )})}
                                     </div>
-                                )})}
-                            </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                    
-                    <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones del Chequeo</label>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setObservaciones('')}
-                                    className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"
-                                    title="Borrar observaciones"
-                                >
-                                    <X size={12} /> Borrar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => toggleDictation('observaciones')}
-                                    className={"p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold " + (isRecordingMeta === 'observaciones' ? "bg-red-100 text-red-500 animate-pulse shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-500")}
-                                >
-                                    <Mic size={12} /> {isRecordingMeta === 'observaciones' ? 'Escuchando...' : 'Dictar'}
-                                </button>
-                            </div>
-                        </div>
-
-                        
-
-                        <textarea 
-                            value={observaciones} 
-                            onChange={e => setObservaciones(e.target.value)} 
-                            className={"w-full border p-3 text-sm rounded-lg outline-none min-h-[80px] " + (isRecordingMeta === 'observaciones' ? "border-red-400 bg-red-50/30" : "border-slate-200 focus:border-yellow-500")} 
-                            placeholder="Escriba o dicte aquí sus observaciones extra de la maquinaria..."
-                        />
-                    </div>
+                    )}
                 </div>
 
                 {/* FIRMAS (Debajo de observaciones) */}
@@ -701,14 +770,14 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                         {renderMicInput("Nombre del Operador de Equipo", "operadorNombre", firmas.operadorNombre, true, "Escribir o dictar nombre...")}
                         <div className="mt-4 flex-1 flex flex-col">
                             <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Operador</label>
-                            <SignaturePad onSave={(val: string) => setFirmas({...firmas, operadorFirma: val})} />
+                            <SignaturePad onSave={(val: string) => setFirmas(prev => ({ ...prev, operadorFirma: val }))} />
                         </div>
                     </div>
                     <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col">
                         {renderMicInput("Nombre del Capataz / SSMA", "capatazNombre", firmas.capatazNombre, true, "Escribir o dictar nombre...")}
                         <div className="mt-4 flex-1 flex flex-col">
                             <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Capataz / SSMA</label>
-                            <SignaturePad onSave={(val: string) => setFirmas({...firmas, capatazFirma: val})} />
+                            <SignaturePad onSave={(val: string) => setFirmas(prev => ({ ...prev, capatazFirma: val }))} />
                         </div>
                     </div>
                 </div>
@@ -771,7 +840,7 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                   </div>
                   
                   <EmailReportModal
-            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
+            initialObservations={observaciones || ""} 
                       isOpen={showEmailModal} 
                       onClose={() => setShowEmailModal(false)}
                       isSending={isSaving}
@@ -783,14 +852,71 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                                       ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
                                       : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
                                   
-                                  if (cachedLevantamientoLink) {
-                                      bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + cachedLevantamientoLink;
+                                  let levantamientoLink = cachedLevantamientoLink;
+                                  if (!levantamientoLink) {
+                                      const badItemsList = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
+                                      const hasObs = badItemsList.length > 0 || (observaciones && observaciones.trim().length > 0);
+                                      if (hasObs) {
+                                          try {
+                                              const finalFirmas = {
+                                                  ...firmas,
+                                                  operadorNombre: firmas.operadorNombre || (meta as any).chofer || meta.operador || '',
+                                                  capatazNombre: firmas.capatazNombre || user?.name || ''
+                                              };
+                                              const hallazgosList = badItemsList.length > 0
+                                                  ? badItemsList.map(([item, status], i) => {
+                                                      const cmmt = itemComments[item] || '';
+                                                      return {
+                                                          index: i,
+                                                          descripcion: `- ${item} (${status}): ${cmmt}`.trim(),
+                                                          riesgo: 'Medio',
+                                                          categoria: 'Condición Subestándar',
+                                                          responsable: finalFirmas.capatazNombre || user?.name || 'Capataz',
+                                                          responsableEmail: user?.email || 'responsable@casacontratistas.com',
+                                                          fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                                          fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
+                                                      };
+                                                  })
+                                                  : [{
+                                                      index: 0,
+                                                      descripcion: observaciones || 'Observaciones de Vehículos',
+                                                      riesgo: 'Medio',
+                                                      categoria: 'Condición Subestándar',
+                                                      responsable: finalFirmas.capatazNombre || user?.name || 'Capataz',
+                                                      responsableEmail: user?.email || 'responsable@casacontratistas.com',
+                                                      fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                                      fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                                                  }];
+
+                                              const lvRes = await fetch('/api/levantamiento/create', {
+                                                  method: 'POST',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({
+                                                      moduleName: 'Vehículos y Equipos',
+                                                      template: checklist,
+                                                      answers: { ...meta, observaciones, firmas: finalFirmas, fotosDefectos },
+                                                      hallazgos: hallazgosList
+                                                  })
+                                              });
+                                              if (lvRes.ok) {
+                                                  const lvData = await lvRes.json();
+                                                  if (lvData.items && lvData.items.length > 0) {
+                                                      levantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
+                                                      setCachedLevantamientoLink(levantamientoLink);
+                                                  }
+                                              }
+                                          } catch(e) {}
+                                      }
+                                  }
+
+                                  if (levantamientoLink) {
+                                      bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + levantamientoLink;
                                   }
 
                                   let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
                                   
-                                  if (cachedLevantamientoLink) {
-                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + cachedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                                  if (levantamientoLink) {
+                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + levantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
                                   }
 
                                   const emailRes = await fetch('/api/send-email', {

@@ -6,10 +6,11 @@ import { getActiveWorkspace, getActiveProjectLocation } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail, AlertCircle} from 'lucide-react';
+import { Trash2, PlusCircle, Save, Loader2, ArrowLeft, Copy, Flame, Mic, MicOff, Camera, X , Mail, AlertCircle, Sparkles, ChevronDown } from 'lucide-react';
+import { InteractiveEquipmentInspector } from './InteractiveEquipmentInspector';
 
 
-const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
+const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "", onFocus, onClick }: any) => {
     const [isRecording, setIsRecording] = useState(false);
     const recognitionRef = useRef<any>(null);
 
@@ -80,6 +81,8 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
                     type={type}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
+                    onFocus={onFocus}
+                    onClick={onClick}
                     placeholder={placeholder}
                     className={`${inputClass} ${type === 'text' ? 'pr-16' : ''}`}
                 />
@@ -100,6 +103,96 @@ const VoiceInput = ({ value, onChange, placeholder, className, type = "text", in
     );
 };
 
+const EQUIPMENT_TYPE_OPTIONS = [
+    { label: 'Extintor PQS', icon: '🧯', desc: 'Polvo Químico Seco (ABC)' },
+    { label: 'Extintor CO2', icon: '🧯', desc: 'Dióxido de Carbono (BC)' },
+    { label: 'Extintor Tipo K', icon: '🧯', desc: 'Acetato de Potasio (Cocinas)' },
+    { label: 'Extintor de Agua', icon: '🧯', desc: 'Agua presurizada (Clase A)' },
+    { label: 'Luminaria de Emergencia', icon: '💡', desc: 'Luz de emergencia LED / Faros' }
+];
+
+const EquipmentTypeInput = ({ value, onChange, placeholder = "Seleccionar o escribir tipo...", inputClass = "" }: any) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <div ref={containerRef} className="relative w-full">
+            <div className="relative">
+                <VoiceInput
+                    value={value}
+                    onChange={(val: string) => {
+                        onChange(val);
+                        setIsOpen(true);
+                    }}
+                    onFocus={() => setIsOpen(true)}
+                    onClick={() => setIsOpen(true)}
+                    placeholder={placeholder}
+                    inputClass={`${inputClass} pr-20 cursor-pointer`}
+                />
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(prev => !prev);
+                    }}
+                    className="absolute right-8 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                    title="Ver opciones de equipo"
+                >
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            {isOpen && (
+                <div className="absolute left-0 top-full mt-1.5 w-full bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in zoom-in-95">
+                    <div className="p-1.5 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Opciones sugeridas</span>
+                        <span className="text-[9px] lowercase text-slate-400 font-normal">o escribe libremente</span>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto p-1 space-y-0.5">
+                        {EQUIPMENT_TYPE_OPTIONS.map((opt) => {
+                            const isSelected = value === opt.label;
+                            return (
+                                <button
+                                    key={opt.label}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(opt.label);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                                        isSelected 
+                                            ? 'bg-red-50 text-red-700 font-bold' 
+                                            : 'text-slate-700 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base">{opt.icon}</span>
+                                        <div>
+                                            <p className="leading-tight">{opt.label}</p>
+                                            <p className="text-[10px] text-slate-400 font-normal">{opt.desc}</p>
+                                        </div>
+                                    </div>
+                                    {isSelected && <span className="text-red-600 text-xs font-black">✓</span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { moduleName: string, version: number, SignaturePad: any }) => {
     const router = useRouter();
     const { user } = useAuth();
@@ -111,6 +204,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
     const [responsableLevantamiento, setResponsableLevantamiento] = useState<{name: string, email: string} | null>(null);
     const [contactos, setContactos] = useState<{name: string, email: string}[]>([]);
     useEffect(() => { const stored = localStorage.getItem('ssoma_contacts'); if (stored) setContactos(JSON.parse(stored)); }, []);
+    const [activeInspectorIdx, setActiveInspectorIdx] = useState<number | null>(null);
 
 
     
@@ -269,10 +363,20 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         obs = obs.replace(/\]\s+\[/g, ']\n[');
         copy[idx].observaciones = obs;
         setExtinguishers(copy);
+
+        // Se activa el inspector interactivo ÚNICAMENTE cuando se marque "NC" en Estado General
+        if (field === 'estado' && val === 'NC') {
+            setActiveInspectorIdx(idx);
+        }
     };
 
     const removeExtinguisher = (idx: number, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (activeInspectorIdx === idx) {
+            setActiveInspectorIdx(null);
+        } else if (activeInspectorIdx !== null && activeInspectorIdx > idx) {
+            setActiveInspectorIdx(activeInspectorIdx - 1);
+        }
         setExtinguishers(extinguishers.filter((_, i) => i !== idx));
     };
 
@@ -315,48 +419,13 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                     const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
                     
-                    if (isEmailing && customEmailData) {
-                        try {
-                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
-                            const driveLink = data.driveUrl || '';
-                            const bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                ? customEmailData.message.replace(
-                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
-                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
-                                )
-                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
-
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: bodyWithLink.replace(/\n/g, '<br>').replace(
-                                        /(https?:\/\/[^\s]+)/g,
-                                        '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>'
-                                    ),
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                })
-                            });
-                            if (!emailRes.ok) {
-                            const errData = await emailRes.json().catch(() => ({}));
-                            throw new Error(errData.error || 'Error enviando correo');
-                        }
-                        } catch (e: any) {
-                        console.error(e);
-                        alert('Hubo un error al enviar el correo, pero el reporte se generó => ' + (e.message || 'Desconocido'));
-                    }
-                    } else {
+                    if (!isEmailing) {
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                    a.download = `INSP_Extintores_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
+                        a.download = `INSP_Extintores_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
                         a.remove();
                     }
                 }
@@ -457,7 +526,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                             if (!emailRes.ok) { const text = await emailRes.text(); throw new Error('Error enviando correo: ' + text); }
                             alert('✅ Correo unificado enviado correctamente.');
                             window.location.href = '/inspections?openDigital=true';
-                        } catch(e) { alert('Error al enviar el correo: ' + e.message); console.error('Email error:', e); }
+                        } catch(e: any) { alert('Error al enviar el correo: ' + e.message); console.error('Email error:', e); }
                     }
                 } else {
                     if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel descargado.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo.\n3. Si quieres salir al panel, haz clic en "Cancelar".')) {
@@ -478,8 +547,12 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
         }
     };
 
+    const isSplitActive = activeInspectorIdx !== null && 
+        extinguishers[activeInspectorIdx] && 
+        extinguishers[activeInspectorIdx].estado === 'NC';
+
     return (
-        <div className="max-w-4xl mx-auto pb-24">
+        <div className={`mx-auto pb-24 transition-all duration-300 ${isSplitActive ? 'max-w-7xl px-2 sm:px-4' : 'max-w-4xl'}`}>
             <div className="bg-red-700 text-white p-6 shadow-lg relative z-10 mb-6">
                 <button onClick={() => window.location.href = '/inspections?openDigital=true'} className="flex items-center gap-2 text-red-200 hover:text-white transition-colors mb-4">
                     <ArrowLeft size={20} /> Volver
@@ -543,8 +616,10 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                         <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">{extinguishers.length} equipos registrados</span>
                     </div>
 
-                    <div className="space-y-4">
-                        {extinguishers.map((ext, idx) => (
+                    <div className={`transition-all duration-300 ${isSplitActive ? 'lg:flex lg:gap-6 items-start' : ''}`}>
+                        {/* Columna Izquierda: Listado que se reduce */}
+                        <div className={`space-y-4 transition-all duration-300 ${isSplitActive ? 'lg:w-7/12 flex-1' : 'w-full'}`}>
+                            {extinguishers.map((ext, idx) => (
                             <div key={ext.id} className={`bg-white border shadow-sm rounded-xl overflow-hidden transition-all ${'${'}ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'border-red-300' : 'border-slate-200'}`}>
                                 <div 
                                     className={`p-4 flex justify-between items-center cursor-pointer ${'${'}ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC' ? 'bg-red-50' : 'bg-slate-50 hover:bg-slate-100'}`}
@@ -561,6 +636,20 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 sm:gap-3 ml-2">
+                                        {ext.estado === 'NC' && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setActiveInspectorIdx(idx); }}
+                                                className={`text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 transition-all ${
+                                                    activeInspectorIdx === idx 
+                                                        ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-300 animate-pulse' 
+                                                        : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
+                                                }`}
+                                                title="Ver diagrama interactivo de partes"
+                                            >
+                                                <Sparkles size={11} /> Inspección Visual
+                                            </button>
+                                        )}
                                         {(ext.estado === 'NC' || ext.acceso === 'NC' || ext.senalizacion === 'NC') && (
                                             <span className="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-full hidden sm:block">NO CONFORME</span>
                                         )}
@@ -578,7 +667,11 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">Tipo de Equipo</label>
-                                                <VoiceInput placeholder="Ej: Extintor, Botiquín..." value={ext.tipo} onChange={(val: string) => updateExtinguisher(idx, 'tipo', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
+                                                <EquipmentTypeInput 
+                                                    value={ext.tipo} 
+                                                    onChange={(val: string) => updateExtinguisher(idx, 'tipo', val)} 
+                                                    inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" 
+                                                />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black text-slate-400 uppercase">N° / Código</label>
@@ -650,6 +743,20 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                             </div>
                                         </div>
 
+                                        {/* Inspector interactivo en Móvil si este equipo es el activo y tiene estado NC */}
+                                        {isSplitActive && activeInspectorIdx === idx && (
+                                            <div className="block lg:hidden mb-5">
+                                                <InteractiveEquipmentInspector
+                                                    equipmentCode={ext.codigo || `Equipo ${idx + 1}`}
+                                                    equipmentType={ext.tipo}
+                                                    observations={ext.observaciones || ''}
+                                                    onUpdateObservations={(newObs) => updateExtinguisher(idx, 'observaciones', newObs)}
+                                                    onClose={() => setActiveInspectorIdx(null)}
+                                                    onSwitchType={(newType) => updateExtinguisher(idx, 'tipo', newType)}
+                                                />
+                                            </div>
+                                        )}
+
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones / Acciones</label>
                                             <VoiceInput type="textarea" placeholder="Detallar observaciones o acciones correctivas..." value={ext.observaciones} onChange={(val: string) => updateExtinguisher(idx, 'observaciones', val)} inputClass="w-full border border-slate-200 p-2 text-sm rounded bg-slate-50 outline-none focus:border-red-500" />
@@ -695,6 +802,21 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                                 )}
                             </div>
                         ))}
+                        </div>
+
+                        {/* Columna Derecha: Panel Interactivo Dinámico para pantallas medianas/grandes */}
+                        {isSplitActive && extinguishers[activeInspectorIdx] && (
+                            <div className="hidden lg:block lg:w-5/12 w-full lg:sticky lg:top-4 z-20">
+                                <InteractiveEquipmentInspector
+                                    equipmentCode={extinguishers[activeInspectorIdx].codigo || `Equipo ${activeInspectorIdx + 1}`}
+                                    equipmentType={extinguishers[activeInspectorIdx].tipo}
+                                    observations={extinguishers[activeInspectorIdx].observaciones || ''}
+                                    onUpdateObservations={(newObs) => updateExtinguisher(activeInspectorIdx, 'observaciones', newObs)}
+                                    onClose={() => setActiveInspectorIdx(null)}
+                                    onSwitchType={(newType) => updateExtinguisher(activeInspectorIdx, 'tipo', newType)}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <button onClick={addExtinguisher} className="w-full mt-4 py-4 rounded-xl border-2 border-dashed border-red-300 text-red-600 font-bold hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
@@ -809,7 +931,7 @@ export const ExtinguisherCustomForm = ({ moduleName, version, SignaturePad }: { 
                               if (!emailRes.ok) { const text = await emailRes.text(); throw new Error("Error enviando correo: " + text); }
                             alert("✅ Correo unificado enviado correctamente.");
                             window.location.href = "/inspections?openDigital=true";
-                        } catch(e) {
+                        } catch(e: any) {
                             alert("Error al enviar el correo: " + e.message); console.error("Email error:", e);
                         } finally {
                             setIsSaving(false);

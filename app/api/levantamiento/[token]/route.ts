@@ -34,11 +34,46 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
         }
 
         let driveUrl = '';
-        if (row.inspection_record_id && driveUrl) {
+        if (row.inspection_record_id) {
             try {
                 const rec: any = await db.fetchOne('SELECT evidence_pdf FROM inspection_records WHERE id = ?', [row.inspection_record_id]);
                 if (rec && rec.evidence_pdf) driveUrl = rec.evidence_pdf;
             } catch(e) {}
+        }
+
+        const url = new URL(req.url);
+        if (url.searchParams.get('download') === 'excel' && row.status === 'Cerrado') {
+            const isMach = row.module_name === 'Maquinaria' || row.module_name?.toLowerCase().includes('maquinaria');
+            const isVeh = row.module_name?.toLowerCase().includes('vehículo') || row.module_name?.toLowerCase().includes('vehiculo');
+            const template = JSON.parse(row.template_json || '[]');
+            const answers = JSON.parse(row.answers_json || '[]');
+            const checklistData = (isMach || isVeh || (typeof template === 'object' && !Array.isArray(template))) ? template : undefined;
+            const metaData = (isMach || isVeh || row.module_name === 'Extintores' || row.module_name === 'Kit Antiderrame') ? answers : undefined;
+
+            const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    moduleName: row.module_name, 
+                    template, 
+                    answers, 
+                    checklist: checklistData,
+                    meta: metaData,
+                    isMachineryMatrix: isMach,
+                    isVehicleMatrix: isVeh,
+                    firmas: answers?.firmas,
+                    observaciones: answers?.observaciones,
+                    extinguishers: row.module_name === 'Extintores' ? template : undefined, 
+                    isExtinguisherMatrix: row.module_name === 'Extintores', 
+                    kits: row.module_name === 'Kit Antiderrame' ? template : undefined,
+                    isKitAntiderrameMatrix: row.module_name === 'Kit Antiderrame',
+                    saveToDrive: false,
+                    fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : (answers?.fotosDefectos || null),
+                    evidenciaLevantamiento: row.evidence,
+                    comentarioLevantamiento: row.comentario
+                }),
+            });
+            return await generateExcel(mockReq);
         }
 
         return NextResponse.json({
@@ -114,10 +149,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
                     for (const h of hallazgos) {
                         if (h.responsableEmail === row.responsable_email) {
                             const key = h.descripcion || 'Observación';
-                            if (evMap[key] && evMap[key].length > 50) {
+                            let matchEv = evMap[key];
+                            let matchCom = comMap[key];
+                            if (!matchEv) {
+                                const foundK = Object.keys(evMap).find(k => k.trim() === key.trim() || k.includes(key) || key.includes(k));
+                                if (foundK) {
+                                    matchEv = evMap[foundK];
+                                    matchCom = comMap[foundK];
+                                }
+                            }
+                            if (matchEv && matchEv.length > 50) {
                                 h.estado = 'Cerrado';
-                                h.evidenciaLevantamiento = evMap[key];
-                                h.comentario = comMap[key] || comentario;
+                                h.evidenciaLevantamiento = matchEv;
+                                h.comentario = matchCom || comentario;
                             }
                         }
                     }
@@ -137,6 +181,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         let driveUrl = '';
         let fileBase64 = '';
         try {
+            const isMach = row.module_name === 'Maquinaria' || row.module_name?.toLowerCase().includes('maquinaria');
+            const isVeh = row.module_name?.toLowerCase().includes('vehículo') || row.module_name?.toLowerCase().includes('vehiculo');
+            const checklistData = (isMach || isVeh || (typeof template === 'object' && !Array.isArray(template))) ? template : undefined;
+            const metaData = (isMach || isVeh || row.module_name === 'Extintores' || row.module_name === 'Kit Antiderrame') ? answers : undefined;
+
             const mockReq = new Request(new URL('/api/export-excel', req.url).toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -144,13 +193,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
                     moduleName: row.module_name, 
                     template, 
                     answers, 
+                    checklist: checklistData,
+                    meta: metaData,
+                    isMachineryMatrix: isMach,
+                    isVehicleMatrix: isVeh,
+                    firmas: answers?.firmas,
+                    observaciones: answers?.observaciones,
                     extinguishers: row.module_name === 'Extintores' ? template : undefined, 
-                    meta: (row.module_name === 'Extintores' || row.module_name === 'Kit Antiderrame') ? answers : undefined, 
                     isExtinguisherMatrix: row.module_name === 'Extintores', 
                     kits: row.module_name === 'Kit Antiderrame' ? template : undefined,
                     isKitAntiderrameMatrix: row.module_name === 'Kit Antiderrame',
                     saveToDrive: true,
-                    fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : null,
+                    fotosDefectos: row.fotos_defectos_json ? JSON.parse(row.fotos_defectos_json) : (answers?.fotosDefectos || null),
                     evidenciaLevantamiento: evidence,
                     comentarioLevantamiento: comentario
                 }),
@@ -179,8 +233,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
 
         // 3. Registrar el levantamiento en la base de datos
         await db.execute(
-            `UPDATE hallazgo_levantamientos SET status = ?, evidence = ?, comentario = ?, closed_at = ${isParcial ? 'NULL' : 'CURRENT_TIMESTAMP'} WHERE token = ?`,
-            [finalStatus, evidence, comentario || '', token]
+            `UPDATE hallazgo_levantamientos SET status = ?, evidence = ?, comentario = ?, answers_json = ?, closed_at = ${isParcial ? 'NULL' : 'CURRENT_TIMESTAMP'} WHERE token = ?`,
+            [finalStatus, evidence, comentario || '', JSON.stringify(answers), token]
         );
 
         // 4. Notificar a SSOMA por correo

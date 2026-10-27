@@ -5,7 +5,8 @@ import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Trash2, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, Copy, Shield , Mail} from 'lucide-react';
+import { Trash2, CheckCircle, AlertCircle, Save, Loader2, ArrowLeft, Copy, Shield, Mail, Camera} from 'lucide-react';
+import { InteractiveWorkerEppInspector } from './InteractiveWorkerEppInspector';
 
 const VoiceInput = ({ value, onChange, placeholder, className, type = "text", inputClass = "" }: any) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -202,6 +203,7 @@ export const EppCustomForm = ({ moduleName, version, SignaturePad }: { moduleNam
 
     // Workers
     const [workers, setWorkers] = useState<any[]>([]);
+    const [showQuickList, setShowQuickList] = useState<Record<number, boolean>>({});
 
     const handleWorkerPhoto = (wIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -384,10 +386,19 @@ ${obsAdd}` : obsAdd;
                         }
                         
                         const badItems: string[] = [];
-                        workers.forEach((w: any) => {
-                            if (w.badEpps && w.badEpps.length > 0) badItems.push("- " + (w.name || "Trabajador") + ": " + w.badEpps.join(", "));
+                        const workerPhotosMap: Record<string, string[]> = {};
+                        let firstWorkerPhoto = '';
+                        workers.forEach((w: any, idx: number) => {
+                            if (w.badEpps && w.badEpps.length > 0) {
+                                const wTitle = "- " + (w.name || `Trabajador ${idx + 1}`) + ": " + w.badEpps.join(", ");
+                                badItems.push(wTitle);
+                                const photo = w.fotoEvidencia || w.foto || w.photo || w.evidencia;
+                                if (photo) {
+                                    workerPhotosMap[wTitle] = [photo];
+                                    if (!firstWorkerPhoto) firstWorkerPhoto = photo;
+                                }
+                            }
                         });
-
                         let generatedLevantamientoLink = cachedLevantamientoLink;
 
                         if (responsableLevantamiento && badItems.length > 0 && !generatedLevantamientoLink) {
@@ -408,6 +419,8 @@ ${obsAdd}` : obsAdd;
                                             responsable: responsableLevantamiento.name,
                                             responsableEmail: responsableLevantamiento.email,
                                             fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                            evidencia: firstWorkerPhoto,
+                                            fotosDefectos: workerPhotosMap
                                         }]
                                     })
                                 });
@@ -498,7 +511,7 @@ ${obsAdd}` : obsAdd;
                             status: 'Completado',
                             observations: `${workers.length} trabajadores inspeccionados.`,
                             evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
+                            evidenceImgs: workers.map(w => w.fotoEvidencia).filter(Boolean)
                         }
                     })
                 });
@@ -609,41 +622,70 @@ ${obsAdd}` : obsAdd;
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-slate-900 rounded-xl p-4 sm:p-5">
-                                            <p className="text-xs text-slate-400 mb-4 font-semibold uppercase tracking-wider text-center">Toque los EPPs en <span className="text-red-400 font-bold">Mal Estado</span></p>
-                                            
-                                            <div className="space-y-5">
-                                                {EPP_GROUPS.map(group => (
-                                                    <div key={group.name}>
-                                                        <h5 className="text-[10px] text-slate-500 font-black mb-2 uppercase">{group.name}</h5>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {group.items.map(epp => {
-                                                                const isBad = worker.badEpps.includes(epp);
-                                                                return (
-                                                                    <div key={epp} className="flex items-center gap-1">
-                                                                        <button
-                                                                            onClick={() => toggleEpp(wIdx, epp)}
-                                                                            className={"px-3 py-1.5 text-xs font-bold rounded-lg border transition-all " + (isBad ? 'bg-red-500/20 text-red-400 border-red-500/50 shadow-lg shadow-red-900/20' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700')}
-                                                                        >
-                                                                            {epp} {isBad && ' ❌'}
-                                                                        </button>
-                                                                        {isBad && eppSizeMap[epp] && (
-                                                                            <select
-                                                                                value={extractSizeFromCorrection(worker.correction, epp)}
-                                                                                onChange={(e) => updateSizeInCorrection(wIdx, epp, e.target.value)}
-                                                                                className="bg-red-500/10 text-red-400 border border-red-500/50 rounded-lg px-2 py-1.5 text-xs font-bold outline-none cursor-pointer hover:bg-red-500/20"
-                                                                            >
-                                                                                <option value="...">Talla</option>
-                                                                                {eppSizeMap[epp].map(s => <option key={s} value={s}>{s}</option>)}
-                                                                            </select>
-                                                                        )}
-                                                                    </div>
-                                                                )
-                                                            })}
-                                                        </div>
+                                        {/* INSPECCIÓN VISUAL INTERACTIVA DEL TRABAJADOR */}
+                                        <InteractiveWorkerEppInspector
+                                            workerName={worker.name || `Trabajador ${wIdx + 1}`}
+                                            badEpps={worker.badEpps}
+                                            onToggleEpp={(eppItem) => toggleEpp(wIdx, eppItem)}
+                                            eppSizeMap={eppSizeMap}
+                                            onSelectSize={(eppItem, size) => updateSizeInCorrection(wIdx, eppItem, size)}
+                                            currentCorrection={worker.correction}
+                                        />
+
+                                        {/* ACCESO OPCIONAL A LISTADO DE BOTONES */}
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowQuickList(prev => ({ ...prev, [wIdx]: !prev[wIdx] }))}
+                                                className="w-full py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-between transition-colors border border-slate-200"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <Shield size={14} className="text-indigo-600" />
+                                                    {showQuickList[wIdx] ? 'Ocultar listado por botones' : 'Ver / Seleccionar también por lista de botones'}
+                                                </span>
+                                                <span className="text-[10px] bg-white border border-slate-300 px-2 py-0.5 rounded text-slate-600 font-semibold">
+                                                    {showQuickList[wIdx] ? '▲ Ocultar lista' : '▼ Mostrar lista'}
+                                                </span>
+                                            </button>
+
+                                            {showQuickList[wIdx] && (
+                                                <div className="mt-2 bg-slate-900 rounded-xl p-4 sm:p-5">
+                                                    <p className="text-xs text-slate-400 mb-4 font-semibold uppercase tracking-wider text-center">Toque los EPPs en <span className="text-red-400 font-bold">Mal Estado</span></p>
+                                                    <div className="space-y-5">
+                                                        {EPP_GROUPS.map(group => (
+                                                            <div key={group.name}>
+                                                                <h5 className="text-[10px] text-slate-500 font-black mb-2 uppercase">{group.name}</h5>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {group.items.map(epp => {
+                                                                        const isBad = worker.badEpps.includes(epp);
+                                                                        return (
+                                                                            <div key={epp} className="flex items-center gap-1">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => toggleEpp(wIdx, epp)}
+                                                                                    className={"px-3 py-1.5 text-xs font-bold rounded-lg border transition-all " + (isBad ? 'bg-red-500/20 text-red-400 border-red-500/50 shadow-lg shadow-red-900/20' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700')}
+                                                                                >
+                                                                                    {epp} {isBad && ' ❌'}
+                                                                                </button>
+                                                                                {isBad && eppSizeMap[epp] && (
+                                                                                    <select
+                                                                                        value={extractSizeFromCorrection(worker.correction, epp)}
+                                                                                        onChange={(e) => updateSizeInCorrection(wIdx, epp, e.target.value)}
+                                                                                        className="bg-red-500/10 text-red-400 border border-red-500/50 rounded-lg px-2 py-1.5 text-xs font-bold outline-none cursor-pointer hover:bg-red-500/20"
+                                                                                    >
+                                                                                        <option value="...">Talla</option>
+                                                                                        {eppSizeMap[epp].map(s => <option key={s} value={s}>{s}</option>)}
+                                                                                    </select>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                ))}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {worker.badEpps.length > 0 && (
@@ -662,6 +704,34 @@ ${obsAdd}` : obsAdd;
                                                         <label className="text-[10px] font-black text-orange-800/60 uppercase">Verificación de corrección</label>
                                                         <VoiceInput type="date" value={worker.verification} onChange={(val: string) => updateWorker(wIdx, 'verification', val)} inputClass="w-full border border-orange-200 p-2 text-sm rounded bg-white outline-none focus:border-orange-500" />
                                                     </div>
+                                                 <div className="sm:col-span-2">
+                                                     <label className="text-[10px] font-black text-orange-800/60 uppercase block mb-1">Foto de Evidencia de EPP Observado</label>
+                                                     {!worker.fotoEvidencia ? (
+                                                         <div className="relative border-2 border-dashed border-orange-300 rounded-lg p-2.5 bg-white hover:bg-orange-100/50 flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                                                             <Camera size={16} className="text-orange-600" />
+                                                             <span className="text-xs font-bold text-orange-800">Tomar o subir foto de evidencia</span>
+                                                             <input 
+                                                                 type="file" 
+                                                                 accept="image/*" 
+                                                                 capture="environment" 
+                                                                 onChange={(e) => handleWorkerPhoto(wIdx, e)} 
+                                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                                             />
+                                                         </div>
+                                                     ) : (
+                                                         <div className="relative inline-block mt-1">
+                                                             <img src={worker.fotoEvidencia} alt="Evidencia" className="h-28 w-40 object-cover rounded-lg border border-orange-200 shadow-sm" />
+                                                             <button 
+                                                                 type="button"
+                                                                 onClick={() => updateWorker(wIdx, 'fotoEvidencia', '')} 
+                                                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                                                                 title="Eliminar foto"
+                                                             >
+                                                                 <Trash2 size={12} />
+                                                             </button>
+                                                         </div>
+                                                     )}
+                                                 </div>
                                                 </div>
                                             </div>
                                         )}

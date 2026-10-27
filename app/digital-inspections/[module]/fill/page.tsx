@@ -47,6 +47,7 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 };
 
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
+import { EPPCaidasCustomForm } from '@/components/inspections/EPPCaidasCustomForm';
 import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
 import { VehicleCustomForm } from '@/components/inspections/VehicleCustomForm';
@@ -601,6 +602,10 @@ export default function FillDigitalInspection() {
     
     if (moduleName.toLowerCase().includes('estacion') || moduleName.toLowerCase().includes('estación') || moduleName.includes('008')) {
         return <EstacionEmergenciaCustomForm SignaturePad={SignaturePad} />;
+    }
+
+    if (moduleName.toLowerCase().includes('caida') || moduleName.toLowerCase().includes('caída') || moduleName.toLowerCase().includes('arnes') || moduleName.toLowerCase().includes('arnés') || moduleName.includes('017')) {
+        return <EPPCaidasCustomForm moduleName={moduleName} version={version} SignaturePad={SignaturePad} />;
     }
 
     if (moduleName.toLowerCase().includes('epp')) {

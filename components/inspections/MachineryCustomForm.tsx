@@ -5,14 +5,15 @@ import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail} from 'lucide-react';
+import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail, Sparkles} from 'lucide-react';
+import { InteractiveMachineryInspector } from './InteractiveMachineryInspector';
 
-const generalSections = [
-    { category: 'NEUMÁTICOS', items: ['Llantas delanteras (*)', 'Llantas posteriores (*)'] },
+const generalSections: { type?: string; category: string; items: string[] }[] = [
     { category: 'ACCESO', items: ['Escaleras', 'Pasamanos'] },
-    { category: 'CABINA OPERADOR', items: ['Asiento', 'Cinturón de seguridad (*)', 'Volante (*)', 'Palanca de accionamiento', 'Claxón', 'Luces de Cabina', 'Parabrizas', 'Plumillas', 'Espejos Retrovisiores (*)'] },
-    { category: 'SEGURIDAD', items: ['Circulina (*)', 'Alarma de retroceso (*)', 'Sistema de frenos (*)', 'Extintor', 'Conos de seguridad (en caso aplique)', 'Luces (*)'] },
-    { category: 'FUGAS DE FLUIDO', type: 'fugas', items: ['Aceite de Motor', 'Combustible', 'Trasmisión', 'Tornamesa', 'Motor de Vibración', 'Motor de Traslación', 'Diferenciales', 'Mandos finales', 'Cilindros dirección'] }
+    { category: 'CABINA OPERADOR', items: ['Asiento', 'Cinturón de seguridad (*)', 'Palanca de accionamiento', 'Claxón', 'Luces de Cabina', 'Parabrizas', 'Plumillas', 'Espejos Retrovisiores (*)', 'Volante (*)'] },
+    { category: 'SEGURIDAD', items: ['Circulina (*)', 'Alarma de retroceso (*)', 'Sistema de frenos (*)', 'Extintor', 'Conos de seguridad (en caso aplique)', 'Kit Antiderrame', 'Botiquín', 'Luces (*)', 'Cintas reflectivas de seguridad (**)'] },
+    { category: 'FUGAS DE FLUIDO', type: 'fugas', items: ['Aceite de Motor', 'Combustible', 'Trasmisión', 'Tornamesa', 'Motor de Vibración', 'Motor de Traslación', 'Diferenciales', 'Mandos finales', 'Cilindros dirección'] },
+    { category: 'NEUMÁTICOS', items: ['Llantas delanteras (*)', 'Llantas posteriores (*)'] }
 ];
 
 const specificSections: Record<string, {category: string, items: string[]}[]> = {
@@ -46,6 +47,21 @@ const specificSections: Record<string, {category: string, items: string[]}[]> = 
         { category: 'TAMBOR DE FRESADO', items: ['Separador', 'Patín protector', 'Portapicas', 'Eyector', 'Picas'] },
         { category: 'INSTALACIÓN DE ROCIO', items: ['Boquillas', 'Dispositivo de riego', 'Filtros'] },
         { category: 'CINTA TRANSPORTADORA', items: ['Rodillos de tracción', 'Cojinetes y cojines de sujeción', 'Polea de Guia', 'Rodillo interior de la cinta', 'Juntas de Gomas laterales', 'Cintas transportadoras'] }
+    ],
+    'Esparcidor de Asfalto (Pavimentadora)': [
+        { category: 'TOLVA Y ALIMENTACIÓN', items: ['Tolva de recepción', 'Alas de tolva hidráulicas', 'Cinta / Cadenas de arrastre', 'Rodillos de empuje'] },
+        { category: 'REPARTO Y REGLA EXTRACTORA', items: ['Sinfín repartidor (Augers)', 'Regla alisadora / Screed (*)', 'Cilindro de levante de regla', 'Quemadores / Calefacción de regla', 'Sensores de nivelación (palpadores)', 'Placas de desgaste de regla'] },
+        { category: 'MANDOS Y TRACCIÓN', items: ['Pupitre de mando principal', 'Mandos auxiliares laterales', 'Orugas / Neumáticos de tracción'] }
+    ],
+    'Camión Imprimador / Distribuidor de Asfalto': [
+        { category: 'TANQUE Y SISTEMA TÉRMICO', items: ['Tanque térmico de emulsión', 'Quemador diesel / calentador', 'Termómetro de emulsión', 'Nivel de tanque'] },
+        { category: 'BOMBA Y DISTRIBUCIÓN', items: ['Bomba de asfalto (*)', 'Válvulas de cuatro vías', 'Filtros de emulsión', 'Tacómetro de riego / computadora'] },
+        { category: 'BARRA Y LANZA DE RIEGO', items: ['Barra esparcidora (flauta)', 'Boquillas de aspersión (*)', 'Cilindros de levante de barra', 'Lanza manual con manguera flexible'] }
+    ],
+    'Rodillo Neumático': [
+        { category: 'TREN DE NEUMÁTICOS', items: ['Llantas delanteras (lisas)', 'Llantas posteriores (lisas)', 'Presión uniforme de neumáticos (*)', 'Faldones / Rasquetas térmicas'] },
+        { category: 'SISTEMA DE HUMECTACIÓN', items: ['Tanque de agua / aditivo', 'Bomba de aspersión de agua', 'Boquillas de riego a neumáticos', 'Esteras de coco / limpiadores'] },
+        { category: 'ESTRUCTURA Y DIRECCIÓN', items: ['Cajas de lastre / contrapeso', 'Cilindro de articulación / dirección (*)', 'Sistema de frenos neumático (*)'] }
     ]
 };
 
@@ -72,18 +88,46 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
     });
 
     const [checklist, setChecklist] = useState<Record<string, string>>({});
+    const [showChecklistDetails, setShowChecklistDetails] = useState<boolean>(false);
 
     useEffect(() => {
         const newChecklist: Record<string, string> = {};
-        generalSections.forEach(section => {
-              section.items.forEach(item => {
-                  if (section.type === 'fugas') {
-                      newChecklist[item] = 'N/A';
-                  } else {
-                      newChecklist[item] = 'OK';
-                  }
-              });
-          });
+        const activeSpecific = specificSections[meta.tipoEquipo] || [];
+
+        // Ítems estandarizados del inspector gráfico visual que inician en Conforme (OK).
+        // Las fugas de aceite y combustible inician en 'N/A' (sin fuga).
+        // El resto de componentes de la lista se inicializan en 'N/A' (No aplica) tal como solicitado.
+        const activeOkItems = [
+            'Escaleras',
+            'Pasamanos',
+            'Asiento',
+            'Cinturón de seguridad (*)',
+            'Palanca de accionamiento',
+            'Claxón',
+            'Luces de Cabina',
+            'Parabrizas',
+            'Plumillas',
+            'Espejos Retrovisiores (*)',
+            'Circulina (*)',
+            'Alarma de retroceso (*)',
+            'Sistema de frenos (*)',
+            'Extintor',
+            'Conos de seguridad (en caso aplique)',
+            'Kit Antiderrame',
+            'Botiquín',
+            'Luces (*)',
+            'Cintas reflectivas de seguridad (**)'
+        ];
+
+        [...generalSections, ...activeSpecific].forEach((section: any) => {
+            section.items.forEach((item: string) => {
+                if (activeOkItems.includes(item)) {
+                    newChecklist[item] = 'OK';
+                } else {
+                    newChecklist[item] = 'N/A';
+                }
+            });
+        });
         
         setChecklist(newChecklist);
     }, [meta.tipoEquipo]);
@@ -185,7 +229,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
         
         setObservaciones(prev => {
             let next = prev;
-            const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp('- ' + escapeRegex(item) + ' \\(.*?\\)\\n?', 'g');
             next = next.replace(regex, '');
             
@@ -223,7 +267,14 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
 
     const handleSaveAndDownload = async (isEmailing: boolean = false, customEmailData: any = null) => {
         setIsSaving(true);
+        let generatedLevantamientoLink = cachedLevantamientoLink;
         try {
+            const finalFirmas = {
+                ...firmas,
+                operadorNombre: firmas.operadorNombre || meta.operador || '',
+                capatazNombre: firmas.capatazNombre || user?.name || ''
+            };
+
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -233,7 +284,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                     meta,
                     checklist,
                     observaciones,
-                    firmas,
+                    firmas: finalFirmas,
                     fotosDefectos,
                     saveToDrive: true
                 })
@@ -241,118 +292,75 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
 
             if (res.ok) {
                 const data = await res.json();
-
-                if (data.fileBase64) {
+                const driveLink = data.driveUrl || '';
+                if (data.driveUrl) {
                     setCachedDriveUrl(data.driveUrl);
-                    const byteCharacters = atob(data.fileBase64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-                    
-                    if (isEmailing && customEmailData) {
-                        try {
-                            // Incluir enlace de Drive en el cuerpo (sin adjunto, sin peso)
-                            const driveLink = data.driveUrl || '';
-                            let bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
-                                ? customEmailData.message.replace(
-                                    '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
-                                    driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
-                                )
-                                : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
-
-                            if (generatedLevantamientoLink) {
-                                bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
-                            }
-
-                            let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
-                            
-                            if (generatedLevantamientoLink) {
-                                htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
-                            }
-
-                            const emailRes = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: customEmailData.to,
-                                    cc: customEmailData.cc,
-                                    subject: customEmailData.subject,
-                                    text: bodyWithLink,
-                                    html: htmlBody,
-                                    fromEmail: customEmailData.fromEmail,
-                                    fromName: customEmailData.fromName
-                                })
-                            });
-                            if (!emailRes.ok) {
-                            const errData = await emailRes.json().catch(() => ({}));
-                            throw new Error(errData.error || 'Error enviando correo');
-                        }
-                            alert('✅ Correo enviado correctamente.');
-                            window.location.href = '/inspections?openDigital=true';
-                        } catch (e: any) {
-                        console.error(e);
-                        alert('Hubo un error al enviar el correo, pero el reporte se generó => ' + (e.message || 'Desconocido'));
-                    }
-                    } else {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                    a.download = `INSP_Maquinaria_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                        a.remove();
-                    }
                 }
 
-                const recRes = await fetch('/api/inspections', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'create',
-                        data: {
-                            date: meta.fecha || new Date().toISOString().split('T')[0],
-                            responsible: meta.chofer || meta.operador || 'Operador',
-                            inspectionType: 'Maquinaria',
-                            area: meta.proyecto || getActiveWorkspace().toUpperCase(),
-                            zone: meta.equipo || 'Inspección Digital',
-                            status: 'Completado',
-                            observations: observaciones || 'Pre-uso de maquinaria generado.',
-                            evidencePdf: data.driveUrl || '',
-                            evidenceImgs: []
-                        }
-                    })
-                });
+                // 1. Guardar en registros de inspecciones
                 let inspectionRecordId = null;
-                if (recRes.ok) {
-                    const recData = await recRes.json();
-                    inspectionRecordId = recData.id;
-                }
+                try {
+                    const recRes = await fetch('/api/inspections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create',
+                            data: {
+                                date: meta.fecha || new Date().toISOString().split('T')[0],
+                                responsible: meta.operador || 'Operador',
+                                inspectionType: 'Maquinaria',
+                                area: meta.proyecto || getActiveWorkspace().toUpperCase(),
+                                zone: meta.equipo || 'Inspección Digital',
+                                status: 'Completado',
+                                observations: observaciones || 'Pre-uso de maquinaria generado.',
+                                evidencePdf: driveLink,
+                                evidenceImgs: []
+                            }
+                        })
+                    });
+                    if (recRes.ok) {
+                        const recData = await recRes.json();
+                        inspectionRecordId = recData.id;
+                    }
+                } catch(e) { console.error("Error guardando inspección:", e); }
 
+                // 2. Generar Levantamiento de Observaciones ANTES de enviar el correo
                 const badItemsList = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
-                let generatedLevantamientoLink = cachedLevantamientoLink;
+                const hasObservations = badItemsList.length > 0 || (observaciones && observaciones.trim().length > 0);
 
-                if (badItemsList.length > 0 && !generatedLevantamientoLink) {
+                if (hasObservations && !generatedLevantamientoLink) {
                     try {
+                        const hallazgosList = badItemsList.length > 0
+                            ? badItemsList.map(([item, status], i) => ({
+                                index: i,
+                                descripcion: `- ${item} (${status})`.trim(),
+                                riesgo: 'Medio',
+                                categoria: 'Condición Subestándar',
+                                responsable: finalFirmas.capatazNombre || user?.name || "Capataz",
+                                responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
+                            }))
+                            : [{
+                                index: 0,
+                                descripcion: observaciones || "Observación de Maquinaria",
+                                riesgo: 'Medio',
+                                categoria: 'Condición Subestándar',
+                                responsable: finalFirmas.capatazNombre || user?.name || "Capataz",
+                                responsableEmail: user?.email || "responsable@casacontratistas.com",
+                                fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                            }];
+
                         const lvRes = await fetch('/api/levantamiento/create', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 moduleName: 'Maquinaria',
                                 template: checklist,
-                                answers: { ...meta, observaciones, firmas, fotosDefectos },
+                                answers: { ...meta, observaciones, firmas: finalFirmas, fotosDefectos },
                                 inspectionRecordId,
-                                hallazgos: [{
-                                    index: 0,
-                                    descripcion: observaciones || "Observaciones de Maquinaria",
-                                    riesgo: 'Medio',
-                                    categoria: 'Condición Subestándar',
-                                    responsable: firmas.capatazNombre || user?.name || "Capataz",
-                                    responsableEmail: user?.email || "responsable@casacontratistas.com",
-                                    fecha: meta.fecha || new Date().toISOString().split('T')[0],
-                                    fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
-                                }]
+                                hallazgos: hallazgosList
                             })
                         });
                         if (lvRes.ok) {
@@ -365,8 +373,65 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                     } catch(err) { console.error("Error generating levantamiento:", err); }
                 }
 
-                if (!isEmailing) {
-                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (SIN crear duplicados).\n3. Si quieres salir, haz clic en "Cancelar".')) {
+                // 3. Si se está enviando por correo: enviar ahora con driveLink y generatedLevantamientoLink
+                if (isEmailing && customEmailData) {
+                    try {
+                        let bodyWithLink = customEmailData.message.includes('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]')
+                            ? customEmailData.message.replace(
+                                '[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]',
+                                driveLink ? '📎 Enlace al reporte en Drive:\n' + driveLink : ''
+                            )
+                            : (driveLink ? customEmailData.message + '\n\n📎 Enlace al reporte en Drive:\n' + driveLink : customEmailData.message);
+
+                        if (generatedLevantamientoLink) {
+                            bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + generatedLevantamientoLink;
+                        }
+
+                        let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
+                        
+                        if (generatedLevantamientoLink) {
+                            htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + generatedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                        }
+
+                        const emailRes = await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: customEmailData.to,
+                                cc: customEmailData.cc,
+                                subject: customEmailData.subject,
+                                text: bodyWithLink,
+                                html: htmlBody,
+                                fromEmail: customEmailData.fromEmail,
+                                fromName: customEmailData.fromName
+                            })
+                        });
+                        if (!emailRes.ok) {
+                            const errData = await emailRes.json().catch(() => ({}));
+                            throw new Error(errData.error || 'Error enviando correo');
+                        }
+                        alert('✅ Correo enviado correctamente con el enlace de levantamiento de observaciones.');
+                        window.location.href = '/inspections?openDigital=true';
+                    } catch (e: any) {
+                        console.error(e);
+                        alert('Hubo un error al enviar el correo => ' + (e.message || 'Desconocido'));
+                    }
+                } else if (data.fileBase64) {
+                    // Descargar archivo Excel localmente
+                    const byteCharacters = atob(data.fileBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `INSP_Maquinaria_${meta.fecha || new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                    if (window.confirm('¡Descarga y guardado exitoso!\n\n1. Por favor abre el Excel que se acaba de descargar y revísalo.\n2. Si todo está correcto, haz clic en "Aceptar" para enviarlo por correo ahora mismo (con su enlace de levantamiento).\n3. Si quieres salir, haz clic en "Cancelar".')) {
                         setShowEmailModal(true);
                     } else {
                         window.location.href = '/inspections?openDigital=true';
@@ -464,9 +529,10 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
         );
     };
 
-    const generalNonFugas = generalSections.filter(s => s.type !== 'fugas');
-    const fugas = generalSections.filter(s => s.type === 'fugas');
-    const sectionsToRender = [...generalNonFugas, ...fugas];
+    const generalNonFugas = generalSections.filter((s: any) => s.type !== 'fugas');
+    const fugas = generalSections.filter((s: any) => s.type === 'fugas');
+    const activeSpecific = specificSections[meta.tipoEquipo] || [];
+    const sectionsToRender = [...generalNonFugas, ...activeSpecific, ...fugas];
 
     const badItems = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
 
@@ -509,71 +575,120 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                     </div>
                 </div>
 
-                {/* LEGEND */}
-                <div className="bg-slate-100 p-3 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-[10px] sm:text-xs text-slate-600 border border-slate-200">
-                    <div className="flex items-center gap-1"><span className="font-black bg-green-500 text-white px-1 rounded">OK</span> Conforme</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-yellow-500 text-white px-1 rounded">R</span> Regular, pero operar, programar cambio</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-orange-500 text-white px-1 rounded">M</span> En mal estado. Reparar a la brevedad</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-red-500 text-white px-1 rounded">F</span> Faltante</div>
-                    <div className="flex items-center gap-1"><span className="font-black bg-slate-400 text-white px-1 rounded">N/A</span> No aplica</div>
+                {/* 1. INSPECTOR VISUAL INTERACTIVO CON GIRO 3D (PROMINENTE) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 sm:p-5 flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b pb-2">
+                        <div className="flex items-center gap-2">
+                            <Sparkles size={16} className="text-yellow-500" />
+                            <h3 className="font-bold text-slate-800 text-sm uppercase">Inspector Visual de Maquinaria (Giro 3D y Hotspots)</h3>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                            Equipo: {meta.tipoEquipo}
+                        </span>
+                    </div>
+
+                    <InteractiveMachineryInspector
+                        machineryCode={meta.equipo || 'Maquinaria'}
+                        machineryType={meta.tipoEquipo}
+                        observations={observaciones}
+                        onUpdateObservations={(newObs) => setObservaciones(newObs)}
+                        onUpdateChecklist={(item, status) => setChecklist(prev => ({ ...prev, [item]: status }))}
+                        onSwitchType={(newType) => setMeta(prev => ({ ...prev, tipoEquipo: newType }))}
+                    />
                 </div>
 
-                {/* CHECKLIST */}
-                <div className="space-y-6">
-                    <h2 className="text-xl font-black text-slate-800 text-center uppercase tracking-wider">Lista de Chequeo</h2>
-                    {sectionsToRender.map((section, sIdx) => (
-                        <div key={sIdx} className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
-                            <div className="bg-slate-800 p-3">
-                                <h3 className="font-bold text-yellow-400 text-sm uppercase">{section.category}</h3>
+                {/* 2. OBSERVACIONES DEL CHEQUEO (AUTO-DESCRIPCIÓN DE PUNTOS MARCADOS + DICTADO) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones del Chequeo</label>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setObservaciones('')}
+                                className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"
+                                title="Borrar observaciones"
+                            >
+                                <X size={12} /> Borrar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => toggleDictation('observaciones')}
+                                className={"p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold " + (isRecordingMeta === 'observaciones' ? "bg-red-100 text-red-500 animate-pulse shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-500")}
+                            >
+                                <Mic size={12} /> {isRecordingMeta === 'observaciones' ? 'Escuchando...' : 'Dictar'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea
+                        rows={4}
+                        value={observaciones}
+                        onChange={e => setObservaciones(e.target.value)}
+                        placeholder="Los defectos marcados en la máquina se redactarán automáticamente aquí. También puedes escribir o dictar observaciones adicionales..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:border-yellow-500 outline-none"
+                    />
+                </div>
+
+                {/* 3. LISTA DE CHEQUEO MINIMIZADA POR DEFECTO (EXPANDIBLE) */}
+                <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-slate-800 text-sm uppercase">Lista de Chequeo Detallada (F-OP-015)</h3>
+                            {badItems.length > 0 && (
+                                <span className="text-[10px] font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                                    {badItems.length} Marcados
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowChecklistDetails(!showChecklistDetails)}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                        >
+                            {showChecklistDetails ? '▲ Ocultar Tablas Detalladas' : '▼ 👁️ Ver Lista de Chequeo Completa'}
+                        </button>
+                    </div>
+
+                    {showChecklistDetails ? (
+                        <div className="space-y-6 pt-2 border-t border-slate-100">
+                            {/* LEGEND */}
+                            <div className="bg-slate-100 p-3 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-[10px] sm:text-xs text-slate-600 border border-slate-200">
+                                <div className="flex items-center gap-1"><span className="font-black bg-green-500 text-white px-1 rounded">OK</span> Conforme</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-yellow-500 text-white px-1 rounded">R</span> Regular, pero operar, programar cambio</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-orange-500 text-white px-1 rounded">M</span> En mal estado. Reparar a la brevedad</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-red-500 text-white px-1 rounded">F</span> Faltante</div>
+                                <div className="flex items-center gap-1"><span className="font-black bg-slate-400 text-white px-1 rounded">N/A</span> No aplica</div>
                             </div>
-                            <div className="divide-y divide-slate-100">
-                                {section.items.map((item) => (
-                                    <div key={item} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
-                                        <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
-                                            {item}
+
+                            <div className="space-y-4">
+                                {sectionsToRender.map((section, sIdx) => (
+                                    <div key={sIdx} className="bg-white border border-slate-200 shadow-xs rounded-xl overflow-hidden">
+                                        <div className="bg-slate-800 p-2.5 sm:p-3">
+                                            <h3 className="font-bold text-yellow-400 text-xs sm:text-sm uppercase">{section.category}</h3>
                                         </div>
-                                        <div>
-                                            {(section as any).type === 'fugas' 
-                                                ? renderRadioGroup(item, ['N/A', 'RESUM', 'FUGA'])
-                                                : renderRadioGroup(item, ['OK', 'R', 'M', 'F', 'N/A'])}
+                                        <div className="divide-y divide-slate-100">
+                                            {section.items.map((item) => (
+                                                <div key={item} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                                                    <div className="text-sm font-semibold text-slate-700 flex-1 pr-4">
+                                                        {item}
+                                                    </div>
+                                                    <div>
+                                                        {(section as any).type === 'fugas' 
+                                                            ? renderRadioGroup(item, ['N/A', 'RESUM', 'FUGA'])
+                                                            : renderRadioGroup(item, ['OK', 'R', 'M', 'F', 'N/A'])}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    ))}
-                    
-                    <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <label className="text-[10px] font-black text-slate-400 uppercase">Observaciones del Chequeo</label>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setObservaciones('')}
-                                    className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"
-                                    title="Borrar observaciones"
-                                >
-                                    <X size={12} /> Borrar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => toggleDictation('observaciones')}
-                                    className={"p-1.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-bold " + (isRecordingMeta === 'observaciones' ? "bg-red-100 text-red-500 animate-pulse shadow-sm" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-500")}
-                                >
-                                    <Mic size={12} /> {isRecordingMeta === 'observaciones' ? 'Escuchando...' : 'Dictar'}
-                                </button>
-                            </div>
-                        </div>
-
-                        
-
-                        <textarea 
-                            value={observaciones} 
-                            onChange={e => setObservaciones(e.target.value)} 
-                            className={"w-full border p-3 text-sm rounded-lg outline-none min-h-[80px] " + (isRecordingMeta === 'observaciones' ? "border-red-400 bg-red-50/30" : "border-slate-200 focus:border-yellow-500")} 
-                            placeholder="Escriba o dicte aquí sus observaciones extra de la maquinaria..."
-                        />
-                    </div>
+                    ) : (
+                        <p className="text-xs text-slate-500 italic">
+                            Los ítems de la lista se automarcan al tocar los puntos en la ilustración gráfica superior. Despliega esta sección si necesitas cambiar manualmente algún ítem a "R" (Regular) o "F" (Faltante).
+                        </p>
+                    )}
                 </div>
 
                 {/* FIRMAS (Debajo de observaciones) */}
@@ -582,14 +697,14 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                         {renderMicInput("Nombre del Operador de Equipo", "operadorNombre", firmas.operadorNombre, true, "Escribir o dictar nombre...")}
                         <div className="mt-4 flex-1 flex flex-col">
                             <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Operador</label>
-                            <SignaturePad onSave={(val: string) => setFirmas({...firmas, operadorFirma: val})} />
+                            <SignaturePad onSave={(val: string) => setFirmas(prev => ({ ...prev, operadorFirma: val }))} />
                         </div>
                     </div>
                     <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-4 flex flex-col">
                         {renderMicInput("Nombre del Capataz / SSMA", "capatazNombre", firmas.capatazNombre, true, "Escribir o dictar nombre...")}
                         <div className="mt-4 flex-1 flex flex-col">
                             <label className="text-[10px] font-black text-slate-400 uppercase block mb-2 text-center">Firma del Capataz / SSMA</label>
-                            <SignaturePad onSave={(val: string) => setFirmas({...firmas, capatazFirma: val})} />
+                            <SignaturePad onSave={(val: string) => setFirmas(prev => ({ ...prev, capatazFirma: val }))} />
                         </div>
                     </div>
                 </div>
@@ -652,7 +767,7 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                   </div>
                   
                   <EmailReportModal
-            initialObservations={typeof observaciones !== "undefined" ? observaciones : typeof observacionesGenerales !== "undefined" ? observacionesGenerales : ""} 
+                      initialObservations={observaciones || ""} 
                       isOpen={showEmailModal} 
                       onClose={() => setShowEmailModal(false)}
                       isSending={isSaving}
@@ -664,14 +779,68 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                                       ? data.message.replace('[📎 El enlace al reporte en Drive se generará y adjuntará automáticamente aquí]', '📎 Enlace al reporte en Drive:\n' + cachedDriveUrl)
                                       : data.message + '\n\n📎 Enlace al reporte en Drive:\n' + cachedDriveUrl;
                                   
-                                  if (cachedLevantamientoLink) {
-                                      bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + cachedLevantamientoLink;
+                                  let levantamientoLink = cachedLevantamientoLink;
+                                  if (!levantamientoLink) {
+                                      const badItemsList = Object.entries(checklist).filter(([_, val]) => ['R', 'M', 'F', 'RESUM', 'FUGA'].includes(val));
+                                      const hasObs = badItemsList.length > 0 || (observaciones && observaciones.trim().length > 0);
+                                      if (hasObs) {
+                                          try {
+                                              const finalFirmas = {
+                                                  ...firmas,
+                                                  operadorNombre: firmas.operadorNombre || meta.operador || '',
+                                                  capatazNombre: firmas.capatazNombre || user?.name || ''
+                                              };
+                                              const hallazgosList = badItemsList.length > 0
+                                                  ? badItemsList.map(([item, status], i) => ({
+                                                      index: i,
+                                                      descripcion: `- ${item} (${status})`.trim(),
+                                                      riesgo: 'Medio',
+                                                      categoria: 'Condición Subestándar',
+                                                      responsable: finalFirmas.capatazNombre || user?.name || 'Capataz',
+                                                      responsableEmail: user?.email || 'responsable@casacontratistas.com',
+                                                      fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                                      fotosDefectos: fotosDefectos[item] ? { [item]: fotosDefectos[item] } : {}
+                                                  }))
+                                                  : [{
+                                                      index: 0,
+                                                      descripcion: observaciones || 'Observación de Maquinaria',
+                                                      riesgo: 'Medio',
+                                                      categoria: 'Condición Subestándar',
+                                                      responsable: finalFirmas.capatazNombre || user?.name || 'Capataz',
+                                                      responsableEmail: user?.email || 'responsable@casacontratistas.com',
+                                                      fecha: meta.fecha || new Date().toISOString().split('T')[0],
+                                                      fotosDefectos: Object.keys(fotosDefectos).length > 0 ? fotosDefectos : {}
+                                                  }];
+
+                                              const lvRes = await fetch('/api/levantamiento/create', {
+                                                  method: 'POST',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({
+                                                      moduleName: 'Maquinaria',
+                                                      template: checklist,
+                                                      answers: { ...meta, observaciones, firmas: finalFirmas, fotosDefectos },
+                                                      hallazgos: hallazgosList
+                                                  })
+                                              });
+                                              if (lvRes.ok) {
+                                                  const lvData = await lvRes.json();
+                                                  if (lvData.items && lvData.items.length > 0) {
+                                                      levantamientoLink = window.location.origin + '/levantamiento/' + lvData.items[0].token;
+                                                      setCachedLevantamientoLink(levantamientoLink);
+                                                  }
+                                              }
+                                          } catch(e) {}
+                                      }
+                                  }
+
+                                  if (levantamientoLink) {
+                                      bodyWithLink += '\n\n✅ Enlace de Levantamiento de Observaciones:\n' + levantamientoLink;
                                   }
 
                                   let htmlBody = bodyWithLink.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1a73e8;font-weight:bold;">📄 Ver / Descargar Reporte</a>');
                                   
-                                  if (cachedLevantamientoLink) {
-                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + cachedLevantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
+                                  if (levantamientoLink) {
+                                      htmlBody += '<br><br><p style="text-align:center;background:#f0fdf4;padding:16px;border-radius:12px;border:1px solid #bbf7d0;"><a href="' + levantamientoLink + '" style="background:#059669;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;font-size:16px;">✅ Ingresar para Levantar Observaciones</a></p>';
                                   }
 
                                   const emailRes = await fetch('/api/send-email', {
