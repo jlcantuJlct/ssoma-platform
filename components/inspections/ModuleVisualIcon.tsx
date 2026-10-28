@@ -78,36 +78,61 @@ export const ModuleVisualIcon: React.FC<ModuleVisualIconProps> = ({
         </div>
     );
 
-    // 1. VEHÍCULOS Y EQUIPOS (Cybertruck / High-Tech Utility Pickup)
+    // 1. VEHÍCULOS Y EQUIPOS (Sleek Industrial 4x4 Mining Utility Pickup)
     if (n.includes('vehiculo') || n.includes('camion') || n.includes('volquete') || n.includes('camioneta') || icon === 'truck') {
         return (
             <TechBadgeWrapper borderColor="border-sky-500/40" glowColor="rgba(14,165,233,0.35)" accentColor="#38BDF8">
                 <svg viewBox="0 0 72 72" className="w-full h-full drop-shadow-[0_0_12px_rgba(56,189,248,0.5)]" fill="none">
-                    {/* Rejilla de velocidad / telemetría */}
-                    <path d="M6 54L66 54" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.4" />
-                    {/* Carrocería angular Cyber-Pickup */}
-                    <path d="M8 40L22 24H44L60 36L64 42V48H8V40Z" fill="url(#cyberTruckGrad)" stroke="#38BDF8" strokeWidth="1.5" strokeLinejoin="round" />
-                    {/* Cabina con parabrisas polarizado HUD */}
-                    <path d="M23 26H42L54 36H23V26Z" fill="#0284C7" fillOpacity="0.6" stroke="#BAE6FD" strokeWidth="1" />
-                    <line x1="33" y1="26" x2="33" y2="36" stroke="#38BDF8" strokeWidth="1" />
-                    {/* Barra de luz láser delantera (Laser Lightbar) */}
-                    <line x1="58" y1="38" x2="64" y2="42" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" />
-                    <circle cx="62" cy="41" r="2" fill="#E0F2FE" />
-                    {/* Luz trasera de advertencia */}
-                    <rect x="7" y="40" width="2" height="6" rx="1" fill="#EF4444" />
-                    {/* Ruedas holográficas con centro de energía */}
-                    <circle cx="20" cy="48" r="8" fill="#0F172A" stroke="#38BDF8" strokeWidth="2" />
-                    <circle cx="20" cy="48" r="4" fill="#0284C7" />
-                    <circle cx="20" cy="48" r="1.5" fill="#E0F2FE" />
-                    <circle cx="50" cy="48" r="8" fill="#0F172A" stroke="#38BDF8" strokeWidth="2" />
-                    <circle cx="50" cy="48" r="4" fill="#0284C7" />
-                    <circle cx="50" cy="48" r="1.5" fill="#E0F2FE" />
-                    {/* Acelerador de suspensión */}
-                    <path d="M12 48H10M28 48H42M58 48H64" stroke="#64748B" strokeWidth="2" strokeLinecap="round" />
+                    {/* Línea de horizonte / suelo con telemetría */}
+                    <path d="M6 56L66 56" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.4" />
+                    
+                    {/* Pértiga de seguridad con banderín y luz LED destellante */}
+                    <line x1="42" y1="28" x2="42" y2="12" stroke="#0F172A" strokeWidth="1.2" />
+                    <polygon points="42,13 50,16 42,19" fill="#EA580C" />
+                    <circle cx="42" cy="12" r="1.8" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="0.8" />
+
+                    {/* Barra antivuelco (Rollbar) negra en tolva */}
+                    <path d="M41 38V27H47L52 38" stroke="#1E293B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    {/* Circulina ámbar en cabina */}
+                    <rect x="30" y="23" width="7" height="3" rx="1.2" fill="#F59E0B" stroke="#B45309" strokeWidth="0.8" />
+
+                    {/* Carrocería de Camioneta Pickup 4x4 */}
+                    <path 
+                        d="M8 44L10 40C10 38 12 36 16 36L24 35L31 26C33 24 35 24 40 24H44V36L62 37C64 37 65 39 65 41L65 49H8V44Z" 
+                        fill="url(#realTruckGrad)" 
+                        stroke="#38BDF8" 
+                        strokeWidth="1.5" 
+                        strokeLinejoin="round" 
+                    />
+
+                    {/* Ventanas doble cabina polarizadas */}
+                    <path d="M26 35L32 27H37V35H26Z" fill="#0284C7" fillOpacity="0.85" stroke="#BAE6FD" strokeWidth="0.8" />
+                    <path d="M39 27H43V35H39V27Z" fill="#0284C7" fillOpacity="0.85" stroke="#BAE6FD" strokeWidth="0.8" />
+
+                    {/* Cinta reflectiva 3M roja/blanca lateral */}
+                    <line x1="18" y1="43" x2="63" y2="43" stroke="#EF4444" strokeWidth="1.5" strokeDasharray="3 2" />
+
+                    {/* Faro delantero LED proyector */}
+                    <path d="M8 40L14 39V43L8 44Z" fill="#FEF08A" stroke="#38BDF8" strokeWidth="0.8" />
+                    {/* Luz trasera roja */}
+                    <rect x="63" y="39" width="2" height="6" rx="1" fill="#EF4444" />
+
+                    {/* Ruedas todoterreno 4x4 */}
+                    <g transform="translate(20, 50)">
+                        <circle cx="0" cy="0" r="7.5" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.8" />
+                        <circle cx="0" cy="0" r="4.2" fill="#334155" stroke="#64748B" strokeWidth="1" />
+                        <circle cx="0" cy="0" r="1.5" fill="#38BDF8" />
+                    </g>
+                    <g transform="translate(53, 50)">
+                        <circle cx="0" cy="0" r="7.5" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.8" />
+                        <circle cx="0" cy="0" r="4.2" fill="#334155" stroke="#64748B" strokeWidth="1" />
+                        <circle cx="0" cy="0" r="1.5" fill="#38BDF8" />
+                    </g>
+
                     <defs>
-                        <linearGradient id="cyberTruckGrad" x1="8" y1="24" x2="64" y2="48" gradientUnits="userSpaceOnUse">
+                        <linearGradient id="realTruckGrad" x1="8" y1="24" x2="65" y2="49" gradientUnits="userSpaceOnUse">
                             <stop stopColor="#1E293B" />
-                            <stop offset="0.5" stopColor="#0F172A" />
+                            <stop offset="0.4" stopColor="#0F172A" />
                             <stop offset="1" stopColor="#0369A1" />
                         </linearGradient>
                     </defs>
@@ -212,33 +237,61 @@ export const ModuleVisualIcon: React.FC<ModuleVisualIconProps> = ({
         );
     }
 
-    // 5. INSPECCIÓN DE MAQUINARIA (Heavy Cyber Mech / Autonomous Excavator)
+    // 5. INSPECCIÓN DE MAQUINARIA (Realistic Heavy Hydraulic Excavator / Línea Amarilla)
     if (n.includes('maquinaria') || n.includes('linea amarilla') || n.includes('pesada')) {
         return (
             <TechBadgeWrapper borderColor="border-amber-500/50" glowColor="rgba(245,158,11,0.4)" accentColor="#F59E0B">
                 <svg viewBox="0 0 72 72" className="w-full h-full drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]" fill="none">
-                    {/* Oruga de oruga blindada de titanio */}
-                    <rect x="12" y="49" width="38" height="10" rx="5" fill="#0F172A" stroke="#F59E0B" strokeWidth="1.8" />
-                    <circle cx="17" cy="54" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="1" />
-                    <circle cx="25" cy="54" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="1" />
-                    <circle cx="33" cy="54" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="1" />
-                    <circle cx="41" cy="54" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="1" />
-                    {/* Chasis rotatorio inteligente */}
-                    <rect x="14" y="39" width="32" height="10" rx="3" fill="url(#mechYellowGrad)" stroke="#D97706" strokeWidth="1.2" />
-                    {/* Cabina presurizada con cristales hexagonales */}
-                    <path d="M26 24H40V39H26V24Z" fill="#1E293B" stroke="#F59E0B" strokeWidth="1.5" />
-                    <path d="M28 26H38V36H28V26Z" fill="#38BDF8" fillOpacity="0.75" />
-                    {/* Brazo robótico electrohidráulico */}
-                    <path d="M39 36L52 18L61 29" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M39 36L52 18L61 29" stroke="#FEF08A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="52" cy="18" r="3" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.5" />
-                    <circle cx="61" cy="29" r="3" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.5" />
-                    {/* Cucharón reforzado de excavación */}
-                    <path d="M61 29L68 35C69 39 65 44 60 43L57 37" fill="#475569" stroke="#F59E0B" strokeWidth="1.5" strokeLinejoin="round" />
+                    {/* Línea de suelo con textura técnica */}
+                    <path d="M6 57L66 57" stroke="#F59E0B" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.35" />
+
+                    {/* Tren de rodaje de orugas de acero */}
+                    <rect x="10" y="49" width="40" height="9" rx="4.5" fill="#0F172A" stroke="#F59E0B" strokeWidth="1.6" />
+                    {/* Ruedas guía, rodillos inferiores y rueda motriz */}
+                    <circle cx="15" cy="53.5" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="0.8" />
+                    <circle cx="23" cy="53.5" r="2.4" fill="#334155" stroke="#94A3B8" strokeWidth="0.6" />
+                    <circle cx="30" cy="53.5" r="2.4" fill="#334155" stroke="#94A3B8" strokeWidth="0.6" />
+                    <circle cx="37" cy="53.5" r="2.4" fill="#334155" stroke="#94A3B8" strokeWidth="0.6" />
+                    <circle cx="45" cy="53.5" r="3" fill="#334155" stroke="#F59E0B" strokeWidth="0.8" />
+
+                    {/* Tornamesa / corona de giro */}
+                    <rect x="22" y="46.5" width="16" height="3" fill="#334155" />
+
+                    {/* Superestructura giratoria de excavadora */}
+                    <path d="M12 47H44C46 47 47 45 47 43V38C47 36 45 35 43 35H15C13 35 12 36 12 38V47Z" fill="url(#mechYellowGrad)" stroke="#B45309" strokeWidth="1.2" />
+                    {/* Contrapeso trasero negro con reflectivo */}
+                    <path d="M12 36H18V47H12C11 47 10 45 10 43V40C10 38 11 36 12 36Z" fill="#1E293B" stroke="#0F172A" strokeWidth="1" />
+                    <rect x="11" y="41" width="6" height="2" fill="#EF4444" />
+
+                    {/* Cabina ROPS con cristal panorámico */}
+                    <path d="M26 23H38C39 23 40 24 40 25V35H24V25C24 24 25 23 26 23Z" fill="#1E293B" stroke="#F59E0B" strokeWidth="1.2" />
+                    <path d="M26 25H38V34H26V25Z" fill="#0284C7" fillOpacity="0.8" stroke="#38BDF8" strokeWidth="0.8" />
+                    {/* Foco de trabajo en cabina */}
+                    <rect x="36" y="21" width="3" height="2" rx="0.5" fill="#FEF08A" stroke="#CA8A04" strokeWidth="0.5" />
+
+                    {/* Pluma curva (Boom) de excavación */}
+                    <path d="M38 38C42 32 46 22 53 19" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" />
+                    <path d="M38 38C42 32 46 22 53 19" stroke="#FEF08A" strokeWidth="1.2" strokeLinecap="round" />
+                    {/* Cilindro hidráulico de levante */}
+                    <line x1="36" y1="42" x2="45" y2="28" stroke="#0F172A" strokeWidth="1.8" />
+                    <line x1="40" y1="35" x2="45" y2="28" stroke="#CBD5E1" strokeWidth="1.2" />
+
+                    {/* Brazo balancín (Arm / Stick) */}
+                    <path d="M53 19L62 30" stroke="#F59E0B" strokeWidth="3.6" strokeLinecap="round" />
+                    {/* Bulón de articulación */}
+                    <circle cx="53" cy="19" r="2.2" fill="#0F172A" stroke="#FEF08A" strokeWidth="1" />
+
+                    {/* Cucharón de excavación con dientes */}
+                    <path d="M62 30L69 36C70 40 66 45 61 44L58 38Z" fill="#475569" stroke="#1E293B" strokeWidth="1.2" strokeLinejoin="round" />
+                    <line x1="68" y1="42" x2="70" y2="44" stroke="#F59E0B" strokeWidth="1.2" />
+                    <line x1="65" y1="43.5" x2="66.5" y2="45.5" stroke="#F59E0B" strokeWidth="1.2" />
+                    <line x1="62" y1="44.5" x2="63" y2="46.5" stroke="#F59E0B" strokeWidth="1.2" />
+
                     <defs>
-                        <linearGradient id="mechYellowGrad" x1="14" y1="39" x2="46" y2="49" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#F59E0B" />
-                            <stop offset="1" stopColor="#B45309" />
+                        <linearGradient id="mechYellowGrad" x1="12" y1="35" x2="47" y2="47" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#FBBF24" />
+                            <stop offset="0.5" stopColor="#F59E0B" />
+                            <stop offset="1" stopColor="#D97706" />
                         </linearGradient>
                     </defs>
                 </svg>

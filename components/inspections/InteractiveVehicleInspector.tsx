@@ -1721,9 +1721,9 @@ const HotspotPoint = ({
 
     // Dimensiones según el tamaño seleccionado
     const rClick = isCompact ? 16 : 22;
-    const rOuter = isCompact ? 8.5 : 14;
-    const rMain = isCompact ? 5.2 : 10;
-    const rInner = isCompact ? 1.8 : 3.5;
+    const rOuter = isCompact ? (isSelected ? 8.5 : 7.0) : (isSelected ? 13 : 11);
+    const rMain = isCompact ? 4.2 : 8.5;
+    const rInner = isCompact ? 1.4 : 3.0;
 
     // Calcular posición óptima del tooltip para que nunca se salga del marco 360x230
     const isNearTop = part.hotspot.y < 26;
@@ -1756,7 +1756,7 @@ const HotspotPoint = ({
                     fill="none" 
                     stroke="#ef4444" 
                     strokeWidth={isCompact ? 1.8 : 2.5} 
-                    strokeOpacity="0.8"
+                    strokeOpacity="0.85"
                 />
             ) : isHovered ? (
                 <circle 
@@ -1766,7 +1766,7 @@ const HotspotPoint = ({
                     fill="none" 
                     stroke="#22c55e" 
                     strokeWidth={isCompact ? 1.8 : 2.5} 
-                    strokeOpacity="0.8"
+                    strokeOpacity="0.85"
                 />
             ) : (
                 <circle 
@@ -1775,8 +1775,8 @@ const HotspotPoint = ({
                     r={rOuter} 
                     fill="none" 
                     stroke="#eab308" 
-                    strokeWidth={isCompact ? 1 : 1.5} 
-                    strokeOpacity="0.25"
+                    strokeWidth={isCompact ? 0.9 : 1.3} 
+                    strokeOpacity="0.3"
                 />
             )}
 
@@ -1787,7 +1787,7 @@ const HotspotPoint = ({
                 r={rMain} 
                 fill={isSelected ? '#dc2626' : (isHovered ? '#16a34a' : '#ffffff')} 
                 stroke={isSelected ? '#b91c1c' : (isHovered ? '#15803d' : '#ca8a04')} 
-                strokeWidth={isCompact ? 1.5 : 2} 
+                strokeWidth={isCompact ? 1.3 : 2} 
                 className="filter drop-shadow-xs transition-colors duration-150"
             />
 
@@ -1834,7 +1834,7 @@ const HotspotPoint = ({
 };
 
 // ==========================================
-// 1. SVG VISTA FRONTAL (DELANTERA)
+// 1. SVG VISTA FRONTAL (DELANTERA DETALLADA)
 // ==========================================
 const FrontalVehicleSVG = ({
     isCamioneta,
@@ -1861,12 +1861,25 @@ const FrontalVehicleSVG = ({
             <defs>
                 <linearGradient id="frontCabPaint" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#f8fafc" />
-                    <stop offset="50%" stopColor="#e2e8f0" />
+                    <stop offset="30%" stopColor="#e2e8f0" />
+                    <stop offset="80%" stopColor="#cbd5e1" />
                     <stop offset="100%" stopColor="#94a3b8" />
+                </linearGradient>
+
+                <linearGradient id="heavyCabFront" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#fbbf24" />
+                    <stop offset="40%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#d97706" />
                 </linearGradient>
 
                 <linearGradient id="frontGrille" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#0f172a" />
+                    <stop offset="100%" stopColor="#1e293b" />
+                </linearGradient>
+
+                <linearGradient id="windshieldFront" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#0f172a" />
+                    <stop offset="25%" stopColor="#1e293b" />
                     <stop offset="100%" stopColor="#334155" />
                 </linearGradient>
 
@@ -1883,88 +1896,213 @@ const FrontalVehicleSVG = ({
             </defs>
 
             {/* Sombra de la unidad en suelo */}
-            <ellipse cx="180" cy="210" rx="150" ry="10" fill="#0f172a" opacity="0.2" />
+            <ellipse cx="180" cy="210" rx="150" ry="10" fill="#0f172a" opacity="0.22" />
 
             {/* Mancha de fuga activa bajo el motor frontal */}
             {hasLeak && (
                 <g>
                     <ellipse cx="180" cy="210" rx="42" ry="7" fill="url(#oilLeakFront)" />
                     <circle cx="180" cy="198" r="2.5" fill="#020617" />
-                    <text x="180" y="222" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA FRONTAL ACTIVA</text>
+                    <text x="180" y="224" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA FRONTAL ACTIVA</text>
                 </g>
             )}
 
             {/* Ruedas delanteras vistas de frente */}
             <g transform="translate(62, 182)">
-                <rect x="-14" y="-22" width="28" height="44" rx="6" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-                <line x1="-14" y1="-8" x2="14" y2="-8" stroke="#334155" strokeWidth="1" />
-                <line x1="-14" y1="8" x2="14" y2="8" stroke="#334155" strokeWidth="1" />
+                <rect x="-15" y="-22" width="30" height="44" rx="7" fill="#1e293b" stroke="#0f172a" strokeWidth="2.2" />
+                <line x1="-15" y1="-10" x2="15" y2="-10" stroke="#334155" strokeWidth="1.2" />
+                <line x1="-15" y1="0" x2="15" y2="0" stroke="#334155" strokeWidth="1.2" />
+                <line x1="-15" y1="10" x2="15" y2="10" stroke="#334155" strokeWidth="1.2" />
             </g>
             <g transform="translate(298, 182)">
-                <rect x="-14" y="-22" width="28" height="44" rx="6" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-                <line x1="-14" y1="-8" x2="14" y2="-8" stroke="#334155" strokeWidth="1" />
-                <line x1="-14" y1="8" x2="14" y2="8" stroke="#334155" strokeWidth="1" />
+                <rect x="-15" y="-22" width="30" height="44" rx="7" fill="#1e293b" stroke="#0f172a" strokeWidth="2.2" />
+                <line x1="-15" y1="-10" x2="15" y2="-10" stroke="#334155" strokeWidth="1.2" />
+                <line x1="-15" y1="0" x2="15" y2="0" stroke="#334155" strokeWidth="1.2" />
+                <line x1="-15" y1="10" x2="15" y2="10" stroke="#334155" strokeWidth="1.2" />
             </g>
 
-            {/* Cuerpo de cabina frontal */}
-            <path 
-                d="M 68 185 L 68 115 C 68 85 90 65 125 65 L 235 65 C 270 65 292 85 292 115 L 292 185 Z" 
-                fill={isCamioneta ? "url(#frontCabPaint)" : "#f59e0b"} 
-                stroke={isCamioneta ? "#64748b" : "#b45309"} 
-                strokeWidth="2.5" 
-            />
+            {isCamioneta ? (
+                /* --- CAMIONETA PICKUP 4X4 (VISTA FRONTAL CAD) --- */
+                <g>
+                    {/* Barra tubular de rollbar en techo */}
+                    <path d="M 115 54 L 115 42 L 245 42 L 245 54" fill="none" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
+                    
+                    {/* Pértiga de seguridad con banderín y luz LED */}
+                    <line x1="102" y1="65" x2="102" y2="12" stroke="#0f172a" strokeWidth="1.6" />
+                    <polygon points="102,14 122,20 102,26" fill="#ea580c" stroke="#c2410c" strokeWidth="0.8" />
+                    <line x1="102" y1="20" x2="122" y2="20" stroke="#ffffff" strokeWidth="1.2" />
+                    <circle cx="102" cy="12" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
 
-            {/* Parabrisas frontal panorámico */}
-            <path 
-                d="M 92 120 L 115 72 L 245 72 L 268 120 Z" 
-                fill="#1e293b" 
-                stroke="#475569" 
-                strokeWidth="2" 
-            />
+                    {/* Circulina estroboscópica de techo */}
+                    <rect x="168" y="44" width="24" height="12" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" />
+                    <circle cx="180" cy="50" r="3" fill="#ffffff" />
+                    <line x1="168" y1="56" x2="192" y2="56" stroke="#1e293b" strokeWidth="2" />
 
-            {/* Plumillas limpiaparabrisas */}
-            <line x1="125" y1="116" x2="162" y2="90" stroke="#cbd5e1" strokeWidth="2.5" />
-            <line x1="195" y1="116" x2="232" y2="90" stroke="#cbd5e1" strokeWidth="2.5" />
+                    {/* Cuerpo de cabina */}
+                    <path 
+                        d="M 68 186 L 66 125 C 66 88 88 62 120 60 L 240 60 C 272 62 294 88 294 125 L 292 186 Z" 
+                        fill="url(#frontCabPaint)" 
+                        stroke="#64748b" 
+                        strokeWidth="2.2" 
+                    />
 
-            {/* Circulina de techo */}
-            <rect x="168" y="50" width="24" height="12" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" />
-            <circle cx="180" cy="56" r="3" fill="#ffffff" />
+                    {/* Parabrisas frontal panorámico con marco cerámico */}
+                    <path 
+                        d="M 94 120 L 118 68 L 242 68 L 266 120 Z" 
+                        fill="url(#windshieldFront)" 
+                        stroke="#334155" 
+                        strokeWidth="2" 
+                    />
+                    {/* Parasol superior / franja degradada */}
+                    <polygon points="118,68 242,68 248,80 112,80" fill="#0f172a" opacity="0.6" />
+                    {/* Espejo interior central y silueta de cabeceras */}
+                    <rect x="175" y="73" width="10" height="5" rx="1" fill="#475569" />
+                    <circle cx="140" cy="98" r="7" fill="#1e293b" opacity="0.5" />
+                    <circle cx="220" cy="98" r="7" fill="#1e293b" opacity="0.5" />
 
-            {/* Espejos retrovisores laterales */}
-            <g transform="translate(36, 88)">
-                <rect x="0" y="0" width="10" height="28" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
-                <line x1="10" y1="14" x2="32" y2="14" stroke="#334155" strokeWidth="2" />
-            </g>
-            <g transform="translate(314, 88)">
-                <rect x="0" y="0" width="10" height="28" rx="3" fill="#334155" stroke="#94a3b8" strokeWidth="1.5" />
-                <line x1="0" y1="14" x2="-22" y2="14" stroke="#334155" strokeWidth="2" />
-            </g>
+                    {/* Plumillas limpiaparabrisas articuladas */}
+                    <line x1="122" y1="118" x2="162" y2="92" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="192" y1="118" x2="232" y2="92" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" />
 
-            {/* Capot y Parrilla Delantera */}
-            <rect x="110" y="130" width="140" height="36" rx="4" fill="url(#frontGrille)" stroke="#334155" strokeWidth="1.5" />
-            <line x1="110" y1="142" x2="250" y2="142" stroke="#64748b" strokeWidth="1" />
-            <line x1="110" y1="154" x2="250" y2="154" stroke="#64748b" strokeWidth="1" />
-            <circle cx="180" cy="148" r="8" fill="#e2e8f0" stroke="#475569" strokeWidth="1" />
+                    {/* Espejos retrovisores laterales con luz direccional */}
+                    <g transform="translate(34, 88)">
+                        <path d="M 0 4 C 0 0 4 -2 10 0 L 12 28 C 6 30 0 28 0 24 Z" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
+                        <rect x="2" y="12" width="4" height="6" rx="1" fill="#f59e0b" />
+                        <line x1="12" y1="15" x2="34" y2="15" stroke="#1e293b" strokeWidth="2.5" />
+                    </g>
+                    <g transform="translate(314, 88)">
+                        <path d="M 12 4 C 12 0 8 -2 2 0 L 0 28 C 6 30 12 28 12 24 Z" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
+                        <rect x="6" y="12" width="4" height="6" rx="1" fill="#f59e0b" />
+                        <line x1="0" y1="15" x2="-22" y2="15" stroke="#1e293b" strokeWidth="2.5" />
+                    </g>
 
-            {/* Faros Delanteros Principales (Izquierdo y Derecho) */}
-            <g transform="translate(76, 132)">
-                <rect x="0" y="0" width="30" height="24" rx="4" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
-                <circle cx="15" cy="12" r="7" fill="#ffffff" />
-            </g>
-            <g transform="translate(254, 132)">
-                <rect x="0" y="0" width="30" height="24" rx="4" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
-                <circle cx="15" cy="12" r="7" fill="#ffffff" />
-            </g>
+                    {/* Capot y nervaduras aerodinámicas */}
+                    <path d="M 90 125 L 120 122 L 240 122 L 270 125" stroke="#94a3b8" strokeWidth="1.5" fill="none" />
+                    <line x1="135" y1="122" x2="135" y2="134" stroke="#94a3b8" strokeWidth="1.2" />
+                    <line x1="225" y1="122" x2="225" y2="134" stroke="#94a3b8" strokeWidth="1.2" />
 
-            {/* Parachoques delantero */}
-            <rect x="64" y="166" width="232" height="22" rx="4" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
+                    {/* Parrilla delantera moderna con barras cromadas y panel panal */}
+                    <rect x="110" y="128" width="140" height="38" rx="5" fill="url(#frontGrille)" stroke="#334155" strokeWidth="2" />
+                    <line x1="110" y1="138" x2="250" y2="138" stroke="#64748b" strokeWidth="1.8" />
+                    <line x1="110" y1="148" x2="250" y2="148" stroke="#64748b" strokeWidth="1.8" />
+                    <line x1="110" y1="158" x2="250" y2="158" stroke="#64748b" strokeWidth="1.8" />
+                    {/* Emblema central cromado */}
+                    <ellipse cx="180" cy="148" rx="10" ry="7" fill="#e2e8f0" stroke="#475569" strokeWidth="1.5" />
 
-            {/* Faros Neblineros en Parachoques */}
-            <circle cx="95" cy="177" r="8" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" />
-            <circle cx="265" cy="177" r="8" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" />
+                    {/* Faros Delanteros Proyectores LED */}
+                    <g transform="translate(74, 130)">
+                        <polygon points="0,0 34,2 34,26 4,28" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                        <circle cx="20" cy="14" r="8" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
+                        <circle cx="20" cy="14" r="4" fill="#ffffff" />
+                        <path d="M 2 4 L 32 6 L 32 10" stroke="#38bdf8" strokeWidth="1.5" fill="none" />
+                        <rect x="2" y="18" width="8" height="6" fill="#f59e0b" rx="1" />
+                    </g>
+                    <g transform="translate(252, 130)">
+                        <polygon points="0,2 34,0 30,28 0,26" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                        <circle cx="14" cy="14" r="8" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
+                        <circle cx="14" cy="14" r="4" fill="#ffffff" />
+                        <path d="M 32 4 L 2 6 L 2 10" stroke="#38bdf8" strokeWidth="1.5" fill="none" />
+                        <rect x="24" y="18" width="8" height="6" fill="#f59e0b" rx="1" />
+                    </g>
 
-            {/* Cintas Reflectivas de Seguridad Delanteras 3M */}
-            <rect x="120" y="172" width="120" height="10" rx="2" fill="url(#frontRefTape)" stroke="#991b1b" strokeWidth="1" />
+                    {/* Parachoques delantero reforzado con placa de protección */}
+                    <path d="M 58 168 L 302 168 L 294 192 L 66 192 Z" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                    <rect x="135" y="186" width="90" height="10" rx="2" fill="#64748b" stroke="#475569" strokeWidth="1" />
+                    {/* Ganchos de remolque rojos */}
+                    <circle cx="118" cy="192" r="3.5" fill="none" stroke="#ef4444" strokeWidth="2" />
+                    <circle cx="242" cy="192" r="3.5" fill="none" stroke="#ef4444" strokeWidth="2" />
+
+                    {/* Faros Neblineros en Parachoques */}
+                    <circle cx="95" cy="178" r="7.5" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" />
+                    <circle cx="95" cy="178" r="3.5" fill="#ffffff" />
+                    <circle cx="265" cy="178" r="7.5" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" />
+                    <circle cx="265" cy="178" r="3.5" fill="#ffffff" />
+
+                    {/* Placa de rodaje */}
+                    <rect x="156" y="174" width="48" height="15" rx="2" fill="#ffffff" stroke="#0f172a" strokeWidth="1.2" />
+                    <text x="180" y="185" fill="#0f172a" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="1">PE-4X4</text>
+
+                    {/* Cintas Reflectivas de Seguridad Delanteras 3M */}
+                    <rect x="110" y="172" width="40" height="7" rx="1.5" fill="url(#frontRefTape)" stroke="#991b1b" strokeWidth="0.8" />
+                    <rect x="210" y="172" width="40" height="7" rx="1.5" fill="url(#frontRefTape)" stroke="#991b1b" strokeWidth="0.8" />
+                </g>
+            ) : (
+                /* --- CAMIÓN PESADO (VOLQUETE / CISTERNA / BARANDA - VISTA FRONTAL CAD) --- */
+                <g>
+                    {/* Visera superior de cabina */}
+                    <rect x="110" y="44" width="140" height="10" rx="3" fill="#1e293b" />
+                    {/* Luces de gálibo / marcador de techo */}
+                    <circle cx="125" cy="49" r="2.5" fill="#f59e0b" />
+                    <circle cx="180" cy="49" r="2.5" fill="#f59e0b" />
+                    <circle cx="235" cy="49" r="2.5" fill="#f59e0b" />
+
+                    {/* Circulina de techo */}
+                    <rect x="168" y="32" width="24" height="12" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" />
+                    <circle cx="180" cy="38" r="3" fill="#ffffff" />
+
+                    {/* Cabina masiva de camión pesado */}
+                    <path 
+                        d="M 64 186 L 64 68 C 64 54 80 52 110 52 L 250 52 C 280 52 296 54 296 68 L 296 186 Z" 
+                        fill="url(#heavyCabFront)" 
+                        stroke="#b45309" 
+                        strokeWidth="2.5" 
+                    />
+
+                    {/* Parabrisas panorámico alto de camión */}
+                    <rect x="85" y="62" width="190" height="52" rx="4" fill="url(#windshieldFront)" stroke="#334155" strokeWidth="2" />
+                    <line x1="180" y1="62" x2="180" y2="114" stroke="#1e293b" strokeWidth="2.5" />
+                    {/* Doble brazo de plumillas */}
+                    <line x1="125" y1="110" x2="155" y2="82" stroke="#0f172a" strokeWidth="2.5" />
+                    <line x1="205" y1="110" x2="235" y2="82" stroke="#0f172a" strokeWidth="2.5" />
+
+                    {/* Espejos retrovisores de doble visión (plano + convexo) */}
+                    <g transform="translate(32, 75)">
+                        <rect x="0" y="0" width="12" height="34" rx="2" fill="#1e293b" stroke="#475569" strokeWidth="1.2" />
+                        <line x1="0" y1="24" x2="12" y2="24" stroke="#475569" strokeWidth="1" />
+                        <line x1="12" y1="12" x2="34" y2="12" stroke="#1e293b" strokeWidth="2.5" />
+                        <line x1="12" y1="26" x2="34" y2="26" stroke="#1e293b" strokeWidth="2.5" />
+                    </g>
+                    <g transform="translate(316, 75)">
+                        <rect x="0" y="0" width="12" height="34" rx="2" fill="#1e293b" stroke="#475569" strokeWidth="1.2" />
+                        <line x1="0" y1="24" x2="12" y2="24" stroke="#475569" strokeWidth="1" />
+                        <line x1="0" y1="12" x2="-22" y2="12" stroke="#1e293b" strokeWidth="2.5" />
+                        <line x1="0" y1="26" x2="-22" y2="26" stroke="#1e293b" strokeWidth="2.5" />
+                    </g>
+
+                    {/* Gran parrilla frontal de refrigeración de motor diesel */}
+                    <rect x="96" y="122" width="168" height="46" rx="4" fill="url(#frontGrille)" stroke="#334155" strokeWidth="2" />
+                    <line x1="96" y1="133" x2="264" y2="133" stroke="#64748b" strokeWidth="2" />
+                    <line x1="96" y1="144" x2="264" y2="144" stroke="#64748b" strokeWidth="2" />
+                    <line x1="96" y1="155" x2="264" y2="155" stroke="#64748b" strokeWidth="2" />
+                    <text x="180" y="148" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="3">HEAVY DUTY</text>
+
+                    {/* Faros principales con rejilla de protección */}
+                    <g transform="translate(72, 134)">
+                        <rect x="0" y="0" width="22" height="26" rx="3" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
+                        <circle cx="11" cy="13" r="6" fill="#ffffff" />
+                        <line x1="0" y1="9" x2="22" y2="9" stroke="#1e293b" strokeWidth="1" />
+                        <line x1="0" y1="17" x2="22" y2="17" stroke="#1e293b" strokeWidth="1" />
+                    </g>
+                    <g transform="translate(266, 134)">
+                        <rect x="0" y="0" width="22" height="26" rx="3" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
+                        <circle cx="11" cy="13" r="6" fill="#ffffff" />
+                        <line x1="0" y1="9" x2="22" y2="9" stroke="#1e293b" strokeWidth="1" />
+                        <line x1="0" y1="17" x2="22" y2="17" stroke="#1e293b" strokeWidth="1" />
+                    </g>
+
+                    {/* Parachoques pesado de acero de 3 piezas */}
+                    <rect x="56" y="170" width="248" height="22" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                    {/* Pasador de arrastre / bulón central */}
+                    <rect x="168" y="174" width="24" height="14" rx="2" fill="#475569" stroke="#334155" strokeWidth="1" />
+                    <circle cx="180" cy="181" r="4.5" fill="#0f172a" />
+                    {/* Faros antiniebla */}
+                    <circle cx="95" cy="181" r="6" fill="#fde047" stroke="#ca8a04" strokeWidth="1.2" />
+                    <circle cx="265" cy="181" r="6" fill="#fde047" stroke="#ca8a04" strokeWidth="1.2" />
+                    {/* Cintas Reflectivas 3M en parachoques */}
+                    <rect x="115" y="174" width="46" height="8" rx="1" fill="url(#frontRefTape)" stroke="#991b1b" strokeWidth="0.8" />
+                    <rect x="199" y="174" width="46" height="8" rx="1" fill="url(#frontRefTape)" stroke="#991b1b" strokeWidth="0.8" />
+                </g>
+            )}
 
             {/* Texto de vista */}
             <text x="180" y="202" fill="#64748b" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="1">VISTA FRONTAL (DELANTERA)</text>
@@ -1984,8 +2122,7 @@ const FrontalVehicleSVG = ({
 };
 
 // ==========================================
-// 2. SVG VISTA POSTERIOR (TRASERA)
-// Con Pestillos de Tolva de Volquete, Luces Traseras y Cintas 3M
+// 2. SVG VISTA POSTERIOR (TRASERA DETALLADA)
 // ==========================================
 const PosteriorVehicleSVG = ({
     isCamioneta,
@@ -2025,117 +2162,203 @@ const PosteriorVehicleSVG = ({
                     <stop offset="60%" stopColor="#f1f5f9" />
                     <stop offset="100%" stopColor="#94a3b8" />
                 </linearGradient>
+
+                <linearGradient id="pickupRearTailgate" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#f8fafc" />
+                    <stop offset="40%" stopColor="#e2e8f0" />
+                    <stop offset="100%" stopColor="#cbd5e1" />
+                </linearGradient>
             </defs>
 
             {/* Sombra de la unidad en suelo */}
-            <ellipse cx="180" cy="210" rx="150" ry="10" fill="#0f172a" opacity="0.2" />
+            <ellipse cx="180" cy="210" rx="150" ry="10" fill="#0f172a" opacity="0.22" />
 
             {/* Tacos de bloqueo amarillos en suelo */}
             <g transform="translate(125, 192)">
                 <polygon points="0,15 18,15 14,0 4,0" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                <line x1="5" y1="5" x2="13" y2="5" stroke="#713f12" strokeWidth="1" />
             </g>
 
-            {/* Ruedas duales traseras vistas de atrás */}
-            <g transform="translate(60, 180)">
-                <rect x="-18" y="-22" width="16" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-                <rect x="2" y="-22" width="16" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-            </g>
-            <g transform="translate(300, 180)">
-                <rect x="-18" y="-22" width="16" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-                <rect x="2" y="-22" width="16" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
-            </g>
+            {/* Ruedas traseras vistas de atrás */}
+            {isCamioneta ? (
+                /* Ruedas simples de camioneta */
+                <g>
+                    <g transform="translate(64, 180)">
+                        <rect x="-14" y="-22" width="28" height="44" rx="6" fill="#1e293b" stroke="#0f172a" strokeWidth="2.2" />
+                        <line x1="-14" y1="-8" x2="14" y2="-8" stroke="#334155" strokeWidth="1" />
+                        <line x1="-14" y1="8" x2="14" y2="8" stroke="#334155" strokeWidth="1" />
+                    </g>
+                    <g transform="translate(296, 180)">
+                        <rect x="-14" y="-22" width="28" height="44" rx="6" fill="#1e293b" stroke="#0f172a" strokeWidth="2.2" />
+                        <line x1="-14" y1="-8" x2="14" y2="-8" stroke="#334155" strokeWidth="1" />
+                        <line x1="-14" y1="8" x2="14" y2="8" stroke="#334155" strokeWidth="1" />
+                    </g>
+                    {/* Diferencial trasero de corona / manga de eje */}
+                    <ellipse cx="180" cy="186" rx="14" ry="10" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+                    <line x1="78" y1="186" x2="282" y2="186" stroke="#1e293b" strokeWidth="5" />
+                </g>
+            ) : (
+                /* Ruedas duales traseras de camión pesado */
+                <g>
+                    <g transform="translate(60, 180)">
+                        <rect x="-20" y="-22" width="18" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                        <rect x="2" y="-22" width="18" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                    </g>
+                    <g transform="translate(300, 180)">
+                        <rect x="-20" y="-22" width="18" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                        <rect x="2" y="-22" width="18" height="44" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+                    </g>
+                    <ellipse cx="180" cy="186" rx="18" ry="12" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                    <line x1="78" y1="186" x2="282" y2="186" stroke="#1e293b" strokeWidth="7" />
+                </g>
+            )}
 
             {/* CARROCERÍA POSTERIOR SEGÚN VEHÍCULO */}
             {isVolquete ? (
                 /* TOLVA DE VOLQUETE - VISTA POSTERIOR */
                 <g>
-                    {/* Tolva trapezoidal */}
-                    <polygon points="65,60 295,60 270,165 90,165" fill="#cbd5e1" stroke="#475569" strokeWidth="2.5" />
+                    {/* Tolva trapezoidal reforzada */}
+                    <polygon points="62,56 298,56 274,166 86,166" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
                     {/* Compuerta abatible central */}
-                    <rect x="95" y="70" width="170" height="90" rx="4" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
-                    <text x="180" y="105" fill="#1e293b" fontSize="13" fontWeight="900" textAnchor="middle" letterSpacing="2">VOLQUETE</text>
+                    <rect x="94" y="66" width="172" height="94" rx="4" fill="#cbd5e1" stroke="#475569" strokeWidth="2" />
+                    {/* Costillas verticales de refuerzo */}
+                    <line x1="130" y1="66" x2="130" y2="160" stroke="#475569" strokeWidth="3" />
+                    <line x1="180" y1="66" x2="180" y2="160" stroke="#475569" strokeWidth="3" />
+                    <line x1="230" y1="66" x2="230" y2="160" stroke="#475569" strokeWidth="3" />
+                    <text x="180" y="94" fill="#1e293b" fontSize="13" fontWeight="900" textAnchor="middle" letterSpacing="2">VOLQUETE</text>
 
-                    {/* PESTILLOS Y ALDABAS DE COMPUERTA POSTERIOR */}
-                    {/* Pestillo Izquierdo */}
+                    {/* PESTILLOS Y ALDABAS DE COMPUERTA POSTERIOR CON SEGUROS AMARILLOS */}
                     <g transform="translate(100, 130)">
                         <rect x="0" y="0" width="12" height="24" rx="2" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
                         <circle cx="6" cy="12" r="3" fill="#713f12" />
                         <line x1="-3" y1="12" x2="15" y2="12" stroke="#713f12" strokeWidth="2" />
+                        <line x1="6" y1="18" x2="6" y2="28" stroke="#ca8a04" strokeWidth="1.5" />
                     </g>
-                    {/* Pestillo Derecho */}
                     <g transform="translate(248, 130)">
                         <rect x="0" y="0" width="12" height="24" rx="2" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
                         <circle cx="6" cy="12" r="3" fill="#713f12" />
                         <line x1="-3" y1="12" x2="15" y2="12" stroke="#713f12" strokeWidth="2" />
+                        <line x1="6" y1="18" x2="6" y2="28" stroke="#ca8a04" strokeWidth="1.5" />
                     </g>
 
-                    <rect x="135" y="125" width="90" height="20" rx="3" fill="#1e293b" />
-                    <text x="180" y="139" fill="#fef08a" fontSize="9" fontWeight="900" textAnchor="middle">COMPUERTA TOLVA</text>
+                    {/* Rótulo de compuerta tolva */}
+                    <rect x="135" y="128" width="90" height="18" rx="3" fill="#1e293b" />
+                    <text x="180" y="140" fill="#fef08a" fontSize="8" fontWeight="900" textAnchor="middle">COMPUERTA TOLVA</text>
                 </g>
             ) : isWater || isFuel ? (
                 /* CISTERNA DE AGUA O COMBUSTIBLE - VISTA POSTERIOR */
                 <g>
-                    <ellipse cx="180" cy="105" rx="98" ry="62" fill="url(#tankPosterior)" stroke={isFuel ? '#dc2626' : '#0284c7'} strokeWidth="3" />
-                    <text x="180" y="92" fill="#334155" fontSize="11" fontWeight="900" textAnchor="middle">
+                    {/* Tapa de fondo toriesférica / elíptica */}
+                    <ellipse cx="180" cy="105" rx="100" ry="64" fill="url(#tankPosterior)" stroke={isFuel ? '#dc2626' : '#0284c7'} strokeWidth="3" />
+                    <ellipse cx="180" cy="105" rx="92" ry="58" fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
+                    
+                    {/* Escalera posterior de inspección */}
+                    <line x1="165" y1="42" x2="165" y2="162" stroke="#475569" strokeWidth="2" />
+                    <line x1="195" y1="42" x2="195" y2="162" stroke="#475569" strokeWidth="2" />
+                    <line x1="165" y1="65" x2="195" y2="65" stroke="#475569" strokeWidth="2" />
+                    <line x1="165" y1="90" x2="195" y2="90" stroke="#475569" strokeWidth="2" />
+                    <line x1="165" y1="115" x2="195" y2="115" stroke="#475569" strokeWidth="2" />
+
+                    <text x="180" y="80" fill="#0f172a" fontSize="10" fontWeight="900" textAnchor="middle">
                         {isFuel ? 'CISTERNA COMBUSTIBLE' : 'CISTERNA DE AGUA'}
                     </text>
                     {/* Válvula de purga/descarga */}
-                    <circle cx="180" cy="140" r="14" fill="#475569" stroke="#1e293b" strokeWidth="2" />
+                    <circle cx="180" cy="140" r="14" fill="#334155" stroke="#1e293b" strokeWidth="2" />
                     <circle cx="180" cy="140" r="7" fill="#eab308" />
-                    {/* Rombo NFPA posterior */}
-                    <g transform="translate(180, 65) rotate(45)">
+                    <rect x="178" y="133" width="4" height="14" fill="#713f12" />
+
+                    {/* Rombo NFPA o cartel ONU posterior */}
+                    <g transform="translate(180, 52) rotate(45)">
                         <rect x="-9" y="-9" width="18" height="18" fill={isFuel ? '#ef4444' : '#0284c7'} stroke="#ffffff" strokeWidth="1.5" />
                     </g>
                 </g>
             ) : isCamaBaja ? (
                 /* CAMIÓN REMOLQUE CAMA BAJA - VISTA TRASERA */
                 <g>
-                    <rect x="75" y="115" width="210" height="48" fill="#eab308" stroke="#ca8a04" strokeWidth="2" />
+                    <rect x="72" y="115" width="216" height="50" rx="3" fill="#eab308" stroke="#ca8a04" strokeWidth="2" />
                     <text x="180" y="145" fill="#713f12" fontSize="11" fontWeight="900" textAnchor="middle">CAMA BAJA</text>
-                    {/* Rampa izquierda */}
-                    <polygon points="90,90 125,90 120,165 85,165" fill="#334155" stroke="#1e293b" strokeWidth="2" />
-                    {/* Rampa derecha */}
-                    <polygon points="235,90 270,90 275,165 240,165" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                    {/* Rampa articulada izquierda */}
+                    <polygon points="86,88 124,88 118,165 82,165" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                    {/* Rampa articulada derecha */}
+                    <polygon points="236,88 274,88 278,165 242,165" fill="#334155" stroke="#1e293b" strokeWidth="2" />
                 </g>
             ) : isCamioneta ? (
-                /* CAMIONETA PICKUP - VISTA TRASERA */
+                /* CAMIONETA PICKUP - VISTA TRASERA CAD */
                 <g>
-                    <rect x="75" y="90" width="210" height="75" rx="4" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
-                    <rect x="160" y="105" width="40" height="10" rx="2" fill="#1e293b" />
-                    <text x="180" y="145" fill="#475569" fontSize="12" fontWeight="900" textAnchor="middle">4x4 PICKUP</text>
+                    {/* Tubos de rollbar sobresaliendo de la tolva */}
+                    <path d="M 115 65 L 115 50 L 245 50 L 245 65" fill="none" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
+                    {/* Luz de freno central superior de cabina */}
+                    <rect x="168" y="52" width="24" height="5" rx="1.5" fill="#ef4444" stroke="#991b1b" strokeWidth="0.8" />
+
+                    {/* Pértiga de seguridad con banderín y luz LED */}
+                    <line x1="102" y1="65" x2="102" y2="12" stroke="#0f172a" strokeWidth="1.6" />
+                    <polygon points="102,14 122,20 102,26" fill="#ea580c" stroke="#c2410c" strokeWidth="0.8" />
+                    <circle cx="102" cy="12" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
+
+                    {/* Compuerta de Tolva (Tailgate) */}
+                    <rect x="74" y="90" width="212" height="76" rx="5" fill="url(#pickupRearTailgate)" stroke="#64748b" strokeWidth="2.2" />
+                    {/* Moldura protectora plástica superior */}
+                    <rect x="72" y="88" width="216" height="8" rx="2" fill="#1e293b" />
+                    
+                    {/* Manija central de compuerta con cámara de retroceso */}
+                    <rect x="160" y="104" width="40" height="12" rx="2.5" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+                    <circle cx="180" cy="110" r="2.5" fill="#38bdf8" />
+
+                    {/* Logo y estampado de compuerta */}
+                    <text x="180" y="142" fill="#475569" fontSize="13" fontWeight="900" textAnchor="middle" letterSpacing="2">4x4 PICKUP</text>
+                    <line x1="95" y1="152" x2="265" y2="152" stroke="#cbd5e1" strokeWidth="1.5" />
+
+                    {/* Faros posteriores verticales (Izquierdo y Derecho) */}
+                    <g transform="translate(68, 98)">
+                        <rect x="0" y="0" width="15" height="58" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
+                        <rect x="2" y="2" width="11" height="28" rx="2" fill="#ef4444" />
+                        <rect x="2" y="32" width="11" height="11" rx="1.5" fill="#f59e0b" />
+                        <rect x="2" y="45" width="11" height="10" rx="1.5" fill="#ffffff" />
+                    </g>
+                    <g transform="translate(277, 98)">
+                        <rect x="0" y="0" width="15" height="58" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
+                        <rect x="2" y="2" width="11" height="28" rx="2" fill="#ef4444" />
+                        <rect x="2" y="32" width="11" height="11" rx="1.5" fill="#f59e0b" />
+                        <rect x="2" y="45" width="11" height="10" rx="1.5" fill="#ffffff" />
+                    </g>
                 </g>
             ) : (
                 /* CAMIÓN BARANDA */
                 <g>
-                    <rect x="75" y="85" width="210" height="80" rx="3" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
-                    <line x1="75" y1="110" x2="285" y2="110" stroke="#334155" strokeWidth="2" />
-                    <line x1="75" y1="135" x2="285" y2="135" stroke="#334155" strokeWidth="2" />
-                    <text x="180" y="125" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle">CAMIÓN BARANDA</text>
+                    <rect x="74" y="82" width="212" height="84" rx="3" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
+                    <line x1="74" y1="108" x2="286" y2="108" stroke="#334155" strokeWidth="2" />
+                    <line x1="74" y1="134" x2="286" y2="134" stroke="#334155" strokeWidth="2" />
+                    <text x="180" y="124" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle">CAMIÓN BARANDA</text>
                 </g>
             )}
 
-            {/* Parachoques trasero común */}
-            <rect x="65" y="165" width="230" height="22" rx="4" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
+            {/* Parachoques trasero común con peldaño */}
+            <rect x="62" y="166" width="236" height="22" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="2" />
+            <rect x="135" y="168" width="90" height="7" rx="1.5" fill="#334155" />
 
-            {/* Luces posteriores rojas (Izquierda y Derecha) */}
-            <g transform="translate(68, 145)">
-                <rect x="0" y="0" width="20" height="24" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" />
-                <circle cx="10" cy="8" r="4" fill="#fde047" />
-                <circle cx="10" cy="16" r="4" fill="#ffffff" />
-            </g>
-            <g transform="translate(272, 145)">
-                <rect x="0" y="0" width="20" height="24" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" />
-                <circle cx="10" cy="8" r="4" fill="#fde047" />
-                <circle cx="10" cy="16" r="4" fill="#ffffff" />
-            </g>
+            {/* Luces posteriores rojas estándar para pesados (si no es pickup) */}
+            {!isCamioneta && (
+                <>
+                    <g transform="translate(68, 145)">
+                        <rect x="0" y="0" width="20" height="24" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" />
+                        <circle cx="10" cy="8" r="4" fill="#fde047" />
+                        <circle cx="10" cy="16" r="4" fill="#ffffff" />
+                    </g>
+                    <g transform="translate(272, 145)">
+                        <rect x="0" y="0" width="20" height="24" rx="3" fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" />
+                        <circle cx="10" cy="8" r="4" fill="#fde047" />
+                        <circle cx="10" cy="16" r="4" fill="#ffffff" />
+                    </g>
+                </>
+            )}
 
-            {/* Cintas Reflectivas de Seguridad 3M Posteriores */}
-            <rect x="95" y="168" width="170" height="10" rx="2" fill="url(#postRefTape)" stroke="#991b1b" strokeWidth="1" />
+            {/* Cintas Reflectivas de Seguridad 3M Posteriores (Rojo y Blanco) */}
+            <rect x="95" y="174" width="170" height="8" rx="2" fill="url(#postRefTape)" stroke="#991b1b" strokeWidth="0.8" />
 
             {/* Alarma de Retroceso Acústica Posterior */}
-            <g transform="translate(225, 176)">
-                <rect x="0" y="0" width="10" height="9" rx="1.5" fill="#1e293b" stroke="#f59e0b" strokeWidth="1" />
-                <path d="M 2 4.5 L 6 2 L 6 7 Z" fill="#f59e0b" />
+            <g transform="translate(225, 174)">
+                <rect x="0" y="0" width="10" height="10" rx="1.5" fill="#0f172a" stroke="#f59e0b" strokeWidth="1" />
+                <path d="M 2 5 L 6 2.5 L 6 7.5 Z" fill="#f59e0b" />
             </g>
 
             {/* Texto de vista */}
@@ -2156,7 +2379,7 @@ const PosteriorVehicleSVG = ({
 };
 
 // ==========================================
-// 3. SVG VISTA LATERAL (CAMIONETA PICKUP)
+// 3. SVG VISTA LATERAL (CAMIONETA PICKUP 4X4 CAD)
 // ==========================================
 const PickupTruckSVG = ({
     parts,
@@ -2179,13 +2402,14 @@ const PickupTruckSVG = ({
             <defs>
                 <linearGradient id="bodyPaint" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#cbd5e1" />
-                    <stop offset="35%" stopColor="#f8fafc" />
-                    <stop offset="70%" stopColor="#e2e8f0" />
+                    <stop offset="25%" stopColor="#f8fafc" />
+                    <stop offset="65%" stopColor="#e2e8f0" />
                     <stop offset="100%" stopColor="#94a3b8" />
                 </linearGradient>
 
                 <linearGradient id="windowTint" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#1e293b" />
+                    <stop offset="0%" stopColor="#0f172a" />
+                    <stop offset="40%" stopColor="#1e293b" />
                     <stop offset="100%" stopColor="#334155" />
                 </linearGradient>
 
@@ -2202,88 +2426,181 @@ const PickupTruckSVG = ({
             </defs>
 
             {/* Sombra de la camioneta */}
-            <ellipse cx="180" cy="208" rx="160" ry="10" fill="#0f172a" opacity="0.18" />
+            <ellipse cx="180" cy="208" rx="160" ry="10" fill="#0f172a" opacity="0.22" />
 
             {/* MANCHA DE FUGA DE FLUIDO BAJO EL MOTOR */}
             {hasLeak && (
                 <g>
                     <ellipse cx="120" cy="209" rx="42" ry="7" fill="url(#oilLeak)" />
                     <circle cx="110" cy="195" r="2.5" fill="#0f172a" />
-                    <text x="120" y="222" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA DE FLUIDO ACTIVA</text>
+                    <text x="120" y="224" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA DE FLUIDO ACTIVA</text>
                 </g>
             )}
 
             {/* 2 TACOS DE BLOQUEO AMARILLOS */}
-            <g transform="translate(245, 192)">
+            <g transform="translate(250, 192)">
                 <polygon points="0,15 18,15 14,0 4,0" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                <line x1="5" y1="5" x2="13" y2="5" stroke="#713f12" strokeWidth="1" />
             </g>
 
-            {/* CHASIS / ESTRIBOS */}
-            <rect x="50" y="172" width="255" height="12" rx="4" fill="#1e293b" />
-            <rect x="95" y="178" width="115" height="4" rx="2" fill="#64748b" stroke="#334155" strokeWidth="1" />
+            {/* CHASIS / SUSPENSIÓN / ESCAPE */}
+            <rect x="48" y="166" width="260" height="10" rx="3" fill="#1e293b" />
+            <line x1="105" y1="172" x2="260" y2="172" stroke="#475569" strokeWidth="2.5" />
+            {/* Tubo de escape */}
+            <line x1="260" y1="175" x2="310" y2="175" stroke="#64748b" strokeWidth="3" />
+            <rect x="306" y="173" width="8" height="4" rx="1" fill="#cbd5e1" stroke="#475569" strokeWidth="0.8" />
 
-            {/* CARROCERÍA PICKUP */}
+            {/* ESTRIBOS LATERALES TUBULARES (PISADERAS) */}
+            <g transform="translate(108, 172)">
+                <rect x="0" y="0" width="108" height="5" rx="2.5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                <rect x="15" y="1" width="30" height="3" rx="1" fill="#475569" />
+                <rect x="65" y="1" width="30" height="3" rx="1" fill="#475569" />
+            </g>
+
+            {/* CARROCERÍA PICKUP MODERNA 4X4 (DETALLADA CON LÍNEAS DE CARÁCTER) */}
             <path 
-                d="M 20 162 L 20 142 C 20 135 30 130 50 128 L 85 125 L 120 85 C 128 78 135 78 185 78 L 225 78 L 225 125 L 340 128 C 345 128 348 132 348 138 L 348 165 C 348 168 344 170 338 170 L 305 170 C 300 152 265 152 260 170 L 105 170 C 100 152 65 152 60 170 L 25 170 C 22 170 20 166 20 162 Z" 
+                d="M 18 162 L 18 144 C 18 136 28 130 50 127 L 90 124 L 126 78 C 134 74 142 74 186 74 L 222 74 L 224 125 L 340 127 C 346 127 348 131 348 138 L 348 165 C 348 168 344 170 338 170 L 308 170 C 302 148 266 148 260 170 L 105 170 C 100 148 64 148 58 170 L 25 170 C 20 170 18 166 18 162 Z" 
                 fill="url(#bodyPaint)" 
                 stroke="#64748b" 
                 strokeWidth="2" 
             />
 
-            {/* Cintas Reflectivas Laterales 3M */}
-            <rect x="75" y="152" width="245" height="5" rx="1.5" fill="url(#sideRefTape)" stroke="#991b1b" strokeWidth="0.5" />
+            {/* Molduras protectoras de arcos de rueda (guardafangos sobredimensionados 4x4) */}
+            <path d="M 54 170 C 58 144 104 144 108 170" fill="none" stroke="#1e293b" strokeWidth="4.5" />
+            <path d="M 256 170 C 260 144 306 144 310 170" fill="none" stroke="#1e293b" strokeWidth="4.5" />
 
-            {/* VENTANAS DOBLE CABINA */}
-            <path d="M 125 86 L 142 86 L 142 120 L 96 120 Z" fill="url(#windowTint)" stroke="#64748b" strokeWidth="1.5" />
-            <path d="M 148 86 L 198 86 L 198 120 L 148 120 Z" fill="url(#windowTint)" stroke="#64748b" strokeWidth="1.5" />
-            <path d="M 203 88 L 218 88 L 218 120 L 203 120 Z" fill="url(#windowTint)" stroke="#64748b" strokeWidth="1.5" />
+            {/* Línea de puerta y manijas satinadas */}
+            <line x1="162" y1="76" x2="162" y2="168" stroke="#94a3b8" strokeWidth="1.5" />
+            <line x1="222" y1="76" x2="222" y2="168" stroke="#94a3b8" strokeWidth="1.5" />
+            {/* Manijas de puerta delantera y trasera */}
+            <rect x="142" y="128" width="12" height="3.5" rx="1.5" fill="#1e293b" />
+            <rect x="175" y="128" width="12" height="3.5" rx="1.5" fill="#1e293b" />
+            {/* Tapa del tanque de combustible */}
+            <circle cx="215" cy="135" r="6" fill="none" stroke="#64748b" strokeWidth="1.2" />
+
+            {/* Cintas Reflectivas Laterales 3M Homologadas */}
+            <rect x="68" y="152" width="250" height="5.5" rx="1.5" fill="url(#sideRefTape)" stroke="#991b1b" strokeWidth="0.6" />
+
+            {/* VENTANAS DOBLE CABINA CON PILAR B SATINADO */}
+            <path d="M 128 82 L 158 82 L 158 120 L 96 120 Z" fill="url(#windowTint)" stroke="#64748b" strokeWidth="1.5" />
+            <path d="M 164 82 L 216 82 L 216 120 L 164 120 Z" fill="url(#windowTint)" stroke="#64748b" strokeWidth="1.5" />
+            {/* Pilar B negro mate */}
+            <rect x="158" y="80" width="6" height="40" fill="#0f172a" />
+            {/* Silueta de conductor y volante */}
+            <circle cx="140" cy="100" r="6" fill="#0f172a" opacity="0.6" />
+            <path d="M 124 105 L 128 115" stroke="#0f172a" strokeWidth="2" opacity="0.6" />
+
+            {/* Espejo retrovisor aerodinámico con luz intermitente */}
+            <g transform="translate(68, 106)">
+                <path d="M 0 4 C 0 0 6 -2 14 0 L 12 16 C 6 18 0 16 0 12 Z" fill="#334155" stroke="#1e293b" strokeWidth="1.2" />
+                <rect x="3" y="7" width="5" height="2.5" fill="#f59e0b" rx="0.5" />
+                <line x1="12" y1="10" x2="22" y2="10" stroke="#1e293b" strokeWidth="2" />
+            </g>
+
+            {/* JAULA ANTIVUELCO TUBULAR MINERA (ROLLBAR) EN LA TOLVA */}
+            <g transform="translate(220, 68)">
+                {/* Tubo principal curvado */}
+                <path d="M 0 56 L 0 10 C 0 4 6 2 14 2 L 18 2 C 24 2 28 6 36 56" fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="2" y1="26" x2="24" y2="26" stroke="#0f172a" strokeWidth="3" />
+                {/* Foco de trabajo en rollbar */}
+                <rect x="10" y="5" width="8" height="5" rx="1" fill="#fef08a" stroke="#ca8a04" strokeWidth="0.8" />
+            </g>
+
+            {/* PÉRTIGA DE SEGURIDAD CON BANDERÍN Y LUZ LED DESTELLANTE */}
+            <line x1="225" y1="75" x2="225" y2="16" stroke="#0f172a" strokeWidth="1.6" />
+            <polygon points="225,18 245,24 225,30" fill="#ea580c" stroke="#c2410c" strokeWidth="0.8" />
+            <line x1="225" y1="24" x2="245" y2="24" stroke="#ffffff" strokeWidth="1.2" />
+            <circle cx="225" cy="16" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
 
             {/* BOTIQUÍN EN CABINA */}
-            <g transform="translate(165, 102)">
-                <rect x="0" y="0" width="14" height="12" rx="2" fill="#ffffff" stroke="#ef4444" strokeWidth="1" />
+            <g transform="translate(195, 102)">
+                <rect x="0" y="0" width="14" height="12" rx="2" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
                 <rect x="5.5" y="2.5" width="3" height="7" fill="#ef4444" />
                 <rect x="3.5" y="4.5" width="7" height="3" fill="#ef4444" />
             </g>
 
-            {/* EXTINTOR MONTADO EN TOLVA */}
-            <g transform="translate(228, 95)">
-                <rect x="0" y="0" width="8" height="24" rx="3" fill="#dc2626" stroke="#991b1b" strokeWidth="1" />
-                <rect x="2" y="-3" width="4" height="3" fill="#475569" />
+            {/* EXTINTOR MONTADO EN TOLVA CON MANÓMETRO Y MANGUERA */}
+            <g transform="translate(238, 92)">
+                <rect x="2" y="6" width="10" height="25" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1" />
+                <rect x="5" y="1" width="4" height="5" fill="#475569" />
+                <circle cx="9" cy="3" r="1.5" fill="#ffffff" stroke="#1e293b" strokeWidth="0.5" />
+                <circle cx="9" cy="3" r="0.7" fill="#22c55e" />
+                <path d="M 5 3 Q 1 7 2 18" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
+                <rect x="4" y="13" width="6" height="8" rx="0.5" fill="#ffffff" opacity="0.9" />
             </g>
 
-            {/* 2 CONOS DE SEGURIDAD EN TOLVA */}
-            <g transform="translate(295, 98)">
-                <polygon points="4,24 16,24 11,4 9,4" fill="#f97316" stroke="#ea580c" strokeWidth="1" />
-                <rect x="6" y="11" width="8" height="3.5" fill="#ffffff" />
+            {/* 2 CONOS DE SEGURIDAD EN TOLVA CON DOBLE BANDA REFLECTIVA */}
+            <g transform="translate(302, 94)">
+                {/* Cono trasero */}
+                <g transform="translate(6, 0) scale(0.85)">
+                    <polygon points="4,24 16,24 11,3 9,3" fill="#ea580c" stroke="#c2410c" strokeWidth="1" />
+                    <polygon points="7.2,14 12.8,14 11.8,9 8.2,9" fill="#ffffff" />
+                    <rect x="2" y="23" width="16" height="3.5" rx="1" fill="#1e293b" />
+                </g>
+                {/* Cono delantero */}
+                <polygon points="4,24 16,24 11,3 9,3" fill="#f97316" stroke="#ea580c" strokeWidth="1.2" />
+                <polygon points="7.2,14 12.8,14 11.8,9 8.2,9" fill="#ffffff" />
+                <polygon points="8.2,7 11.8,7 11.2,4.5 8.8,4.5" fill="#ffffff" />
+                <rect x="2" y="23" width="16" height="3.5" rx="1" fill="#0f172a" />
             </g>
 
-            {/* KIT ANTIDERRAME EN TOLVA */}
-            <g transform="translate(268, 105)">
-                <rect x="0" y="0" width="16" height="16" rx="3" fill="#eab308" stroke="#ca8a04" strokeWidth="1" />
-                <circle cx="8" cy="8" r="3" fill="#1e293b" />
+            {/* KIT ANTIDERRAME EN TOLVA (TAMBOR AMARILLO ROTULADO) */}
+            <g transform="translate(268, 100)">
+                <rect x="0" y="4" width="18" height="20" rx="3" fill="#eab308" stroke="#ca8a04" strokeWidth="1.2" />
+                <rect x="-1" y="1" width="20" height="4" rx="1" fill="#1e293b" />
+                <rect x="2" y="10" width="14" height="8" rx="0.8" fill="#ffffff" opacity="0.95" />
+                <text x="9" y="15" fill="#0f172a" fontSize="3.8" fontWeight="900" textAnchor="middle">KIT</text>
+                <text x="9" y="17.5" fill="#ea580c" fontSize="2.2" fontWeight="900" textAnchor="middle">DERRAME</text>
             </g>
 
             {/* CIRCULINA DE TECHO */}
-            <g transform="translate(168, 68)">
-                <rect x="0" y="0" width="18" height="9" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" />
+            <g transform="translate(166, 62)">
+                <rect x="0" y="0" width="20" height="10" rx="3" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" />
+                <circle cx="10" cy="5" r="2.5" fill="#ffffff" />
             </g>
 
             {/* FAROS DELANTEROS Y POSTERIORES */}
-            <polygon points="20,138 28,136 28,150 20,154" fill="#fef08a" stroke="#ca8a04" strokeWidth="1" />
-            <rect x="343" y="132" width="5" height="18" rx="1.5" fill="#ef4444" stroke="#991b1b" strokeWidth="1" />
-
-            {/* RUEDA DELANTERA */}
-            <g transform="translate(82, 170)">
-                <circle cx="0" cy="0" r="23" fill="#1e293b" stroke="#0f172a" strokeWidth="2.5" />
-                <circle cx="0" cy="0" r="13" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
-                <circle cx="0" cy="0" r="5" fill="#0f172a" />
+            <polygon points="18,136 28,134 28,150 18,154" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
+            <rect x="342" y="132" width="6" height="20" rx="2" fill="#ef4444" stroke="#991b1b" strokeWidth="1" />
+            {/* Alarma de retroceso en chasis posterior */}
+            <g transform="translate(334, 162)">
+                <rect x="0" y="0" width="8" height="7" rx="1" fill="#1e293b" stroke="#f59e0b" strokeWidth="0.8" />
+                <path d="M 2 3.5 L 5 1.5 L 5 5.5 Z" fill="#f59e0b" />
             </g>
 
-            {/* RUEDA POSTERIOR */}
-            <g transform="translate(285, 170)">
-                <circle cx="0" cy="0" r="23" fill="#1e293b" stroke="#0f172a" strokeWidth="2.5" />
-                <circle cx="0" cy="0" r="13" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
-                <circle cx="0" cy="0" r="5" fill="#0f172a" />
+            {/* RUEDA DELANTERA CON NEUMÁTICO ALL-TERRAIN Y ARO DE ALEACIÓN */}
+            <g transform="translate(82, 172)">
+                {/* Neumático con cocada exterior */}
+                <circle cx="0" cy="0" r="24" fill="#1e293b" stroke="#0f172a" strokeWidth="3" />
+                <circle cx="0" cy="0" r="21" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                {/* Aro de aleación */}
+                <circle cx="0" cy="0" r="14" fill="#475569" stroke="#334155" strokeWidth="1.5" />
+                {/* Disco de freno y pinza caliper roja */}
+                <circle cx="0" cy="0" r="9" fill="#94a3b8" />
+                <rect x="-8" y="-7" width="5" height="8" rx="1.5" fill="#ef4444" />
+                {/* Rayos / aspas del aro */}
+                <line x1="-12" y1="0" x2="12" y2="0" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="0" y1="-12" x2="0" y2="12" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="-8" y1="-8" x2="8" y2="8" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="-8" y1="8" x2="8" y2="-8" stroke="#cbd5e1" strokeWidth="2" />
+                {/* Masa central con tuercas */}
+                <circle cx="0" cy="0" r="4.5" fill="#0f172a" />
+                <circle cx="0" cy="0" r="1.5" fill="#cbd5e1" />
+            </g>
+
+            {/* RUEDA POSTERIOR CON NEUMÁTICO ALL-TERRAIN Y ARO DE ALEACIÓN */}
+            <g transform="translate(285, 172)">
+                <circle cx="0" cy="0" r="24" fill="#1e293b" stroke="#0f172a" strokeWidth="3" />
+                <circle cx="0" cy="0" r="21" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="0" cy="0" r="14" fill="#475569" stroke="#334155" strokeWidth="1.5" />
+                <circle cx="0" cy="0" r="9" fill="#94a3b8" />
+                <rect x="-8" y="-7" width="5" height="8" rx="1.5" fill="#ef4444" />
+                <line x1="-12" y1="0" x2="12" y2="0" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="0" y1="-12" x2="0" y2="12" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="-8" y1="-8" x2="8" y2="8" stroke="#cbd5e1" strokeWidth="2" />
+                <line x1="-8" y1="8" x2="8" y2="-8" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="0" cy="0" r="4.5" fill="#0f172a" />
+                <circle cx="0" cy="0" r="1.5" fill="#cbd5e1" />
             </g>
 
             {/* Texto de vista */}
@@ -2304,7 +2621,7 @@ const PickupTruckSVG = ({
 };
 
 // ==========================================
-// 4. SVG VISTA LATERAL (CAMIÓN PESADO)
+// 4. SVG VISTA LATERAL (CAMIÓN PESADO DETALLADO)
 // Cisterna, Volquete, Cama Baja, Baranda
 // ==========================================
 const HeavyTruckSVG = ({
@@ -2345,6 +2662,12 @@ const HeavyTruckSVG = ({
                     <stop offset="100%" stopColor="#94a3b8" />
                 </linearGradient>
 
+                <linearGradient id="volqueteBody" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#cbd5e1" />
+                    <stop offset="50%" stopColor="#94a3b8" />
+                    <stop offset="100%" stopColor="#64748b" />
+                </linearGradient>
+
                 <pattern id="heavyRefTape" width="16" height="8" patternUnits="userSpaceOnUse">
                     <rect width="8" height="8" fill="#dc2626" />
                     <rect x="8" width="8" height="8" fill="#ffffff" />
@@ -2358,136 +2681,193 @@ const HeavyTruckSVG = ({
             </defs>
 
             {/* Sombra */}
-            <ellipse cx="180" cy="208" rx="160" ry="10" fill="#0f172a" opacity="0.2" />
+            <ellipse cx="180" cy="208" rx="160" ry="10" fill="#0f172a" opacity="0.22" />
 
             {/* MANCHA DE FUGA ACTIVA EN EL SUELO */}
             {hasLeak && (
                 <g>
                     <ellipse cx="105" cy="209" rx="45" ry="7" fill="url(#oilLeakHeavy)" />
                     <circle cx="105" cy="196" r="3" fill="#020617" />
-                    <text x="105" y="222" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA DE FLUIDO ACTIVA</text>
+                    <text x="105" y="224" fill="#ef4444" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.5">⚠️ FUGA DE FLUIDO ACTIVA</text>
                 </g>
             )}
 
             {/* Tacos pesados en suelo */}
-            <g transform="translate(280, 192)">
+            <g transform="translate(275, 192)">
                 <polygon points="0,15 22,15 16,0 6,0" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                <line x1="7" y1="5" x2="15" y2="5" stroke="#713f12" strokeWidth="1" />
             </g>
 
-            {/* Chasis de camión */}
-            <rect x="40" y="165" width="295" height="14" rx="3" fill="#1e293b" />
+            {/* Chasis de viga I de acero pesado */}
+            <rect x="35" y="164" width="305" height="15" rx="3" fill="#1e293b" />
+            <line x1="35" y1="171" x2="340" y2="171" stroke="#334155" strokeWidth="2" />
 
-            {/* CABINA DEL CAMIÓN */}
+            {/* Tanque de combustible de aluminio cilíndrico */}
+            <rect x="120" y="162" width="45" height="18" rx="4" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
+            <line x1="130" y1="162" x2="130" y2="180" stroke="#334155" strokeWidth="1.5" />
+            <line x1="155" y1="162" x2="155" y2="180" stroke="#334155" strokeWidth="1.5" />
+
+            {/* Tanques de aire comprimido gemelos */}
+            <rect x="170" y="166" width="30" height="6" rx="3" fill="#64748b" stroke="#334155" strokeWidth="1" />
+            <rect x="170" y="174" width="30" height="6" rx="3" fill="#64748b" stroke="#334155" strokeWidth="1" />
+
+            {/* CABINA DEL CAMIÓN (DISEÑO EUROPEO/AMERICANO COE MODERNO) */}
             <path 
-                d="M 35 165 L 35 95 C 35 90 42 85 50 85 L 105 85 C 110 85 115 90 115 95 L 115 165 Z" 
+                d="M 32 165 L 32 92 C 32 82 42 78 52 78 L 108 78 C 114 78 116 82 116 90 L 116 165 Z" 
                 fill="url(#heavyCab)" 
                 stroke="#b45309" 
-                strokeWidth="2" 
+                strokeWidth="2.2" 
             />
-            {/* Parabrisas */}
-            <rect x="42" y="92" width="65" height="30" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-            {/* Circulina */}
-            <rect x="70" y="78" width="15" height="7" rx="2" fill="#f59e0b" stroke="#b45309" strokeWidth="1" />
+            {/* Visera superior aerodinámica */}
+            <path d="M 30 84 L 46 80 L 110 80" fill="none" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
+            {/* Parabrisas con tinte solar */}
+            <path d="M 36 90 L 44 88 L 105 88 L 105 122 L 36 122 Z" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+            {/* Ventana de puerta con marco de separación */}
+            <rect x="52" y="94" width="48" height="24" rx="2" fill="#334155" stroke="#1e293b" strokeWidth="1.2" />
+
+            {/* Circulina de techo */}
+            <rect x="68" y="70" width="16" height="8" rx="2.5" fill="#f59e0b" stroke="#b45309" strokeWidth="1.2" />
+            <circle cx="76" cy="74" r="2" fill="#ffffff" />
+
             {/* Parrilla delantera frontal */}
-            <g transform="translate(32, 126)">
-                <rect x="0" y="0" width="5" height="30" rx="1.5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+            <g transform="translate(30, 126)">
+                <rect x="0" y="0" width="5" height="32" rx="1.5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                 <line x1="1" y1="6" x2="4" y2="6" stroke="#94a3b8" strokeWidth="1" />
-                <line x1="1" y1="12" x2="4" y2="12" stroke="#94a3b8" strokeWidth="1" />
-                <line x1="1" y1="18" x2="4" y2="18" stroke="#94a3b8" strokeWidth="1" />
-                <line x1="1" y1="24" x2="4" y2="24" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="1" y1="13" x2="4" y2="13" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="1" y1="20" x2="4" y2="20" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="1" y1="27" x2="4" y2="27" stroke="#94a3b8" strokeWidth="1" />
             </g>
+
             {/* Faros delanteros con haz de luz */}
-            <g transform="translate(34, 142)">
-                <rect x="0" y="0" width="8" height="15" rx="2" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
-                <circle cx="4" cy="7.5" r="3.5" fill="#ffffff" />
-                <polygon points="0,7.5 -16,0 -16,15" fill="#fef08a" opacity="0.2" />
+            <g transform="translate(32, 142)">
+                <rect x="0" y="0" width="8" height="16" rx="2" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
+                <circle cx="4" cy="8" r="3.5" fill="#ffffff" />
+                <polygon points="0,8 -16,0 -16,16" fill="#fef08a" opacity="0.2" />
             </g>
-            {/* Espejo exterior */}
-            <rect x="28" y="100" width="4" height="18" rx="1.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1" />
-            <line x1="32" y1="108" x2="36" y2="108" stroke="#334155" strokeWidth="1.5" />
-            {/* Estribos de acceso */}
-            <line x1="40" y1="168" x2="65" y2="168" stroke="#cbd5e1" strokeWidth="2.5" />
-            <line x1="40" y1="173" x2="65" y2="173" stroke="#cbd5e1" strokeWidth="2.5" />
+
+            {/* Espejo exterior de doble lente */}
+            <g transform="translate(24, 96)">
+                <rect x="0" y="0" width="5" height="22" rx="1.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="0" y1="16" x2="5" y2="16" stroke="#475569" strokeWidth="0.8" />
+                <line x1="5" y1="6" x2="14" y2="6" stroke="#334155" strokeWidth="1.8" />
+                <line x1="5" y1="18" x2="14" y2="18" stroke="#334155" strokeWidth="1.8" />
+            </g>
+
+            {/* Estribos de acceso (escalera de 2 peldaños antideslizantes) */}
+            <g transform="translate(42, 168)">
+                <line x1="0" y1="0" x2="25" y2="0" stroke="#cbd5e1" strokeWidth="2.5" />
+                <line x1="2" y1="5" x2="23" y2="5" stroke="#cbd5e1" strokeWidth="2.5" />
+            </g>
+
             {/* Luces posteriores rojas y alarma de retroceso */}
-            <rect x="333" y="142" width="5" height="12" rx="1" fill="#ef4444" stroke="#991b1b" strokeWidth="1" />
-            <g transform="translate(338, 166)">
+            <rect x="334" y="142" width="6" height="14" rx="1.5" fill="#ef4444" stroke="#991b1b" strokeWidth="1" />
+            <g transform="translate(336, 164)">
                 <rect x="0" y="0" width="9" height="9" rx="1.5" fill="#1e293b" stroke="#f59e0b" strokeWidth="1" />
                 <path d="M 2 4.5 L 5 2 L 5 7 Z" fill="#f59e0b" />
             </g>
 
             {/* BOTIQUÍN EN CABINA */}
-            <g transform="translate(75, 128)">
+            <g transform="translate(75, 126)">
                 <rect x="0" y="0" width="14" height="12" rx="2" fill="#ffffff" stroke="#ef4444" strokeWidth="1" />
                 <rect x="5.5" y="2.5" width="3" height="7" fill="#ef4444" />
                 <rect x="3.5" y="4.5" width="7" height="3" fill="#ef4444" />
             </g>
 
             {/* Cintas Reflectivas Laterales 3M */}
-            <rect x="40" y="163" width="290" height="4.5" rx="1" fill="url(#heavyRefTape)" stroke="#991b1b" strokeWidth="0.5" />
+            <rect x="36" y="162" width="298" height="5" rx="1.2" fill="url(#heavyRefTape)" stroke="#991b1b" strokeWidth="0.6" />
 
-            {/* CARROCERÍA POSTERIOR CON NOMBRE ROTULADO */}
+            {/* CARROCERÍA POSTERIOR SEGÚN EQUIPO */}
             {isWater ? (
                 /* CISTERNA DE AGUA */
-                <g transform="translate(125, 75)">
-                    <rect x="0" y="0" width="205" height="90" rx="42" fill="url(#tankBody)" stroke="#0284c7" strokeWidth="2.5" />
-                    <rect x="25" y="32" width="155" height="26" fill="#0284c7" rx="4" />
-                    <text x="102" y="49" fill="#ffffff" fontSize="10" fontWeight="900" textAnchor="middle" letterSpacing="1">CISTERNA DE AGUA</text>
-                    <line x1="25" y1="0" x2="25" y2="90" stroke="#94a3b8" strokeWidth="2" />
-                    <line x1="180" y1="0" x2="180" y2="90" stroke="#94a3b8" strokeWidth="2" />
+                <g transform="translate(122, 72)">
+                    <rect x="0" y="0" width="210" height="92" rx="44" fill="url(#tankBody)" stroke="#0284c7" strokeWidth="2.5" />
+                    {/* Pasarela superior y domos de llenado */}
+                    <rect x="20" y="-6" width="170" height="6" rx="2" fill="#334155" />
+                    <rect x="50" y="-12" width="20" height="6" rx="2" fill="#0284c7" />
+                    <rect x="140" y="-12" width="20" height="6" rx="2" fill="#0284c7" />
+                    <line x1="20" y1="-14" x2="190" y2="-14" stroke="#64748b" strokeWidth="1.5" />
+
+                    <rect x="25" y="32" width="160" height="26" fill="#0284c7" rx="4" />
+                    <text x="105" y="49" fill="#ffffff" fontSize="10" fontWeight="900" textAnchor="middle" letterSpacing="1">CISTERNA DE AGUA</text>
+                    {/* Anillos de refuerzo estructural del tanque */}
+                    <line x1="30" y1="0" x2="30" y2="92" stroke="#94a3b8" strokeWidth="2.5" />
+                    <line x1="180" y1="0" x2="180" y2="92" stroke="#94a3b8" strokeWidth="2.5" />
                 </g>
             ) : isFuel ? (
                 /* CISTERNA DE COMBUSTIBLE */
-                <g transform="translate(125, 75)">
-                    <rect x="0" y="0" width="205" height="90" rx="42" fill="url(#tankBody)" stroke="#dc2626" strokeWidth="2.5" />
-                    <rect x="25" y="32" width="155" height="26" fill="#dc2626" rx="4" />
-                    <text x="102" y="49" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.8">CISTERNA DE COMBUSTIBLE</text>
-                    <line x1="25" y1="0" x2="25" y2="90" stroke="#94a3b8" strokeWidth="2" />
-                    <line x1="180" y1="0" x2="180" y2="90" stroke="#94a3b8" strokeWidth="2" />
-                    <g transform="translate(35, 12) rotate(45)">
-                        <rect x="0" y="0" width="16" height="16" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+                <g transform="translate(122, 72)">
+                    <rect x="0" y="0" width="210" height="92" rx="44" fill="url(#tankBody)" stroke="#dc2626" strokeWidth="2.5" />
+                    {/* Pasarela superior con baranda */}
+                    <rect x="20" y="-6" width="170" height="6" rx="2" fill="#334155" />
+                    <rect x="50" y="-12" width="20" height="6" rx="2" fill="#dc2626" />
+                    <rect x="140" y="-12" width="20" height="6" rx="2" fill="#dc2626" />
+                    <line x1="20" y1="-14" x2="190" y2="-14" stroke="#64748b" strokeWidth="1.5" />
+
+                    <rect x="25" y="32" width="160" height="26" fill="#dc2626" rx="4" />
+                    <text x="105" y="49" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.8">CISTERNA DE COMBUSTIBLE</text>
+                    <line x1="30" y1="0" x2="30" y2="92" stroke="#94a3b8" strokeWidth="2.5" />
+                    <line x1="180" y1="0" x2="180" y2="92" stroke="#94a3b8" strokeWidth="2.5" />
+                    
+                    {/* Rombos de peligro inflamable ONU */}
+                    <g transform="translate(38, 14) rotate(45)">
+                        <rect x="-8" y="-8" width="16" height="16" fill="#ef4444" stroke="#ffffff" strokeWidth="1.2" />
                     </g>
                 </g>
             ) : isVolquete ? (
-                /* TOLVA DE VOLQUETE */
-                <g transform="translate(125, 60)">
-                    <polygon points="0,40 15,105 210,105 215,20 15,20" fill="#cbd5e1" stroke="#475569" strokeWidth="2" />
-                    <rect x="25" y="60" width="14" height="40" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="1" />
-                    <line x1="210" y1="20" x2="205" y2="105" stroke="#334155" strokeWidth="4" />
-                    <text x="110" y="65" fill="#334155" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1">VOLQUETE</text>
-                    {/* Pin y seguro de tolva posterior */}
-                    <circle cx="205" cy="100" r="5" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
-                    <line x1="201" y1="96" x2="209" y2="104" stroke="#713f12" strokeWidth="1.5" />
+                /* TOLVA DE VOLQUETE REFORZADA CON CILINDRO HIDRÁULICO */
+                <g transform="translate(122, 56)">
+                    {/* Visera protectora de cabina */}
+                    <polygon points="-10,32 15,32 15,20 -10,20" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
+                    {/* Tolva con costillas verticales */}
+                    <polygon points="0,32 16,108 214,108 218,18 12,18" fill="url(#volqueteBody)" stroke="#334155" strokeWidth="2.2" />
+                    {/* Costillas estructurales de refuerzo */}
+                    <line x1="45" y1="20" x2="48" y2="108" stroke="#475569" strokeWidth="3" />
+                    <line x1="85" y1="20" x2="88" y2="108" stroke="#475569" strokeWidth="3" />
+                    <line x1="125" y1="20" x2="128" y2="108" stroke="#475569" strokeWidth="3" />
+                    <line x1="165" y1="20" x2="168" y2="108" stroke="#475569" strokeWidth="3" />
+                    <line x1="205" y1="20" x2="208" y2="108" stroke="#475569" strokeWidth="3" />
+
+                    {/* Cilindro telescópico frontal con vástago cromado */}
+                    <rect x="-4" y="60" width="12" height="46" fill="#1e293b" rx="2" />
+                    <rect x="-2" y="38" width="8" height="24" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+
+                    <text x="110" y="64" fill="#1e293b" fontSize="13" fontWeight="900" textAnchor="middle" letterSpacing="1.5">VOLQUETE</text>
+                    {/* Seguro y perno de bisagra de compuerta posterior */}
+                    <circle cx="210" cy="102" r="5" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                    <line x1="206" y1="98" x2="214" y2="106" stroke="#713f12" strokeWidth="1.5" />
                 </g>
             ) : isCamaBaja ? (
                 /* CAMIÓN REMOLQUE CAMA BAJA */
                 <g transform="translate(115, 115)">
-                    <path d="M 0 50 L 25 15 L 45 15 L 45 50 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
-                    <rect x="40" y="42" width="155" height="15" fill="#eab308" stroke="#ca8a04" strokeWidth="2" />
-                    <text x="115" y="53" fill="#713f12" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="1">CAMA BAJA</text>
-                    <polygon points="240,25 248,25 258,60 250,60" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
+                    {/* Cuello de cisne (Gooseneck) */}
+                    <path d="M 0 50 L 25 15 L 48 15 L 48 50 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                    <rect x="42" y="42" width="165" height="15" fill="#eab308" stroke="#ca8a04" strokeWidth="2" />
+                    <text x="120" y="53" fill="#713f12" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="1">CAMA BAJA</text>
+                    {/* Rampas de carga articuladas posteriores */}
+                    <polygon points="215,22 225,22 235,58 225,58" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
                 </g>
             ) : (
                 /* CAMIÓN BARANDA */
-                <g transform="translate(125, 90)">
-                    <rect x="0" y="0" width="210" height="75" rx="4" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
-                    <line x1="0" y1="25" x2="210" y2="25" stroke="#334155" strokeWidth="2" />
-                    <line x1="0" y1="50" x2="210" y2="50" stroke="#334155" strokeWidth="2" />
-                    <text x="105" y="42" fill="#ffffff" fontSize="10" fontWeight="900" textAnchor="middle" letterSpacing="1">CAMIÓN BARANDA</text>
+                <g transform="translate(122, 88)">
+                    <rect x="0" y="0" width="212" height="76" rx="4" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
+                    <line x1="0" y1="25" x2="212" y2="25" stroke="#334155" strokeWidth="2" />
+                    <line x1="0" y1="50" x2="212" y2="50" stroke="#334155" strokeWidth="2" />
+                    <text x="106" y="42" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1">CAMIÓN BARANDA</text>
                 </g>
             )}
 
-            {/* EXTINTOR MONTADO CON MANÓMETRO Y MANGUERA */}
-            <g transform="translate(118, 116)">
-                <rect x="0" y="0" width="8" height="24" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1" />
-                <rect x="2" y="-4" width="4" height="4" fill="#475569" />
-                <circle cx="6" cy="-2" r="1.5" fill="#ffffff" stroke="#1e293b" strokeWidth="0.5" />
-                <circle cx="6" cy="-2" r="0.7" fill="#22c55e" />
-                <path d="M 2 -2 Q -1 3 0 14" fill="none" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
-                <rect x="1.5" y="10" width="5" height="7" rx="0.5" fill="#ffffff" opacity="0.9" />
+            {/* EXTINTOR MONTADO DE 9 KG / 12 KG CON MANÓMETRO */}
+            <g transform="translate(118, 112)">
+                <rect x="0" y="0" width="10" height="26" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
+                <rect x="3" y="-4" width="4" height="4" fill="#475569" />
+                <circle cx="7" cy="-2" r="1.5" fill="#ffffff" stroke="#1e293b" strokeWidth="0.5" />
+                <circle cx="7" cy="-2" r="0.7" fill="#22c55e" />
+                <path d="M 3 -2 Q -1 3 0 16" fill="none" stroke="#0f172a" strokeWidth="1.3" strokeLinecap="round" />
+                <rect x="2" y="10" width="6" height="8" rx="0.5" fill="#ffffff" opacity="0.95" />
             </g>
 
-            {/* 2 CONOS DE SEGURIDAD INDUSTRIALES CON BANDAS REFLECTIVAS */}
-            <g transform="translate(302, 122)">
+            {/* 2 CONOS DE SEGURIDAD INDUSTRIALES (28") */}
+            <g transform="translate(302, 120)">
                 <g transform="translate(6, 0) scale(0.85)">
                     <polygon points="4,22 14,22 10,3 8,3" fill="#ea580c" stroke="#c2410c" strokeWidth="1" />
                     <polygon points="6,12 12,12 11,8 7,8" fill="#ffffff" />
@@ -2498,30 +2878,66 @@ const HeavyTruckSVG = ({
                 <rect x="2" y="23" width="16" height="3.5" rx="1" fill="#0f172a" />
             </g>
 
-            {/* KIT ANTIDERRAME AMARILLO (TAMBOR / BIDÓN ROTULADO) */}
-            <g transform="translate(133, 142)">
-                <rect x="0" y="4" width="18" height="18" rx="2.5" fill="#eab308" stroke="#ca8a04" strokeWidth="1" />
+            {/* KIT ANTIDERRAME PESADO (BIDÓN / TAMBOR AMARILLO) */}
+            <g transform="translate(142, 138)">
+                <rect x="0" y="4" width="18" height="18" rx="3" fill="#eab308" stroke="#ca8a04" strokeWidth="1.2" />
                 <rect x="-1" y="1" width="20" height="3.5" rx="1" fill="#1e293b" />
                 <rect x="2" y="9" width="14" height="8" rx="0.8" fill="#ffffff" opacity="0.9" />
                 <text x="9" y="14" fill="#0f172a" fontSize="3.8" fontWeight="900" textAnchor="middle">KIT</text>
             </g>
 
-            {/* RUEDA DELANTERA */}
+            {/* RUEDA DELANTERA DIRECCIONAL */}
             <g transform="translate(75, 180)">
-                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3" />
-                <circle cx="0" cy="0" r="15" fill="#64748b" stroke="#334155" strokeWidth="2" />
+                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3.2" />
+                <circle cx="0" cy="0" r="23" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="0" cy="0" r="15" fill="#475569" stroke="#334155" strokeWidth="2" />
                 <circle cx="0" cy="0" r="6" fill="#0f172a" />
+                {/* 10 espárragos/tuercas perimetrales */}
+                <circle cx="0" cy="-10" r="1.3" fill="#cbd5e1" />
+                <circle cx="6" cy="-8" r="1.3" fill="#cbd5e1" />
+                <circle cx="10" cy="-3" r="1.3" fill="#cbd5e1" />
+                <circle cx="10" cy="3" r="1.3" fill="#cbd5e1" />
+                <circle cx="6" cy="8" r="1.3" fill="#cbd5e1" />
+                <circle cx="0" cy="10" r="1.3" fill="#cbd5e1" />
+                <circle cx="-6" cy="8" r="1.3" fill="#cbd5e1" />
+                <circle cx="-10" cy="3" r="1.3" fill="#cbd5e1" />
+                <circle cx="-10" cy="-3" r="1.3" fill="#cbd5e1" />
+                <circle cx="-6" cy="-8" r="1.3" fill="#cbd5e1" />
             </g>
 
-            {/* RUEDAS TRASERAS DUALES */}
+            {/* RUEDAS TRASERAS DUALES (TANDEM BOGIE) */}
             <g transform="translate(235, 180)">
-                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3" />
-                <circle cx="0" cy="0" r="15" fill="#64748b" stroke="#334155" strokeWidth="2" />
+                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3.2" />
+                <circle cx="0" cy="0" r="23" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="0" cy="0" r="15" fill="#475569" stroke="#334155" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#0f172a" />
+                <circle cx="0" cy="-10" r="1.3" fill="#cbd5e1" />
+                <circle cx="7" cy="-7" r="1.3" fill="#cbd5e1" />
+                <circle cx="10" cy="0" r="1.3" fill="#cbd5e1" />
+                <circle cx="7" cy="7" r="1.3" fill="#cbd5e1" />
+                <circle cx="0" cy="10" r="1.3" fill="#cbd5e1" />
+                <circle cx="-7" cy="7" r="1.3" fill="#cbd5e1" />
+                <circle cx="-10" cy="0" r="1.3" fill="#cbd5e1" />
+                <circle cx="-7" cy="-7" r="1.3" fill="#cbd5e1" />
             </g>
             <g transform="translate(290, 180)">
-                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3" />
-                <circle cx="0" cy="0" r="15" fill="#64748b" stroke="#334155" strokeWidth="2" />
+                <circle cx="0" cy="0" r="26" fill="#1e293b" stroke="#0f172a" strokeWidth="3.2" />
+                <circle cx="0" cy="0" r="23" fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="0" cy="0" r="15" fill="#475569" stroke="#334155" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#0f172a" />
+                <circle cx="0" cy="-10" r="1.3" fill="#cbd5e1" />
+                <circle cx="7" cy="-7" r="1.3" fill="#cbd5e1" />
+                <circle cx="10" cy="0" r="1.3" fill="#cbd5e1" />
+                <circle cx="7" cy="7" r="1.3" fill="#cbd5e1" />
+                <circle cx="0" cy="10" r="1.3" fill="#cbd5e1" />
+                <circle cx="-7" cy="7" r="1.3" fill="#cbd5e1" />
+                <circle cx="-10" cy="0" r="1.3" fill="#cbd5e1" />
+                <circle cx="-7" cy="-7" r="1.3" fill="#cbd5e1" />
             </g>
+
+            {/* Guardafangos y faldones posteriores con cadenas */}
+            <path d="M 210 178 Q 262 148 316 178" fill="none" stroke="#1e293b" strokeWidth="4" />
+            <rect x="315" y="174" width="4" height="18" rx="1" fill="#0f172a" />
 
             {/* Texto de vista */}
             <text x="180" y="202" fill="#64748b" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="1">VISTA LATERAL (PERFIL)</text>

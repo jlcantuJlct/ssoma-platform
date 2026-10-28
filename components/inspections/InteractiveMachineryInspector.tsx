@@ -76,7 +76,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'acceso',
         name: 'Escaleras de Acceso',
         checklistItem: 'Escaleras',
-        hotspot: { x: 105, y: 172 },
+        hotspot: { x: 146, y: 186 },
         icon: Wrench,
         issue: 'Peldaños de acceso doblados, agrietados o con superficie resbaladiza',
         action: 'Enderezar y fijar peldaños antideslizantes de subida a cabina.'
@@ -87,7 +87,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'acceso',
         name: 'Pasamanos y Barandas',
         checklistItem: 'Pasamanos',
-        hotspot: { x: 106, y: 140 },
+        hotspot: { x: 142, y: 145 },
         icon: Shield,
         issue: 'Pasamanos suelto, con pernos flojos o riesgo de caída',
         action: 'Ajustar pernos de sujeción y asegurar 3 puntos de apoyo.'
@@ -100,7 +100,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Asiento del Operador',
         checklistItem: 'Asiento',
-        hotspot: { x: 156, y: 108 },
+        hotspot: { x: 192, y: 108 },
         icon: Eye,
         issue: 'Suspensión de butaca descalibrada, tapizado roto o riel atascado',
         action: 'Calibrar suspensión ergonómica de asiento del operador.'
@@ -111,7 +111,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Cinturón de Seguridad',
         checklistItem: 'Cinturón de seguridad (*)',
-        hotspot: { x: 178, y: 96 },
+        hotspot: { x: 198, y: 120 },
         icon: Shield,
         issue: 'Cinturón de 3 pulgadas deshilachado o hebilla no traba al tirón',
         action: 'Cambio de cinturón de seguridad retráctil certificado.'
@@ -122,7 +122,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Palanca de Accionamiento',
         checklistItem: 'Palanca de accionamiento',
-        hotspot: { x: 142, y: 132 },
+        hotspot: { x: 168, y: 126 },
         icon: Gauge,
         issue: 'Palanca de mando / joystick hidráulico con juego excesivo o traba dura',
         action: 'Ajustar articulación de palanca y revisar mandos piloto.'
@@ -133,7 +133,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Claxon / Bocina',
         checklistItem: 'Claxón',
-        hotspot: { x: 136, y: 92 },
+        hotspot: { x: 78, y: 142 },
         icon: Volume2,
         issue: 'Claxon inaudible, pulsador no responde o sin volumen suficiente',
         action: 'Revisar fusible, solenoide y reponer bocina de advertencia.'
@@ -144,7 +144,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Luces de Cabina',
         checklistItem: 'Luces de Cabina',
-        hotspot: { x: 155, y: 55 },
+        hotspot: { x: 176, y: 64 },
         icon: Lightbulb,
         issue: 'Luz interior de cabina quemada o interruptor de cortesía dañado',
         action: 'Cambio de foco interior LED 24V de cabina.'
@@ -155,7 +155,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Parabrisas de Cabina',
         checklistItem: 'Parabrizas',
-        hotspot: { x: 122, y: 64 },
+        hotspot: { x: 148, y: 85 },
         icon: Eye,
         issue: 'Vidrio panorámico laminado trizado, rajado o con visibilidad reducida',
         action: 'Cambio de luna laminada de seguridad de cabina.'
@@ -166,7 +166,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Plumillas Limpiaparabrisas',
         checklistItem: 'Plumillas',
-        hotspot: { x: 114, y: 92 },
+        hotspot: { x: 152, y: 104 },
         icon: Wrench,
         issue: 'Plumilla de jebe cuarteada, reseca o no barre agua eficientemente',
         action: 'Instalar plumilla limpiaparabrisas nueva resistente a intemperie.'
@@ -177,7 +177,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'cabina',
         name: 'Espejos Retrovisores',
         checklistItem: 'Espejos Retrovisiores (*)',
-        hotspot: { x: 92, y: 78 },
+        hotspot: { x: 132, y: 78 },
         icon: Eye,
         issue: 'Espejos retrovisores trizados, desalineados o con carcasas sueltas',
         action: 'Alinear y asegurar espejos convexos de amplio ángulo de visión.'
@@ -190,7 +190,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Circulina de Seguridad',
         checklistItem: 'Circulina (*)',
-        hotspot: { x: 176, y: 38 },
+        hotspot: { x: 175, y: 44 },
         icon: Zap,
         issue: 'Circulina estroboscópica ámbar inoperativa o con mica rajada',
         action: 'Reparar switch eléctrico o sustituir circulina estroboscópica LED.'
@@ -201,7 +201,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Alarma de Retroceso',
         checklistItem: 'Alarma de retroceso (*)',
-        hotspot: { x: 288, y: 155 },
+        hotspot: { x: 252, y: 168 },
         icon: Volume2,
         issue: 'Alarma sonora de reversa inaudible a más de 10 metros o inoperativa',
         action: 'Reemplazar chicharra de retroceso de 107 dB y chequear sensor de reversa.'
@@ -212,7 +212,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Sistema de Frenos',
         checklistItem: 'Sistema de frenos (*)',
-        hotspot: { x: 190, y: 172 },
+        hotspot: { x: 218, y: 172 },
         icon: Disc,
         issue: 'Freno de servicio con carrera larga o freno de parqueo no retiene en pendiente',
         action: 'Purgar circuito de frenos y calibrar zapatas/discos de parqueo.'
@@ -223,7 +223,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Extintor Contra Incendios',
         checklistItem: 'Extintor',
-        hotspot: { x: 208, y: 115 },
+        hotspot: { x: 212, y: 125 },
         icon: Flame,
         issue: 'Extintor PQS despresurizado, vencido o sin pasador de seguridad precintado',
         action: 'Recargar extintor de 6 kg o 9 kg y actualizar tarjeta de inspección.'
@@ -234,7 +234,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Conos de Seguridad',
         checklistItem: 'Conos de seguridad (en caso aplique)',
-        hotspot: { x: 290, y: 115 },
+        hotspot: { x: 244, y: 128 },
         icon: AlertTriangle,
         issue: 'Conos de señalización ausentes, rotos o sin cinta reflectiva',
         action: 'Equipar con 2 conos reglamentarios de 28 pulgadas con bandas reflectivas.'
@@ -245,7 +245,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Kit Contra Derrame',
         checklistItem: 'Kit Antiderrame',
-        hotspot: { x: 255, y: 115 },
+        hotspot: { x: 240, y: 150 },
         icon: Package,
         issue: 'Kit antiderrame incompleto: faltan paños absorbentes, salchicha o bolsas',
         action: 'Abastecer kit contra derrames con absorbentes de hidrocarburos.'
@@ -256,7 +256,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Botiquín de Primeros Auxilios',
         checklistItem: 'Botiquín',
-        hotspot: { x: 188, y: 76 },
+        hotspot: { x: 182, y: 82 },
         icon: Shield,
         issue: 'Botiquín con insumos faltantes, vencidos o gabinete no accesible',
         action: 'Completar insumos médicos del botiquín según norma técnica.'
@@ -267,7 +267,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Luces y Faros de Trabajo',
         checklistItem: 'Luces (*)',
-        hotspot: { x: 70, y: 68 },
+        hotspot: { x: 42, y: 168 },
         icon: Lightbulb,
         issue: 'Faros delanteros o luces de trabajo LED posteriores inoperativos',
         action: 'Sustituir focos LED faeneros y revisar línea de alimentación 24V.'
@@ -278,7 +278,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'seguridad',
         name: 'Cintas de Seguridad',
         checklistItem: 'Cintas reflectivas de seguridad (**)',
-        hotspot: { x: 220, y: 145 },
+        hotspot: { x: 178, y: 164 },
         icon: AlertTriangle,
         issue: 'Cintas reflectivas 3M despegadas, desgastadas o con reflectividad nula',
         action: 'Pegar cintas reglamentarias 3M rojo/blanco a lo largo del chasis del equipo.'
@@ -291,7 +291,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'fugas',
         name: 'Fuga de Aceite de Motor',
         checklistItem: 'Aceite de Motor',
-        hotspot: { x: 165, y: 208 },
+        hotspot: { x: 110, y: 208 },
         icon: Droplets,
         issue: 'Goteo continuo o charco de aceite de motor en el cárter o suelo',
         action: 'Detener equipo, colocar bandeja ecológica y cambiar empaque/retén con fuga.'
@@ -302,7 +302,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
         category: 'fugas',
         name: 'Fuga de Combustible',
         checklistItem: 'Combustible',
-        hotspot: { x: 235, y: 208 },
+        hotspot: { x: 175, y: 208 },
         icon: Droplets,
         issue: 'Fuga o goteo de diésel en cañerías, filtros o tanque de combustible',
         action: 'Ajustar abrazaderas, cambiar filtros de combustible y purgar línea.'
@@ -310,7 +310,7 @@ export const STANDARDIZED_MACHINERY_PARTS: MachineryDamagedPart[] = [
 ];
 
 // ==========================================
-// COMPONENTE HOTSPOT INTERACTIVO
+// COMPONENTE HOTSPOT INTERACTIVO (PIN CAD TÉCNICO COMPACTO)
 // Micro-punto fijo, Verde al hover/touch, Rojo al seleccionar, con Tooltip flotante
 // ==========================================
 const HotspotPoint = ({
@@ -327,15 +327,15 @@ const HotspotPoint = ({
     const [isHovered, setIsHovered] = useState(false);
     const shortLabel = getMachineryShortLabel(part);
 
-    const rClick = isCompact ? 16 : 22;
-    const rOuter = isCompact ? 8.5 : 14;
-    const rMain = isCompact ? 5.2 : 10;
-    const rInner = isCompact ? 1.8 : 3.5;
+    const rClick = 16;
+    const rOuter = isSelected ? 8.5 : (isHovered ? 8 : 6);
+    const rMain = isSelected ? 4.5 : 3.8;
+    const rInner = 1.4;
 
     // Posición del tooltip
-    const isNearTop = part.hotspot.y < 26;
-    const tooltipY = isNearTop ? part.hotspot.y + 15 : part.hotspot.y - 12;
-    const boxW = Math.max(30, shortLabel.length * 6.2 + 8);
+    const isNearTop = part.hotspot.y < 30;
+    const tooltipY = isNearTop ? part.hotspot.y + 16 : part.hotspot.y - 12;
+    const boxW = Math.max(34, shortLabel.length * 6 + 10);
 
     return (
         <g 
@@ -354,7 +354,7 @@ const HotspotPoint = ({
                 fill="transparent" 
             />
 
-            {/* Aro exterior */}
+            {/* Aro exterior sutil */}
             {isSelected ? (
                 <circle 
                     cx={part.hotspot.x} 
@@ -362,8 +362,9 @@ const HotspotPoint = ({
                     r={rOuter} 
                     fill="none" 
                     stroke="#ef4444" 
-                    strokeWidth={isCompact ? 1.8 : 2.5} 
+                    strokeWidth={2} 
                     strokeOpacity="0.8"
+                    className="animate-pulse"
                 />
             ) : isHovered ? (
                 <circle 
@@ -372,8 +373,8 @@ const HotspotPoint = ({
                     r={rOuter} 
                     fill="none" 
                     stroke="#22c55e" 
-                    strokeWidth={isCompact ? 1.8 : 2.5} 
-                    strokeOpacity="0.8"
+                    strokeWidth={1.8} 
+                    strokeOpacity="0.9"
                 />
             ) : (
                 <circle 
@@ -382,19 +383,19 @@ const HotspotPoint = ({
                     r={rOuter} 
                     fill="none" 
                     stroke="#eab308" 
-                    strokeWidth={isCompact ? 1 : 1.5} 
-                    strokeOpacity="0.3"
+                    strokeWidth={1} 
+                    strokeOpacity="0.4"
                 />
             )}
 
-            {/* Círculo central */}
+            {/* Círculo central compacto */}
             <circle 
                 cx={part.hotspot.x} 
                 cy={part.hotspot.y} 
                 r={rMain} 
                 fill={isSelected ? '#dc2626' : (isHovered ? '#16a34a' : '#ffffff')} 
                 stroke={isSelected ? '#b91c1c' : (isHovered ? '#15803d' : '#ca8a04')} 
-                strokeWidth={isCompact ? 1.5 : 2} 
+                strokeWidth={1.2} 
                 className="filter drop-shadow-xs transition-colors duration-150"
             />
 
@@ -403,7 +404,7 @@ const HotspotPoint = ({
                 cx={part.hotspot.x} 
                 cy={part.hotspot.y} 
                 r={rInner} 
-                fill={isSelected ? '#ffffff' : (isHovered ? '#ffffff' : '#eab308')} 
+                fill={isSelected ? '#ffffff' : (isHovered ? '#ffffff' : '#ca8a04')} 
                 className="transition-colors duration-150"
             />
 
@@ -415,24 +416,24 @@ const HotspotPoint = ({
                 >
                     <rect 
                         x={-boxW / 2} 
-                        y="-7.5" 
+                        y="-8" 
                         width={boxW} 
-                        height="14" 
-                        rx="3.5" 
-                        fill={isSelected ? '#dc2626' : '#0f172a'} 
-                        stroke={isSelected ? '#ffffff' : (isHovered ? '#22c55e' : '#475569')} 
+                        height="16" 
+                        rx="4" 
+                        fill={isSelected ? '#991b1b' : '#0f172a'} 
+                        stroke={isSelected ? '#f87171' : (isHovered ? '#22c55e' : '#f59e0b')} 
                         strokeWidth="1" 
                     />
                     <text 
                         x="0" 
-                        y="2.5" 
+                        y="3.5" 
                         fill="#ffffff" 
                         fontSize="7.5" 
                         fontWeight="900" 
                         textAnchor="middle" 
-                        letterSpacing="0.3"
+                        letterSpacing="0.2"
                     >
-                        {shortLabel}
+                        {shortLabel} {isSelected ? '❌' : '✓'}
                     </text>
                 </g>
             )}
@@ -905,139 +906,358 @@ const MachinerySilhouette = ({
         );
     }
 
-    // EXCAVADORA
+    // EXCAVADORA HIDRÁULICA SOBRE ORUGAS (HEAVY CRAWLER EXCAVATOR)
     if (t.includes('excavadora') && !t.includes('retro')) {
         return (
-            <g>
-                <rect x="110" y="165" width="165" height="32" rx="16" fill="url(#trackGrad)" stroke="#64748b" strokeWidth="2" />
-                <circle cx="125" cy="181" r="11" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="260" cy="181" r="11" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="160" cy="181" r="8" fill="#334155" />
-                <circle cx="195" cy="181" r="8" fill="#334155" />
-                <circle cx="230" cy="181" r="8" fill="#334155" />
-                <path d="M 115 165 L 115 120 L 195 120 L 275 130 L 275 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="115" y="65" width="65" height="58" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
-                <rect x="118" y="70" width="58" height="48" rx="2" fill="url(#glassGrad)" />
-                <path d="M 255 130 Q 278 135 278 165 L 255 165 Z" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
-                <path d="M 155 140 Q 105 55 45 95" fill="none" stroke="url(#yellowBodyGrad)" strokeWidth="12" strokeLinecap="round" />
-                <path d="M 45 95 L 30 155" fill="none" stroke="url(#metalArmGrad)" strokeWidth="8" strokeLinecap="round" />
-                <path d="M 30 155 Q 18 185 8 185 Q 18 165 30 155 Z" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-                <text x="220" y="148" fill="#713f12" fontSize="9" fontWeight="900" letterSpacing="0.8">EXCAVADORA</text>
+            <g id="vector_excavadora">
+                {/* Sombra en el suelo */}
+                <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
+
+                {/* 1. TREN DE RODAJE Y ORUGAS DE ACERO DE ALTA RESISTENCIA */}
+                <g id="undercarriage">
+                    <rect x="90" y="165" width="180" height="34" rx="17" fill="url(#trackGrad)" stroke="#475569" strokeWidth="2.5" />
+                    {/* Zapatas de oruga en relieve */}
+                    <rect x="92" y="167" width="176" height="30" rx="15" fill="none" stroke="#64748b" strokeWidth="2" strokeDasharray="6 3" />
+                    {/* Rueda guía delantera y rueda motriz trasera */}
+                    <circle cx="107" cy="182" r="13" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+                    <circle cx="107" cy="182" r="5" fill="#0f172a" />
+                    <circle cx="253" cy="182" r="13" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+                    <circle cx="253" cy="182" r="5" fill="#0f172a" />
+                    {/* Rodillos inferiores de apoyo de oruga */}
+                    {[132, 156, 180, 204, 228].map(rx => (
+                        <circle key={rx} cx={rx} cy={183} r="7.5" fill="#1e293b" stroke="#64748b" strokeWidth="1.2" />
+                    ))}
+                    {/* Escalones de acceso al chasis inferior */}
+                    <rect x="86" y="176" width="6" height="12" rx="1.5" fill="#facc15" stroke="#ca8a04" strokeWidth="1" />
+                </g>
+
+                {/* 2. SUPERESTRUCTURA GIRATORIA (CASA Y CONTRAPESO) */}
+                {/* Contrapeso posterior pesado con reborde biselado */}
+                <path d="M 235 120 L 278 126 C 285 127 288 135 288 145 L 285 165 L 235 165 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                {/* Carrocería central en amarillo industrial Cat */}
+                <path d="M 125 165 L 125 122 C 125 118 130 115 136 115 L 238 115 L 238 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                {/* Rejillas de disipación de calor del compartimiento motor */}
+                <rect x="185" y="124" width="42" height="16" rx="2" fill="url(#machineryGrille)" stroke="#475569" strokeWidth="1" />
+                <line x1="187" y1="128" x2="225" y2="128" stroke="#64748b" strokeWidth="1" />
+                <line x1="187" y1="132" x2="225" y2="132" stroke="#64748b" strokeWidth="1" />
+                <line x1="187" y1="136" x2="225" y2="136" stroke="#64748b" strokeWidth="1" />
+                {/* Tubo de escape de gases */}
+                <rect x="238" y="96" width="5" height="20" rx="1.5" fill="#0f172a" />
+
+                {/* 3. CABINA DEL OPERADOR PANORÁMICA ROPS */}
+                <path d="M 128 122 L 134 68 C 135 64 139 60 145 60 L 180 60 C 185 60 188 64 188 68 L 188 122 Z" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                <path d="M 137 68 L 160 68 L 160 118 L 132 118 Z" fill="url(#glassGrad)" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.4" />
+                <path d="M 163 68 L 184 68 L 184 118 L 163 118 Z" fill="url(#glassGrad)" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.4" />
+                {/* Butaca del operador y joysticks visibles al interior */}
+                <rect x="168" y="90" width="10" height="20" rx="2" fill="#1e293b" />
+                <circle cx="173" cy="84" r="4" fill="#334155" />
+                {/* Techo de cabina en amarillo */}
+                <rect x="130" y="58" width="62" height="6" rx="2" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1" />
+                {/* Espejo lateral exterior */}
+                <rect x="124" y="74" width="5" height="14" rx="1.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1" />
+
+                {/* 4. PLUMA, BALANCÍN Y CUCHARA DE EXCAVACIÓN PESADA */}
+                {/* Pluma principal de excavación (Boom) en arco */}
+                <path 
+                    d="M 148 135 C 130 95 90 48 46 88" 
+                    fill="none" 
+                    stroke="url(#yellowBodyGrad)" 
+                    strokeWidth="14" 
+                    strokeLinecap="round" 
+                />
+                {/* Cilindro hidráulico de elevación de pluma con vástago de acero */}
+                <path d="M 142 145 L 98 105" stroke="#334155" strokeWidth="5.5" strokeLinecap="round" />
+                <path d="M 98 105 L 80 88" stroke="url(#metalArmGrad)" strokeWidth="3.2" strokeLinecap="round" />
+                {/* Brazo de excavación (Stick / Balancín) */}
+                <path 
+                    d="M 46 88 L 30 162" 
+                    fill="none" 
+                    stroke="url(#yellowBodyGrad)" 
+                    strokeWidth="9" 
+                    strokeLinecap="round" 
+                />
+                {/* Cilindro del balancín */}
+                <path d="M 72 70 L 40 115" stroke="#334155" strokeWidth="3.5" />
+                {/* Mangueras hidráulicas de alta presión */}
+                <path d="M 140 120 Q 95 62 48 90" fill="none" stroke="#0f172a" strokeWidth="2" strokeDasharray="3 1.5" />
+                {/* Cuchara de excavación reforzada con 5 dientes */}
+                <path 
+                    d="M 30 162 C 16 172 10 192 28 198 C 42 202 48 185 38 165 Z" 
+                    fill="#334155" 
+                    stroke="#1e293b" 
+                    strokeWidth="1.8" 
+                />
+                <polygon points="12,188 4,192 7,196 15,193" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="16,193 8,197 11,201 19,198" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="21,197 13,201 16,205 24,202" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+
+                {/* 5. IDENTIFICADOR */}
+                <text x="210" y="152" fill="#713f12" fontSize="7.5" fontWeight="900" letterSpacing="0.8">EXCAVADORA 330</text>
             </g>
         );
     }
 
-    // TRACTOR DE ORUGA (BULLDOZER)
+    // TRACTOR DE ORUGA / BULLDOZER
     if (t.includes('tractor') || t.includes('oruga') || t.includes('bulldozer')) {
         return (
-            <g>
-                <rect x="95" y="165" width="180" height="32" rx="16" fill="url(#trackGrad)" stroke="#64748b" strokeWidth="2" />
-                <circle cx="112" cy="181" r="12" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
-                <circle cx="260" cy="181" r="12" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
-                <path d="M 95 165 L 95 125 L 175 125 L 260 125 L 260 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="145" y="65" width="68" height="60" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="2" />
-                <rect x="150" y="70" width="58" height="48" rx="2" fill="url(#glassGrad)" />
-                <path d="M 18 155 Q 38 150 40 190 Q 18 190 18 155 Z" fill="#475569" stroke="#1e293b" strokeWidth="2" />
-                <polygon points="38,175 105,175 105,182 36,182" fill="url(#metalArmGrad)" />
-                <polygon points="265,150 305,168 300,190 280,165" fill="#334155" />
-                <text x="145" y="145" fill="#713f12" fontSize="9" fontWeight="900" letterSpacing="0.8">BULLDOZER</text>
+            <g id="vector_bulldozer">
+                {/* Sombra */}
+                <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
+
+                {/* Orugas de tracción elevada Caterpillar High-Drive */}
+                <g id="bulldozer_tracks">
+                    <polygon points="85,195 270,195 285,170 255,145 220,145 100,170" fill="url(#trackGrad)" stroke="#475569" strokeWidth="2" />
+                    {/* Rueda motriz elevada */}
+                    <circle cx="238" cy="155" r="14" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+                    <circle cx="238" cy="155" r="5" fill="#0f172a" />
+                    {/* Rueda guía delantera */}
+                    <circle cx="102" cy="182" r="12" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+                    <circle cx="265" cy="182" r="12" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+                    {/* Rodillos inferiores */}
+                    {[130, 155, 180, 205, 230].map(bx => (
+                        <circle key={bx} cx={bx} cy={186} r="7" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+                    ))}
+                </g>
+
+                {/* Chasis motor pesado */}
+                <path d="M 88 170 L 92 135 C 94 126 102 120 115 118 L 195 118 L 195 170 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                <rect x="108" y="126" width="34" height="15" rx="2" fill="url(#machineryGrille)" stroke="#475569" strokeWidth="1" />
+                {/* Tubo de escape vertical */}
+                <rect x="135" y="85" width="5" height="34" rx="1.5" fill="#0f172a" />
+
+                {/* Cabina con barras de protección forestal / antivuelco ROPS/FOPS */}
+                <rect x="175" y="65" width="62" height="65" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                <rect x="180" y="70" width="52" height="42" rx="2" fill="url(#glassGrad)" />
+                {/* Barras de defensa de cabina (Sweeps) */}
+                <line x1="94" y1="135" x2="175" y2="65" stroke="#334155" strokeWidth="3" />
+                <rect x="172" y="62" width="68" height="6" rx="2" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.2" />
+
+                {/* Cuchilla topadora delantera Semi-U de gran capacidad */}
+                <path d="M 28 152 Q 44 148 48 195 L 24 195 Q 16 172 28 152 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                {/* Cuchilla de corte inferior antidesgaste */}
+                <rect x="18" y="193" width="32" height="5" rx="1" fill="#64748b" stroke="#0f172a" strokeWidth="1" />
+                {/* Brazos de empuje reforzados y cilindros hidráulicos de inclinación (Tilt) */}
+                <polygon points="46,172 118,172 118,182 44,182" fill="url(#metalArmGrad)" stroke="#334155" strokeWidth="1" />
+                <line x1="46" y1="162" x2="88" y2="148" stroke="#334155" strokeWidth="4.5" />
+                <line x1="88" y1="148" x2="105" y2="142" stroke="url(#metalArmGrad)" strokeWidth="2.8" />
+
+                {/* Desgarrador posterior multirripper */}
+                <polygon points="268,155 308,175 302,198 282,170" fill="#334155" stroke="#1e293b" strokeWidth="1.5" />
+                <text x="145" y="152" fill="#713f12" fontSize="7.5" fontWeight="900">BULLDOZER D8</text>
             </g>
         );
     }
 
-    // RETROEXCAVADORA
+    // RETROEXCAVADORA (ALTA DEFINICIÓN VECTORIAL DETALLADA)
     if (t.includes('retro')) {
         return (
-            <g>
-                <path d="M 85 165 L 85 130 L 150 130 L 225 130 L 225 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="125" y="68" width="65" height="62" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
-                <rect x="130" y="72" width="55" height="50" rx="2" fill="url(#glassGrad)" />
-                <circle cx="82" cy="182" r="18" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <circle cx="215" cy="175" r="26" fill="#1e293b" stroke="#475569" strokeWidth="4" />
-                <polygon points="20,155 45,150 50,185 18,185" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-                <line x1="45" y1="160" x2="105" y2="145" stroke="url(#yellowBodyGrad)" strokeWidth="6" strokeLinecap="round" />
-                <path d="M 230 145 Q 275 95 295 115 L 325 145" fill="none" stroke="url(#yellowBodyGrad)" strokeWidth="7" strokeLinecap="round" />
-                <text x="110" y="145" fill="#713f12" fontSize="7.5" fontWeight="900">RETROEXCAVADORA</text>
+            <g id="vector_retroexcavadora_hd">
+                {/* 1. SUELO Y SOMBRA PROYECTADA */}
+                <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
+
+                {/* 2. CHUTE / SOPORTE DELANTERO Y PALA CARGADORA (FRONT LOADER) */}
+                <path d="M 125 152 L 55 178 L 48 188 L 120 162 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.5" />
+                <path d="M 115 168 L 82 178" stroke="#334155" strokeWidth="4.5" strokeLinecap="round" />
+                <path d="M 82 178 L 65 183" stroke="url(#metalArmGrad)" strokeWidth="2.8" strokeLinecap="round" />
+                <line x1="88" y1="156" x2="62" y2="170" stroke="#334155" strokeWidth="3" />
+                <line x1="62" y1="170" x2="48" y2="182" stroke="#64748b" strokeWidth="2" />
+                {/* Cuchara frontal de servicio pesado con dientes */}
+                <path 
+                    d="M 52 165 L 28 172 L 20 198 L 48 202 L 54 186 Z" 
+                    fill="#334155" 
+                    stroke="#1e293b" 
+                    strokeWidth="1.8" 
+                />
+                <polygon points="20,198 12,201 16,204 22,203" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="24,203 17,205 21,208 27,206" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="30,205 23,207 27,210 33,208" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+
+                {/* 3. CAPÓ MOTOR, SISTEMA DE ADMISIÓN Y ESCAPE */}
+                <path d="M 75 168 L 78 142 C 80 134 88 128 100 126 L 138 124 L 140 168 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.8" />
+                <rect x="96" y="132" width="28" height="15" rx="2" fill="url(#machineryGrille)" stroke="#475569" strokeWidth="1" />
+                <line x1="98" y1="136" x2="122" y2="136" stroke="#64748b" strokeWidth="1" />
+                <line x1="98" y1="140" x2="122" y2="140" stroke="#64748b" strokeWidth="1" />
+                <line x1="98" y1="144" x2="122" y2="144" stroke="#64748b" strokeWidth="1" />
+                {/* Tubo de escape vertical negro con tapa contra lluvia */}
+                <rect x="130" y="85" width="4.5" height="40" rx="1.5" fill="#0f172a" stroke="#334155" strokeWidth="0.8" />
+                <ellipse cx="132" cy="85" rx="3.5" ry="1.5" fill="#475569" />
+                <line x1="130" y1="84" x2="136" y2="82" stroke="#e2e8f0" strokeWidth="1.2" />
+                {/* Filtro de aire tipo Snorkel */}
+                <rect x="122" y="98" width="4" height="26" fill="#1e293b" />
+                <circle cx="124" cy="98" r="4.5" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+
+                {/* 4. CHASIS CENTRAL, ESTRIBOS Y TANQUE DE COMBUSTIBLE */}
+                <rect x="85" y="162" width="165" height="18" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                <rect x="152" y="164" width="38" height="14" rx="2" fill="#334155" stroke="#475569" strokeWidth="1" />
+                <circle cx="185" cy="168" r="2.5" fill="#ef4444" stroke="#7f1d1d" strokeWidth="0.6" />
+                {/* Escaleras de acceso antideslizantes de 3 peldaños */}
+                <g id="retro_access_stairs" transform="translate(138, 172)">
+                    <line x1="0" y1="0" x2="4" y2="24" stroke="#475569" strokeWidth="2" />
+                    <line x1="14" y1="0" x2="18" y2="24" stroke="#475569" strokeWidth="2" />
+                    <line x1="1" y1="7" x2="15" y2="7" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="2" y1="15" x2="16" y2="15" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="3" y1="22" x2="17" y2="22" stroke="#e2e8f0" strokeWidth="2" strokeLinecap="round" />
+                </g>
+
+                {/* 5. CABINA PANORÁMICA ROPS/FOPS DEL OPERADOR */}
+                <path d="M 136 124 L 144 65 C 145 61 150 58 156 58 L 204 58 C 210 58 214 62 215 67 L 218 162 L 140 162 Z" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                <path d="M 148 68 L 176 68 L 176 122 L 142 122 Z" fill="url(#glassGrad)" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.4" />
+                <path d="M 180 68 L 208 68 L 212 122 L 180 122 Z" fill="url(#glassGrad)" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.4" />
+                <path d="M 180 126 L 214 126 L 215 158 L 180 158 Z" fill="url(#glassGrad)" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.3" />
+                <g opacity="0.85">
+                    <rect x="184" y="98" width="14" height="24" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+                    <circle cx="191" cy="92" r="5" fill="#334155" />
+                    <ellipse cx="160" cy="112" rx="4" ry="7" fill="none" stroke="#64748b" strokeWidth="1.5" transform="rotate(-20 160 112)" />
+                    <line x1="172" y1="126" x2="170" y2="116" stroke="#94a3b8" strokeWidth="1.8" />
+                    <circle cx="170" cy="115" r="2" fill="#ef4444" />
+                </g>
+                <path d="M 140 60 C 140 56 148 54 158 54 L 208 54 C 218 54 222 56 224 60 L 222 66 L 140 66 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.5" />
+                <rect x="134" y="76" width="5.5" height="15" rx="1.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="139" y1="80" x2="144" y2="82" stroke="#475569" strokeWidth="1.5" />
+                <line x1="148" y1="116" x2="164" y2="92" stroke="#0f172a" strokeWidth="1.8" />
+
+                {/* 6. RUEDAS INDUSTRIALES OFF-ROAD DE SERVICIO PESADO */}
+                <g id="retro_front_wheel" transform="translate(94, 180)">
+                    <circle cx="0" cy="0" r="24" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+                    <circle cx="0" cy="0" r="21" fill="none" stroke="#334155" strokeWidth="2.5" strokeDasharray="6 3" />
+                    <circle cx="0" cy="0" r="14" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.5" />
+                    <circle cx="0" cy="0" r="7" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+                    <circle cx="-3" cy="-3" r="1.2" fill="#ffffff" />
+                    <circle cx="3" cy="-3" r="1.2" fill="#ffffff" />
+                    <circle cx="-3" cy="3" r="1.2" fill="#ffffff" />
+                    <circle cx="3" cy="3" r="1.2" fill="#ffffff" />
+                </g>
+
+                <g id="retro_rear_wheel" transform="translate(218, 168)">
+                    <circle cx="0" cy="0" r="36" fill="#0f172a" stroke="#1e293b" strokeWidth="5" />
+                    <circle cx="0" cy="0" r="32" fill="none" stroke="#334155" strokeWidth="4" strokeDasharray="9 4" />
+                    <circle cx="0" cy="0" r="22" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                    <circle cx="0" cy="0" r="10" fill="#1e293b" stroke="#64748b" strokeWidth="1.5" />
+                    <circle cx="0" cy="0" r="3" fill="#ca8a04" />
+                    <circle cx="-5" cy="-5" r="1.4" fill="#ffffff" />
+                    <circle cx="5" cy="-5" r="1.4" fill="#ffffff" />
+                    <circle cx="-5" cy="5" r="1.4" fill="#ffffff" />
+                    <circle cx="5" cy="5" r="1.4" fill="#ffffff" />
+                </g>
+
+                {/* 7. ESTABILIZADOR TRASERO VERTICAL (OUTRIGGER) */}
+                <rect x="248" y="152" width="9" height="46" rx="2" fill="#334155" stroke="#1e293b" strokeWidth="1.2" />
+                <rect x="242" y="196" width="20" height="5" rx="1.5" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+
+                {/* 8. BRAZO RETROEXCAVADOR POSTERIOR (BACKHOE BOOM & DIPPER) */}
+                <rect x="252" y="132" width="16" height="24" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+                <path 
+                    d="M 260 140 C 265 110 282 82 305 92 C 318 98 322 112 320 125" 
+                    fill="none" 
+                    stroke="url(#yellowBodyGrad)" 
+                    strokeWidth="11" 
+                    strokeLinecap="round" 
+                />
+                <path d="M 262 135 L 290 98" stroke="#334155" strokeWidth="4.2" strokeLinecap="round" />
+                <path d="M 290 98 L 302 88" stroke="url(#metalArmGrad)" strokeWidth="2.5" strokeLinecap="round" />
+                <path 
+                    d="M 320 125 L 328 172" 
+                    fill="none" 
+                    stroke="url(#yellowBodyGrad)" 
+                    strokeWidth="8" 
+                    strokeLinecap="round" 
+                />
+                <path d="M 302 88 L 324 135" stroke="#334155" strokeWidth="3" />
+                <path d="M 265 136 Q 288 100 318 126" fill="none" stroke="#0f172a" strokeWidth="1.8" strokeDasharray="3 1" />
+                <path 
+                    d="M 326 172 C 322 186 328 198 344 196 C 348 188 346 175 334 168 Z" 
+                    fill="#334155" 
+                    stroke="#1e293b" 
+                    strokeWidth="1.6" 
+                />
+                <polygon points="344,196 352,198 350,202 342,200" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="341,192 349,194 347,198 339,196" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+                <polygon points="338,187 346,189 344,193 336,191" fill="#64748b" stroke="#0f172a" strokeWidth="0.8" />
+
+                {/* 9. RÓTULO TÉCNICO */}
+                <text x="142" y="152" fill="#713f12" fontSize="6.5" fontWeight="900" letterSpacing="0.6">RETROEXCAVADORA 4x4</text>
             </g>
         );
     }
 
-    // CARGADOR FRONTAL
+    // CARGADOR FRONTAL (WHEEL LOADER)
     if (t.includes('cargador') && !t.includes('mini')) {
         return (
-            <g>
-                <path d="M 95 160 L 95 135 L 165 135 L 265 135 L 265 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="135" y="65" width="65" height="70" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
-                <rect x="140" y="70" width="55" height="55" rx="2" fill="url(#glassGrad)" />
-                <circle cx="95" cy="178" r="25" fill="#1e293b" stroke="#475569" strokeWidth="4" />
-                <circle cx="245" cy="178" r="25" fill="#1e293b" stroke="#475569" strokeWidth="4" />
-                <polygon points="15,155 40,145 45,190 12,190" fill="#475569" stroke="#1e293b" strokeWidth="1.5" />
-                <line x1="40" y1="165" x2="120" y2="140" stroke="url(#yellowBodyGrad)" strokeWidth="8" strokeLinecap="round" />
-                <text x="175" y="145" fill="#713f12" fontSize="8" fontWeight="900">CARGADOR FRONTAL</text>
+            <g id="vector_cargador_frontal">
+                {/* Sombra */}
+                <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
+
+                {/* Chasis articulado delantero y trasero con pivote central */}
+                <path d="M 100 162 L 100 135 L 165 135 L 260 135 L 260 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                <circle cx="165" cy="160" r="6" fill="#1e293b" stroke="#64748b" strokeWidth="2" />
+
+                {/* Cabina panorámica elevada */}
+                <rect x="145" y="62" width="65" height="72" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                <rect x="150" y="68" width="55" height="56" rx="2" fill="url(#glassGrad)" />
+                <rect x="142" y="58" width="72" height="6" rx="2" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1" />
+
+                {/* Ruedas pesadas masivas iguales adelante y atrás */}
+                <g transform="translate(100, 175)">
+                    <circle cx="0" cy="0" r="32" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+                    <circle cx="0" cy="0" r="28" fill="none" stroke="#334155" strokeWidth="3" strokeDasharray="8 4" />
+                    <circle cx="0" cy="0" r="18" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                    <circle cx="0" cy="0" r="8" fill="#1e293b" />
+                </g>
+                <g transform="translate(235, 175)">
+                    <circle cx="0" cy="0" r="32" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+                    <circle cx="0" cy="0" r="28" fill="none" stroke="#334155" strokeWidth="3" strokeDasharray="8 4" />
+                    <circle cx="0" cy="0" r="18" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                    <circle cx="0" cy="0" r="8" fill="#1e293b" />
+                </g>
+
+                {/* Brazos de elevación del cargador y mecanismo de inclinación Z-Bar */}
+                <path d="M 140 145 L 55 168 L 48 180 L 135 155 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="1.5" />
+                <line x1="88" y1="135" x2="55" y2="158" stroke="#334155" strokeWidth="4.5" />
+                {/* Cuchara cargadora masiva de volteo */}
+                <path d="M 48 152 L 18 165 L 12 198 L 46 202 L 52 178 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
+                <text x="175" y="152" fill="#713f12" fontSize="7.5" fontWeight="900">CARGADOR FRONTAL 950</text>
             </g>
         );
     }
 
-    // MOTONIVELADORA
+    // MOTONIVELADORA (MOTOR GRADER)
     if (t.includes('motoniveladora')) {
         return (
-            <g>
-                <path d="M 45 175 L 85 115 L 180 115 L 285 145 L 285 175 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="140" y="65" width="65" height="68" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
-                <rect x="145" y="70" width="55" height="55" rx="2" fill="url(#glassGrad)" />
-                <ellipse cx="42" cy="180" rx="14" ry="18" fill="#1e293b" stroke="#475569" strokeWidth="3" transform="rotate(-8 42 180)" />
-                <circle cx="245" cy="180" r="18" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <circle cx="285" cy="180" r="18" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <circle cx="130" cy="165" r="16" fill="none" stroke="#475569" strokeWidth="3" />
-                <rect x="105" y="180" width="60" height="8" rx="2" fill="#475569" stroke="#1e293b" strokeWidth="1" transform="rotate(10 135 184)" />
-                <text x="180" y="150" fill="#713f12" fontSize="7.5" fontWeight="900">MOTONIVELADORA</text>
+            <g id="vector_motoniveladora">
+                <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
+                {/* Cuello de cisne arqueado delantero */}
+                <path d="M 52 175 L 85 110 L 180 110 L 275 142 L 275 175 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
+                <rect x="145" y="65" width="62" height="68" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+                <rect x="150" y="70" width="52" height="55" rx="2" fill="url(#glassGrad)" />
+                {/* Rueda delantera inclinada */}
+                <ellipse cx="48" cy="178" rx="14" ry="20" fill="#0f172a" stroke="#334155" strokeWidth="3" transform="rotate(-12 48 178)" />
+                {/* Tándem trasero doble rueda */}
+                <circle cx="232" cy="178" r="22" fill="#0f172a" stroke="#1e293b" strokeWidth="3" />
+                <circle cx="232" cy="178" r="12" fill="url(#yellowBodyGrad)" />
+                <circle cx="278" cy="178" r="22" fill="#0f172a" stroke="#1e293b" strokeWidth="3" />
+                <circle cx="278" cy="178" r="12" fill="url(#yellowBodyGrad)" />
+                {/* Corona y vertedera central (Hoja niveladora) */}
+                <circle cx="132" cy="165" r="18" fill="none" stroke="#475569" strokeWidth="3.5" />
+                <rect x="100" y="180" width="72" height="9" rx="2" fill="#334155" stroke="#0f172a" strokeWidth="1.2" transform="rotate(8 136 184)" />
+                <text x="180" y="152" fill="#713f12" fontSize="7.5" fontWeight="900">MOTONIVELADORA 140M</text>
             </g>
         );
     }
 
-    // PAVIMENTADORA / ESPARCIDOR DE ASFALTO
-    if (t.includes('esparcidor') || t.includes('pavimentadora') || (t.includes('asfalto') && !t.includes('imprimador') && !t.includes('distribuidor'))) {
-        return (
-            <g>
-                <path d="M 25 175 L 40 140 L 95 140 L 95 175 Z" fill="#334155" stroke="#1e293b" strokeWidth="2" />
-                <path d="M 95 175 L 95 105 L 245 105 L 245 175 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="125" y="50" width="95" height="8" rx="2" fill="#1e293b" />
-                <line x1="135" y1="105" x2="135" y2="55" stroke="#475569" strokeWidth="3" />
-                <line x1="205" y1="105" x2="205" y2="55" stroke="#475569" strokeWidth="3" />
-                <rect x="100" y="168" width="130" height="24" rx="12" fill="url(#trackGrad)" stroke="#64748b" strokeWidth="2" />
-                <rect x="255" y="165" width="55" height="20" rx="3" fill="#475569" stroke="#1e293b" strokeWidth="2" />
-                <rect x="250" y="180" width="65" height="6" fill="#e2e8f0" stroke="#0f172a" strokeWidth="1" />
-                <text x="155" y="135" fill="#713f12" fontSize="7.5" fontWeight="900">PAVIMENTADORA</text>
-            </g>
-        );
-    }
-
-    // CAMIÓN IMPRIMADOR / DISTRIBUIDOR
-    if (t.includes('imprimador') || t.includes('distribuidor')) {
-        return (
-            <g>
-                <path d="M 45 175 L 45 105 L 85 105 L 105 135 L 105 175 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-                <rect x="52" y="112" width="30" height="25" rx="2" fill="url(#glassGrad)" />
-                <rect x="40" y="165" width="275" height="12" fill="#1e293b" />
-                <circle cx="75" cy="178" r="16" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <circle cx="230" cy="178" r="16" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <circle cx="265" cy="178" r="16" fill="#1e293b" stroke="#475569" strokeWidth="3" />
-                <rect x="110" y="85" width="165" height="75" rx="16" fill="#334155" stroke="#1e293b" strokeWidth="2" />
-                <rect x="305" y="165" width="30" height="8" rx="2" fill="#0f172a" stroke="#ef4444" strokeWidth="1.5" />
-                <text x="180" y="125" fill="#f8fafc" fontSize="8" fontWeight="900" letterSpacing="0.8">DISTRIBUIDOR DE ASFALTO</text>
-            </g>
-        );
-    }
-
-    // RODILLO NEUMÁTICO O COMPACTADOR GENERAL
+    // RODILLO COMPACTADOR GENERAL
     return (
-        <g>
+        <g id="vector_compactador">
+            <ellipse cx="180" cy="208" rx="160" ry="9" fill="#020617" opacity="0.6" />
             <path d="M 85 160 L 85 125 L 265 125 L 265 165 Z" fill="url(#yellowBodyGrad)" stroke="#ca8a04" strokeWidth="2" />
-            <rect x="135" y="65" width="70" height="60" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+            <rect x="135" y="65" width="70" height="60" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="2" />
             <rect x="140" y="70" width="60" height="48" rx="2" fill="url(#glassGrad)" />
-            <circle cx="75" cy="175" r="26" fill="#64748b" stroke="#334155" strokeWidth="4" />
-            <circle cx="235" cy="175" r="24" fill="#1e293b" stroke="#475569" strokeWidth="4" />
-            <text x="160" y="145" fill="#713f12" fontSize="7.5" fontWeight="900">COMPACTADOR</text>
+            {/* Rolo de acero vibratorio frontal macizo */}
+            <circle cx="82" cy="172" r="30" fill="url(#metalArmGrad)" stroke="#1e293b" strokeWidth="4" />
+            <circle cx="82" cy="172" r="12" fill="#334155" stroke="#94a3b8" strokeWidth="2" />
+            {/* Ruedas neumáticas traseras */}
+            <circle cx="235" cy="172" r="28" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+            <circle cx="235" cy="172" r="16" fill="url(#yellowBodyGrad)" />
+            <text x="160" y="148" fill="#713f12" fontSize="7.5" fontWeight="900">RODILLO COMPACTADOR</text>
         </g>
     );
 };
