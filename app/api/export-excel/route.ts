@@ -271,9 +271,10 @@ export async function POST(req: Request) {
                   /^data:image\/\w+;base64,/,
                   "",
                 );
+                const isPng = fotoB64.startsWith("data:image/png");
                 const imageId = workbook.addImage({
                   base64: base64Data,
-                  extension: "png",
+                  extension: isPng ? "png" : "jpeg",
                 });
                 worksheet.addImage(imageId, {
                   tl: { col: colCursor - 1, row: currentPhotoRow - 1 },

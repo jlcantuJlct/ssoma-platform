@@ -239,21 +239,58 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
         });
     };
 
-    const handlePhotoUploadDefecto = (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
-        Array.from(files).forEach(file => {
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                if (ev.target?.result) {
-                    setFotosDefectos(prev => ({
-                        ...prev,
-                        [item]: [...(prev[item] || []), ev.target!.result as string]
-                    }));
-                }
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 900;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.65));
+                };
+                img.onerror = () => {
+                    resolve(ev.target?.result as string || '');
+                };
+                img.src = ev.target?.result as string;
             };
+            reader.onerror = () => resolve('');
             reader.readAsDataURL(file);
         });
+    };
+
+    const handlePhotoUploadDefecto = async (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        for (const file of Array.from(files)) {
+            try {
+                const compressed = await compressImage(file);
+                if (compressed) {
+                    setFotosDefectos(prev => ({
+                        ...prev,
+                        [item]: [...(prev[item] || []), compressed]
+                    }));
+                }
+            } catch (err) {
+                console.error("Error compressing photo:", err);
+            }
+        }
+        e.target.value = '';
     };
 
     const removePhotoDefecto = (item: string, index: number) => {
@@ -445,8 +482,20 @@ export const VehicleCustomForm = ({ moduleName, version, SignaturePad }: { modul
                     }
                 }
             } else {
-                const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
-                alert('Error al generar la inspección: ' + errorData.error);
+                let errorMsg = 'Error desconocido';
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch {
+                    if (res.status === 413) {
+                        errorMsg = 'El tamaño de las fotos adjuntas excede el límite del servidor (4.5 MB). Por favor adjunta fotos de menor peso o menos fotos.';
+                    } else if (res.status === 504) {
+                        errorMsg = 'Tiempo de espera agotado en el servidor (Timeout). Por favor intenta de nuevo.';
+                    } else {
+                        errorMsg = `Error en el servidor (${res.status}): ${res.statusText || 'Error desconocido'}`;
+                    }
+                }
+                alert('Error al generar la inspección: ' + errorMsg);
             }
         } catch(e) {
             console.error(e);

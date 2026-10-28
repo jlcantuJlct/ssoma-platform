@@ -226,21 +226,56 @@ export default function AlmacenCustomForm({ SignaturePad }: { SignaturePad: any 
         });
     };
 
-    const handlePhotoUploadDefecto = (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
-        Array.from(files).forEach(file => {
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                if (ev.target?.result) {
-                    setFotosDefectos(prev => {
-                        const current = prev[item] || [];
-                        return { ...prev, [item]: [...current, ev.target!.result as string] };
-                    });
-                }
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 900;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.65));
+                };
+                img.onerror = () => resolve(ev.target?.result as string || '');
+                img.src = ev.target?.result as string;
             };
+            reader.onerror = () => resolve('');
             reader.readAsDataURL(file);
         });
+    };
+
+    const handlePhotoUploadDefecto = async (item: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        for (const file of Array.from(files)) {
+            try {
+                const compressed = await compressImage(file);
+                if (compressed) {
+                    setFotosDefectos(prev => {
+                        const current = prev[item] || [];
+                        return { ...prev, [item]: [...current, compressed] };
+                    });
+                }
+            } catch (err) {
+                console.error("Error compressing photo:", err);
+            }
+        }
+        e.target.value = '';
     };
 
     const removePhotoDefecto = (item: string, photoIdx: number) => {
