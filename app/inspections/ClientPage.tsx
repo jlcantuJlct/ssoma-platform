@@ -33,6 +33,7 @@ import { getDriveViewerUrl } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { generateFilename, getInitials } from '@/lib/utils';
+import { ModuleVisualIcon } from '@/components/inspections/ModuleVisualIcon';
 
 // Tipos de datos
 type InspectionRecord = {
@@ -2046,30 +2047,38 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                                         {inspectionModules.map((mod, idx) => {
             if (!mod) return null;
             return (
-            <div key={idx} className={`relative group ${mod.status === 'active' ? 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)]' : 'bg-slate-900 border-slate-800 border-dashed opacity-70'} border rounded-xl p-5 flex flex-col items-center text-center transition-all`}>
+            <div key={idx} className={`relative group ${mod.status === 'active' ? 'bg-gradient-to-b from-slate-900/90 to-slate-950/95 border-slate-800/80 hover:border-cyan-500/50 hover:shadow-[0_0_30px_-5px_rgba(6,182,212,0.25)]' : 'bg-slate-950/60 border-slate-800/50 border-dashed opacity-65'} border rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-300 backdrop-blur-md`}>
                 {(user?.role === 'developer' || user?.role === 'manager') && (
                     <button 
                         onClick={(e) => { e.preventDefault(); setTargetModule(mod.name); setFormatActionType(mod.status === 'active' ? 'update' : 'new'); setShowFormatOptionsModal(true); }}
-                        className="absolute top-2 right-2 p-2 bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                        className="absolute top-2.5 right-2.5 p-2 bg-slate-800/80 hover:bg-cyan-600/80 text-slate-400 hover:text-white rounded-xl border border-slate-700/50 transition-all z-20 shadow-md"
                         title="Opciones de Formato"
                     >
-                        <Settings size={16} />
+                        <Settings size={15} />
                     </button>
                 )}
                 <a href={mod.status === 'active' ? `/digital-inspections/${encodeURIComponent(mod.name || '')}/fill` : "#"} className="flex flex-col items-center w-full">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${mod.status === 'active' ? 'bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform' : 'bg-slate-500/10 text-slate-500'}`}>
-                        <ClipboardList size={32} />
+                    <div className="mb-4">
+                        <ModuleVisualIcon 
+                            name={mod.name} 
+                            description={mod.description} 
+                            icon={mod.icon} 
+                            image={mod.image} 
+                            isActive={mod.status === 'active'}
+                        />
                     </div>
-                    <h4 className={`font-bold mb-2 text-sm ${mod.status === 'active' ? 'text-white' : 'text-slate-300'}`}>{mod.name}</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{mod.description}</p>
-                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase mt-auto">En Configuración</span>}
+                    <h4 className={`font-bold mb-2 text-sm tracking-tight ${mod.status === 'active' ? 'text-white group-hover:text-cyan-300 transition-colors' : 'text-slate-300'}`}>{mod.name}</h4>
+                    <p className="text-xs text-slate-400/80 leading-relaxed mb-4 line-clamp-2">{mod.description}</p>
+                    {mod.status !== 'active' && <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded-md font-bold uppercase tracking-wider mt-auto border border-slate-700/40">En Configuración</span>}
                 </a>
             </div>
             );
         })}
-        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-900 border border-slate-800 border-dashed hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all min-h-[220px]">
-            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors"><Plus size={32} /></div>
-            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-white transition-colors">Crear Nuevo Módulo</h4>
+        <button onClick={() => setShowCreateModuleModal(true)} className="relative group bg-slate-950/60 border border-slate-800/80 border-dashed hover:border-cyan-500/60 hover:shadow-[0_0_25px_-5px_rgba(6,182,212,0.2)] rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all duration-300 min-h-[220px]">
+            <div className="w-16 h-16 bg-slate-900 border border-slate-700/60 text-slate-400 rounded-2xl flex items-center justify-center mb-4 group-hover:border-cyan-500/50 group-hover:text-cyan-400 group-hover:shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] transition-all">
+                <Plus size={32} />
+            </div>
+            <h4 className="font-bold text-slate-300 mb-2 text-sm group-hover:text-cyan-300 transition-colors">Crear Nuevo Módulo</h4>
             <p className="text-xs text-slate-500">Añadir otra inspección (Arneses, Escaleras, etc.)</p>
         </button>
                                 </div>
@@ -2128,6 +2137,45 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
                                     </button>
 
                                                                     <div className="flex flex-col gap-2 mt-4">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const fileInput = document.createElement('input');
+                                            fileInput.type = 'file';
+                                            fileInput.accept = 'image/*';
+                                            fileInput.onchange = async (ev: any) => {
+                                                const file = ev.target?.files?.[0];
+                                                if (!file) return;
+                                                const reader = new FileReader();
+                                                reader.onload = async (re: any) => {
+                                                    const base64Img = re.target?.result as string;
+                                                    try {
+                                                        const res = await fetch('/api/modules', {
+                                                            method: 'PUT',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ name: targetModule, image: base64Img })
+                                                        });
+                                                        if (res.ok) {
+                                                            setInspectionModules(prev => prev.map(m => m.name === targetModule ? { ...m, image: base64Img } : m));
+                                                            setShowFormatOptionsModal(false);
+                                                            alert('✅ Imagen del módulo actualizada correctamente');
+                                                        }
+                                                    } catch(err) {
+                                                        console.error(err);
+                                                    }
+                                                };
+                                                reader.readAsDataURL(file);
+                                            };
+                                            fileInput.click();
+                                        }}
+                                        className="w-full bg-blue-950/40 border border-blue-800/50 hover:border-blue-500 hover:bg-blue-900/50 p-4 rounded-xl text-left transition-all group"
+                                    >
+                                        <h4 className="text-blue-400 font-bold flex items-center gap-2 mb-1 text-sm">
+                                            <span>🖼️</span> Cambiar Imagen / Foto de Referencia
+                                        </h4>
+                                        <p className="text-[10px] text-blue-500/80">Sube una foto personalizada para este cajón (vehículo, extintor, botiquín, etc.).</p>
+                                    </button>
+
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();

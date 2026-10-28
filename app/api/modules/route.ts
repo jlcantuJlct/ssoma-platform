@@ -10,10 +10,15 @@ export async function GET() {
                 name TEXT NOT NULL UNIQUE,
                 description TEXT,
                 icon TEXT,
+                image TEXT,
                 status TEXT DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        try {
+            await db.execute("ALTER TABLE inspection_modules ADD COLUMN IF NOT EXISTS image TEXT");
+        } catch(e) {}
 
         // Check if empty
         const countRes = await db.fetchOne("SELECT COUNT(*) as c FROM inspection_modules");
@@ -36,11 +41,34 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { name, description, icon } = body;
+        const { name, description, icon, image } = body;
         
-        await db.execute("INSERT INTO inspection_modules (name, description, icon, status) VALUES (?, ?, ?, 'active')", [name, description, icon || 'file']);
+        await db.execute("INSERT INTO inspection_modules (name, description, icon, image, status) VALUES (?, ?, ?, ?, 'active')", [name, description, icon || 'file', image || null]);
         
-        return NextResponse.json({ success: true, message: 'Módulo creado', module: { name, description, icon: icon || 'file', status: 'active' } });
+        return NextResponse.json({ success: true, message: 'Módulo creado', module: { name, description, icon: icon || 'file', image: image || null, status: 'active' } });
+    } catch(e: any) {
+        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    }
+}
+
+export async function PUT(req: Request) {
+    try {
+        const body = await req.json();
+        const { id, name, description, icon, image, status } = body;
+        
+        if (id) {
+            await db.execute(
+                "UPDATE inspection_modules SET image = COALESCE(?, image), icon = COALESCE(?, icon), description = COALESCE(?, description), status = COALESCE(?, status) WHERE id = ?",
+                [image ?? null, icon ?? null, description ?? null, status ?? null, id]
+            );
+        } else if (name) {
+            await db.execute(
+                "UPDATE inspection_modules SET image = COALESCE(?, image), icon = COALESCE(?, icon), description = COALESCE(?, description), status = COALESCE(?, status) WHERE name = ?",
+                [image ?? null, icon ?? null, description ?? null, status ?? null, name]
+            );
+        }
+        
+        return NextResponse.json({ success: true, message: 'Módulo actualizado exitosamente' });
     } catch(e: any) {
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }

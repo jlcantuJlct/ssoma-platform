@@ -30,7 +30,7 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         name: 'Casco de Seguridad',
         shortLabel: 'Casco',
         x: 230,
-        y: 45,
+        y: 48,
         items: ['Casco']
     },
     {
@@ -38,8 +38,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'cabeza',
         name: 'Barbiquejo',
         shortLabel: 'Barbiquejo',
-        x: 282,
-        y: 122,
+        x: 275,
+        y: 125,
         items: ['Barbiquejo']
     },
     {
@@ -48,7 +48,7 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         name: 'Protección Ocular',
         shortLabel: 'Lentes',
         x: 230,
-        y: 86,
+        y: 88,
         items: ['Lentes', 'Sobrelente']
     },
     {
@@ -56,8 +56,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'cara',
         name: 'Protección Facial',
         shortLabel: 'Careta',
-        x: 165,
-        y: 100,
+        x: 170,
+        y: 102,
         items: ['Careta de esmerilar', 'Careta de soldador']
     },
     {
@@ -65,8 +65,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'oido',
         name: 'Protección Auditiva',
         shortLabel: 'Orejeras',
-        x: 295,
-        y: 90,
+        x: 290,
+        y: 92,
         items: ['Tapones', 'Orejeras']
     },
     {
@@ -84,7 +84,7 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         name: 'Ropa de Trabajo Superior / Chaleco',
         shortLabel: 'Uniforme',
         x: 230,
-        y: 215,
+        y: 220,
         items: ['Camisa', 'Polo']
     },
     {
@@ -92,7 +92,7 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'cuerpo',
         name: 'Mandil de Cuero',
         shortLabel: 'Mandil',
-        x: 172,
+        x: 176,
         y: 275,
         items: ['Mandil']
     },
@@ -101,8 +101,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'manos',
         name: 'Guantes de Protección (Mano Izq)',
         shortLabel: 'Guantes',
-        x: 95,
-        y: 345,
+        x: 125,
+        y: 355,
         items: ['Guantes de cuero', 'Guantes de jebe', 'Guantes dieléctricos', 'Guantes de hilo']
     },
     {
@@ -110,8 +110,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'manos',
         name: 'Guantes de Protección (Mano Der)',
         shortLabel: 'Guantes',
-        x: 365,
-        y: 345,
+        x: 335,
+        y: 355,
         items: ['Guantes de cuero', 'Guantes de jebe', 'Guantes dieléctricos', 'Guantes de hilo']
     },
     {
@@ -128,8 +128,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'cuerpo',
         name: 'Escarpines de Cuero',
         shortLabel: 'Escarpines',
-        x: 162,
-        y: 515,
+        x: 172,
+        y: 512,
         items: ['Escarpines']
     },
     {
@@ -137,8 +137,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'pies',
         name: 'Calzado de Seguridad (Pie Izq)',
         shortLabel: 'Botines',
-        x: 168,
-        y: 575,
+        x: 178,
+        y: 572,
         items: ['Botines punta de acero', 'Botines dieléctricos', 'Botas de jebe']
     },
     {
@@ -146,8 +146,8 @@ export const EPP_HOTSPOTS: EppHotspotDef[] = [
         category: 'pies',
         name: 'Calzado de Seguridad (Pie Der)',
         shortLabel: 'Botines',
-        x: 292,
-        y: 575,
+        x: 282,
+        y: 572,
         items: ['Botines punta de acero', 'Botines dieléctricos', 'Botas de jebe']
     }
 ];
@@ -321,154 +321,158 @@ export const InteractiveWorkerEppInspector: React.FC<InteractiveWorkerEppInspect
                         {/* ========================================================
                             ILUSTRACIÓN DEL TRABAJADOR CON SU EQUIPO COMPLETO (EPP)
                             ======================================================== */}
+                        {/* ========================================================
+                            ILUSTRACIÓN DEL TRABAJADOR CON SU EQUIPO COMPLETO (EPP)
+                            Diseño Anatómico, Proporcionado y Moderno
+                            ======================================================== */}
                         <g id="worker-full-body" opacity="0.95">
-                            {/* Sombra proyectada en el piso */}
-                            <ellipse cx="230" cy="600" rx="140" ry="14" fill="#020617" opacity="0.6" />
+                            {/* Sombra ambiental multicapa en el piso */}
+                            <ellipse cx="230" cy="595" rx="130" ry="12" fill="#020617" opacity="0.7" />
+                            <ellipse cx="230" cy="595" rx="80" ry="6" fill="#020617" opacity="0.5" />
 
-                            {/* --- PIERNAS Y PANTALÓN CON CINTAS REFLECTIVAS --- */}
-                            {/* Pierna Izquierda */}
-                            <path d="M 175 350 L 160 540 L 200 545 L 210 380 Z" fill="url(#eppPantsGrad)" stroke="#334155" strokeWidth="1.5" />
-                            {/* Pierna Derecha */}
-                            <path d="M 285 350 L 300 540 L 260 545 L 250 380 Z" fill="url(#eppPantsGrad)" stroke="#334155" strokeWidth="1.5" />
-                            {/* Entrepierna */}
-                            <path d="M 210 380 Q 230 400 250 380" fill="none" stroke="#0f172a" strokeWidth="2" />
+                            {/* --- PIERNAS Y PANTALÓN INDUSTRIAL CON CORTE ANATÓMICO --- */}
+                            {/* Pierna Izquierda: contorno de muslo, rodilla, pantorrilla y bota */}
+                            <path d="M 172 355 C 164 395 160 430 162 460 C 160 488 162 518 166 545 L 202 545 C 202 518 200 488 200 460 C 206 430 216 395 224 385 Z" fill="url(#eppPantsGrad)" stroke="#334155" strokeWidth="1.5" strokeLinejoin="round" />
+                            
+                            {/* Pierna Derecha: simétrica y natural */}
+                            <path d="M 288 355 C 296 395 300 430 298 460 C 300 488 298 518 294 545 L 258 545 C 258 518 260 488 260 460 C 254 430 244 395 236 385 Z" fill="url(#eppPantsGrad)" stroke="#334155" strokeWidth="1.5" strokeLinejoin="round" />
+                            
+                            {/* Curva suave de entrepierna */}
+                            <path d="M 224 385 Q 230 392 236 385" fill="none" stroke="#0f172a" strokeWidth="2.5" />
+                            <line x1="230" y1="355" x2="230" y2="382" stroke="#0f172a" strokeWidth="1.8" />
 
-                            {/* Cintas reflectivas 3M en botamangas del pantalón */}
-                            <rect x="156" y="475" width="46" height="8" rx="2" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
-                            <rect x="258" y="475" width="46" height="8" rx="2" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
-                            <rect x="157" y="495" width="44" height="8" rx="2" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
-                            <rect x="259" y="495" width="44" height="8" rx="2" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+                            {/* Parches ergonómicos reforzados en rodillas */}
+                            <path d="M 162 445 Q 181 440 200 445 L 199 472 Q 181 478 163 472 Z" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+                            <path d="M 260 445 Q 279 440 298 445 L 297 472 Q 279 478 261 472 Z" fill="#1e293b" stroke="#334155" strokeWidth="1" />
 
-                            {/* --- CALZADO: BOTINES PUNTA DE ACERO --- */}
+                            {/* Cintas reflectivas 3M en botamangas (curvatura cilíndrica) */}
+                            {/* Fila superior pierna izquierda y derecha */}
+                            <path d="M 163 488 Q 181 494 200 488 L 200 497 Q 181 503 163 497 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+                            <path d="M 260 488 Q 279 494 297 488 L 297 497 Q 279 503 260 497 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+                            {/* Fila inferior pierna izquierda y derecha */}
+                            <path d="M 164 507 Q 182 513 201 507 L 201 516 Q 182 522 164 516 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+                            <path d="M 259 507 Q 278 513 296 507 L 296 516 Q 278 522 259 516 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+
+                            {/* --- CALZADO: BOTINES DE SEGURIDAD CON PUNTA DE ACERO --- */}
                             {/* Botín Izquierdo */}
-                            <path d="M 152 542 L 140 580 Q 140 592 155 595 L 205 595 Q 212 590 208 575 L 200 542 Z" fill="url(#eppBootsGrad)" stroke="#475569" strokeWidth="1.5" />
-                            {/* Suela gruesa antideslizante con tacos */}
-                            <rect x="138" y="590" width="70" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
-                            {/* Puntera reforzada (Punta de acero) */}
-                            <path d="M 138 578 Q 140 590 155 590 L 165 590 L 160 575 Z" fill="#475569" opacity="0.6" />
-                            {/* Pasadores de seguridad amarillos */}
-                            <line x1="170" y1="550" x2="190" y2="550" stroke="#facc15" strokeWidth="1.5" />
-                            <line x1="168" y1="556" x2="188" y2="556" stroke="#facc15" strokeWidth="1.5" />
-                            <line x1="166" y1="562" x2="186" y2="562" stroke="#facc15" strokeWidth="1.5" />
+                            <path d="M 165 545 C 160 558 152 576 150 588 C 150 594 158 596 178 596 L 206 596 C 210 592 208 582 206 568 L 202 545 Z" fill="url(#eppBootsGrad)" stroke="#475569" strokeWidth="1.5" strokeLinejoin="round" />
+                            <rect x="148" y="590" width="60" height="7" rx="3" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
+                            <path d="M 149 580 C 149 589 158 591 176 591 L 176 576 C 164 576 152 579 149 580 Z" fill="#64748b" opacity="0.4" />
+                            <line x1="178" y1="554" x2="194" y2="554" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="176" y1="560" x2="192" y2="560" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="174" y1="566" x2="190" y2="566" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
 
                             {/* Botín Derecho */}
-                            <path d="M 308 542 L 320 580 Q 320 592 305 595 L 255 595 Q 248 590 252 575 L 260 542 Z" fill="url(#eppBootsGrad)" stroke="#475569" strokeWidth="1.5" />
-                            <rect x="252" y="590" width="70" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
-                            <path d="M 322 578 Q 320 590 305 590 L 295 590 L 300 575 Z" fill="#475569" opacity="0.6" />
-                            <line x1="270" y1="550" x2="290" y2="550" stroke="#facc15" strokeWidth="1.5" />
-                            <line x1="272" y1="556" x2="292" y2="556" stroke="#facc15" strokeWidth="1.5" />
-                            <line x1="274" y1="562" x2="294" y2="562" stroke="#facc15" strokeWidth="1.5" />
+                            <path d="M 295 545 C 300 558 308 576 310 588 C 310 594 302 596 282 596 L 254 596 C 250 592 252 582 254 568 L 258 545 Z" fill="url(#eppBootsGrad)" stroke="#475569" strokeWidth="1.5" strokeLinejoin="round" />
+                            <rect x="252" y="590" width="60" height="7" rx="3" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
+                            <path d="M 311 580 C 311 589 302 591 284 591 L 284 576 C 296 576 308 579 311 580 Z" fill="#64748b" opacity="0.4" />
+                            <line x1="266" y1="554" x2="282" y2="554" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="268" y1="560" x2="284" y2="560" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="270" y1="566" x2="286" y2="566" stroke="#facc15" strokeWidth="1.5" strokeLinecap="round" />
 
-                            {/* --- TORSO: CAMISA MANGA LARGA + CHALECO DE SEGURIDAD 3M --- */}
-                            {/* Mangas de camisa de trabajo (Azul marino) */}
-                            {/* Brazo Izquierdo */}
-                            <path d="M 155 175 L 110 320 L 135 330 L 175 220 Z" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                            {/* --- BRAZOS Y MANGAS: POSTURA NATURAL Y ERGONÓMICA --- */}
+                            {/* Brazo Izquierdo (Manga azul con caída natural sobre el costado) */}
+                            <path d="M 154 186 C 142 195 130 230 126 270 C 122 300 122 325 124 336 L 146 338 C 146 325 146 295 152 265 C 158 238 165 220 166 215 Z" fill="#1e293b" stroke="#334155" strokeWidth="1.5" strokeLinejoin="round" />
+                            
                             {/* Brazo Derecho */}
-                            <path d="M 305 175 L 350 320 L 325 330 L 285 220 Z" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                            <path d="M 306 186 C 318 195 330 230 334 270 C 338 300 338 325 336 336 L 314 338 C 314 325 314 295 308 265 C 302 238 295 220 294 215 Z" fill="#1e293b" stroke="#334155" strokeWidth="1.5" strokeLinejoin="round" />
 
-                            {/* Cintas reflectivas en mangas de camisa */}
-                            <rect x="114" y="270" width="28" height="7" rx="1.5" transform="rotate(20 114 270)" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.6" />
-                            <rect x="318" y="270" width="28" height="7" rx="1.5" transform="rotate(-20 318 270)" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.6" />
+                            {/* Cintas reflectivas envolventes en los antebrazos */}
+                            <path d="M 124 285 L 148 288 L 147 296 L 123 293 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
+                            <path d="M 336 285 L 312 288 L 313 296 L 337 293 Z" fill="url(#eppReflectiveTape)" stroke="#94a3b8" strokeWidth="0.8" />
 
-                            {/* Cuerpo principal / Torso (Chaleco naranja) */}
-                            <path d="M 160 165 L 300 165 L 315 355 L 145 355 Z" fill="url(#eppVestGrad)" stroke="#c2410c" strokeWidth="2" />
-
-                            {/* Cintas reflectivas 3M en el chaleco (Verticales y horizontales) */}
-                            {/* Fila Horizontal Superior */}
-                            <rect x="150" y="250" width="160" height="12" rx="2" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
-                            {/* Fila Horizontal Inferior */}
-                            <rect x="146" y="310" width="168" height="12" rx="2" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
-                            {/* Tirantes Verticales Reflectivos */}
-                            <rect x="180" y="165" width="14" height="145" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
-                            <rect x="266" y="165" width="14" height="145" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
-
-                            {/* Cuello del uniforme y cremallera */}
-                            <polygon points="215,165 245,165 230,195" fill="#0f172a" />
-                            <line x1="230" y1="195" x2="230" y2="355" stroke="#1e293b" strokeWidth="2.5" />
-
-                            {/* Bolsillo porta-lapicero / radio en el chaleco */}
-                            <rect x="188" y="210" width="28" height="34" rx="2" fill="#ea580c" stroke="#9a3412" strokeWidth="1" />
-                            <rect x="244" y="210" width="28" height="34" rx="2" fill="#ea580c" stroke="#9a3412" strokeWidth="1" />
-
-                            {/* --- GUANTES DE SEGURIDAD (EN AMBAS MANOS) --- */}
-                            {/* Mano Izquierda */}
-                            <g transform="translate(85, 320)">
-                                <path d="M 24 5 L 28 28 Q 28 42 16 46 Q 4 42 4 28 L 6 8 Z" fill="url(#eppGlovesGrad)" stroke="#854d0e" strokeWidth="1.5" />
-                                {/* Dedos con palma reforzada */}
-                                <rect x="2" y="28" width="7" height="16" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                <rect x="10" y="32" width="7" height="18" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                <rect x="18" y="28" width="7" height="15" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                {/* Puño elástico de seguridad */}
-                                <rect x="3" y="2" width="24" height="7" rx="2" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="1" />
+                            {/* --- GUANTES DE SEGURIDAD (POSTURA ANATÓMICA JUNTO AL CUERPO) --- */}
+                            {/* Guante Izquierdo */}
+                            <g transform="translate(112, 334)">
+                                <rect x="9" y="0" width="24" height="8" rx="2.5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.2" />
+                                <path d="M 11 8 C 6 16 7 28 10 36 C 13 41 22 43 27 38 C 30 32 31 22 29 8 Z" fill="url(#eppGlovesGrad)" stroke="#854d0e" strokeWidth="1.5" />
+                                <path d="M 14 20 Q 20 28 26 20" fill="none" stroke="#a16207" strokeWidth="1.5" />
+                                <path d="M 28 15 C 32 19 32 26 28 28" fill="none" stroke="#854d0e" strokeWidth="1.4" strokeLinecap="round" />
                             </g>
 
-                            {/* Mano Derecha */}
-                            <g transform="translate(345, 320)">
-                                <path d="M 6 5 L 2 28 Q 2 42 14 46 Q 26 42 26 28 L 24 8 Z" fill="url(#eppGlovesGrad)" stroke="#854d0e" strokeWidth="1.5" />
-                                <rect x="5" y="28" width="7" height="15" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                <rect x="13" y="32" width="7" height="18" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                <rect x="21" y="28" width="7" height="16" rx="3" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
-                                <rect x="3" y="2" width="24" height="7" rx="2" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="1" />
+                            {/* Guante Derecho */}
+                            <g transform="translate(324, 334)">
+                                <rect x="3" y="0" width="24" height="8" rx="2.5" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.2" />
+                                <path d="M 25 8 C 30 16 29 28 26 36 C 23 41 14 43 9 38 C 6 32 5 22 7 8 Z" fill="url(#eppGlovesGrad)" stroke="#854d0e" strokeWidth="1.5" />
+                                <path d="M 22 20 Q 16 28 10 20" fill="none" stroke="#a16207" strokeWidth="1.5" />
+                                <path d="M 8 15 C 4 19 4 26 8 28" fill="none" stroke="#854d0e" strokeWidth="1.4" strokeLinecap="round" />
                             </g>
 
-                            {/* --- CUELLO Y CABEZA --- */}
-                            {/* Cuello */}
-                            <rect x="216" y="145" width="28" height="24" rx="3" fill="#fcd34d" stroke="#d97706" strokeWidth="1" />
+                            {/* --- CHALECO DE SEGURIDAD INDUSTRIAL: CORTE ERGONÓMICO ESTILIZADO --- */}
+                            {/* Cuerpo principal del chaleco: hombros en declive natural, torso entallado y caída curva en cadera */}
+                            <path d="M 210 168 C 182 173 162 178 152 186 C 146 192 147 205 150 218 C 154 240 164 250 165 285 C 166 315 158 345 156 358 Q 230 370 304 358 C 302 345 294 315 295 285 C 296 250 306 240 310 218 C 313 205 314 192 308 186 C 298 178 278 173 250 168 Z" fill="url(#eppVestGrad)" stroke="#c2410c" strokeWidth="2" strokeLinejoin="round" />
 
-                            {/* Rostro base */}
-                            <ellipse cx="230" cy="115" rx="26" ry="30" fill="#fed7aa" stroke="#f97316" strokeWidth="1" />
+                            {/* Cremallera central reforzada */}
+                            <line x1="230" y1="196" x2="230" y2="363" stroke="#0f172a" strokeWidth="3" />
+                            <line x1="230" y1="196" x2="230" y2="363" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 2" />
 
-                            {/* --- OREJERAS / PROTECTORES AUDITIVOS --- */}
-                            {/* Orejera Izquierda */}
-                            <rect x="195" y="96" width="10" height="22" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
-                            {/* Orejera Derecha */}
-                            <rect x="255" y="96" width="10" height="22" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
-                            {/* Banda superior de sujeción al casco */}
-                            <path d="M 200 96 Q 230 75 260 96" fill="none" stroke="#1e293b" strokeWidth="2.5" />
+                            {/* Cintas reflectivas 3M con curvatura y perspectiva anatómica */}
+                            <path d="M 174 176 L 180 250 L 192 250 L 186 178 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
+                            <path d="M 286 176 L 280 250 L 268 250 L 274 178 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
+                            
+                            <path d="M 180 262 L 180 361 L 192 362 L 192 262 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
+                            <path d="M 280 262 L 280 361 L 268 362 L 268 262 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
 
-                            {/* --- OJOS: LENTES DE SEGURIDAD ENVOLVENTES --- */}
+                            {/* Cintas Horizontales con volumen cilíndrico */}
+                            <path d="M 158 248 Q 230 256 302 248 L 302 260 Q 230 268 158 260 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
+                            <path d="M 155 308 Q 230 316 305 308 L 306 320 Q 230 328 154 320 Z" fill="url(#eppReflectiveTape)" stroke="#cbd5e1" strokeWidth="0.8" />
+
+                            {/* Bolsillos de chaleco con solapas redondeadas */}
+                            <rect x="180" y="212" width="28" height="32" rx="4" fill="#ea580c" stroke="#9a3412" strokeWidth="1.2" />
+                            <path d="M 178 212 L 210 212 Q 210 218 206 220 L 182 220 Q 178 218 178 212 Z" fill="#c2410c" stroke="#9a3412" strokeWidth="1" />
+                            
+                            <rect x="252" y="212" width="28" height="32" rx="4" fill="#ea580c" stroke="#9a3412" strokeWidth="1.2" />
+                            <rect x="255" y="216" width="22" height="23" rx="2" fill="#ffffff" fillOpacity="0.85" stroke="#cbd5e1" strokeWidth="0.8" />
+                            <rect x="259" y="222" width="14" height="3" rx="1" fill="#0284c7" />
+
+                            {/* --- CUELLO Y ROSTRO CON PROPORCIÓN HUMANA --- */}
+                            {/* Cuello orgánico que ensancha suavemente hacia el pecho */}
+                            <path d="M 216 138 C 216 154 212 163 208 168 L 252 168 C 248 163 244 154 244 138 Z" fill="#fcd34d" stroke="#d97706" strokeWidth="1" />
+                            {/* Cuello en V de la camisa interior */}
+                            <polygon points="210,166 250,166 230,195" fill="#0f172a" />
+                            <polygon points="208,166 218,186 229,172" fill="#1e293b" />
+                            <polygon points="252,166 242,186 231,172" fill="#1e293b" />
+
+                            {/* Cabeza / Rostro con mandíbula estilizada */}
+                            <ellipse cx="230" cy="114" rx="26" ry="29" fill="#fed7aa" stroke="#f97316" strokeWidth="1" />
+
+                            {/* --- PROTECTORES AUDITIVOS (OREJERAS TÉCNICAS) --- */}
+                            <rect x="194" y="93" width="12" height="24" rx="5" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
+                            <rect x="254" y="93" width="12" height="24" rx="5" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
+                            <path d="M 199 94 Q 230 73 261 94" fill="none" stroke="#1e293b" strokeWidth="2.5" />
+
+                            {/* --- LENTES DE SEGURIDAD ENVOLVENTES (VISOR CYAN) --- */}
                             <g id="safety-goggles">
-                                {/* Montura */}
-                                <path d="M 206 90 Q 230 87 254 90 L 252 98 Q 230 102 208 98 Z" fill="#0284c7" opacity="0.3" stroke="#0369a1" strokeWidth="1.5" />
-                                {/* Lunas protectoras con reflejo */}
-                                <ellipse cx="218" cy="94" rx="10" ry="6" fill="#38bdf8" opacity="0.6" stroke="#0284c7" strokeWidth="1" />
-                                <ellipse cx="242" cy="94" rx="10" ry="6" fill="#38bdf8" opacity="0.6" stroke="#0284c7" strokeWidth="1" />
-                                <line x1="214" y1="91" x2="220" y2="93" stroke="#ffffff" strokeWidth="1.2" />
-                                <line x1="238" y1="91" x2="244" y2="93" stroke="#ffffff" strokeWidth="1.2" />
+                                <path d="M 204 89 Q 230 85 256 89 L 254 99 Q 230 103 206 99 Z" fill="#0284c7" opacity="0.35" stroke="#0369a1" strokeWidth="1.5" />
+                                <ellipse cx="217" cy="94" rx="10.5" ry="6.5" fill="#38bdf8" opacity="0.65" stroke="#0284c7" strokeWidth="1" />
+                                <ellipse cx="243" cy="94" rx="10.5" ry="6.5" fill="#38bdf8" opacity="0.65" stroke="#0284c7" strokeWidth="1" />
+                                <line x1="212" y1="91" x2="220" y2="93" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                                <line x1="238" y1="91" x2="246" y2="93" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
                             </g>
 
-                            {/* --- PROTECCIÓN RESPIRATORIA: RESPIRADOR MEDIA CARA --- */}
+                            {/* --- PROTECCIÓN RESPIRATORIA: RESPIRADOR SILICONA MEDIA CARA --- */}
                             <g id="respirator-mask">
-                                {/* Mascarilla elastomérica */}
-                                <path d="M 216 114 Q 230 110 244 114 L 246 136 Q 230 144 214 136 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1.5" />
-                                {/* Filtro Izquierdo (Cartucho circular para polvos/gases) */}
-                                <circle cx="212" cy="132" r="7.5" fill="#f8fafc" stroke="#475569" strokeWidth="1.2" />
-                                <circle cx="212" cy="132" r="4.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
-                                {/* Filtro Derecho */}
-                                <circle cx="248" cy="132" r="7.5" fill="#f8fafc" stroke="#475569" strokeWidth="1.2" />
-                                <circle cx="248" cy="132" r="4.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
-                                {/* Válvula de exhalación frontal */}
-                                <circle cx="230" cy="134" r="3.5" fill="#1e293b" />
+                                <path d="M 214 112 Q 230 108 246 112 L 248 137 Q 230 146 212 137 Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1.5" />
+                                <circle cx="211" cy="132" r="8" fill="#f8fafc" stroke="#475569" strokeWidth="1.5" />
+                                <circle cx="211" cy="132" r="4.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
+                                <circle cx="249" cy="132" r="8" fill="#f8fafc" stroke="#475569" strokeWidth="1.5" />
+                                <circle cx="249" cy="132" r="4.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
+                                <circle cx="230" cy="134" r="4.5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                             </g>
 
-                            {/* --- BARBIQUEJO (SUJECIÓN MENTÓN) --- */}
+                            {/* --- BARBIQUEJO DE 3 PUNTOS CON MENTONERA --- */}
                             <g id="chinstrap">
-                                <path d="M 204 88 Q 230 148 256 88" fill="none" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
-                                {/* Copa mentonera de jebe */}
-                                <rect x="223" y="137" width="14" height="4.5" rx="2" fill="#334155" stroke="#0f172a" strokeWidth="0.8" />
+                                <path d="M 202 86 Q 230 148 258 86" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
+                                <rect x="222" y="138" width="16" height="5" rx="2.5" fill="#334155" stroke="#0f172a" strokeWidth="0.8" />
                             </g>
 
-                            {/* --- CASCO DE SEGURIDAD INDUSTRIAL --- */}
+                            {/* --- CASCO DE SEGURIDAD INDUSTRIAL AERODINÁMICO --- */}
                             <g id="safety-helmet">
-                                {/* Casquete principal con cresta aerodinámica */}
-                                <path d="M 194 80 Q 192 42 230 36 Q 268 42 266 80 Z" fill="url(#eppHelmetGrad)" stroke="#94a3b8" strokeWidth="1.8" />
-                                {/* Cresta central de refuerzo */}
-                                <path d="M 226 36 Q 230 34 234 36 L 233 78 L 227 78 Z" fill="#cbd5e1" />
-                                {/* Visera frontal proyectada hacia adelante */}
-                                <path d="M 190 78 Q 230 74 270 78 L 268 83 Q 230 79 192 83 Z" fill="#f8fafc" stroke="#64748b" strokeWidth="1.2" />
-                                {/* Ranuras universales laterales para orejeras */}
-                                <rect x="193" y="68" width="4" height="7" rx="1" fill="#475569" />
-                                <rect x="263" y="68" width="4" height="7" rx="1" fill="#475569" />
+                                <path d="M 192 80 C 188 38 218 32 230 32 C 242 32 272 38 268 80 Z" fill="url(#eppHelmetGrad)" stroke="#94a3b8" strokeWidth="1.8" />
+                                <path d="M 226 32 Q 230 30 234 32 L 233 78 L 227 78 Z" fill="#e2e8f0" />
+                                <path d="M 188 77 Q 230 72 272 77 L 270 83 Q 230 78 190 83 Z" fill="#ffffff" stroke="#64748b" strokeWidth="1.2" />
+                                <rect x="192" y="67" width="4" height="7" rx="1.5" fill="#475569" />
+                                <rect x="264" y="67" width="4" height="7" rx="1.5" fill="#475569" />
                             </g>
                         </g>
 

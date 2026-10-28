@@ -1456,12 +1456,14 @@ export async function POST(req: Request) {
                           const targetCell = r.getCell(10);
                           targetCell.value = opName || "";
                           targetCell.font = { bold: true, size: 10 };
-                          targetCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                          for (let c = 10; c <= 18; c++) {
+                              r.getCell(c).alignment = { vertical: 'middle', horizontal: 'left' };
+                          }
 
                           if (firmas.operadorFirma) {
                               try {
                                   const imgId = workbook.addImage({ base64: firmas.operadorFirma.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
-                                  worksheet.addImage(imgId, { tl: { col: 17, row: i - 1 + 0.1 }, ext: { width: 140, height: 36 } });
+                                  worksheet.addImage(imgId, { tl: { col: 19, row: i - 1 + 0.1 }, ext: { width: 140, height: 36 } });
                               } catch(e) {}
                           }
                           opSigned = true;
@@ -1471,12 +1473,14 @@ export async function POST(req: Request) {
                           const targetCell = r.getCell(10);
                           targetCell.value = capName || "";
                           targetCell.font = { bold: true, size: 10 };
-                          targetCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                          for (let c = 10; c <= 18; c++) {
+                              r.getCell(c).alignment = { vertical: 'middle', horizontal: 'left' };
+                          }
 
                           if (firmas.capatazFirma) {
                               try {
                                   const imgId = workbook.addImage({ base64: firmas.capatazFirma.replace(/^data:image\/\w+;base64,/, ""), extension: "png" });
-                                  worksheet.addImage(imgId, { tl: { col: 17, row: i - 1 + 0.1 }, ext: { width: 140, height: 36 } });
+                                  worksheet.addImage(imgId, { tl: { col: 19, row: i - 1 + 0.1 }, ext: { width: 140, height: 36 } });
                               } catch(e) {}
                           }
                           capSigned = true;
@@ -1721,15 +1725,31 @@ export async function POST(req: Request) {
               }
 
               if ((photos && photos.length > 0) || imgLev) {
-                  try { worksheet.mergeCells("B" + currentImgRow + ":F" + currentImgRow); } catch(e){}
-                  worksheet.getCell("B" + currentImgRow).value = "EVIDENCIA FOTOGRÁFICA DE LA CONDICIÓN INSEGURA: " + item;
-                  worksheet.getCell("B" + currentImgRow).font = { bold: true, size: 10 };
-                  worksheet.getCell("B" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+                  // Descombinar celdas previas en la fila (ej. A106:Y106 heredada de la plantilla)
+                  try { worksheet.unMergeCells("A" + currentImgRow + ":Y" + currentImgRow); } catch(e){}
+                  try { worksheet.unMergeCells("B" + currentImgRow + ":F" + currentImgRow); } catch(e){}
+                  try { worksheet.unMergeCells("B" + currentImgRow + ":J" + currentImgRow); } catch(e){}
+                  try { worksheet.unMergeCells("H" + currentImgRow + ":K" + currentImgRow); } catch(e){}
+                  try { worksheet.unMergeCells("K" + currentImgRow + ":S" + currentImgRow); } catch(e){}
+                  worksheet.getRow(currentImgRow).eachCell(cell => { cell.value = null; });
+                  worksheet.getRow(currentImgRow).height = 24;
+
+                  // 1. Título izquierda: Evidencia fotográfica de la observación (Columnas B a J)
+                  try { worksheet.mergeCells("B" + currentImgRow + ":J" + currentImgRow); } catch(e){}
+                  const titleObs = (item && item !== 'Observación General' && item !== 'General') 
+                      ? ("EVIDENCIA FOTOGRÁFICA DE LA OBSERVACIÓN: " + item) 
+                      : "EVIDENCIA FOTOGRÁFICA DE LA OBSERVACIÓN";
+                  const leftCell = worksheet.getCell("B" + currentImgRow);
+                  leftCell.value = titleObs;
+                  leftCell.font = { bold: true, size: 10 };
+                  leftCell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
                   
-                  try { worksheet.mergeCells("H" + currentImgRow + ":K" + currentImgRow); } catch(e){}
-                  worksheet.getCell("H" + currentImgRow).value = "EVIDENCIA DEL LEVANTAMIENTO";
-                  worksheet.getCell("H" + currentImgRow).font = { bold: true, size: 10 };
-                  worksheet.getCell("H" + currentImgRow).alignment = { wrapText: true, vertical: 'middle' };
+                  // 2. Título derecha: Evidencia del levantamiento a partir de la Columna K (Columnas K a S)
+                  try { worksheet.mergeCells("K" + currentImgRow + ":S" + currentImgRow); } catch(e){}
+                  const rightCell = worksheet.getCell("K" + currentImgRow);
+                  rightCell.value = "EVIDENCIA DEL LEVANTAMIENTO";
+                  rightCell.font = { bold: true, size: 10 };
+                  rightCell.alignment = { wrapText: true, vertical: 'middle', horizontal: 'left' };
                   currentImgRow += 2;
                   
                   try {
@@ -1747,17 +1767,20 @@ export async function POST(req: Request) {
                           }
                       }
                       
+                      // Foto del levantamiento a partir de la Columna K (col: 10)
                       if (imgLev) {
                           let imgLevClean = stripB64(imgLev);
                           const imgId2 = workbook.addImage({ base64: imgLevClean, extension: "jpeg" });
-                          worksheet.addImage(imgId2, { tl: { col: 7, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
+                          worksheet.addImage(imgId2, { tl: { col: 10, row: currentImgRow - 1 }, ext: { width: 320, height: 240 } });
                       }
                       
+                      // Comentario del levantamiento a partir de la Columna K
                       if (levComment) {
-                          try { worksheet.mergeCells("H" + (currentImgRow + 13) + ":L" + (currentImgRow + 15)); } catch(e){}
-                          worksheet.getCell("H" + (currentImgRow + 13)).value = "Comentario: " + levComment;
-                          worksheet.getCell("H" + (currentImgRow + 13)).alignment = { wrapText: true, vertical: 'top' };
-                          worksheet.getCell("H" + (currentImgRow + 13)).font = { size: 9 };
+                          try { worksheet.mergeCells("K" + (currentImgRow + 13) + ":S" + (currentImgRow + 15)); } catch(e){}
+                          const commCell = worksheet.getCell("K" + (currentImgRow + 13));
+                          commCell.value = "Comentario: " + levComment;
+                          commCell.alignment = { wrapText: true, vertical: 'top' };
+                          commCell.font = { size: 9 };
                       }
                       
                       currentImgRow += 16;
@@ -2660,10 +2683,11 @@ export async function POST(req: Request) {
       });
     }
 
+    const safeModuleName = (moduleName || "Inspeccion").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_\-\.]/g, "_");
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        "Content-Disposition": `attachment; filename="Reporte_${moduleName}.xlsx"`,
+        "Content-Disposition": `attachment; filename="Reporte_${safeModuleName}.xlsx"`,
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       },

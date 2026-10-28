@@ -1,5 +1,85 @@
 [
   {
+    "id": "12e9dbe6-9b80-4dce-b541-a498ce80a2df",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793124900709",
+    "timestamp": "2026-10-28T15:35:57.374Z"
+  },
+  {
+    "id": "b8798af4-5215-4115-be43-3ee03f49a9a0",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793136201260",
+    "timestamp": "2026-10-28T15:35:52.836Z"
+  },
+  {
+    "id": "cd5a97c9-ff76-443c-a2b1-7e12b0558fff",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793138633637",
+    "timestamp": "2026-10-28T15:35:49.562Z"
+  },
+  {
+    "id": "b0476f6b-1bff-441c-852b-356963a8cbb8",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793139823641",
+    "timestamp": "2026-10-28T15:35:46.344Z"
+  },
+  {
+    "id": "270dfb41-033e-4fd5-98f4-1f6b7c28cc7c",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793140119988",
+    "timestamp": "2026-10-28T15:35:31.100Z"
+  },
+  {
+    "id": "d11f3df6-4393-4ea5-a3b4-1568ebf1fd78",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793189934371",
+    "timestamp": "2026-10-28T15:35:27.866Z"
+  },
+  {
+    "id": "3c4bc7d6-56f1-4dbb-9eec-20202ed5f0ed",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793124602328",
+    "timestamp": "2026-10-28T15:35:18.922Z"
+  },
+  {
+    "id": "49ccd5b0-b3c4-4372-b28f-b1059b2b523a",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793124322957",
+    "timestamp": "2026-10-28T15:35:15.694Z"
+  },
+  {
+    "id": "7fb296db-7055-4879-87b6-53b80dd74cf8",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793124185859",
+    "timestamp": "2026-10-28T15:35:11.838Z"
+  },
+  {
+    "id": "a6299220-52d4-4742-b9d9-948e97248de5",
+    "user_name": "Admin",
+    "action": "ELIMINACIÓN INSPECCIÓN",
+    "module": "Inspecciones",
+    "details": "ID: 1793120532736",
+    "timestamp": "2026-10-28T15:35:06.931Z"
+  },
+  {
     "id": "aa05eadd-bc88-4f60-9b0a-e06f7b1d14eb",
     "user_name": "Jose Luis Cancino",
     "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",

@@ -712,6 +712,7 @@ export function EPPCaidasCustomForm({ moduleName, version, SignaturePad }: { mod
 
                     <InteractiveCaidasInspector
                         equipmentType={activeItem.tipo}
+                        selectedTarget={activeItem.subtipo || (activeItem.tipo === 'A' ? 'arnes' : (activeItemIndex === 1 ? 'linea_absorbedor' : 'linea_posicionamiento'))}
                         code={activeItem.codigo}
                         workerName={activeItem.trabajador || `Equipo #${activeItemIndex + 1}`}
                         hotspotStatus={hotspotStatus}
