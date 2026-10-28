@@ -547,9 +547,9 @@ export function EPPCaidasCustomForm({ moduleName, version, SignaturePad }: { mod
                         });
                         alert('¡Reporte enviado exitosamente por correo!');
                         setShowEmailModal(false);
-                    } catch(err) {
+                    } catch(err: any) {
                         console.error(err);
-                        alert('Error al enviar el correo.');
+                        alert('Error al enviar el correo: ' + (err.message || 'Error desconocido'));
                     }
                 } else {
                     if (window.confirm("¡Inspección guardada y descargada exitosamente!\n\n¿Desea enviar el reporte por correo ahora?")) {

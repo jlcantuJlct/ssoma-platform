@@ -908,9 +908,10 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                         }
                                 alert('✅ Correo enviado correctamente con el reporte ya revisado.');
                                 window.location.href = '/inspections?openDigital=true';
-                            } catch(e) {
-                                  alert('Error al enviar el correo.');
-                              } finally {
+                            } catch(e: any) {
+                                console.error("Error enviando correo:", e);
+                                alert('Error al enviar el correo: ' + (e.message || 'Error desconocido'));
+                            } finally {
                                   setIsSaving(false);
                                   setShowEmailModal(false);
                               }
