@@ -13,11 +13,11 @@ export async function POST(req: Request) {
 
         const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || 'jlcantu.jlct@gmail.com';
         
-        // Candidatos de contraseñas guardadas en los entornos del proyecto
+        // Candidatos de contraseñas guardadas en el sistema (priorizando la activa confirmada)
         const candidatePasswords = Array.from(new Set([
+            'cculjiheulxukenj',
             process.env.SMTP_PASS,
             process.env.GMAIL_APP_PASSWORD,
-            'cculjiheulxukenj',
             'dwsotaqaeseptxbf',
             'kvxgorhcccgunijo'
         ])).filter(Boolean) as string[];
@@ -59,40 +59,57 @@ export async function POST(req: Request) {
             mailOptions.attachments = attachments;
         }
 
-        let lastError: any = null;
-        for (const pass of candidatePasswords) {
-            try {
-                const transporter = nodemailer.createTransport(
-                    isCustomHost
-                        ? {
-                            host: process.env.SMTP_HOST,
-                            port: Number(process.env.SMTP_PORT) || 587,
-                            secure: Number(process.env.SMTP_PORT) === 465,
-                            auth: { user: smtpUser, pass },
-                            connectionTimeout: 10000,
-                            socketTimeout: 15000,
-                        }
-                        : {
-                            service: 'gmail',
-                            auth: { user: smtpUser, pass },
-                            connectionTimeout: 10000,
-                            greetingTimeout: 10000,
-                            socketTimeout: 15000,
-                        }
-                );
+        // Configuraciones de transporte: prueba servicio de Gmail y bypass por IP directa (para DNS de localhost)
+        const transportConfigs = isCustomHost
+            ? [
+                {
+                    host: process.env.SMTP_HOST,
+                    port: Number(process.env.SMTP_PORT) || 587,
+                    secure: Number(process.env.SMTP_PORT) === 465,
+                }
+            ]
+            : [
+                { service: 'gmail' },
+                {
+                    host: '172.217.192.109',
+                    port: 587,
+                    secure: false,
+                    tls: { servername: 'smtp.gmail.com' }
+                }
+            ];
 
-                const info = await transporter.sendMail(mailOptions);
-                console.log('✅ Correo enviado con éxito con credenciales configuradas:', info.messageId);
-                return NextResponse.json({ success: true, messageId: info.messageId }, { status: 200 });
-            } catch (err: any) {
-                lastError = err;
-                const errMsg = err?.message || '';
-                // Si el error es de autenticación (credenciales rechazadas por Google), probamos la siguiente candidata
-                if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('Username and Password not accepted')) {
-                    console.warn(`Credencial no aceptada por Google (${pass.slice(0, 4)}...), intentando siguiente alternativa...`);
-                    continue;
-                } else {
-                    // Si es otro tipo de error (ej. timeout de red), no iteramos más
+        let lastError: any = null;
+
+        for (const pass of candidatePasswords) {
+            for (const cfg of transportConfigs) {
+                try {
+                    const transporter = nodemailer.createTransport({
+                        ...cfg,
+                        auth: { user: smtpUser, pass },
+                        connectionTimeout: 8000,
+                        greetingTimeout: 8000,
+                        socketTimeout: 15000,
+                    });
+
+                    const info = await transporter.sendMail(mailOptions);
+                    console.log('✅ Correo enviado con éxito con credenciales configuradas:', info.messageId);
+                    return NextResponse.json({ success: true, messageId: info.messageId }, { status: 200 });
+                } catch (err: any) {
+                    lastError = err;
+                    const errMsg = err?.message || '';
+
+                    // Si falló por DNS (ENOTFOUND en localhost), pasa a la IP de bypass
+                    if (errMsg.includes('ENOTFOUND') || errMsg.includes('ETIMEDOUT')) {
+                        console.warn('Fallo DNS en transporter, probando bypass directo...');
+                        continue;
+                    }
+
+                    // Si es rechazo de credenciales (535), pasa a la siguiente contraseña
+                    if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('Username and Password not accepted')) {
+                        console.warn(`Credencial no aceptada por Google (${pass.slice(0, 4)}...), intentando siguiente alternativa...`);
+                        break; // salta al siguiente pass
+                    }
+
                     break;
                 }
             }
