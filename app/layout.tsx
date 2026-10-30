@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AlertaBanner from "@/components/AlertaBanner";
 import SSOMAAssistant from "@/components/SSOMAAssistant";
+import OfflineSyncBanner from "@/components/OfflineSyncBanner";
 import UserMenu from "@/components/UserMenu";
 import ActivityTracker from "@/components/ActivityTracker";
 import VoiceNavigator from "@/components/VoiceNavigator";
@@ -48,6 +49,7 @@ export default function RootLayout({
                 {children}
             </main>
             <AlertaBanner />
+            <OfflineSyncBanner />
             <SSOMAAssistant />
             <UserMenu />
             <VoiceNavigator />
@@ -57,3 +59,4 @@ export default function RootLayout({
     </html>
   );
 }
+

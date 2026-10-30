@@ -5,6 +5,7 @@ import { getActiveWorkspace } from '@/lib/locations';
 import { EmailReportModal } from '@/components/EmailReportModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { queueOfflineInspection } from '@/lib/offlineQueue';
 import { Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Mic, X, Camera, Trash2 , Mail, Sparkles} from 'lucide-react';
 import { InteractiveMachineryInspector } from './InteractiveMachineryInspector';
 
@@ -312,6 +313,32 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                 capatazNombre: firmas.capatazNombre || user?.name || ''
             };
 
+            // Detección proactiva de modo offline en campo (sin internet)
+            if (typeof window !== 'undefined' && !navigator.onLine) {
+                await queueOfflineInspection({
+                    moduleName: 'Maquinaria',
+                    isMachineryMatrix: true,
+                    meta,
+                    checklist,
+                    observaciones,
+                    firmas: finalFirmas,
+                    fotosDefectos,
+                    itemComments,
+                    emailData: isEmailing && customEmailData ? {
+                        to: customEmailData.to,
+                        cc: customEmailData.cc,
+                        subject: customEmailData.subject,
+                        message: customEmailData.message,
+                        fromEmail: customEmailData.fromEmail,
+                        fromName: customEmailData.fromName
+                    } : null
+                });
+                setIsSaving(false);
+                setShowEmailModal(false);
+                window.location.href = '/inspections?openDigital=true';
+                return;
+            }
+
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -490,9 +517,38 @@ export const MachineryCustomForm = ({ moduleName, version, SignaturePad }: { mod
                 }
                 alert('Error al generar la inspección: ' + errorMsg);
             }
-        } catch(e) {
+        } catch(e: any) {
             console.error(e);
-            alert('Error de conexión al procesar la inspección.');
+            const isNetworkError = !navigator.onLine || e?.message?.includes('fetch') || e?.message?.includes('Network');
+            if (isNetworkError) {
+                const finalFirmas = {
+                    ...firmas,
+                    operadorNombre: firmas.operadorNombre || meta.operador || '',
+                    capatazNombre: firmas.capatazNombre || user?.name || ''
+                };
+                await queueOfflineInspection({
+                    moduleName: 'Maquinaria',
+                    isMachineryMatrix: true,
+                    meta,
+                    checklist,
+                    observaciones,
+                    firmas: finalFirmas,
+                    fotosDefectos,
+                    itemComments,
+                    emailData: isEmailing && customEmailData ? {
+                        to: customEmailData.to,
+                        cc: customEmailData.cc,
+                        subject: customEmailData.subject,
+                        message: customEmailData.message,
+                        fromEmail: customEmailData.fromEmail,
+                        fromName: customEmailData.fromName
+                    } : null
+                });
+                setShowEmailModal(false);
+                window.location.href = '/inspections?openDigital=true';
+                return;
+            }
+            alert('Error al procesar la inspección: ' + (e.message || 'Desconocido'));
         } finally {
             setIsSaving(false);
         }

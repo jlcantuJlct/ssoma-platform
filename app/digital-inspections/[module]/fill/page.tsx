@@ -47,6 +47,7 @@ const SignaturePad = ({ onSave }: { onSave: (data: string) => void }) => {
 };
 
 import { EppCustomForm } from '@/components/inspections/EppCustomForm';
+import { queueOfflineInspection } from '@/lib/offlineQueue';
 import { EPPCaidasCustomForm } from '@/components/inspections/EPPCaidasCustomForm';
 import { ExtinguisherCustomForm } from '@/components/inspections/ExtinguisherCustomForm';
 import { MachineryCustomForm } from '@/components/inspections/MachineryCustomForm';
@@ -254,6 +255,31 @@ export default function FillDigitalInspection() {
                 if (lightAnswers[k].photos) delete lightAnswers[k].photos;
             });
 
+            // Detección proactiva de modo offline en campo (sin internet)
+            if (typeof window !== 'undefined' && !navigator.onLine) {
+                await queueOfflineInspection({
+                    moduleName: decodeURIComponent(moduleName as string),
+                    meta: { fecha: new Date().toISOString().split('T')[0] },
+                    checklist: {},
+                    observaciones: combinedObs,
+                    firmas: {},
+                    fotosDefectos,
+                    emailData: isEmailing && customEmailData ? {
+                        to: customEmailData.to,
+                        cc: customEmailData.cc,
+                        subject: customEmailData.subject,
+                        message: customEmailData.message,
+                        fromEmail: customEmailData.fromEmail,
+                        fromName: customEmailData.fromName
+                    } : null,
+                    extraPayload: { template, answers: lightAnswers }
+                });
+                setIsSaving(false);
+                setShowEmailModal(false);
+                window.location.href = '/inspections?openDigital=true';
+                return;
+            }
+
             // 1. Generar Excel y Guardar en Drive
             const res = await fetch('/api/export-excel', {
                 method: 'POST',
@@ -399,9 +425,36 @@ export default function FillDigitalInspection() {
                 const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
                 alert('Error al generar la inspección: ' + errorData.error);
             }
-        } catch(e) {
+        } catch(e: any) {
             console.error(e);
-            alert('Error de conexión.');
+            const isNetworkError = !navigator.onLine || e?.message?.includes('fetch') || e?.message?.includes('Network');
+            if (isNetworkError) {
+                const lightAnswers = JSON.parse(JSON.stringify(answers));
+                Object.keys(lightAnswers).forEach(k => {
+                    if (lightAnswers[k].photos) delete lightAnswers[k].photos;
+                });
+                await queueOfflineInspection({
+                    moduleName: decodeURIComponent(moduleName as string),
+                    meta: { fecha: new Date().toISOString().split('T')[0] },
+                    checklist: {},
+                    observaciones: combinedObs,
+                    firmas: {},
+                    fotosDefectos,
+                    emailData: isEmailing && customEmailData ? {
+                        to: customEmailData.to,
+                        cc: customEmailData.cc,
+                        subject: customEmailData.subject,
+                        message: customEmailData.message,
+                        fromEmail: customEmailData.fromEmail,
+                        fromName: customEmailData.fromName
+                    } : null,
+                    extraPayload: { template, answers: lightAnswers }
+                });
+                setShowEmailModal(false);
+                window.location.href = '/inspections?openDigital=true';
+                return;
+            }
+            alert('Error de conexión al procesar la inspección: ' + (e.message || 'Desconocido'));
         }
         setIsSaving(false);
     };
