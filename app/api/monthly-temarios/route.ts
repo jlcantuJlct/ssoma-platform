@@ -15,15 +15,17 @@ async function ensureTable() {
         )
     `);
     try { await db.execute("ALTER TABLE monthly_temarios ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE monthly_temarios DROP CONSTRAINT IF EXISTS monthly_temarios_month_year_key"); } catch(e) {}
 }
 
 export async function GET(req: NextRequest) {
     try {
         await ensureTable();
-        const workspace = getRequestWorkspace(req);
         const url = new URL(req.url);
         const month = url.searchParams.get('month');
         const year = url.searchParams.get('year');
+        const queryWorkspace = url.searchParams.get('workspace');
+        const workspace = queryWorkspace || getRequestWorkspace(req);
 
         if (!month || !year) {
             return NextResponse.json({ success: false, error: 'Faltan parámetros month o year' }, { status: 400 });
@@ -45,9 +47,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         await ensureTable();
-        const workspace = getRequestWorkspace(req);
         const body = await req.json();
-        const { month, year, url } = body;
+        const { month, year, url, workspace: bodyWorkspace } = body;
+        const urlObj = new URL(req.url);
+        const queryWorkspace = urlObj.searchParams.get('workspace');
+        const workspace = bodyWorkspace || queryWorkspace || getRequestWorkspace(req);
 
         if (month === undefined || !year || !url) {
             return NextResponse.json({ success: false, error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -69,10 +73,11 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         await ensureTable();
-        const workspace = getRequestWorkspace(req);
         const url = new URL(req.url);
         const month = url.searchParams.get('month');
         const year = url.searchParams.get('year');
+        const queryWorkspace = url.searchParams.get('workspace');
+        const workspace = queryWorkspace || getRequestWorkspace(req);
 
         if (!month || !year) {
             return NextResponse.json({ success: false, error: 'Faltan parámetros month o year' }, { status: 400 });

@@ -13,7 +13,7 @@ import jsPDF from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
 import { FileText, Image as ImageIcon, Download, Eye, X, ClipboardCheck, Calendar, Search, Shield, ChevronDown, BookOpen } from 'lucide-react';
 import { generateFilename, getInitials, getDriveViewerUrl } from '@/lib/utils';
-import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { SSOMA_LOCATIONS, getActiveWorkspace } from "@/lib/locations";
 import SearchableSelect from "@/components/SearchableSelect";
 import { AlertCircle } from 'lucide-react';
 
@@ -88,7 +88,8 @@ export function DashboardCharts({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}`)
+        const activeWs = typeof getActiveWorkspace === "function" ? getActiveWorkspace() : (user?.workspace || "Red Vial 6");
+        fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}&workspace=${encodeURIComponent(activeWs)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -101,7 +102,7 @@ export function DashboardCharts({
                 console.error("Error fetching temario:", err);
                 setMonthlyTemarioUrl(null);
             });
-    }, [programMonthFilter, currentYear]);
+    }, [programMonthFilter, currentYear, user?.workspace]);
 
     const processTemarioUpload = async (file: File) => {
         setIsUploadingTemario(true);
@@ -133,10 +134,11 @@ export function DashboardCharts({
 
             if (uploadData.success || uploadData.path) {
                 const driveUrl = uploadData.path;
-                const saveRes = await fetch('/api/monthly-temarios', {
+                const activeWs = typeof getActiveWorkspace === 'function' ? getActiveWorkspace() : (user?.workspace || 'Red Vial 6');
+                const saveRes = await fetch(`/api/monthly-temarios?workspace=${encodeURIComponent(activeWs)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ month: programMonthFilter, year: currentYear, url: driveUrl })
+                    body: JSON.stringify({ month: programMonthFilter, year: currentYear, url: driveUrl, workspace: activeWs })
                 });
                 
                 if (!saveRes.ok) {
@@ -199,7 +201,8 @@ export function DashboardCharts({
         if (!window.confirm('¿Estás seguro de ELIMINAR el temario de este mes?')) return;
         
         try {
-            const res = await fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}`, {
+            const activeWs = typeof getActiveWorkspace === "function" ? getActiveWorkspace() : (user?.workspace || "Red Vial 6");
+            const res = await fetch(`/api/monthly-temarios?month=${programMonthFilter}&year=${currentYear}&workspace=${encodeURIComponent(activeWs)}`, {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -4088,6 +4091,7 @@ export function DashboardCharts({
         </div>
     );
 }
+
 
 
 
