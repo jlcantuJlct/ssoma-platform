@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import db from '@/lib/db';
 import { sendAutomatedWhatsApp } from '@/lib/whatsappAutomation';
+import { INITIAL_USERS } from '@/lib/usersData';
+import { ensureAlertSettingsTable } from '@/lib/alertSettings';
 
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────────────────
 const MANAGEMENT_RECIPIENTS = [
@@ -68,10 +70,28 @@ async function getPendingForDate(firstName: string, dateStr: string): Promise<st
 
 // ─── CONSTRUCCIÓN DEL REPORTE SEMANAL ────────────────────────────────────────
 async function buildWeeklyReport() {
+    // Cargar exclusiones y estados de alertas
+    await ensureAlertSettingsTable();
+    const rows = await db.fetchAll('SELECT * FROM user_alert_settings').catch(() => []);
+    const dbSettings: Record<string, any> = {};
+    rows.forEach((r: any) => {
+        dbSettings[r.username] = {
+            deactivated: r.deactivated === 1 || r.deactivated === true,
+            whatsapp_enabled: r.whatsapp_enabled !== 0 && r.whatsapp_enabled !== false,
+            email_enabled: r.email_enabled !== 0 && r.email_enabled !== false
+        };
+    });
+
+    // Solo monitorear usuarios activos
+    const activeTargetUsers = TARGET_USERS.filter(u => {
+        const s = dbSettings[u.username];
+        if (s) return !s.deactivated;
+        return !INITIAL_USERS[u.username]?.deactivated;
+    });
     const reportData: any[] = [];
     const lima = { timeZone: 'America/Lima' };
 
-    for (const user of TARGET_USERS) {
+    for (const user of activeTargetUsers) {
         const userStatus: any = { name: user.name, days: [] };
         
         for (let i = 0; i < DAYS_TO_CHECK; i++) {

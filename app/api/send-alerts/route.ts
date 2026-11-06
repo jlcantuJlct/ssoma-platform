@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import db from '@/lib/db';
 import { sendAutomatedWhatsApp } from '@/lib/whatsappAutomation';
+import { INITIAL_USERS } from '@/lib/usersData';
+import { ensureAlertSettingsTable, DEFAULT_SUPERVISOR_CC } from '@/lib/alertSettings';
 
 const DEFAULT_ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280', workspace: 'Red Vial 6' },
@@ -259,7 +261,27 @@ function buildEmailHtml(userName: string, historial: DayRecord[], monthlyPending
 }
 
 // ─── LÓGICA COMÚN DE ENVÍO DE ALERTAS ──────────────────────────────────────────
-async function executeSendAlerts(targetWorkspace: string, customUsers?: any[]) {
+async function executeSendAlerts(targetWorkspace: string, customUsers?: any[], customCc?: string[]) {
+    // Determinar la lista de CC a supervisión (solo activos)
+    let activeCcList: string[] = [];
+    if (Array.isArray(customCc)) {
+        activeCcList = customCc.filter(Boolean);
+    } else {
+        try {
+            await ensureAlertSettingsTable();
+            const ccRows = await db.fetchAll('SELECT email, enabled FROM alert_cc_settings').catch(() => []);
+            const ccMap: Record<string, boolean> = {};
+            ccRows.forEach((r: any) => {
+                ccMap[r.email] = r.enabled !== 0 && r.enabled !== false;
+            });
+            activeCcList = DEFAULT_SUPERVISOR_CC
+                .filter(c => ccMap[c.email] !== undefined ? ccMap[c.email] : true)
+                .map(c => c.email);
+        } catch {
+            activeCcList = DEFAULT_SUPERVISOR_CC.map(c => c.email);
+        }
+    }
+
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
 
@@ -270,14 +292,63 @@ async function executeSendAlerts(targetWorkspace: string, customUsers?: any[]) {
         ? nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } })
         : null;
 
-    // Determinar la lista de usuarios para este proyecto (excluyendo desactivados)
+    // 1. Obtener configuraciones de alertas persistidas en BD
+    let dbSettingsMap: Record<string, any> = {};
+    try {
+        await ensureAlertSettingsTable();
+        const rows = await db.fetchAll('SELECT * FROM user_alert_settings').catch(() => []);
+        rows.forEach((r: any) => {
+            dbSettingsMap[r.username] = {
+                email_enabled: r.email_enabled !== 0 && r.email_enabled !== false,
+                whatsapp_enabled: r.whatsapp_enabled !== 0 && r.whatsapp_enabled !== false,
+                deactivated: r.deactivated === 1 || r.deactivated === true
+            };
+        });
+    } catch (e: any) {
+        console.warn('Advertencia leyendo user_alert_settings:', e.message);
+    }
+
+    // 2. Determinar la lista de usuarios activos para este proyecto
     let candidateUsers: any[] = [];
     if (Array.isArray(customUsers) && customUsers.length > 0) {
-        candidateUsers = customUsers.filter(u => !u.deactivated);
+        candidateUsers = customUsers
+            .filter(u => {
+                const dbSetting = dbSettingsMap[u.username];
+                if (dbSetting?.deactivated || u.deactivated) return false;
+                return true;
+            })
+            .map(u => {
+                const dbSetting = dbSettingsMap[u.username];
+                return {
+                    ...u,
+                    email_enabled: u.email_enabled !== undefined ? !!u.email_enabled : (dbSetting ? dbSetting.email_enabled : true),
+                    whatsapp_enabled: u.whatsapp_enabled !== undefined ? !!u.whatsapp_enabled : (dbSetting ? dbSetting.whatsapp_enabled : true)
+                };
+            });
     } else {
-        candidateUsers = DEFAULT_ALERT_USERS.filter(u => 
-            !u.deactivated && (u.workspace || 'Red Vial 6') === targetWorkspace
-        );
+        // Ejecución automática por Cron (GET): Leer del maestro de usuarios y base de datos
+        candidateUsers = Object.entries(INITIAL_USERS)
+            .filter(([key, u]) => {
+                const ws = u.workspace || 'Red Vial 6';
+                if (ws !== targetWorkspace) return false;
+                if (u.role !== 'user') return false;
+                const dbSetting = dbSettingsMap[key];
+                if (dbSetting?.deactivated || (!dbSetting && u.deactivated)) return false;
+                return true;
+            })
+            .map(([key, u]) => {
+                const dbSetting = dbSettingsMap[key];
+                const isDeact = dbSetting ? dbSetting.deactivated : !!u.deactivated;
+                return {
+                    username: key,
+                    name: u.name,
+                    email: u.email,
+                    phone: u.phone,
+                    workspace: u.workspace || 'Red Vial 6',
+                    email_enabled: dbSetting ? dbSetting.email_enabled : !isDeact,
+                    whatsapp_enabled: dbSetting ? dbSetting.whatsapp_enabled : !isDeact
+                };
+            });
     }
 
     const results: Array<{
@@ -308,39 +379,58 @@ async function executeSendAlerts(targetWorkspace: string, customUsers?: any[]) {
             continue;
         }
 
+        // Si el usuario tiene ambos canales desactivados, no enviamos nada
+        if (u.email_enabled === false && u.whatsapp_enabled === false) {
+            results.push({
+                user: u.name,
+                status: 'ok',
+                email: u.email,
+                phone: u.phone,
+                message: 'Alertas desactivadas para este usuario (Correo y WhatsApp en OFF)'
+            });
+            continue;
+        }
+
         try {
-            if (transporter && u.email) {
+            const channelsSent: string[] = [];
+
+            // ENVÍO DE CORREO (solo si email_enabled está activo)
+            if (transporter && u.email && u.email_enabled !== false) {
                 const html = buildEmailHtml(u.name, historial, userMonthlyPending, todayStr, targetWorkspace);
                 await transporter.sendMail({
-                    from: `"SSOMA - Alertas" <${gmailUser}>`,
+                    from: '"SSOMA - Alertas" <' + gmailUser + '>',
                     to: u.email,
-                    cc: DAILY_CC_EMAILS.join(','),
-                    subject: `⚠️ ALERTA SSOMA [${targetWorkspace}] - PENDIENTES - ${u.name}`,
+                    cc: activeCcList.length > 0 ? activeCcList.join(',') : undefined,
+                    subject: '⚠️ ALERTA SSOMA [' + targetWorkspace + '] - PENDIENTES - ' + u.name,
                     html: html
-                }).catch(e => console.warn('Email warning:', e.message));
+                }).then(() => channelsSent.push('Correo')).catch(e => console.warn('Email warning:', e.message));
             }
 
-            if (u.phone) {
-                let waMsg = `🛡️ *ALERTA SSOMA — ${targetWorkspace.toUpperCase()}*\n\nHola *${firstName}*,\n\n`;
+            // ENVÍO DE WHATSAPP (solo si whatsapp_enabled está activo)
+            if (u.phone && u.whatsapp_enabled !== false) {
+                let waMsg = "🛡️ *ALERTA SSOMA — " + targetWorkspace.toUpperCase() + "*\n\nHola *" + firstName + "*,\n\n";
                 const todayRecord = historial.find(h => h.isToday);
                 if (todayRecord && todayRecord.pending.length > 0) {
-                    waMsg += `📌 *Pendientes de HOY*:\n${todayRecord.pending.map(p => `❌ ${p}`).join('\n')}\n\n`;
+                    waMsg += "📌 *Pendientes de HOY*:\n" + todayRecord.pending.map(p => "❌ " + p).join('\n') + "\n\n";
                 }
                 const monthPendingCount = Object.values(userMonthlyPending).flat().length;
                 if (monthPendingCount > 0) {
-                    waMsg += `📊 *Programa Anual*: Tienes *${monthPendingCount}* actividades pendientes acumuladas este mes.\n\n`;
+                    waMsg += "📊 *Programa Anual*: Tienes *" + monthPendingCount + "* actividades pendientes acumuladas este mes.\n\n";
                 }
-                waMsg += `Ingresa a la plataforma SSOMA para regularizar tus registros.`;
-                await sendAutomatedWhatsApp(u.phone, waMsg).catch(() => {});
+                waMsg += "Ingresa a la plataforma SSOMA para regularizar tus registros.";
+                await sendAutomatedWhatsApp(u.phone, waMsg)
+                    .then(ok => { if (ok) channelsSent.push('WhatsApp'); })
+                    .catch(() => {});
             }
 
+            const sentDesc = channelsSent.length > 0 ? " (" + channelsSent.join(' y ') + ")" : ' (Ninguno enviado)';
             results.push({
                 user: u.name,
                 status: 'sent',
                 email: u.email,
                 phone: u.phone,
                 pendingModules: allPendingModules,
-                message: `Alertas enviadas (${allPendingModules.length} módulos pendientes)`
+                message: "Alertas enviadas" + sentDesc + " — " + allPendingModules.length + " módulos pendientes"
             });
         } catch (err: any) {
             results.push({
@@ -366,8 +456,9 @@ export async function POST(req: NextRequest) {
 
         const workspace = body.workspace || req.cookies.get('ssoma_workspace')?.value || 'Red Vial 6';
         const users = body.users; // Lista de usuarios activos provista por el frontend si existe
+        const cc = body.cc; // Lista de CC provista por el frontend si existe
 
-        const results = await executeSendAlerts(workspace, users);
+        const results = await executeSendAlerts(workspace, users, cc);
         return NextResponse.json({
             success: true,
             workspace,
