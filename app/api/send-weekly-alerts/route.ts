@@ -8,13 +8,11 @@ import { ensureAlertSettingsTable } from '@/lib/alertSettings';
 
 // ─── CONFIGURACIÓN ───────────────────────────────────────────────────────────
 const MANAGEMENT_RECIPIENTS = [
-    { name: 'Jose Luis Galliquio', email: 'josegamontesinos@gmail.com', phone: '+51986103867' },
     { name: 'Jesus Villalobos',    email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280' },
     { name: 'Jose Luis Cancino',   email: 'jlcantu.jlct@gmail.com', phone: '+51949260281' },
 ];
 
 const TARGET_USERS = [
-    { username: 'jose.galliquio',     name: 'Jose Galliquio',     firstName: 'Jose' },
     { username: 'jesus.villalovos',   name: 'Jesus Villalovos',   firstName: 'Jesus' },
     { username: 'adrian.suarez',      name: 'Adrian Suarez',      firstName: 'Adrian' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma', firstName: 'Albert' },

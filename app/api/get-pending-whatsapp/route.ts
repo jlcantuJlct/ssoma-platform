@@ -5,7 +5,6 @@ import db from '@/lib/db';
 // ─── CONFIGURACIÓN DE USUARIOS ────────────────────────────────────────────────
 const ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   phone: '+51928893280' },
-    { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', phone: '+51986103867' },
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        phone: '+51943697255' },
     { username: 'gladis.aroste',      name: 'Gladys Aroste Huertas',     phone: '+51969683799' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', phone: '+51929906173' },
@@ -165,4 +164,3 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
 }
-

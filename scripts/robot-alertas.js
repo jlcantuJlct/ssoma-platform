@@ -23,7 +23,6 @@ require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 // =============================================
 const RESPONSABLES = [
     { nombre: 'Jesus Villalobos',   phone: '51928893280' },
-    { nombre: 'Jose Galliquio',     phone: '51986103867' },
     { nombre: 'Adrian Suarez',      phone: '51943697255' },
     { nombre: 'Gladis Aroste',      phone: '51969683799' },
     { nombre: 'Albert Chuquispuma', phone: '51929906173' },

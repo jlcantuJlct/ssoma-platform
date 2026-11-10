@@ -8,7 +8,6 @@ import { ensureAlertSettingsTable, DEFAULT_SUPERVISOR_CC } from '@/lib/alertSett
 
 const DEFAULT_ALERT_USERS = [
     { username: 'jesus.villalovos',   name: 'Jesus Villalobos Levano',   email: 'jesusvillaloboslevano4@gmail.com', phone: '+51928893280', workspace: 'Red Vial 6' },
-    { username: 'jose.galliquio',     name: 'Jose Galliquio Montesinos', email: 'josegamontesinos@gmail.com',        phone: '+51986103867', workspace: 'Red Vial 6' },
     { username: 'adrian.suarez',      name: 'Adrian Suarez Soto',        email: 'adrian142005@hotmail.com',         phone: '+51943697255', workspace: 'Red Vial 6' },
     { username: 'gladis.aroste',      name: 'Gladis Aroste Huertas',     email: 'gladys.aroste123@gmail.com',        phone: '+51969683799', workspace: 'Red Vial 6' },
     { username: 'albert.chuquispuma', name: 'Albert Chuquispuma Santos', email: 'albertscorpio99@gmail.com',        phone: '+51929906173', workspace: 'Red Vial 6' },
