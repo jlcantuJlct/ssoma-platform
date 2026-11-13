@@ -105,7 +105,7 @@ export default function Sidebar() {
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
-                className="md:hidden fixed top-3 left-3 z-[60] p-2 bg-slate-900 text-emerald-400 rounded-lg border border-emerald-500/30 shadow-lg hover:bg-slate-800 transition-colors"
+                className="md:hidden fixed top-3 left-3 z-[90] p-2 bg-slate-900 text-emerald-400 rounded-lg border border-emerald-500/30 shadow-lg hover:bg-slate-800 transition-colors"
             >
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -113,16 +113,16 @@ export default function Sidebar() {
             {/* Overlay for Mobile */}
             {isMobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                    className="fixed inset-0 bg-black/70 backdrop-blur-md z-[80] md:hidden"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
 
             <aside className={`
                 w-64 bg-slate-950 border-r border-slate-800 h-screen 
-                flex flex-col text-slate-300 z-50
+                flex flex-col text-slate-300 z-[85]
                 fixed top-0 left-0 transition-transform duration-300 ease-in-out
-                md:translate-x-0 md:sticky
+                md:translate-x-0 md:sticky md:z-30
                 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="p-6 border-b border-slate-800">

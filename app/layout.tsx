@@ -9,6 +9,7 @@ import OfflineSyncBanner from "@/components/OfflineSyncBanner";
 import UserMenu from "@/components/UserMenu";
 import ActivityTracker from "@/components/ActivityTracker";
 import VoiceNavigator from "@/components/VoiceNavigator";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 export const dynamic = 'force-dynamic';
 
 import { Providers } from "@/components/Providers";
@@ -42,6 +43,7 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <body className={`${inter.className} min-h-screen bg-background flex`}>
         <Providers>
+          <ServiceWorkerRegister />
           <ErrorBoundary>
             <ActivityTracker />
             <Sidebar />

@@ -667,7 +667,7 @@ function DashboardContent({ initialData }: DashboardClientProps) {
                 </div>
 
             {/* Header Area (Toolbar) */}
-            <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800 relative z-50">
+            <div className="flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-900/50 backdrop-blur-md px-4 md:px-6 py-4 rounded-3xl shadow-2xl border-b border-emerald-500/30 ring-1 ring-slate-800 relative z-20">
                 {!showAnalytics && (
                     <div className="hidden md:flex items-center gap-4 border-r border-slate-700 pr-4 shrink-0">
                         <div className="p-2.5 bg-emerald-600 rounded-xl shadow-lg ring-2 ring-emerald-400/20">
@@ -1098,7 +1098,7 @@ function MultiMonthFilter({ selectedMonths, onChange, label, icon }: any) {
             </div>
             
             {isOpen && (
-                <div className="absolute top-[calc(100%+0.5rem)] left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-[999] min-w-[280px] grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="absolute top-[calc(100%+0.5rem)] left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4 z-30 min-w-[280px] grid grid-cols-1 md:grid-cols-2 gap-3">
                     <label className="flex items-center gap-2 text-[10px] text-white font-bold cursor-pointer col-span-2 pb-3 border-b border-slate-700 mb-1 hover:text-emerald-400 transition-colors">
                         <input type="checkbox" checked={selectedMonths.length === 12} onChange={toggleAll} className="w-3.5 h-3.5 accent-emerald-500 rounded-sm cursor-pointer" />
                         SELECCIONAR TODOS
