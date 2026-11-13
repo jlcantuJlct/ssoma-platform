@@ -91,6 +91,7 @@ export default function RootPage() {
                   <Link 
                     key={itemIdx} 
                     href={item.href}
+                    prefetch={true}
                     className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-900 border border-slate-800 rounded-2xl hover:bg-slate-800 hover:border-emerald-500/50 transition-all group shadow-sm text-center"
                   >
                     <div className={`p-2.5 sm:p-3 bg-slate-950 rounded-xl group-hover:scale-110 transition-transform ${item.color}`}>

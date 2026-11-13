@@ -60,37 +60,41 @@ class ErrorBoundary extends Component<Props, State> {
 
     render() {
         if (this.state.hasError) {
+            const isChunkOrOffline = 
+                this.state.error?.name === 'ChunkLoadError' || 
+                this.state.error?.message?.includes('Loading chunk') ||
+                (typeof navigator !== 'undefined' && !navigator.onLine);
+
             return (
                 <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-                    <div className="bg-slate-900 border border-red-500/30 rounded-2xl p-8 max-w-md text-center">
-                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <AlertTriangle className="text-red-500" size={32} />
+                    <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 sm:p-8 max-w-md text-center shadow-2xl">
+                        <div className={`w-16 h-16 ${isChunkOrOffline ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                            <AlertTriangle size={32} />
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-2">
-                            Algo salió mal
+                        <h2 className="text-xl font-black text-white mb-2">
+                            {isChunkOrOffline ? 'Herramienta no descargada aún' : 'Algo salió mal'}
                         </h2>
-                        <p className="text-slate-400 text-sm mb-6">
-                            Ha ocurrido un error inesperado. Esto puede deberse a datos corruptos en el navegador.
+                        <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                            {isChunkOrOffline 
+                                ? 'Para usar esta herramienta sin conexión, debes abrirla al menos una vez mientras tengas internet para que se guarde en la memoria del celular.' 
+                                : 'Ha ocurrido un error inesperado al procesar los datos de la aplicación.'}
                         </p>
-                        {this.state.error && (
-                            <div className="mb-6 p-4 bg-red-950/30 border border-red-500/20 rounded-xl text-left overflow-auto max-h-40">
-                                <p className="text-red-400 font-mono text-[10px] whitespace-pre-wrap">
-                                    {this.state.error.name}: {this.state.error.message}
-                                    {"\n\n"}
-                                    {this.state.error.stack}
-                                </p>
-                            </div>
-                        )}
-                        <button
-                            onClick={this.handleReload}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 mx-auto transition-colors"
-                        >
-                            <RefreshCw size={18} />
-                            Recargar Página
-                        </button>
-                        <p className="text-[10px] text-slate-600 mt-4">
-                            Si el problema persiste, limpia los datos del navegador (F12 → Application → Clear Storage)
-                        </p>
+                        
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => { window.location.href = '/'; }}
+                                className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-700 text-sm"
+                            >
+                                Volver al Inicio
+                            </button>
+                            <button
+                                onClick={this.handleReload}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm shadow-lg shadow-emerald-900/30"
+                            >
+                                <RefreshCw size={16} />
+                                Reintentar
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
