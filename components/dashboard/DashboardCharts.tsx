@@ -2517,7 +2517,7 @@ export function DashboardCharts({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-10 w-full">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 relative z-10 w-full">
                             {USER_LIST.filter(u => u.username !== 'jose.cancino' && u.username !== 'gerencia').map((userObj, idx) => {
                                 const user = userObj.name;
                                 const isDeactivated = deactivatedUsers.has(userObj.username);

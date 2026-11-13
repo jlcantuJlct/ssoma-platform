@@ -59,7 +59,7 @@ export default async function Home() {
   const dashboardData = await seedAndGetData(workspace);
 
   return (
-    <div className="p-8 space-y-8 min-h-screen bg-transparent">
+    <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8 min-h-screen bg-transparent">
       {/* Header Removed - Integrated into DashboardClient */}
       <h1 className="text-center text-xs text-gray-500 font-bold text-emerald-500">v2026.5.05 - MULTI-FILE & PDF-JS READY</h1>
 
