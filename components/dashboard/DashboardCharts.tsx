@@ -2450,7 +2450,7 @@ export function DashboardCharts({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 relative z-10">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 relative z-10">
                             {[
                                 { label: 'HHT Acumuladas', val: accidentabilityStats.totalHHT.toLocaleString(), color: 'text-indigo-400', sub: 'Horas Hombre Totales' },
                                 { label: 'Índice Frecuencia (IF)', val: accidentabilityStats.IF, color: 'text-emerald-400', sub: 'Accidentes / Horas Hombre' },
@@ -2871,7 +2871,7 @@ export function DashboardCharts({
                         </div>
 
                     {/* 1. KPIs RESUMEN - REDISEÑO UNIFORME PREMIUM */}
-                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-4 relative z-10">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-3 sm:gap-4 relative z-10">
                             
                             {/* Card 1: Total HHC (EMERALD) */}
                             <div className="group relative bg-slate-900/40 backdrop-blur-md p-4 rounded-[2rem] border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 xl:col-span-2 flex flex-col justify-between shadow-2xl shadow-emerald-500/5">
