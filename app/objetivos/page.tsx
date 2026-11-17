@@ -28,7 +28,8 @@ import {
     ExternalLink,
     Check,
     X,
-    Filter
+    Calendar,
+    Eye
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -43,22 +44,24 @@ export const PROGRAM_OBJECTIVES = [
     { id: 'obj5', code: 'OBJ 05', label: 'OBJ 05: EMO Realizados', name: 'Exámenes Médicos Ocupacionales', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     { id: 'obj6', code: 'SEG 01', label: 'SEG 01: Inspecciones de Salud', name: 'Inspecciones y Vigilancia de Salud', icon: HeartPulse, color: 'text-rose-400', bg: 'bg-rose-500/10' },
     { id: 'obj7', code: 'SEG 02', label: 'SEG 02: Formaciones de Salud', name: 'Formaciones y Talleres de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { id: 'obj8', code: 'SEG 03', label: 'SEG 03: Inspecciones M. Ambiente', name: 'Inspecciones de Medio Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { id: 'obj8', code: 'SEG 03', label: 'SEG 03: Inspecciones M. Ambiente', name: 'Inspecciones de Medio Ambiente y PMA', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
     { id: 'obj9', code: 'SEG 04', label: 'SEG 04: Formaciones M. Ambiente', name: 'Formaciones Ambientales', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
-    { id: 'obj10', code: 'SEG 05', label: 'SEG 05: Control de Simulacros', name: 'Simulacros de Emergencia', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'obj10', code: 'SEG 05', label: 'SEG 05: Control de Simulacros', name: 'Simulacros y Brigadas de Emergencia', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
     { id: 'obj11', code: 'SEG 06', label: 'SEG 06: Control de Brigadistas', name: 'Brigadas de Emergencia', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
 ];
 
-export interface ObjetivoItem {
+export interface ObjetivoEstrategicoItem {
     id: string;
-    codigo: string;
-    nombre: string;
-    indicador: string;
-    meta: string;
+    codigo?: string;
+    objetivo_estrategico: string;
+    perspectiva_casa: string;
     responsable: string;
+    indicador: string;
+    formula: string;
+    meta: string;
     frecuencia: string;
-    matchedProgramId?: string; // id del objetivo con el que coincide (ej: obj1, obj2)
-    observaciones?: string;
+    estrategia_acciones: string;
+    matchedProgramId?: string; // id de coincidencia con el Programa Anual (ej: obj1, obj2, obj3, etc.)
 }
 
 export default function ObjetivosPage() {
@@ -66,69 +69,68 @@ export default function ObjetivosPage() {
     const activeWs = user?.workspace || 'Red Vial 6';
     const isLongitudinal = activeWs.toLowerCase().includes('longitudinal');
 
-    const [objetivos, setObjetivos] = useState<ObjetivoItem[]>([]);
+    const [objetivos, setObjetivos] = useState<ObjetivoEstrategicoItem[]>([]);
+    const [fechaActualizacion, setFechaActualizacion] = useState<string>('16 de enero 2026');
+    const [fechaRevision, setFechaRevision] = useState<string>('Mensual');
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMatch, setFilterMatch] = useState<'all' | 'matched' | 'unmatched'>('all');
     const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // Modal para editar o agregar objetivo individual
-    const [editingItem, setEditingItem] = useState<ObjetivoItem | null>(null);
+    // Modal de edición / creación
+    const [editingItem, setEditingItem] = useState<ObjetivoEstrategicoItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Cargar objetivos guardados al iniciar o al cambiar de proyecto
+    // Matcher inteligente con el Programa Anual
+    const matchWithProgram = (objText: string, persText: string, indText: string): string | undefined => {
+        const full = `${objText} ${persText} ${indText}`.toLowerCase();
+
+        // 1. SCSST / Comité
+        if (full.includes('scsst') || full.includes('comité') || full.includes('comite') || (full.includes('consulta') && full.includes('participación'))) return 'obj1';
+        // 2. Capacitación
+        if (full.includes('capacita') || full.includes('entrena') || full.includes('formación') || full.includes('plan de capacitación')) return 'obj2';
+        // 3. Inspecciones Seguridad
+        if ((full.includes('inspeccion') || full.includes('inspecciones')) && (full.includes('condiciones inseguras') || full.includes('seguridad operacional') || full.includes('equipos pesados'))) return 'obj3';
+        // 4. Reporte A/C / Peligros y Riesgos (TOP)
+        if (full.includes('peligros y') || full.includes('controlar los riesgos') || full.includes('iperc') || full.includes('ats') || full.includes('actos y condiciones')) return 'obj4';
+        // 5. EMO / Vigilancia de Salud
+        if (full.includes('enfermedades ocupacionales') || full.includes('vigilancia de salud') || full.includes('vigilancia de la salud') || full.includes('emo') || full.includes('médico')) return 'obj5';
+        // 6. Emergencias y Simulacros
+        if (full.includes('emergencia') || full.includes('simulacro') || full.includes('brigada') || full.includes('rescate')) return 'obj10';
+        // 7. Medio Ambiente / PMA
+        if (full.includes('ambiental') || full.includes('ambiente') || full.includes('residuos') || full.includes('pma')) return 'obj8';
+        // 8. Requisitos Legales
+        if (full.includes('requisitos legales') || full.includes('matriz legal')) return undefined;
+        // 9. Mejora continua
+        if (full.includes('mejora continua') || full.includes('acciones correctivas')) return undefined;
+
+        return undefined;
+    };
+
+    // Cargar objetivos desde la BD o precargar oficiales de CASA
     useEffect(() => {
-        const loadObjetivos = async () => {
+        const loadData = async () => {
             setIsLoading(true);
             try {
-                // 1. Intentar desde localStorage como fallback rápido
-                const localKey = `ssoma_objetivos_${activeWs}`;
-                const cached = localStorage.getItem(localKey);
-                if (cached) {
-                    try {
-                        setObjetivos(JSON.parse(cached));
-                    } catch (e) {}
-                }
-
-                // 2. Cargar desde la base de datos
                 const res = await fetch(`/api/objetivos?workspace=${encodeURIComponent(activeWs)}`);
                 const data = await res.json();
                 if (data.success && Array.isArray(data.objetivos) && data.objetivos.length > 0) {
                     setObjetivos(data.objetivos);
-                    localStorage.setItem(localKey, JSON.stringify(data.objetivos));
+                    if (data.fecha_actualizacion) setFechaActualizacion(data.fecha_actualizacion);
+                    if (data.fecha_revision) setFechaRevision(data.fecha_revision);
                 }
             } catch (err) {
-                console.error("Error cargando objetivos:", err);
+                console.error("Error al cargar objetivos:", err);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        loadObjetivos();
+        loadData();
     }, [activeWs]);
 
-    // Función inteligente para detectar coincidencia con el Programa Anual
-    const matchWithProgram = (codigo: string, nombre: string): string | undefined => {
-        const text = `${codigo} ${nombre}`.toLowerCase().trim();
-
-        // Comprobación por códigos directos
-        if (text.includes('obj 1') || text.includes('obj 01') || text.includes('obj-01') || text.includes('scsst') || text.includes('comite') || text.includes('comité')) return 'obj1';
-        if (text.includes('obj 2') || text.includes('obj 02') || text.includes('obj-02') || text.includes('capacita') || text.includes('entrena')) return 'obj2';
-        if (text.includes('obj 3') || text.includes('obj 03') || text.includes('obj-03') || (text.includes('inspecc') && text.includes('seguridad'))) return 'obj3';
-        if (text.includes('obj 4') || text.includes('obj 04') || text.includes('obj-04') || text.includes('top') || text.includes('acto') || text.includes('condici')) return 'obj4';
-        if (text.includes('obj 5') || text.includes('obj 05') || text.includes('obj-05') || text.includes('emo') || text.includes('medico') || text.includes('médico')) return 'obj5';
-        if (text.includes('seg 1') || text.includes('seg 01') || (text.includes('inspecc') && text.includes('salud'))) return 'obj6';
-        if (text.includes('seg 2') || text.includes('seg 02') || (text.includes('formac') && text.includes('salud'))) return 'obj7';
-        if (text.includes('seg 3') || text.includes('seg 03') || (text.includes('inspecc') && (text.includes('ambiente') || text.includes('ambiental')))) return 'obj8';
-        if (text.includes('seg 4') || text.includes('seg 04') || (text.includes('formac') && (text.includes('ambiente') || text.includes('ambiental')))) return 'obj9';
-        if (text.includes('seg 5') || text.includes('seg 05') || text.includes('simulacro')) return 'obj10';
-        if (text.includes('seg 6') || text.includes('seg 06') || text.includes('brigad')) return 'obj11';
-
-        return undefined;
-    };
-
-    // Procesar archivo Excel subido
+    // Procesar archivo Excel subido con el formato exacto CASA
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -140,152 +142,197 @@ export default function ObjetivosPage() {
                 const wb = XLSX.read(bstr, { type: 'binary' });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
-                const data: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                const rawRows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-                if (!data || data.length < 2) {
-                    setFeedbackMsg({ type: 'error', text: 'El archivo Excel no contiene suficientes datos o filas.' });
+                if (!rawRows || rawRows.length < 2) {
+                    setFeedbackMsg({ type: 'error', text: 'El archivo Excel no contiene suficientes datos.' });
                     return;
                 }
 
-                // Encontrar la fila de cabecera
-                let headerIdx = 0;
-                for (let i = 0; i < Math.min(data.length, 5); i++) {
-                    const rowText = (data[i] || []).map((c: any) => String(c).toLowerCase()).join(' ');
-                    if (rowText.includes('objetiv') || rowText.includes('meta') || rowText.includes('indicador') || rowText.includes('cod')) {
-                        headerIdx = i;
+                // Extraer metadatos de cabecera si existen (Fecha de actualización / revisión)
+                let extractedFechaAct = fechaActualizacion;
+                let extractedFechaRev = fechaRevision;
+
+                for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+                    const rowText = (rawRows[i] || []).map((c: any) => String(c).toLowerCase()).join(' ');
+                    if (rowText.includes('actualización') || rowText.includes('actualizacion')) {
+                        const val = rawRows[i].find((cell: any) => String(cell).toLowerCase().includes('202') || String(cell).length > 6);
+                        if (val) extractedFechaAct = String(val).trim();
+                    }
+                    if (rowText.includes('revisión') || rowText.includes('revision')) {
+                        const val = rawRows[i].find((cell: any) => String(cell).toLowerCase().includes('mensual') || String(cell).toLowerCase().includes('trimestral'));
+                        if (val) extractedFechaRev = String(val).trim();
+                    }
+                }
+
+                // Buscar la fila de encabezados de las 8 columnas
+                let headerRowIdx = -1;
+                for (let i = 0; i < Math.min(rawRows.length, 12); i++) {
+                    const rowText = (rawRows[i] || []).map((c: any) => String(c).toLowerCase()).join(' ');
+                    if (rowText.includes('objetivo') && (rowText.includes('perspectiva') || rowText.includes('responsable') || rowText.includes('indicador') || rowText.includes('meta'))) {
+                        headerRowIdx = i;
                         break;
                     }
                 }
 
-                const headers: string[] = (data[headerIdx] || []).map((h: any) => String(h || '').trim().toLowerCase());
-                
-                // Mapear índices de columnas de forma flexible
-                const colCod = headers.findIndex(h => h.includes('cod') || h.includes('item') || h.includes('n°') || h.includes('id'));
-                const colNom = headers.findIndex(h => h.includes('objetiv') || h.includes('descrip') || h.includes('nombre'));
-                const colInd = headers.findIndex(h => h.includes('indicador') || h.includes('formula') || h.includes('métrica') || h.includes('metrica'));
-                const colMeta = headers.findIndex(h => h.includes('meta') || h.includes('target') || h.includes('valor'));
-                const colResp = headers.findIndex(h => h.includes('resp') || h.includes('area') || h.includes('área') || h.includes('lider'));
-                const colFrec = headers.findIndex(h => h.includes('frec') || h.includes('period') || h.includes('plazo'));
+                if (headerRowIdx === -1) {
+                    headerRowIdx = 0; // fallback
+                }
 
-                const parsedList: ObjetivoItem[] = [];
+                const headers: string[] = (rawRows[headerRowIdx] || []).map((h: any) => String(h || '').trim().toLowerCase());
 
-                for (let r = headerIdx + 1; r < data.length; r++) {
-                    const row = data[r];
+                // Mapear índices de las 8 columnas oficiales
+                const colObj = headers.findIndex(h => h.includes('objetivo'));
+                const colPers = headers.findIndex(h => h.includes('perspectiva') || h.includes('casa'));
+                const colResp = headers.findIndex(h => h.includes('responsable'));
+                const colInd = headers.findIndex(h => h.includes('indicador'));
+                const colForm = headers.findIndex(h => h.includes('fórmula') || h.includes('formula'));
+                const colMeta = headers.findIndex(h => h.includes('meta'));
+                const colFrec = headers.findIndex(h => h.includes('frecuencia') || h.includes('periodicidad'));
+                const colEst = headers.findIndex(h => h.includes('estrategia') || h.includes('acciones'));
+
+                const parsedList: ObjetivoEstrategicoItem[] = [];
+
+                for (let r = headerRowIdx + 1; r < rawRows.length; r++) {
+                    const row = rawRows[r];
                     if (!row || row.length === 0) continue;
 
-                    const codVal = colCod !== -1 ? String(row[colCod] || '').trim() : `OBJ ${parsedList.length + 1}`;
-                    const nomVal = colNom !== -1 ? String(row[colNom] || '').trim() : String(row[1] || '').trim();
-                    
-                    if (!nomVal && !codVal) continue;
+                    const objVal = colObj !== -1 ? String(row[colObj] || '').trim() : String(row[0] || '').trim();
+                    if (!objVal || objVal.toLowerCase().includes('fecha de') || objVal.length < 5) continue;
 
-                    const indVal = colInd !== -1 ? String(row[colInd] || '').trim() : '';
+                    const persVal = colPers !== -1 ? String(row[colPers] || '').trim() : '';
+                    const respVal = colResp !== -1 ? String(row[colResp] || '').trim() : 'Jefe de SSOMA';
+                    const indVal = colInd !== -1 ? String(row[colInd] || '').trim() : 'Cumplimiento de objetivos';
+                    const formVal = colForm !== -1 ? String(row[colForm] || '').trim() : '% = (Ejecutado / Programado) * 100';
                     const metaVal = colMeta !== -1 ? String(row[colMeta] || '').trim() : '100%';
-                    const respVal = colResp !== -1 ? String(row[colResp] || '').trim() : 'Líder SSOMA';
                     const frecVal = colFrec !== -1 ? String(row[colFrec] || '').trim() : 'Mensual';
+                    const estVal = colEst !== -1 ? String(row[colEst] || '').trim() : '';
 
-                    const matchedId = matchWithProgram(codVal, nomVal);
+                    const matchedId = matchWithProgram(objVal, persVal, indVal);
 
                     parsedList.push({
-                        id: `obj_${Date.now()}_${r}`,
-                        codigo: codVal || `OBJ ${parsedList.length + 1}`,
-                        nombre: nomVal || 'Objetivo sin descripción',
-                        indicador: indVal || 'Cumplimiento de actividades',
-                        meta: metaVal,
+                        id: `casa_obj_${Date.now()}_${r}`,
+                        codigo: `OBJ ${parsedList.length + 1}`,
+                        objetivo_estrategico: objVal,
+                        perspectiva_casa: persVal,
                         responsable: respVal,
+                        indicador: indVal,
+                        formula: formVal,
+                        meta: metaVal,
                         frecuencia: frecVal,
+                        estrategia_acciones: estVal,
                         matchedProgramId: matchedId
                     });
                 }
 
                 if (parsedList.length === 0) {
-                    setFeedbackMsg({ type: 'error', text: 'No se pudieron interpretar objetivos válidos del Excel. Asegúrate de incluir columnas como "Objetivo", "Meta" o "Indicador".' });
+                    setFeedbackMsg({ type: 'error', text: 'No se encontraron objetivos estratégicos válidos en el archivo.' });
                     return;
                 }
 
                 setObjetivos(parsedList);
-                saveObjetivosToDb(parsedList);
-                setFeedbackMsg({ type: 'success', text: `¡Se cargaron exitosamente ${parsedList.length} objetivos desde el Excel!` });
+                setFechaActualizacion(extractedFechaAct);
+                setFechaRevision(extractedFechaRev);
+                saveToDb(parsedList, extractedFechaAct, extractedFechaRev);
+                setFeedbackMsg({ type: 'success', text: `¡Se cargaron exitosamente ${parsedList.length} objetivos estratégicos desde el Excel de CASA!` });
             } catch (err: any) {
-                console.error("Error al leer Excel:", err);
-                setFeedbackMsg({ type: 'error', text: 'Ocurrió un error al procesar el Excel: ' + (err.message || 'Formato no soportado') });
+                console.error("Error al procesar Excel:", err);
+                setFeedbackMsg({ type: 'error', text: 'Error al interpretar el Excel: ' + (err.message || 'Formato inválido') });
             }
         };
         reader.readAsBinaryString(file);
-        // Reset input
         e.target.value = '';
     };
 
-    // Guardar en Base de Datos y LocalStorage
-    const saveObjetivosToDb = async (listToSave: ObjetivoItem[]) => {
+    // Guardar en la base de datos
+    const saveToDb = async (list: ObjetivoEstrategicoItem[], fAct = fechaActualizacion, fRev = fechaRevision) => {
         setIsSaving(true);
         try {
-            const localKey = `ssoma_objetivos_${activeWs}`;
-            localStorage.setItem(localKey, JSON.stringify(listToSave));
-
             const res = await fetch('/api/objetivos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workspace: activeWs, objetivos: listToSave })
+                body: JSON.stringify({
+                    workspace: activeWs,
+                    objetivos: list,
+                    fecha_actualizacion: fAct,
+                    fecha_revision: fRev
+                })
             });
             const data = await res.json();
             if (data.success) {
-                setFeedbackMsg({ type: 'success', text: 'Objetivos del año sincronizados y guardados correctamente.' });
+                setFeedbackMsg({ type: 'success', text: 'Objetivos estratégicos guardados y sincronizados correctamente.' });
             }
         } catch (err) {
-            console.error("Error al guardar objetivos:", err);
+            console.error("Error al guardar en BD:", err);
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Descargar plantilla Excel oficial
+    // Descargar plantilla Excel oficial CASA
     const handleDownloadTemplate = () => {
-        const templateRows = PROGRAM_OBJECTIVES.map((obj, idx) => ({
-            "CÓDIGO": obj.code,
-            "OBJETIVO DEL AÑO": obj.name,
-            "INDICADOR / FÓRMULA": `(Actividades Ejecutadas / Actividades Programadas) * 100`,
-            "META": "100%",
-            "RESPONSABLE": "Jefatura SSOMA / Supervisor",
-            "FRECUENCIA": "Mensual",
-            "COINCIDENCIA PROGRAMA ANUAL": obj.label
-        }));
+        // Filas de metadatos superiores
+        const metaRows = [
+            ["CASA", "OBJETIVOS ESTRATÉGICOS"],
+            [],
+            ["Fecha de actualización:", fechaActualizacion],
+            ["Fecha de revisión:", fechaRevision],
+            []
+        ];
 
-        const ws = XLSX.utils.json_to_sheet(templateRows);
+        // Encabezados de las 8 columnas oficiales
+        const headerRow = [
+            "OBJETIVO ESTRATÉGICO",
+            "PERSPECTIVA CASA",
+            "RESPONSABLE",
+            "INDICADOR DEL OBJETIVO",
+            "FÓRMULA",
+            "META",
+            "FRECUENCIA",
+            "ESTRATEGIA DE ACCIONES ASOCIADAS AL OBJETIVO"
+        ];
+
+        const dataRows = objetivos.map(o => [
+            o.objetivo_estrategico,
+            o.perspectiva_casa,
+            o.responsable,
+            o.indicador,
+            o.formula,
+            o.meta,
+            o.frecuencia,
+            o.estrategia_acciones
+        ]);
+
+        const allSheetData = [...metaRows, headerRow, ...dataRows];
+        const ws = XLSX.utils.aoa_to_sheet(allSheetData);
+
+        // Anchos de columna cómodos para Excel
+        ws['!cols'] = [
+            { wch: 45 },
+            { wch: 55 },
+            { wch: 25 },
+            { wch: 35 },
+            { wch: 45 },
+            { wch: 12 },
+            { wch: 15 },
+            { wch: 55 }
+        ];
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Objetivos Anuales");
-        XLSX.writeFile(wb, `Plantilla_Objetivos_del_Año_${activeWs.replace(/\s+/g, '_')}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Objetivos Estratégicos");
+        XLSX.writeFile(wb, `Objetivos_Estrategicos_CASA_${activeWs.replace(/\s+/g, '_')}.xlsx`);
     };
 
-    // Exportar lista actual a Excel
-    const handleExportExcel = () => {
-        if (objetivos.length === 0) return;
-        const exportRows = objetivos.map(o => {
-            const match = PROGRAM_OBJECTIVES.find(p => p.id === o.matchedProgramId);
-            return {
-                "CÓDIGO": o.codigo,
-                "OBJETIVO": o.nombre,
-                "INDICADOR": o.indicador,
-                "META": o.meta,
-                "RESPONSABLE": o.responsable,
-                "FRECUENCIA": o.frecuencia,
-                "ESTADO PROGRAMA ANUAL": match ? `Coincide con ${match.label}` : 'Objetivo Específico / Adicional'
-            };
-        });
-
-        const ws = XLSX.utils.json_to_sheet(exportRows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Objetivos");
-        XLSX.writeFile(wb, `Objetivos_del_Año_${activeWs.replace(/\s+/g, '_')}.xlsx`);
-    };
-
-    // Filtrado de objetivos en pantalla
+    // Filtrado de objetivos
     const filteredObjetivos = useMemo(() => {
         return objetivos.filter(obj => {
+            const term = searchTerm.toLowerCase();
             const matchesSearch = 
-                obj.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                obj.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                obj.responsable.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                obj.indicador.toLowerCase().includes(searchTerm.toLowerCase());
+                obj.objetivo_estrategico.toLowerCase().includes(term) ||
+                obj.perspectiva_casa.toLowerCase().includes(term) ||
+                obj.indicador.toLowerCase().includes(term) ||
+                obj.responsable.toLowerCase().includes(term) ||
+                obj.estrategia_acciones.toLowerCase().includes(term);
 
             if (!matchesSearch) return false;
 
@@ -300,64 +347,95 @@ export default function ObjetivosPage() {
     const matchedCount = objetivos.filter(o => Boolean(o.matchedProgramId)).length;
     const unmatchedCount = totalCount - matchedCount;
 
-    // Eliminar objetivo
+    // Eliminar fila
     const handleDelete = (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este objetivo?')) return;
+        if (!confirm('¿Eliminar este objetivo estratégico de la lista?')) return;
         const updated = objetivos.filter(o => o.id !== id);
         setObjetivos(updated);
-        saveObjetivosToDb(updated);
+        saveToDb(updated);
     };
 
     // Guardar edición o nuevo
     const handleSaveItemModal = () => {
-        if (!editingItem || !editingItem.nombre.trim()) return;
+        if (!editingItem || !editingItem.objetivo_estrategico.trim()) return;
 
-        const matchedId = matchWithProgram(editingItem.codigo, editingItem.nombre);
-        const finalizedItem = { ...editingItem, matchedProgramId: matchedId };
+        const matchedId = matchWithProgram(editingItem.objetivo_estrategico, editingItem.perspectiva_casa, editingItem.indicador);
+        const finalized = { ...editingItem, matchedProgramId: matchedId };
 
-        let updated: ObjetivoItem[];
-        const exists = objetivos.some(o => o.id === finalizedItem.id);
+        let updated: ObjetivoEstrategicoItem[];
+        const exists = objetivos.some(o => o.id === finalized.id);
         if (exists) {
-            updated = objetivos.map(o => o.id === finalizedItem.id ? finalizedItem : o);
+            updated = objetivos.map(o => o.id === finalized.id ? finalized : o);
         } else {
-            updated = [finalizedItem, ...objetivos];
+            updated = [...objetivos, finalized];
         }
 
         setObjetivos(updated);
-        saveObjetivosToDb(updated);
+        saveToDb(updated);
         setIsModalOpen(false);
         setEditingItem(null);
     };
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div className="max-w-[96rem] mx-auto space-y-8">
 
-                {/* Header */}
-                <div className={`bg-slate-900 border ${isLongitudinal ? 'border-teal-800/60' : 'border-slate-800'} p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl`}>
-                    <div className={`absolute top-0 right-0 w-full md:w-64 h-64 ${isLongitudinal ? 'bg-emerald-500/15' : 'bg-amber-500/10'} blur-[80px] -mr-32 -mt-32 rounded-full`}></div>
-                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                {/* Banner / Header Oficial CASA */}
+                <div className={`bg-slate-900 border ${isLongitudinal ? 'border-teal-800/60' : 'border-slate-800'} p-6 sm:p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl`}>
+                    <div className={`absolute top-0 right-0 w-full md:w-96 h-96 ${isLongitudinal ? 'bg-emerald-500/10' : 'bg-orange-500/10'} blur-[100px] -mr-32 -mt-32 rounded-full`}></div>
+                    
+                    <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-amber-500/20 text-amber-400 border-amber-500/40'}`}>
-                                    Proyecto Activo: {activeWs}
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <span className="bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                                    🏢 CASA
                                 </span>
-                                <span className="bg-slate-800 text-slate-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-slate-700">
+                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${isLongitudinal ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-orange-500/20 text-orange-400 border-orange-500/40'}`}>
+                                    {activeWs}
+                                </span>
+                                <span className="bg-slate-800 text-slate-300 text-xs font-bold px-3 py-1 rounded-full border border-slate-700">
                                     Año 2026
                                 </span>
                             </div>
-                            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter flex items-center gap-3.5 mb-2">
-                                <Target size={38} className={isLongitudinal ? "text-emerald-400" : "text-amber-400"} />
-                                Objetivos del Año
+
+                            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                                <Target size={36} className={isLongitudinal ? "text-emerald-400" : "text-orange-500"} />
+                                OBJETIVOS ESTRATÉGICOS
                             </h1>
-                            <p className="text-slate-400 font-bold max-w-2xl text-xs sm:text-sm">
-                                Carga y gestiona la matriz de objetivos anuales para <strong>{activeWs}</strong>. El sistema verifica la coincidencia automática con las metas y actividades del Programa Anual SSOMA.
+                            <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-3xl font-medium">
+                                Matriz corporativa de objetivos estratégicos, perspectiva legal CASA, responsables, fórmulas e indicadores sincronizados con el Programa Anual SSOMA.
                             </p>
+
+                            {/* Fechas de Cabecera Oficial CASA */}
+                            <div className="flex flex-wrap items-center gap-4 mt-4 pt-3 border-t border-slate-800/80 text-xs">
+                                <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                                    <span className="text-slate-400 font-bold">Fecha de actualización:</span>
+                                    <input
+                                        type="text"
+                                        value={fechaActualizacion}
+                                        onChange={(e) => setFechaActualizacion(e.target.value)}
+                                        onBlur={() => saveToDb(objetivos, fechaActualizacion, fechaRevision)}
+                                        className="bg-transparent text-white font-bold outline-none cursor-pointer hover:text-amber-400 transition-colors"
+                                        title="Haz clic para editar la fecha de actualización"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                                    <span className="text-slate-400 font-bold">Fecha de revisión:</span>
+                                    <input
+                                        type="text"
+                                        value={fechaRevision}
+                                        onChange={(e) => setFechaRevision(e.target.value)}
+                                        onBlur={() => saveToDb(objetivos, fechaActualizacion, fechaRevision)}
+                                        className="bg-transparent text-white font-bold outline-none cursor-pointer hover:text-amber-400 transition-colors"
+                                        title="Haz clic para editar la periodicidad de revisión"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Botones de acción del header */}
-                        <div className="flex flex-wrap gap-2.5">
-                            <label className={`cursor-pointer px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg ${isLongitudinal ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 shadow-emerald-500/20' : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 shadow-amber-500/20'}`}>
+                        {/* Botones de Acción */}
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <label className={`cursor-pointer px-4 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 shadow-xl ${isLongitudinal ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 shadow-emerald-500/20' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 shadow-orange-500/20'}`}>
                                 <Upload size={16} /> Cargar Excel de Objetivos
                                 <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
                             </label>
@@ -365,23 +443,23 @@ export default function ObjetivosPage() {
                             <button
                                 type="button"
                                 onClick={handleDownloadTemplate}
-                                className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5 shadow-sm"
-                                title="Descargar plantilla Excel pre-rellenada con los objetivos del Programa Anual"
+                                className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-2xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-2 shadow-md"
+                                title="Exportar la matriz actual a archivo Excel oficial"
                             >
-                                <Download size={15} /> Plantilla Excel
+                                <Download size={16} /> Descargar Formato Excel
                             </button>
 
                             <Link
                                 href="/program"
-                                className="px-3.5 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 rounded-xl text-xs font-bold transition-all border border-emerald-500/30 flex items-center gap-1.5 shadow-sm"
+                                className="px-4 py-3 bg-slate-800/90 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 rounded-2xl text-xs font-bold transition-all border border-emerald-500/30 flex items-center gap-2 shadow-md"
                             >
-                                <ExternalLink size={15} /> Ver Programa Anual
+                                <ExternalLink size={16} /> Ir al Programa Anual
                             </Link>
                         </div>
                     </div>
                 </div>
 
-                {/* Notificación de feedback */}
+                {/* Notificaciones */}
                 {feedbackMsg && (
                     <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between animate-in fade-in duration-300 ${feedbackMsg.type === 'success' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-rose-500/20 border-rose-500/40 text-rose-300'}`}>
                         <div className="flex items-center gap-2">
@@ -394,105 +472,66 @@ export default function ObjetivosPage() {
                     </div>
                 )}
 
-                {/* Tarjetas KPI de Resumen */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Objetivos Cargados</span>
-                            <Target size={18} className="text-amber-400" />
-                        </div>
-                        <p className="text-3xl font-black text-white">{totalCount}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">Registrados para el año en curso</p>
-                    </div>
-
-                    <div className="bg-slate-900 border border-emerald-500/30 p-5 rounded-2xl bg-emerald-950/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Coinciden con Programa</span>
-                            <CheckCircle2 size={18} className="text-emerald-400" />
-                        </div>
-                        <p className="text-3xl font-black text-emerald-400">{matchedCount}</p>
-                        <p className="text-[11px] text-slate-400 mt-1">Alineados a las metas del Programa Anual</p>
-                    </div>
-
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Objetivos Específicos</span>
-                            <Shield size={18} className="text-sky-400" />
-                        </div>
-                        <p className="text-3xl font-black text-sky-400">{unmatchedCount}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">Metas adicionales propias del proyecto</p>
-                    </div>
-
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-                        <div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Carga Rápida de Excel</span>
-                            <p className="text-xs text-slate-300 mt-1 font-bold">Actualiza tu archivo en cualquier momento</p>
-                        </div>
-                        <label className="mt-3 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <FileSpreadsheet size={15} className="text-emerald-400" /> Seleccionar Archivo
-                            <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-                        </label>
-                    </div>
-                </div>
-
-                {/* Panel de Correspondencia con el Programa Anual */}
+                {/* Panel de Validación de Coincidencia con el Programa Anual */}
                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
                         <div>
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                            <h3 className="text-base font-black text-white flex items-center gap-2">
                                 <CheckCircle2 size={20} className="text-emerald-400" />
-                                Alineación con el Programa Anual SSOMA
+                                Coincidencia con los Objetivos del Programa Anual ({matchedCount} Coincidentes)
                             </h3>
                             <p className="text-slate-400 text-xs">
-                                Comparación entre los objetivos cargados en tu Excel y los objetivos definidos en el Programa Anual.
+                                Los objetivos estratégicos de CASA se vinculan directamente a los códigos y actividades del Programa Anual SSOMA:
                             </p>
                         </div>
-                        <span className="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-full border border-slate-700">
-                            {matchedCount} de {PROGRAM_OBJECTIVES.length} Objetivos Principales Cubiertos
+                        <span className="text-xs bg-slate-950 text-slate-300 font-mono font-bold px-3 py-1 rounded-full border border-slate-800">
+                            {totalCount} Objetivos Registrados
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                        {PROGRAM_OBJECTIVES.map(progObj => {
-                            const isFound = objetivos.some(o => o.matchedProgramId === progObj.id);
-                            const ProgIcon = progObj.icon;
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                        {PROGRAM_OBJECTIVES.map(prog => {
+                            const isMatched = objetivos.some(o => o.matchedProgramId === prog.id);
+                            const IconComponent = prog.icon;
                             return (
-                                <div 
-                                    key={progObj.id} 
-                                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all ${isFound ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-950/50 border-slate-800 text-slate-500 opacity-60'}`}
+                                <Link
+                                    key={prog.id}
+                                    href={`/program?obj=${prog.id}`}
+                                    className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all hover:scale-[1.02] ${isMatched ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60 hover:opacity-100'}`}
+                                    title={`Ver en Programa Anual: ${prog.label}`}
                                 >
-                                    <div className={`p-1.5 rounded-lg ${progObj.bg} ${progObj.color}`}>
-                                        <ProgIcon size={16} />
+                                    <div className={`p-1 rounded-md ${prog.bg} ${prog.color}`}>
+                                        <IconComponent size={14} />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-black truncate">{progObj.code}</p>
-                                        <p className="text-[10px] text-slate-400 truncate">{progObj.name}</p>
+                                        <p className="text-xs font-black truncate">{prog.code}</p>
+                                        <p className="text-[10px] text-slate-400 truncate">{prog.name}</p>
                                     </div>
-                                    {isFound ? (
-                                        <Check size={16} className="text-emerald-400 shrink-0" />
+                                    {isMatched ? (
+                                        <Check size={14} className="text-emerald-400 shrink-0" />
                                     ) : (
-                                        <span className="text-[10px] text-slate-600 shrink-0">Pendiente</span>
+                                        <span className="text-[9px] text-slate-600 shrink-0">Pendiente</span>
                                     )}
-                                </div>
+                                </Link>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Tabla de Objetivos del Año */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+                {/* Tabla de Matriz Oficial CASA (8 Columnas) */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
                     <div className="p-5 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                                <Target size={22} className={isLongitudinal ? 'text-emerald-400' : 'text-amber-400'} />
-                                Matriz de Objetivos ({filteredObjetivos.length})
+                                <Target size={22} className={isLongitudinal ? 'text-emerald-400' : 'text-orange-500'} />
+                                Matriz Oficial de Objetivos Estratégicos ({filteredObjetivos.length})
                             </h3>
-                            <p className="text-slate-400 text-xs">
-                                Lista detallada de metas, indicadores y correspondencias con el plan anual.
+                            <p className="text-slate-400 text-xs mt-0.5">
+                                Formato reglamentario CASA con 8 campos de gestión de SST y Medio Ambiente.
                             </p>
                         </div>
 
-                        {/* Barra de Filtros y Búsqueda */}
+                        {/* Barra de Búsqueda y Filtros */}
                         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                             <div className="relative flex-1 sm:w-64">
                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -500,8 +539,8 @@ export default function ObjetivosPage() {
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Buscar por código, meta, responsable..."
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-amber-500"
+                                    placeholder="Buscar en objetivos o perspectiva..."
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-orange-500"
                                 />
                             </div>
 
@@ -510,22 +549,25 @@ export default function ObjetivosPage() {
                                 onChange={(e: any) => setFilterMatch(e.target.value)}
                                 className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer"
                             >
-                                <option value="all">Todos los objetivos</option>
-                                <option value="matched">Coinciden con Programa</option>
-                                <option value="unmatched">Específicos / Adicionales</option>
+                                <option value="all">Todos ({totalCount})</option>
+                                <option value="matched">Coinciden con Programa ({matchedCount})</option>
+                                <option value="unmatched">Específicos ({unmatchedCount})</option>
                             </select>
 
                             <button
                                 type="button"
                                 onClick={() => {
                                     setEditingItem({
-                                        id: `obj_${Date.now()}`,
+                                        id: `casa_obj_${Date.now()}`,
                                         codigo: `OBJ ${objetivos.length + 1}`,
-                                        nombre: '',
-                                        indicador: 'Cumplimiento de actividades',
+                                        objetivo_estrategico: '',
+                                        perspectiva_casa: '',
+                                        responsable: 'Jefe de SSOMA',
+                                        indicador: '',
+                                        formula: '% = (Ejecutado / Programado) * 100',
                                         meta: '100%',
-                                        responsable: 'SSOMA',
-                                        frecuencia: 'Mensual'
+                                        frecuencia: 'Mensual',
+                                        estrategia_acciones: ''
                                     });
                                     setIsModalOpen(true);
                                 }}
@@ -533,132 +575,121 @@ export default function ObjetivosPage() {
                             >
                                 <Plus size={14} /> Nuevo
                             </button>
-
-                            {objetivos.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={handleExportExcel}
-                                    className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
-                                    title="Exportar a Excel"
-                                >
-                                    <Download size={14} /> Exportar
-                                </button>
-                            )}
                         </div>
                     </div>
 
-                    {/* Contenido de la Tabla */}
-                    {isLoading ? (
-                        <div className="p-12 text-center text-slate-400">
-                            <Activity className="animate-spin mx-auto mb-2 text-amber-400" size={28} />
-                            <p className="text-xs font-bold">Cargando objetivos del año...</p>
-                        </div>
-                    ) : filteredObjetivos.length === 0 ? (
-                        <div className="p-12 text-center space-y-4">
-                            <FileSpreadsheet size={48} className="mx-auto text-slate-600" />
-                            <div>
-                                <h4 className="text-white font-bold text-base">Aún no se han cargado objetivos para {activeWs}</h4>
-                                <p className="text-slate-400 text-xs mt-1 max-w-md mx-auto">
-                                    Carga tu archivo Excel con la matriz de objetivos anuales o descarga la plantilla prediseñada para comenzar.
-                                </p>
-                            </div>
-                            <div className="flex justify-center gap-3 pt-2">
-                                <label className={`cursor-pointer px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 shadow-lg ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-amber-600 hover:bg-amber-500 text-white'}`}>
-                                    <Upload size={16} /> Cargar Excel
-                                    <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadTemplate}
-                                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all border border-slate-700 flex items-center gap-1.5"
-                                >
-                                    <Download size={15} /> Descargar Plantilla
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr className="border-b border-slate-800 bg-slate-950/50 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                        <th className="py-3 px-4">Código</th>
-                                        <th className="py-3 px-4">Objetivo del Año</th>
-                                        <th className="py-3 px-4">Indicador / Fórmula</th>
-                                        <th className="py-3 px-4 text-center">Meta</th>
-                                        <th className="py-3 px-4">Responsable</th>
-                                        <th className="py-3 px-4">Frecuencia</th>
-                                        <th className="py-3 px-4">Coincidencia Programa</th>
-                                        <th className="py-3 px-4 text-right">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {filteredObjetivos.map((item) => {
-                                        const progMatch = PROGRAM_OBJECTIVES.find(p => p.id === item.matchedProgramId);
-                                        return (
-                                            <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
-                                                <td className="py-3 px-4 font-mono font-bold text-white whitespace-nowrap">
-                                                    <span className="bg-slate-950 px-2 py-1 rounded border border-slate-800">
-                                                        {item.codigo}
+                    {/* Tabla de 8 Columnas Oficial CASA */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b-2 border-slate-700 bg-slate-950/80 text-[10px] font-black uppercase tracking-wider text-slate-300">
+                                    <th className="py-3.5 px-3 min-w-[220px]">OBJETIVO ESTRATÉGICO</th>
+                                    <th className="py-3.5 px-3 min-w-[260px]">PERSPECTIVA CASA</th>
+                                    <th className="py-3.5 px-3 min-w-[140px]">RESPONSABLE</th>
+                                    <th className="py-3.5 px-3 min-w-[180px]">INDICADOR DEL OBJETIVO</th>
+                                    <th className="py-3.5 px-3 min-w-[190px]">FÓRMULA</th>
+                                    <th className="py-3.5 px-3 text-center min-w-[90px]">META</th>
+                                    <th className="py-3.5 px-3 text-center min-w-[100px]">FRECUENCIA</th>
+                                    <th className="py-3.5 px-3 min-w-[260px]">ESTRATEGIA DE ACCIONES ASOCIADAS AL OBJETIVO</th>
+                                    <th className="py-3.5 px-3 text-right min-w-[80px]">ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                                {filteredObjetivos.map((item, idx) => {
+                                    const progMatch = PROGRAM_OBJECTIVES.find(p => p.id === item.matchedProgramId);
+                                    return (
+                                        <tr key={item.id} className="hover:bg-slate-800/40 transition-colors group align-top">
+                                            {/* 1. OBJETIVO ESTRATÉGICO */}
+                                            <td className="py-3 px-3">
+                                                <div className="space-y-1.5">
+                                                    <span className="font-bold text-white text-xs block leading-snug">
+                                                        {item.objetivo_estrategico}
                                                     </span>
-                                                </td>
-                                                <td className="py-3 px-4 font-bold text-white max-w-md">
-                                                    {item.nombre}
-                                                </td>
-                                                <td className="py-3 px-4 text-slate-300">
-                                                    {item.indicador}
-                                                </td>
-                                                <td className="py-3 px-4 text-center">
-                                                    <span className={`px-2 py-0.5 rounded-full font-black text-[11px] border ${item.meta.includes('100') ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'}`}>
-                                                        {item.meta}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-4 text-slate-400 whitespace-nowrap">
-                                                    {item.responsable}
-                                                </td>
-                                                <td className="py-3 px-4 text-slate-400 whitespace-nowrap">
-                                                    {item.frecuencia}
-                                                </td>
-                                                <td className="py-3 px-4 whitespace-nowrap">
                                                     {progMatch ? (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                                            <CheckCircle2 size={12} /> {progMatch.label}
-                                                        </span>
+                                                        <Link 
+                                                            href={`/program?obj=${progMatch.id}`}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors"
+                                                            title="Ver en el Programa Anual"
+                                                        >
+                                                            <CheckCircle2 size={11} /> {progMatch.label}
+                                                        </Link>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
                                                             Objetivo Específico
                                                         </span>
                                                     )}
-                                                </td>
-                                                <td className="py-3 px-4 text-right whitespace-nowrap">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setEditingItem(item);
-                                                                setIsModalOpen(true);
-                                                            }}
-                                                            className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors"
-                                                            title="Editar Objetivo"
-                                                        >
-                                                            <Edit2 size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete(item.id)}
-                                                            className="p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors"
-                                                            title="Eliminar"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* 2. PERSPECTIVA CASA */}
+                                            <td className="py-3 px-3 text-slate-300 text-[11px] leading-relaxed">
+                                                {item.perspectiva_casa}
+                                            </td>
+
+                                            {/* 3. RESPONSABLE */}
+                                            <td className="py-3 px-3 font-semibold text-slate-300 text-[11px]">
+                                                {item.responsable}
+                                            </td>
+
+                                            {/* 4. INDICADOR DEL OBJETIVO */}
+                                            <td className="py-3 px-3 font-medium text-slate-200 text-[11px]">
+                                                {item.indicador}
+                                            </td>
+
+                                            {/* 5. FÓRMULA */}
+                                            <td className="py-3 px-3 font-mono text-slate-300 text-[10px] bg-slate-950/30 rounded p-1.5 leading-snug">
+                                                {item.formula}
+                                            </td>
+
+                                            {/* 6. META */}
+                                            <td className="py-3 px-3 text-center">
+                                                <span className={`inline-block px-2.5 py-1 rounded-full font-black text-xs border ${item.meta.includes('100') ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}>
+                                                    {item.meta}
+                                                </span>
+                                            </td>
+
+                                            {/* 7. FRECUENCIA */}
+                                            <td className="py-3 px-3 text-center">
+                                                <span className="bg-slate-950 px-2 py-0.5 rounded text-[11px] text-slate-300 font-bold border border-slate-800 capitalize">
+                                                    {item.frecuencia}
+                                                </span>
+                                            </td>
+
+                                            {/* 8. ESTRATEGIA DE ACCIONES */}
+                                            <td className="py-3 px-3 text-slate-300 text-[11px] leading-relaxed">
+                                                {item.estrategia_acciones}
+                                            </td>
+
+                                            {/* ACCIONES */}
+                                            <td className="py-3 px-3 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingItem(item);
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                        className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                                        title="Editar Objetivo"
+                                                    >
+                                                        <Edit2 size={13} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="p-1.5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
             </div>
@@ -666,7 +697,7 @@ export default function ObjetivosPage() {
             {/* Modal para Editar o Crear Objetivo */}
             {isModalOpen && editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 relative shadow-2xl space-y-4">
+                    <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 relative shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
                         <button
                             type="button"
                             onClick={() => { setIsModalOpen(false); setEditingItem(null); }}
@@ -675,75 +706,88 @@ export default function ObjetivosPage() {
                             <X size={16} />
                         </button>
 
-                        <div className="flex items-center gap-3 pb-2 border-b border-slate-800">
-                            <Target size={24} className="text-amber-400" />
+                        <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+                            <Target size={24} className="text-orange-500" />
                             <div>
                                 <h3 className="text-base font-black text-white">
-                                    {objetivos.some(o => o.id === editingItem.id) ? 'Editar Objetivo del Año' : 'Nuevo Objetivo del Año'}
+                                    {objetivos.some(o => o.id === editingItem.id) ? 'Editar Objetivo Estratégico (CASA)' : 'Nuevo Objetivo Estratégico (CASA)'}
                                 </h3>
                                 <p className="text-xs text-slate-400">{activeWs}</p>
                             </div>
                         </div>
 
-                        <div className="space-y-3 text-xs">
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="col-span-1">
-                                    <label className="text-slate-400 font-bold block mb-1">Código</label>
-                                    <input
-                                        type="text"
-                                        value={editingItem.codigo}
-                                        onChange={e => setEditingItem({ ...editingItem, codigo: e.target.value })}
-                                        placeholder="OBJ 01"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-amber-500"
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="text-slate-400 font-bold block mb-1">Meta</label>
-                                    <input
-                                        type="text"
-                                        value={editingItem.meta}
-                                        onChange={e => setEditingItem({ ...editingItem, meta: e.target.value })}
-                                        placeholder="100%"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
-                                    />
-                                </div>
-                            </div>
-
+                        <div className="space-y-3.5 text-xs">
+                            {/* Objetivo Estratégico */}
                             <div>
-                                <label className="text-slate-400 font-bold block mb-1">Nombre / Descripción del Objetivo</label>
+                                <label className="text-slate-400 font-bold block mb-1">1. Objetivo Estratégico</label>
                                 <textarea
-                                    value={editingItem.nombre}
-                                    onChange={e => setEditingItem({ ...editingItem, nombre: e.target.value })}
-                                    placeholder="Ej: Implementar y mantener el Sistema de Gestión de SST..."
-                                    rows={3}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white outline-none resize-none focus:border-amber-500"
+                                    value={editingItem.objetivo_estrategico}
+                                    onChange={e => setEditingItem({ ...editingItem, objetivo_estrategico: e.target.value })}
+                                    placeholder="Ej: Asegurar la consulta, participación e información activa de los trabajadores..."
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white outline-none resize-none focus:border-orange-500"
                                 />
                             </div>
 
+                            {/* Perspectiva CASA */}
                             <div>
-                                <label className="text-slate-400 font-bold block mb-1">Indicador / Fórmula de Cálculo</label>
-                                <input
-                                    type="text"
-                                    value={editingItem.indicador}
-                                    onChange={e => setEditingItem({ ...editingItem, indicador: e.target.value })}
-                                    placeholder="(Actividades Ejecutadas / Programadas) * 100"
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                                <label className="text-slate-400 font-bold block mb-1">2. Perspectiva CASA (Normativa / Base Legal)</label>
+                                <textarea
+                                    value={editingItem.perspectiva_casa}
+                                    onChange={e => setEditingItem({ ...editingItem, perspectiva_casa: e.target.value })}
+                                    placeholder="Ej: Dar cumplimiento al Art. 19 de la Ley 29783 y Art. 34 del D.S. 011-2019-TR..."
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white outline-none resize-none focus:border-orange-500"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-slate-400 font-bold block mb-1">Responsable</label>
+                                    <label className="text-slate-400 font-bold block mb-1">3. Responsable</label>
                                     <input
                                         type="text"
                                         value={editingItem.responsable}
                                         onChange={e => setEditingItem({ ...editingItem, responsable: e.target.value })}
-                                        placeholder="Líder SSOMA"
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500"
+                                        placeholder="Ej: Jefe de SSOMA / SCSST"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-orange-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-slate-400 font-bold block mb-1">Frecuencia</label>
+                                    <label className="text-slate-400 font-bold block mb-1">4. Indicador del Objetivo</label>
+                                    <input
+                                        type="text"
+                                        value={editingItem.indicador}
+                                        onChange={e => setEditingItem({ ...editingItem, indicador: e.target.value })}
+                                        placeholder="Ej: Cumplimiento de acuerdos del SCSST"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-slate-400 font-bold block mb-1">5. Fórmula de Cálculo</label>
+                                <input
+                                    type="text"
+                                    value={editingItem.formula}
+                                    onChange={e => setEditingItem({ ...editingItem, formula: e.target.value })}
+                                    placeholder="Ej: % Acu. = (N° Acuerdos realizados / N° Acuerdos programados) * 100"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono outline-none focus:border-orange-500"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-slate-400 font-bold block mb-1">6. Meta</label>
+                                    <input
+                                        type="text"
+                                        value={editingItem.meta}
+                                        onChange={e => setEditingItem({ ...editingItem, meta: e.target.value })}
+                                        placeholder="≥ 90% o 100%"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-slate-400 font-bold block mb-1">7. Frecuencia</label>
                                     <select
                                         value={editingItem.frecuencia}
                                         onChange={e => setEditingItem({ ...editingItem, frecuencia: e.target.value })}
@@ -754,13 +798,23 @@ export default function ObjetivosPage() {
                                         <option value="Trimestral">Trimestral</option>
                                         <option value="Semestral">Semestral</option>
                                         <option value="Anual">Anual</option>
-                                        <option value="Permanente">Permanente</option>
                                     </select>
                                 </div>
                             </div>
+
+                            <div>
+                                <label className="text-slate-400 font-bold block mb-1">8. Estrategia de Acciones Asociadas al Objetivo</label>
+                                <textarea
+                                    value={editingItem.estrategia_acciones}
+                                    onChange={e => setEditingItem({ ...editingItem, estrategia_acciones: e.target.value })}
+                                    placeholder="Ej: Seguimiento y cierre mensual de acuerdos asentados en el libro de actas..."
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white outline-none resize-none focus:border-orange-500"
+                                />
+                            </div>
                         </div>
 
-                        <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                        <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
                             <button
                                 type="button"
                                 onClick={() => { setIsModalOpen(false); setEditingItem(null); }}
