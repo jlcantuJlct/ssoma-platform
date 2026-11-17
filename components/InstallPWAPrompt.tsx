@@ -92,6 +92,14 @@ export default function InstallPWAPrompt({
         setActiveTab(isIOS ? 'ios' : 'android');
     };
 
+    const handleOpenInChrome = () => {
+        if (typeof window !== 'undefined') {
+            const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
+            const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+            window.location.href = intentUrl;
+        }
+    };
+
     const handleCopyUrl = async () => {
         try {
             await navigator.clipboard.writeText(window.location.href);
@@ -183,42 +191,40 @@ export default function InstallPWAPrompt({
                     </div>
 
                     {activeTab === 'android' && (
-                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-orange-500/30 space-y-3 text-xs text-slate-200">
-                            <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl flex items-center justify-between gap-2">
-                                <div>
-                                    <p className="font-bold text-orange-400 text-sm flex items-center gap-1.5">
-                                        <span>📲</span> Cómo instalar en Android:
-                                    </p>
-                                    <p className="text-[11px] text-slate-300 mt-1 leading-snug">
-                                        Android requiere que toques los <strong>3 puntos ⋮</strong> arriba a la derecha en Chrome y elijas <strong>"Agregar a la pantalla principal"</strong>.
-                                    </p>
-                                </div>
-                                <span className="text-2xl animate-bounce shrink-0">↗️</span>
+                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-orange-500/30 space-y-3.5 text-xs text-slate-200">
+                            {/* BOTÓN PARA SALIR DEL VISOR DE LA CÁMARA Y ABRIR DIRECTO EN CHROME */}
+                            <div className="bg-gradient-to-r from-orange-600/25 to-amber-600/25 border border-orange-500/40 p-3.5 rounded-xl space-y-2.5">
+                                <p className="font-bold text-white text-xs flex items-center gap-1.5">
+                                    <span>🌐</span> Paso 1: Salir de la cámara a Google Chrome
+                                </p>
+                                <p className="text-[11px] text-slate-300 leading-snug">
+                                    Estás dentro del lector de QR. Pulsa el botón abajo para abrir la página en <strong>Google Chrome</strong> (donde sí están los 3 puntos):
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleOpenInChrome}
+                                    className="w-full py-3 px-4 rounded-xl text-white font-black text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                >
+                                    <ExternalLink size={16} /> Abrir en Google Chrome
+                                </button>
                             </div>
 
-                            <div className="flex items-start gap-2.5">
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>1</span>
-                                <p className="leading-snug">
-                                    En tu navegador <strong>Chrome</strong>, presiona los <strong>3 puntos verticales ⋮</strong> en la esquina superior derecha.
+                            <div className="pt-1 space-y-2">
+                                <p className="font-bold text-orange-400 text-xs">
+                                    Paso 2: Una vez en Chrome para fijar el icono:
                                 </p>
-                            </div>
-                            <div className="flex items-start gap-2.5">
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>2</span>
-                                <p className="leading-snug">
-                                    Selecciona <strong>"Agregar a la pantalla principal"</strong> (o <strong>"Instalar aplicación"</strong>).
-                                </p>
-                            </div>
-                            <div className="flex items-start gap-2.5">
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>3</span>
-                                <p className="leading-snug">
-                                    Confirma en <strong>"Instalar"</strong> y el icono aparecerá de inmediato en la pantalla de tu celular.
-                                </p>
-                            </div>
-                            <div className="flex items-start gap-2.5 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-amber-300 text-[11px]">
-                                <span>💡</span>
-                                <p>
-                                    <strong>¿Abriste el QR desde la cámara o WhatsApp?</strong> Toca los 3 puntos ⋮ arriba y elige <em>"Abrir en Chrome"</em> para que puedas agregar el icono a tu pantalla.
-                                </p>
+                                <div className="flex items-start gap-2.5">
+                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>1</span>
+                                    <p className="leading-snug">
+                                        En <strong>Chrome</strong> verás los <strong>3 puntos ⋮</strong> en la esquina superior derecha. Tócalos.
+                                    </p>
+                                </div>
+                                <div className="flex items-start gap-2.5">
+                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>2</span>
+                                    <p className="leading-snug">
+                                        Selecciona <strong>"Agregar a la pantalla principal"</strong> (o <strong>"Instalar aplicación"</strong>) y pulsa <strong>"Instalar"</strong>.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
