@@ -1,13 +1,24 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { smartSplit, extractDni, extractWorkerName } from '@/lib/sctrParser';
 
 export async function GET(req: NextRequest) {
     try {
         const url = new URL(req.url);
-        const dni = url.searchParams.get('dni');
+        const dniParam = url.searchParams.get('dni');
         
-        if (!dni || dni.length < 8) {
+        if (!dniParam) {
+            return NextResponse.json({ success: false, name: '' });
+        }
+
+        let searchDni = dniParam.trim();
+        // Si tiene 7 dígitos (ej. le falta el cero inicial del DNI), se normaliza a 8 dígitos respetando el cero
+        if (searchDni.length === 7) {
+            searchDni = searchDni.padStart(8, '0');
+        }
+
+        if (searchDni.length < 8) {
             return NextResponse.json({ success: false, name: '' });
         }
 
@@ -16,45 +27,14 @@ export async function GET(req: NextRequest) {
         for (const r of records) {
             if (!r.personnel_list) continue;
             
-            const text = r.personnel_list.toUpperCase();
-            
-            let textToSplit = text;
-            
-            // 1. Separar cuando hay correlativo: "1 DNI 12345678"
-            textToSplit = textToSplit.replace(/\s+(\d{1,4})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '\n$1 $2 $3');
-            
-            // 2. Separar cuando hay letra seguida de documento: "JUAN DNI 12345678"
-            textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '$1\n$2 $3');
-
-            // 3. Separar cuando el documento está al revés: "JUAN 12345678 DNI"
-            textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(\d{7,15})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)/gi, '$1\n$2 $3');
-
-            const lines = textToSplit.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+            const lines = smartSplit(r.personnel_list);
             
             for (const line of lines) {
-                // Asegurarse de que el DNI coincida exactamente y no sea parte de un número más largo
-                const dniRegex = new RegExp(`\\b${dni}\\b`);
-                if (dniRegex.test(line)) {
-                    let cleaned = line;
-                    cleaned = cleaned.replace(/^\d+\s+/, '');
-                    cleaned = cleaned.replace(new RegExp(`(DNI|CIP|RUC|NRO\\.?|N°)?\\s*${dni}\\b`, 'i'), '');
-                    
-                    const stopwords = ["AVENIDA", "JULIO", "MIRAFLORES", "LIMA", "PERU", "MAPFRE", "WWWMAPFREPEOM", "NRO", "CONSTANCIA", "UBICACION", "UBICACIÓN", "RIESGO", "RIESGOLOCALOBRA", "LOCAL", "OBRA", "ASEGURADO", "ASEGURADOS", "ASEGURAMIENTO", "ASEGURADAS", "COMPAÑIA", "COMPAÑÍA", "EMPRESA", "ADMINISTRACION", "CONSTCION", "POLIZA", "PÓLIZA", "PENSIONES", "SALUD", "VIGENCIA", "TRABAJO", "LEY", "NORMAS", "COMPLEMENTARIAS", "EXPIDE", "FINES", "PRESENTE", "DEJAMOS", "PERSONAS", "ABAJO", "NOMBRADAS", "ESTAN", "ESTÁN", "NUESTRA", "NOMBRE", "CONTRATO", "HASTA", "COBERTURAS", "SEGUN", "SEGÚN", "MP", "SA", "NO", "CON", "DEL", "EL", "POR", "Y", "EN", "A", "T", "F", "MEDIANTE", "QUE", "BAJO", "DNI", "CIP", "RUC", "NRO", "N°", "DE", "LA", "LOS", "LAS"];
-                    
-                    stopwords.forEach(sw => {
-                        const regex = new RegExp(`\\b${sw}\\b`, 'gi');
-                        cleaned = cleaned.replace(regex, ' ');
-                    });
-                    
-                    cleaned = cleaned.replace(/[^A-ZÁÉÍÓÚÑ\s]/g, '').trim().replace(/\s+/g, ' ');
-                    
-                    const words = cleaned.split(' ');
-                    if (words.length > 5) {
-                        cleaned = words.slice(0, 4).join(' '); // Tomar los primeros 4 que suelen ser nombres
-                    }
-                    
-                    if (cleaned.length > 5) {
-                        return NextResponse.json({ success: true, name: cleaned });
+                const lineDni = extractDni(line);
+                if (lineDni === searchDni) {
+                    const name = extractWorkerName(line, lineDni);
+                    if (name && name.length > 5) {
+                        return NextResponse.json({ success: true, name, dni: lineDni });
                     }
                 }
             }

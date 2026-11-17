@@ -26,6 +26,7 @@ import {
 import { uploadEvidence } from "@/lib/uploadClient";
 import SearchableSelect from "@/components/SearchableSelect";
 import { SSOMA_LOCATIONS } from "@/lib/locations";
+import { smartSplit, extractDni, formatWorkerLine } from "@/lib/sctrParser";
 
 // Versión estable de PDF.js
 const PDF_JS_VERSION = '3.11.174'; 
@@ -153,6 +154,9 @@ export default function SCTRPage() {
                             .filter(line => line.length > 0)
                             .join('\n');
                         
+                        const parsedLines = smartSplit(text);
+                        const formattedPersonnelList = parsedLines.length > 0 ? parsedLines.join('\n') : text;
+
                         let extractedDate = '';
                         let extractedPolicy = '';
 
@@ -167,7 +171,7 @@ export default function SCTRPage() {
 
                         setForm(prev => ({ 
                             ...prev, 
-                            personnel_list: text,
+                            personnel_list: formattedPersonnelList,
                             expiration_date: extractedDate || prev.expiration_date,
                             policy_number: extractedPolicy || prev.policy_number
                         }));
@@ -255,33 +259,20 @@ export default function SCTRPage() {
         
         if (targetWords.length === 0) return [];
 
-        let rawLines = record.personnel_list.split('\n');
-
-        // ── SMART SPLIT ──────────────────────────────────────────────────────
-        let textToSplit = record.personnel_list;
-        
-        // 1. Separar cuando hay correlativo: "1 DNI 12345678"
-        textToSplit = textToSplit.replace(/\s+(\d{1,4})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '\n$1 $2 $3');
-        
-        // 2. Separar cuando hay letra seguida de documento: "JUAN DNI 12345678"
-        textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)\s+(\d{7,15})/gi, '$1\n$2 $3');
-
-        // 3. Separar cuando el documento está al revés: "JUAN 12345678 DNI"
-        textToSplit = textToSplit.replace(/([A-ZÁÉÍÓÚÑa-záéíóúñ])\s+(\d{7,15})\s+(DNI|CEX|PAS|RUC|CIP|N°|Nro\.?)/gi, '$1\n$2 $3');
-
-        rawLines = textToSplit.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-        // ─────────────────────────────────────────────────────────────────────
-
+        const rawLines = smartSplit(record.personnel_list);
         const matches: string[] = [];
 
         for (const line of rawLines) {
             const normalizedLine = normalize(line);
             if (!normalizedLine.trim()) continue;
 
+            const dni = extractDni(line);
+            if (!dni) continue;
+
             if (/^\d+$/.test(target)) {
-                // Búsqueda por DNI exacto
-                const dniRegex = new RegExp(`(?<!\\d)${target}(?!\\d)`);
-                if (dniRegex.test(normalizedLine)) {
+                // Búsqueda por DNI (respeta ceros a la izquierda y DNI completo)
+                const normalizedTarget = target.length === 7 ? target.padStart(8, '0') : target;
+                if (dni.includes(target) || dni === normalizedTarget) {
                     matches.push(line.trim());
                 }
             } else {
@@ -385,9 +376,9 @@ export default function SCTRPage() {
                                     const matches = getMatchesFromRecord(record, filterSearch);
                                     matches.forEach(line => {
                                         // Extract DNI to use as a unique key for grouping
-                                        const dniMatch = line.match(/\b\d{8,9}\b/);
+                                        const dniMatch = extractDni(line);
                                         // If no DNI, fallback to normalized name (letters only)
-                                        const key = dniMatch ? dniMatch[0] : line.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z]/g, '').toLowerCase();
+                                        const key = dniMatch ? dniMatch : line.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z]/g, '').toLowerCase();
                                         
                                         if (!allMatches[key]) {
                                             allMatches[key] = { entries: [] };
@@ -463,14 +454,14 @@ export default function SCTRPage() {
                                                         <div className="flex items-start gap-3">
                                                             <div className="bg-emerald-500 p-2 rounded-full mt-1"><CheckCircle2 size={14} className="text-black" /></div>
                                                             <div className="flex-1">
-                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">{currentEntry.line}</p>
+                                                                <p className="text-[11px] font-mono font-bold text-white break-all leading-relaxed uppercase">{formatWorkerLine(currentEntry.line)}</p>
                                                                 <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-emerald-500/20">
                                                                     {matchData.entries.map((entry, pIdx) => (
                                                                         <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
                                                                             <div className="bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 rounded text-[9px] font-black text-emerald-400 w-fit shrink-0">
                                                                                 {entry.period}
                                                                             </div>
-                                                                            <span className="text-[10px] font-mono text-slate-400 break-all">{entry.line}</span>
+                                                                            <span className="text-[10px] font-mono text-slate-400 break-all">{formatWorkerLine(entry.line)}</span>
                                                                         </div>
                                                                     ))}
                                                                 </div>

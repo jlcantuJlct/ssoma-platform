@@ -70,3 +70,5 @@ robot_output.txt
 verify_output.txt
 final_res.txt
 native_err.txt
+scratch_*.js
+migrate_*.js

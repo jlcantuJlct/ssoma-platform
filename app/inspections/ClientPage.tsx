@@ -224,8 +224,22 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
         });
     }, [user?.workspace]);
 
+const DEFAULT_INSPECTION_MODULES = [
+    { id: 1, name: 'Vehículos y Equipos', description: 'Parte diario, lista de chequeo para volquetes, camionetas y maquinaria pesada.', icon: 'truck', status: 'active' },
+    { id: 2, name: 'Extintores', description: 'Inspección mensual de equipos contra incendios.', icon: 'extinguisher', status: 'active' },
+    { id: 3, name: 'Botiquines', description: 'Inspección de botiquines y primeros auxilios.', icon: 'first-aid', status: 'active' }
+];
+
     // Dynamic Modules States
-    const [inspectionModules, setInspectionModules] = useState<any[]>([]);
+    const [inspectionModules, setInspectionModules] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem('ssoma_inspection_modules');
+                if (stored) return JSON.parse(stored);
+            } catch (e) {}
+        }
+        return DEFAULT_INSPECTION_MODULES;
+    });
     const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
     const [newModuleData, setNewModuleData] = useState({ name: '', description: '' });
 
@@ -234,11 +248,22 @@ export default function InspectionsPage({ initialInspections, initialProgram }: 
             try {
                 const res = await fetch('/api/modules');
                 const data = await res.json();
-                if (data.success) {
+                if (data.success && data.modules?.length > 0) {
                     setInspectionModules(data.modules);
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('ssoma_inspection_modules', JSON.stringify(data.modules));
+                    }
                 }
             } catch (error) {
-                console.error("Error fetching modules:", error);
+                console.warn("Modo offline en módulos de inspección, usando respaldo local:", error);
+                if (typeof window !== 'undefined') {
+                    const stored = localStorage.getItem('ssoma_inspection_modules');
+                    if (stored) {
+                        try {
+                            setInspectionModules(JSON.parse(stored));
+                        } catch (e) {}
+                    }
+                }
             }
         };
         fetchModules();
