@@ -124,6 +124,14 @@ export default function PublicReporteACPage() {
     const [submitted, setSubmitted] = useState(false);
     const [exited, setExited] = useState(false);
     const [showManualInstall, setShowManualInstall] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const isStand = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+            setIsStandalone(!!isStand);
+        }
+    }, []);
 
     useEffect(() => {
         // 1. Determinar el proyecto desde la URL del QR (?workspace=...) o desde el workspace activo
@@ -474,6 +482,30 @@ export default function PublicReporteACPage() {
                         </p>
                     </div>
                 </div>
+
+                {/* Banner para fijar el icono en la pantalla del celular al leer el QR */}
+                {!isStandalone && (
+                    <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 shadow-lg transition-all animate-in fade-in duration-300 ${isLongitudinal ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-orange-950/40 border-orange-500/40'}`}>
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl sm:text-3xl shrink-0">📲</span>
+                            <div>
+                                <p className="text-white text-xs sm:text-sm font-bold">
+                                    ¿Fijar la Tarjeta TOP como icono en tu celular?
+                                </p>
+                                <p className="text-slate-400 text-[11px] leading-tight">
+                                    Ten acceso directo en tu pantalla de inicio para reportar sin volver a escanear el QR.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowManualInstall(true)}
+                            className={`px-3.5 py-2.5 rounded-xl text-white font-bold text-xs shrink-0 shadow-md flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/30'}`}
+                        >
+                            <span>➕</span> Fijar Icono
+                        </button>
+                    </div>
+                )}
 
                 <div className={`bg-[#1c222b] border ${isLongitudinal ? 'border-emerald-500/40' : 'border-slate-700/50'} p-5 sm:p-8 rounded-[2rem] shadow-2xl space-y-6 relative`}>
                     

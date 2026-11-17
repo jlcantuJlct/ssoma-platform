@@ -58,11 +58,11 @@ export default function InstallPWAPrompt({
 
         // Show prompt if on mobile and not dismissed
         const isMobileDevice = /android|iphone|ipad|ipod|mobile/i.test(userAgent);
-        const dismissed = localStorage.getItem('pwaPromptDismissed');
+        const dismissed = sessionStorage.getItem('pwaPromptDismissed');
         if (isMobileDevice && !dismissed && !isStandalone) {
             const timer = setTimeout(() => {
                 setShowInstallPrompt(true);
-            }, 1000);
+            }, 600);
             return () => clearTimeout(timer);
         }
 
@@ -93,7 +93,7 @@ export default function InstallPWAPrompt({
     };
 
     const dismissPrompt = () => {
-        localStorage.setItem('pwaPromptDismissed', 'true');
+        sessionStorage.setItem('pwaPromptDismissed', 'true');
         setShowInstallPrompt(false);
         if (onCloseManual) onCloseManual();
     };
@@ -109,8 +109,8 @@ export default function InstallPWAPrompt({
     const appTitle = isLongitudinal ? 'TOP - Longitudinal 4' : 'TOP - Red Vial 6';
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden animate-in slide-in-from-bottom-10 fade-in duration-500">
-            <div className={`bg-slate-900 border-2 ${accentBorder} rounded-2xl shadow-2xl p-4 sm:p-5 flex flex-col gap-3 relative`}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className={`w-full max-w-md bg-slate-900 border-2 ${accentBorder} rounded-3xl shadow-2xl p-5 flex flex-col gap-3 relative animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300`}>
                 <button 
                     onClick={dismissPrompt}
                     className="absolute -top-3 -right-3 bg-slate-800 text-slate-400 hover:text-white p-1.5 rounded-full border border-slate-700 shadow-md"
