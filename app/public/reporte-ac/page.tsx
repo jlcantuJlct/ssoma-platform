@@ -477,85 +477,116 @@ export default function PublicReporteACPage() {
 
                 <div className={`bg-[#1c222b] border ${isLongitudinal ? 'border-emerald-500/40' : 'border-slate-700/50'} p-5 sm:p-8 rounded-[2rem] shadow-2xl space-y-6 relative`}>
                     
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
-                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Calendar size={12}/> Fecha:</label>
-                            <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
+                    {/* 1. SELECCIÓN PRINCIPAL: ACTO INSEGURO vs CONDICIÓN INSEGURA */}
+                    <div className="bg-slate-900/80 p-1.5 rounded-2xl border border-slate-700/60 shadow-inner mb-4">
+                        <div className="grid grid-cols-2 gap-2">
+                            <button 
+                                type="button" 
+                                onClick={() => setForm({...form, type: 'acto'})} 
+                                className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${form.type === 'acto' ? (isLongitudinal ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30' : 'bg-gradient-to-r from-[#ff6b00] to-[#f97316] text-white shadow-orange-500/30 scale-[1.01]') : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                            >
+                                <CheckCircle2 size={16} /> Acto Inseguro
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setForm({...form, type: 'condicion'})} 
+                                className={`py-3 px-3 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${form.type === 'condicion' ? (isLongitudinal ? 'bg-teal-500 text-slate-950 shadow-teal-500/30' : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-blue-500/30 scale-[1.01]') : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                            >
+                                Condición Insegura
+                            </button>
                         </div>
-                        
-                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2"><Users size={12}/> Reportado Por ({projectWorkspace}):</label>
-                                <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-bold text-amber-400 hover:text-amber-300">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={form.is_anonymous} 
-                                        onChange={(e) => setForm(f => ({ 
-                                            ...f, 
-                                            is_anonymous: e.target.checked, 
-                                            responsible: e.target.checked ? 'ANÓNIMO' : (f.responsible === 'ANÓNIMO' ? '' : f.responsible) 
-                                        }))}
-                                        className="rounded border-slate-700 text-amber-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
-                                    />
-                                    <span>🕶️ Anónimo</span>
-                                </label>
-                            </div>
-                            {form.is_anonymous ? (
-                                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 text-amber-300 text-xs font-bold flex items-center gap-2">
-                                    <span>🕶️ Reporte confidencial anónimo (el nombre del reportero no será divulgado)</span>
-                                </div>
-                            ) : (
-                                <SearchableSelect name="form_responsible" 
-                                    options={sctrNames}
-                                    value={form.responsible}
-                                    onChange={(val) => setForm({...form, responsible: val})}
-                                    placeholder="Escribe o selecciona tu nombre..."
-                                    className="[&>div]:bg-[#1c222b] [&>div]:border-none [&>div]:p-0"
-                                />
-                            )}
+                    </div>
+
+                    {/* 2. DATOS GENERALES: FECHA Y UBICACIÓN */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]/70'} rounded-xl p-3 bg-slate-900/40 flex flex-col justify-center`}>
+                            <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1.5 mb-1.5"><Calendar size={13} className="text-orange-400"/> Fecha:</label>
+                            <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none cursor-pointer" />
                         </div>
-                        
-                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
-                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación ({projectWorkspace}):</label>
-                            <select name="form_location" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]/70'} rounded-xl p-3 bg-slate-900/40 flex flex-col justify-center`}>
+                            <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1.5 mb-1.5"><MapPin size={13} className="text-orange-400"/> Ubicación ({projectWorkspace}):</label>
+                            <select name="form_location" value={form.location} onChange={e=>setForm({...form, location: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none cursor-pointer">
                                 <option value="">Seleccionar lugar de {projectWorkspace}...</option>
                                 {projectLocations.map((r: string)=><option key={r} value={r}>{r}</option>)}
                             </select>
                         </div>
                     </div>
 
-                    <div className="flex justify-center mt-6 mb-4">
-                        <div className="flex bg-[#232a35] rounded-full p-1 border border-slate-700/50 w-full relative">
-                            <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] ${isLongitudinal ? 'bg-emerald-500' : 'bg-[#f97316]'} rounded-full transition-all duration-300 shadow-md ${form.type === 'acto' ? 'left-1' : 'left-[calc(50%+4px)]'}`}></div>
-                            <button type="button" onClick={() => setForm({...form, type: 'acto'})} className={`relative flex-1 px-2 py-2.5 text-xs font-bold uppercase tracking-wider z-10 flex items-center justify-center gap-1 sm:gap-2 transition-colors ${form.type === 'acto' ? 'text-black' : 'text-slate-400 hover:text-slate-200'}`}>
-                                <CheckCircle2 size={14} /> Acto Inseguro
-                            </button>
-                            <button type="button" onClick={() => setForm({...form, type: 'condicion'})} className={`relative flex-1 px-2 py-2.5 text-xs font-bold uppercase tracking-wider z-10 transition-colors ${form.type === 'condicion' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-                                Condición Insegura
-                            </button>
+                    {/* 3. REPORTERO: IDENTIFICADO O ANÓNIMO */}
+                    <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]/70'} rounded-xl p-3.5 bg-slate-900/40 space-y-2.5 mb-4`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1.5">
+                                <Users size={13} className="text-orange-400" /> ¿Quién Reporta? ({projectWorkspace})
+                            </label>
+                            <div className="flex items-center bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/60 self-start sm:self-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, is_anonymous: false, responsible: f.responsible === 'ANÓNIMO' ? '' : f.responsible }))}
+                                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all flex items-center gap-1.5 ${!form.is_anonymous && form.responsible !== 'ANÓNIMO' ? 'bg-orange-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                                >
+                                    <User size={12} /> Identificarme
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, is_anonymous: true, responsible: 'ANÓNIMO' }))}
+                                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all flex items-center gap-1.5 ${form.is_anonymous || form.responsible === 'ANÓNIMO' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                                >
+                                    <span>🕶️</span> Anónimo
+                                </button>
+                            </div>
                         </div>
+
+                        {form.is_anonymous || form.responsible === 'ANÓNIMO' ? (
+                            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-2">
+                                <span className="text-base">🕶️</span>
+                                <span>Reporte Confidencial Anónimo — Tu identidad no será revelada.</span>
+                            </div>
+                        ) : (
+                            <SearchableSelect name="form_responsible" 
+                                options={sctrNames}
+                                value={form.responsible}
+                                onChange={(val) => setForm({...form, responsible: val})}
+                                placeholder="Escribe o selecciona tu nombre..."
+                                className="[&>div]:bg-[#1c222b] [&>div]:border-none [&>div]:p-0"
+                            />
+                        )}
                     </div>
 
+                    {/* 4. PERSONA OBSERVADA (SOLO SI ES ACTO INSEGURO) */}
                     {form.type === 'acto' && (
-                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70 bg-emerald-950/20' : 'border-[#b35922] bg-orange-950/20'} rounded-xl p-3.5 flex flex-col justify-center gap-2 transition-all shadow-inner mb-4`}>
+                        <div className={`border-2 ${isLongitudinal ? 'border-emerald-500/60 bg-emerald-950/20' : 'border-orange-500/60 bg-orange-950/25'} rounded-2xl p-4 space-y-2.5 transition-all animate-in fade-in slide-in-from-top-3 duration-300 shadow-lg mb-4`}>
                             <div className="flex items-center justify-between">
-                                <label className="text-[11px] font-bold text-orange-400 uppercase flex items-center gap-1.5">
-                                    <User size={14} className="text-orange-400" />
-                                    Persona Observada / Reportada (Acto Inseguro):
-                                </label>
-                                <VoiceDictation 
-                                    onResult={(text) => setForm(f => ({ ...f, persona_observada: f.persona_observada ? f.persona_observada + ' ' + text : text }))} 
-                                    onClear={() => setForm(f => ({ ...f, persona_observada: '' }))}
-                                />
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0">
+                                        <User size={16} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black text-orange-400 uppercase tracking-wide">Persona Observada / Involucrada</h4>
+                                        <p className="text-[10px] text-slate-400">¿A quién se observó cometiendo el acto inseguro?</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/60">
+                                    <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">Por voz:</span>
+                                    <VoiceDictation 
+                                        onResult={(text) => {
+                                            const clean = text.trim().toUpperCase();
+                                            setForm(f => ({ 
+                                                ...f, 
+                                                persona_observada: f.persona_observada ? `${f.persona_observada} ${clean}` : clean 
+                                            }));
+                                        }}
+                                        onClear={() => setForm(f => ({ ...f, persona_observada: '' }))}
+                                    />
+                                </div>
                             </div>
                             <div className="relative">
                                 <input 
                                     type="text"
                                     list="sctr-workers-public-list"
-                                    value={form.persona_observada}
-                                    onChange={(e) => setForm({ ...form, persona_observada: e.target.value })}
-                                    placeholder="Seleccionar o dictar por voz el nombre del trabajador..."
-                                    className="w-full bg-[#1c222b] border border-orange-500/40 rounded-lg px-3 py-2 text-white text-sm font-semibold outline-none focus:border-orange-500 transition-colors"
+                                    value={form.persona_observada || ''}
+                                    onChange={(e) => setForm({ ...form, persona_observada: e.target.value.toUpperCase() })}
+                                    placeholder="Escribe, selecciona o dicta por voz el nombre del trabajador..."
+                                    className="w-full bg-[#1c222b] text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl border border-orange-500/40 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400/30 transition-all placeholder:text-slate-500"
                                 />
                                 <datalist id="sctr-workers-public-list">
                                     {sctrNames.map(w => (
@@ -563,9 +594,10 @@ export default function PublicReporteACPage() {
                                     ))}
                                 </datalist>
                             </div>
-                            <p className="text-[10px] text-slate-400">
-                                💡 Puedes escoger el nombre del personal de la lista o pulsar el micrófono para dictarlo por voz.
-                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-orange-300/80">
+                                <span>💡</span>
+                                <span>Puedes seleccionar el trabajador de la lista desplegable o pulsar el micrófono para dictarlo por voz.</span>
+                            </div>
                         </div>
                     )}
 
