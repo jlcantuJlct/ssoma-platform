@@ -779,14 +779,24 @@ export default function ReporteACPage() {
                                     {qrFullUrl}
                                 </p>
                             </div>
-                            <a
-                                href={`/public/reporte-ac?workspace=${encodeURIComponent(effectiveQrProject)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all ${isQrLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}
-                            >
-                                <Eye size={14} /> Abrir Formulario de {effectiveQrProject}
-                            </a>
+                            <div className="space-y-2">
+                                <a
+                                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📋 *Tarjeta TOP de Seguridad - ${effectiveQrProject}*\n\nAccede al formulario oficial aquí para reportar o guardar en tu pantalla:\n${qrFullUrl}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all bg-emerald-600 hover:bg-emerald-500 shadow-md"
+                                >
+                                    <span>💬</span> Compartir enlace por WhatsApp
+                                </a>
+                                <a
+                                    href={`/public/reporte-ac?workspace=${encodeURIComponent(effectiveQrProject)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-all ${isQrLongitudinal ? 'bg-slate-800 hover:bg-slate-700 border border-slate-700' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700'}`}
+                                >
+                                    <Eye size={14} /> Abrir Formulario en Navegador
+                                </a>
+                            </div>
                         </div>
                     </div>
                 )}

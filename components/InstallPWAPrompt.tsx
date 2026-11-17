@@ -51,16 +51,8 @@ export default function InstallPWAPrompt({
             setDeferredPrompt((window as any).__pwaDeferredPrompt);
         }
 
-        // Show prompt if on mobile and not dismissed
-        const isMobileDevice = /android|iphone|ipad|ipod|mobile/i.test(userAgent);
-        const dismissed = sessionStorage.getItem('pwaPromptDismissed');
-        if (isMobileDevice && !dismissed) {
-            const timer = setTimeout(() => {
-                setShowInstallPrompt(true);
-            }, 600);
-            return () => clearTimeout(timer);
-        }
-
+        // Solo mostrar si el usuario presiona el botón manualmente
+        // No forzar popup automático que incomoda en visores de cámara
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
         };
@@ -247,15 +239,23 @@ export default function InstallPWAPrompt({
                     )}
                 </div>
 
-                {/* Botón para copiar enlace si están en un visor interno */}
+                {/* Botón para compartir por WhatsApp o copiar enlace */}
                 <div className="pt-1 flex flex-col gap-2">
+                    <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`📋 *Tarjeta TOP de Seguridad (${workspace})*\n\nPara abrir en Chrome y guardar el icono en tu pantalla, toca aquí:\n${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-3 px-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 text-center"
+                    >
+                        <span>💬</span> Enviarme el enlace por WhatsApp (Más fácil)
+                    </a>
                     <button
                         type="button"
                         onClick={handleCopyUrl}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-3 px-4 rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-2 active:scale-95"
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 px-4 rounded-xl transition-all border border-slate-700 flex items-center justify-center gap-2 active:scale-95"
                     >
                         {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                        {copied ? "¡Enlace copiado! Ábrelo en Chrome" : "Copiar enlace para abrir en Chrome"}
+                        {copied ? "¡Enlace copiado! Pégalo en Chrome" : "Copiar enlace para abrir en Chrome"}
                     </button>
                     <button 
                         type="button"
