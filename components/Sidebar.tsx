@@ -40,7 +40,8 @@ import {
     ClipboardSignature,
     Calendar,
     Archive,
-    ThumbsDown
+    ThumbsDown,
+    Target
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -197,6 +198,7 @@ export default function Sidebar() {
                             active={pathname === '/dashboard'}
                         />
                         <SidebarItem icon={<Calendar size={16} className="text-emerald-400" />} label="Programa Anual" href="/program" active={pathname === '/program'} />
+                        <SidebarItem icon={<Target size={16} className="text-amber-400" />} label="Objetivos del Año" href="/objetivos" active={pathname === '/objetivos'} />
                         
                         {process.env.NODE_ENV === 'development' && (
                             <button 
