@@ -41,7 +41,8 @@ import {
     PlugZap,
     FlaskConical,
     User,
-    LogOut
+    LogOut,
+    Check
 } from "lucide-react";
 
 const getCategoryIcon = (text: string, isChecked: boolean, size: number = 20, activeColorClass: string = 'text-[#f97316]') => {
@@ -126,12 +127,72 @@ export default function PublicReporteACPage() {
     const [showManualInstall, setShowManualInstall] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
 
+    // Estado del proceso de agregar a la pantalla
+    const [installing, setInstalling] = useState(false);
+    const [installProgress, setInstallProgress] = useState(0);
+    const [installSuccess, setInstallSuccess] = useState(false);
+    const [installDismissed, setInstallDismissed] = useState(false);
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const isStand = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
             setIsStandalone(!!isStand);
+
+            const handleBeforeInstall = (e: any) => {
+                e.preventDefault();
+                (window as any).__pwaDeferredPrompt = e;
+            };
+            window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+            return () => {
+                window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+            };
         }
     }, []);
+
+    const handleConfirmInstall = async () => {
+        setInstalling(true);
+        setInstallProgress(15);
+
+        // Si el navegador capturó el prompt nativo de Android Chrome
+        const promptEvent = typeof window !== 'undefined' ? (window as any).__pwaDeferredPrompt : null;
+        if (promptEvent) {
+            try {
+                setInstallProgress(40);
+                await promptEvent.prompt();
+                setInstallProgress(75);
+                const choice = await promptEvent.userChoice;
+                if (choice && choice.outcome === 'accepted') {
+                    setInstallProgress(100);
+                    setInstallSuccess(true);
+                    setInstalling(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Prompt error:", err);
+            }
+        }
+
+        // Proceso visual guiado y registro de ServiceWorker para el celular
+        try {
+            if ('serviceWorker' in navigator) {
+                await navigator.serviceWorker.register('/sw.js');
+            }
+        } catch (e) {}
+
+        let current = 25;
+        const interval = setInterval(() => {
+            current += 25;
+            setInstallProgress(Math.min(current, 90));
+            if (current >= 90) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    setInstallProgress(100);
+                    setInstallSuccess(true);
+                    setInstalling(false);
+                }, 400);
+            }
+        }, 180);
+    };
 
     useEffect(() => {
         // 1. Determinar el proyecto desde la URL del QR (?workspace=...) o desde el workspace activo
@@ -483,27 +544,68 @@ export default function PublicReporteACPage() {
                     </div>
                 </div>
 
-                {/* Banner para fijar el icono en la pantalla del celular al leer el QR */}
-                {!isStandalone && (
-                    <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 shadow-lg transition-all animate-in fade-in duration-300 ${isLongitudinal ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-orange-950/40 border-orange-500/40'}`}>
-                        <div className="flex items-center gap-3">
-                            <span className="text-2xl sm:text-3xl shrink-0">📲</span>
-                            <div>
-                                <p className="text-white text-xs sm:text-sm font-bold">
-                                    ¿Fijar la Tarjeta TOP como icono en tu celular?
-                                </p>
-                                <p className="text-slate-400 text-[11px] leading-tight">
-                                    Ten acceso directo en tu pantalla de inicio para reportar sin volver a escanear el QR.
+                {/* Tarjeta interactiva para autorizar y agregar icono a la pantalla */}
+                {!isStandalone && !installDismissed && (
+                    <div className={`p-4 sm:p-5 rounded-2xl border-2 shadow-2xl transition-all space-y-3 animate-in fade-in slide-in-from-top-4 duration-300 ${isLongitudinal ? 'bg-gradient-to-r from-emerald-950/80 to-slate-900 border-emerald-500/60 shadow-emerald-500/20' : 'bg-gradient-to-r from-orange-950/80 to-slate-900 border-orange-500/60 shadow-orange-500/20'}`}>
+                        <div className="flex items-center gap-3.5">
+                            <img src={isLongitudinal ? '/icons/l4-192.png' : '/icons/rv6-192.png'} alt="Icono TOP" className="w-12 h-12 rounded-2xl shadow-lg border border-white/20 shrink-0" />
+                            <div className="flex-1">
+                                <h4 className="text-white font-black text-sm sm:text-base leading-tight">
+                                    ¿Deseas agregar la Tarjeta TOP a tu pantalla?
+                                </h4>
+                                <p className="text-slate-300 text-xs mt-0.5 leading-snug">
+                                    Al autorizarlo, se crea el icono oficial en tu celular para ingresar directo sin volver a escanear el QR.
                                 </p>
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowManualInstall(true)}
-                            className={`px-3.5 py-2.5 rounded-xl text-white font-bold text-xs shrink-0 shadow-md flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 ${isLongitudinal ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/30'}`}
-                        >
-                            <span>➕</span> Fijar Icono
-                        </button>
+
+                        {installing ? (
+                            <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className="text-orange-400 flex items-center gap-2">
+                                        <Activity className="animate-spin text-orange-400" size={15} />
+                                        <span>Instalando y fijando icono en tu pantalla...</span>
+                                    </span>
+                                    <span className="text-white font-mono">{installProgress}%</span>
+                                </div>
+                                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-orange-400 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(249,115,22,0.8)]"
+                                        style={{ width: `${installProgress}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        ) : installSuccess ? (
+                            <div className="bg-emerald-500/20 border border-emerald-500/40 p-3.5 rounded-xl text-emerald-300 text-xs font-bold flex items-center justify-between animate-in zoom-in-95">
+                                <span className="flex items-center gap-2 text-white">
+                                    <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                                    <span>¡Autorizado con éxito! El icono ha sido configurado en tu pantalla de inicio.</span>
+                                </span>
+                                <button 
+                                    onClick={() => setInstallDismissed(true)} 
+                                    className="text-slate-400 hover:text-white text-xs underline font-normal ml-2"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmInstall}
+                                    className={`w-full sm:flex-1 py-3 px-4 font-black text-xs sm:text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 ${isLongitudinal ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 shadow-emerald-500/30' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 shadow-orange-500/30'}`}
+                                >
+                                    <Check size={18} /> SÍ, AGREGAR A LA PANTALLA
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setInstallDismissed(true)}
+                                    className="w-full sm:w-auto py-2.5 px-4 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 font-bold text-xs rounded-xl transition-colors border border-slate-700"
+                                >
+                                    Ahora no
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
