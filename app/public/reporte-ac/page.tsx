@@ -134,6 +134,14 @@ export default function PublicReporteACPage() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for (let r of regs) {
+                        r.update().catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+
             const isStand = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
             setIsStandalone(!!isStand);
 

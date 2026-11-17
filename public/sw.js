@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REFERENCIAS_CACHE = 'referencias-imagenes';
-const APP_CACHE         = 'app-cache-v3';
+const APP_CACHE         = 'app-cache-v4';
 
 // Rutas esenciales para navegación offline inmediata
 const PRECACHE_URLS = [

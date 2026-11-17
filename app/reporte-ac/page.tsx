@@ -168,6 +168,7 @@ export default function ReporteACPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ url: string, type: 'pdf' | 'image' } | null>(null);
     const [showQR, setShowQR] = useState(false);
+    const [qrTimestamp, setQrTimestamp] = useState<number>(() => Date.now());
     const [qrMode, setQrMode] = useState<'cloud' | 'lan'>('cloud');
     const [qrSelectedProject, setQrSelectedProject] = useState<string>('auto');
 
@@ -665,7 +666,7 @@ export default function ReporteACPage() {
     const qrBaseUrl = isLocalhost
         ? (qrMode === 'cloud' ? cloudBaseUrl : lanBaseUrl)
         : (typeof window !== 'undefined' ? window.location.origin + '/public/reporte-ac' : cloudBaseUrl);
-    const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(effectiveQrProject)}`;
+    const qrFullUrl = `${qrBaseUrl}?workspace=${encodeURIComponent(effectiveQrProject)}&v=${qrTimestamp}`;
     const qrIconSrc = isQrLongitudinal ? '/icons/l4-192.png' : '/icons/rv6-192.png';
     const qrAppTitle = isQrLongitudinal ? 'TOP - Longitudinal 4' : 'TOP - Red Vial 6';
 
@@ -700,7 +701,7 @@ export default function ReporteACPage() {
                                 <p className="text-[10px] font-black text-blue-500 uppercase">Condiciones</p>
                                 <p className="text-2xl font-black text-white">{records.filter(r => r.condicion).length}</p>
                             </div>
-                            <div className={`bg-slate-950 border ${isLongitudinal ? 'border-emerald-500/40 hover:bg-emerald-950/30' : 'border-orange-500/40 hover:bg-orange-950/30'} p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer transition-colors`} onClick={() => { setQrSelectedProject('auto'); setShowQR(true); }}>
+                            <div className={`bg-slate-950 border ${isLongitudinal ? 'border-emerald-500/40 hover:bg-emerald-950/30' : 'border-orange-500/40 hover:bg-orange-950/30'} p-4 rounded-2xl text-center min-w-[120px] flex items-center justify-center cursor-pointer transition-colors`} onClick={() => { setQrTimestamp(Date.now()); setQrSelectedProject('auto'); setShowQR(true); }}>
                                 <div className="text-center">
                                     <QrCode size={32} className={`mx-auto mb-1 ${isLongitudinal ? 'text-emerald-400' : 'text-orange-400'}`} />
                                     <p className="text-[10px] font-black text-white uppercase">QR {isLongitudinal ? 'Longitudinal' : 'Red Vial 6'}</p>
@@ -771,8 +772,17 @@ export default function ReporteACPage() {
                                 </div>
                             )}
 
-                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-3 border-4 ${isQrLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
+                            <div className={`bg-white p-4 rounded-2xl inline-block mx-auto mb-2 border-4 ${isQrLongitudinal ? 'border-emerald-500' : 'border-orange-500'} shadow-inner`}>
                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=${isQrLongitudinal ? '065f46' : '9a3412'}&data=${encodeURIComponent(qrFullUrl)}`} alt={`QR Code ${effectiveQrProject}`} className="w-44 h-44" />
+                            </div>
+                            <div className="flex items-center justify-center mb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setQrTimestamp(Date.now())}
+                                    className="text-[11px] font-bold text-orange-400 hover:text-orange-300 bg-slate-800/90 hover:bg-slate-700 py-1 px-3 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 shadow-sm"
+                                >
+                                    🔄 Refrescar Código QR (Evitar Caché)
+                                </button>
                             </div>
                             <div className="bg-slate-800/70 p-2 rounded-xl border border-slate-700 mb-3">
                                 <p className="text-[10px] text-slate-300 font-mono break-all select-all">
