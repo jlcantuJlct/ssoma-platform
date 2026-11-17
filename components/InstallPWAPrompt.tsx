@@ -183,7 +183,19 @@ export default function InstallPWAPrompt({
                     </div>
 
                     {activeTab === 'android' && (
-                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800/80 space-y-3 text-xs text-slate-200">
+                        <div className="bg-slate-950/90 p-4 rounded-2xl border border-orange-500/30 space-y-3 text-xs text-slate-200">
+                            <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl flex items-center justify-between gap-2">
+                                <div>
+                                    <p className="font-bold text-orange-400 text-sm flex items-center gap-1.5">
+                                        <span>📲</span> Cómo instalar en Android:
+                                    </p>
+                                    <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+                                        Android requiere que toques los <strong>3 puntos ⋮</strong> arriba a la derecha en Chrome y elijas <strong>"Agregar a la pantalla principal"</strong>.
+                                    </p>
+                                </div>
+                                <span className="text-2xl animate-bounce shrink-0">↗️</span>
+                            </div>
+
                             <div className="flex items-start gap-2.5">
                                 <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>1</span>
                                 <p className="leading-snug">
@@ -193,13 +205,19 @@ export default function InstallPWAPrompt({
                             <div className="flex items-start gap-2.5">
                                 <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>2</span>
                                 <p className="leading-snug">
-                                    Selecciona la opción <strong>"Agregar a la pantalla principal"</strong> o <strong>"Instalar aplicación"</strong>.
+                                    Selecciona <strong>"Agregar a la pantalla principal"</strong> (o <strong>"Instalar aplicación"</strong>).
+                                </p>
+                            </div>
+                            <div className="flex items-start gap-2.5">
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 mt-0.5 ${isLongitudinal ? 'bg-emerald-500 text-black' : 'bg-orange-500 text-black'}`}>3</span>
+                                <p className="leading-snug">
+                                    Confirma en <strong>"Instalar"</strong> y el icono aparecerá de inmediato en la pantalla de tu celular.
                                 </p>
                             </div>
                             <div className="flex items-start gap-2.5 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-amber-300 text-[11px]">
                                 <span>💡</span>
                                 <p>
-                                    <strong>¿Abriste desde la cámara o WhatsApp?</strong> Toca los 3 puntos ⋮ arriba y elige <em>"Abrir en Chrome"</em> para que te permita agregarla a la pantalla.
+                                    <strong>¿Abriste el QR desde la cámara o WhatsApp?</strong> Toca los 3 puntos ⋮ arriba y elige <em>"Abrir en Chrome"</em> para que puedas agregar el icono a tu pantalla.
                                 </p>
                             </div>
                         </div>
