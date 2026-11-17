@@ -145,17 +145,17 @@ export default function InstallPWAPrompt({
                 </div>
 
                 {/* Si el navegador soporta el botón de instalación directa (Android Chrome) */}
-                {hasNativePrompt && !promptTried && (
-                    <div className="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                            Tu navegador permite instalar la aplicación directamente. Presiona el botón a continuación:
+                {hasNativePrompt && (
+                    <div className="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-orange-500/40 shadow-inner">
+                        <p className="text-xs text-white font-bold leading-relaxed">
+                            ✅ Tu navegador Chrome ya está listo. Presiona el botón para fijar el icono:
                         </p>
                         <button
                             type="button"
                             onClick={handleInstallClick}
-                            className={`w-full py-3.5 px-4 rounded-2xl text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 ${btnBg} transition-all active:scale-95`}
+                            className={`w-full py-3.5 px-4 rounded-2xl text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 ${btnBg} transition-all active:scale-95 animate-pulse`}
                         >
-                            <Download size={20} /> Instalar Icono en Pantalla
+                            <Download size={20} /> ¡Fijar Icono en mi Celular Ahora!
                         </button>
                     </div>
                 )}
