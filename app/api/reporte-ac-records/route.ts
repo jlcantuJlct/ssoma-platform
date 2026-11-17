@@ -18,12 +18,16 @@ async function ensureTable() {
             pdf_url TEXT,
             accion_inmediata TEXT,
             descripcion TEXT,
+            persona_observada VARCHAR(200),
+            is_anonymous BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
     try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN accion_inmediata TEXT'); } catch(e) {}
     try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN descripcion TEXT'); } catch(e) {}
     try { await db.execute("ALTER TABLE reporte_ac_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN persona_observada VARCHAR(200)'); } catch(e) {}
+    try { await db.execute('ALTER TABLE reporte_ac_records ADD COLUMN is_anonymous BOOLEAN DEFAULT FALSE'); } catch(e) {}
 }
 
 export async function GET(req: NextRequest) {
@@ -59,8 +63,8 @@ export async function POST(req: NextRequest) {
             
             if (existing.length === 0) {
                 await db.execute(
-                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url, accion_inmediata, descripcion, workspace)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO reporte_ac_records (record_id, date, responsible, acto, condicion, cantidad, location, pdf_url, accion_inmediata, descripcion, workspace, persona_observada, is_anonymous)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         rid,
                         r.date || '',
@@ -72,7 +76,9 @@ export async function POST(req: NextRequest) {
                         r.pdfUrl || '',
                         r.accion_inmediata || '',
                         r.descripcion || '',
-                        workspace
+                        workspace,
+                        r.persona_observada || '',
+                        Boolean(r.is_anonymous || r.responsible === 'ANÓNIMO')
                     ]
                 );
                 inserted++;
@@ -100,7 +106,7 @@ export async function PUT(req: NextRequest) {
         await ensureTable();
         const data = await req.json();
         
-        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl, accion_inmediata, descripcion } = data;
+        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl, accion_inmediata, descripcion, persona_observada, is_anonymous } = data;
         
         if (!id && !record_id) {
             return NextResponse.json({ success: false, error: 'Se requiere ID o record_id' }, { status: 400 });
@@ -110,7 +116,7 @@ export async function PUT(req: NextRequest) {
 
         await db.execute(
             `UPDATE reporte_ac_records 
-             SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?, accion_inmediata = ?, descripcion = ?
+             SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?, accion_inmediata = ?, descripcion = ?, persona_observada = ?, is_anonymous = ?
              WHERE record_id = ? OR id = ?`,
             [
                 date || '',
@@ -122,6 +128,8 @@ export async function PUT(req: NextRequest) {
                 pdfUrl || '',
                 accion_inmediata || '',
                 descripcion || '',
+                persona_observada || '',
+                Boolean(is_anonymous || responsible === 'ANÓNIMO'),
                 targetId,
                 Number(targetId) || 0
             ]

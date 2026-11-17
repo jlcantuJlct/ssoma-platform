@@ -125,6 +125,8 @@ type ReporteACRecord = {
     pdfUrl: string;
     accion_inmediata?: string;
     descripcion?: string;
+    persona_observada?: string;
+    is_anonymous?: boolean;
 };
 
 export default function ReporteACPage() {
@@ -138,6 +140,8 @@ export default function ReporteACPage() {
     const [form, setForm] = useState<{
         date: string;
         responsible: string;
+        is_anonymous: boolean;
+        persona_observada: string;
         location: string;
         descripcion: string;
         accion_inmediata: string;
@@ -147,6 +151,8 @@ export default function ReporteACPage() {
     }>({
         date: new Date().toISOString().split('T')[0],
         responsible: user?.name || '',
+        is_anonymous: false,
+        persona_observada: '',
         location: '',
         descripcion: '',
         accion_inmediata: '',
@@ -154,6 +160,7 @@ export default function ReporteACPage() {
         actos_checked: [],
         condiciones_checked: []
     });
+    const [sctrNames, setSctrNames] = useState<string[]>([]);
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
@@ -193,6 +200,22 @@ export default function ReporteACPage() {
         loadProgram();
     }, []);
 
+    // --- EFFECT: LOAD SCTR WORKER NAMES ---
+    useEffect(() => {
+        const loadSctrNames = async () => {
+            try {
+                const res = await fetch('/api/sctr-names');
+                const data = await res.json();
+                if (data.success && Array.isArray(data.names)) {
+                    setSctrNames(data.names);
+                }
+            } catch (err) {
+                console.error("Error loading sctr names:", err);
+            }
+        };
+        loadSctrNames();
+    }, []);
+
     // --- EFFECT: LOAD/SAVE ---
     useEffect(() => {
         const init = async () => {
@@ -219,7 +242,9 @@ export default function ReporteACPage() {
                         location: r.location,
                         pdfUrl: r.pdf_url,
                         accion_inmediata: r.accion_inmediata,
-                        descripcion: r.descripcion
+                        descripcion: r.descripcion,
+                        persona_observada: r.persona_observada || '',
+                        is_anonymous: Boolean(r.is_anonymous)
                     }));
                     // Combinar registros locales aún no sincronizados con los de base de datos
                     const serverIds = new Set(mapped.map(m => m.id));
@@ -293,6 +318,7 @@ export default function ReporteACPage() {
             const reportNum = String(records.length + 1).padStart(3, '0');
             const proyectoActivo = activeWs.toUpperCase();
             const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+            const effectiveResponsible = (form.is_anonymous || form.responsible === 'ANÓNIMO') ? 'ANÓNIMO' : form.responsible;
 
             try {
                 const excelRes = await fetch('/api/export-excel', {
@@ -305,12 +331,14 @@ export default function ReporteACPage() {
                         meta: {
                             reportNumber: reportNum,
                             proyecto: proyectoActivo,
-                            responsible: form.responsible,
+                            responsible: effectiveResponsible,
                             date: form.date,
                             hora: horaActual,
                             location: form.location,
                             descripcion: form.descripcion,
                             accion_inmediata: form.accion_inmediata,
+                            persona_observada: form.persona_observada?.trim() || '',
+                            is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO'),
                             actos_checked: form.actos_checked,
                             condiciones_checked: form.condiciones_checked,
                             fotoEvidencia: fotoEvidenciaB64
@@ -350,14 +378,16 @@ export default function ReporteACPage() {
                 newRecords.push({
                     id: baseId + i,
                     date: form.date,
-                    responsible: form.responsible,
+                    responsible: effectiveResponsible,
                     location: form.location,
                     acto: actoStr,
                     condicion: '',
                     cantidad: 1,
                     pdfUrl: uploadedUrl,
                     accion_inmediata: form.accion_inmediata,
-                    descripcion: form.descripcion
+                    descripcion: form.descripcion,
+                    persona_observada: form.persona_observada?.trim() || '',
+                    is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO')
                 });
             });
 
@@ -365,14 +395,16 @@ export default function ReporteACPage() {
                 newRecords.push({
                     id: baseId + 1000 + i,
                     date: form.date,
-                    responsible: form.responsible,
+                    responsible: effectiveResponsible,
                     location: form.location,
                     acto: '',
                     condicion: condStr,
                     cantidad: 1,
                     pdfUrl: uploadedUrl,
                     accion_inmediata: form.accion_inmediata,
-                    descripcion: form.descripcion
+                    descripcion: form.descripcion,
+                    persona_observada: form.persona_observada?.trim() || '',
+                    is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO')
                 });
             });
 
@@ -391,7 +423,15 @@ export default function ReporteACPage() {
             await handleSync(newRecords);
 
             // Reset
-            setForm({ ...form, actos_checked: [], condiciones_checked: [], accion_inmediata: '', descripcion: '' });
+            setForm({ 
+                ...form, 
+                actos_checked: [], 
+                condiciones_checked: [], 
+                accion_inmediata: '', 
+                descripcion: '', 
+                persona_observada: '', 
+                is_anonymous: false 
+            });
             setPdfFile(null);
             alert(`✅ Reporte TOP registrado en Registros Recientes, Excel F-SIG-060 descargado y guardado en Google Drive con éxito.`);
         } catch (error) {
@@ -416,6 +456,8 @@ export default function ReporteACPage() {
                         reportNumber: String(r.id).slice(-4),
                         proyecto: proyectoActivo,
                         responsible: r.responsible,
+                        is_anonymous: Boolean(r.is_anonymous || r.responsible === 'ANÓNIMO'),
+                        persona_observada: r.persona_observada || '',
                         date: r.date,
                         hora: '08:00',
                         location: r.location,
@@ -843,11 +885,36 @@ export default function ReporteACPage() {
                                     <input name="form_date" type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="bg-transparent text-white text-sm font-bold outline-none" />
                                 </div>
                                 <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
-                                    <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por:</label>
-                                    <select name="form_responsible" value={form.responsible} onChange={e=>setForm({...form, responsible: e.target.value})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
-                                        <option value="">Seleccionar...</option>
-                                        {RESPONSIBLES.map(r=><option key={r} value={r}>{r}</option>)}
-                                    </select>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-[10px] text-slate-400 uppercase flex items-center gap-1.5"><Users size={12}/> Reportado Por:</label>
+                                        <label className="flex items-center gap-1 cursor-pointer text-[10px] font-bold text-orange-400 hover:text-orange-300 transition-colors">
+                                            <input 
+                                                type="checkbox"
+                                                checked={form.is_anonymous || form.responsible === 'ANÓNIMO'}
+                                                onChange={(e) => {
+                                                    const isAnon = e.target.checked;
+                                                    setForm(prev => ({
+                                                        ...prev,
+                                                        is_anonymous: isAnon,
+                                                        responsible: isAnon ? 'ANÓNIMO' : (user?.name || '')
+                                                    }));
+                                                }}
+                                                className="w-3.5 h-3.5 rounded accent-orange-500 cursor-pointer"
+                                            />
+                                            <span>Anónimo</span>
+                                        </label>
+                                    </div>
+                                    {form.is_anonymous || form.responsible === 'ANÓNIMO' ? (
+                                        <div className="bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs py-1.5 px-2.5 rounded-lg flex items-center gap-1.5">
+                                            <span>🕶️</span> <span>ANÓNIMO</span>
+                                        </div>
+                                    ) : (
+                                        <select name="form_responsible" value={form.responsible} onChange={e=>setForm({...form, responsible: e.target.value, is_anonymous: e.target.value === 'ANÓNIMO'})} className="bg-[#1c222b] text-white text-sm font-bold outline-none border-none">
+                                            <option value="">Seleccionar...</option>
+                                            <option value="ANÓNIMO">🕶️ ANÓNIMO</option>
+                                            {RESPONSIBLES.map(r=><option key={r} value={r}>{r}</option>)}
+                                        </select>
+                                    )}
                                 </div>
                                 <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
                                     <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><MapPin size={12}/> Ubicación:</label>
@@ -869,6 +936,48 @@ export default function ReporteACPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {form.type === 'acto' && (
+                                <div className={`border ${isLongitudinal ? 'border-emerald-600/70 bg-emerald-500/5' : 'border-[#b35922] bg-[#f97316]/5'} rounded-xl p-3.5 mb-4 relative transition-all animate-in fade-in slide-in-from-top-2 duration-300`}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="text-[11px] font-bold text-orange-400 uppercase flex items-center gap-1.5">
+                                            <User size={13} className="text-[#f97316]" /> Persona Observada / Reportada (Acto Inseguro):
+                                        </label>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] text-slate-400 hidden sm:inline">Por voz:</span>
+                                            <VoiceDictation 
+                                                onResult={(text) => {
+                                                    const clean = text.trim().toUpperCase();
+                                                    setForm(prev => ({ 
+                                                        ...prev, 
+                                                        persona_observada: prev.persona_observada ? `${prev.persona_observada} ${clean}` : clean 
+                                                    }));
+                                                }}
+                                                onClear={() => setForm(prev => ({ ...prev, persona_observada: '' }))}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <input 
+                                            name="form_persona_observada"
+                                            list="sctr-workers-list-ac"
+                                            type="text"
+                                            value={form.persona_observada || ''}
+                                            onChange={(e) => setForm(prev => ({ ...prev, persona_observada: e.target.value.toUpperCase() }))}
+                                            placeholder="Escribe, selecciona o dicta por voz el nombre del trabajador..."
+                                            className="w-full bg-[#1c222b] text-white text-xs font-bold px-3 py-2 rounded-lg border border-slate-700/80 outline-none focus:border-orange-500 transition-all placeholder:text-slate-500"
+                                        />
+                                        <datalist id="sctr-workers-list-ac">
+                                            {sctrNames.map((name, idx) => (
+                                                <option key={idx} value={name} />
+                                            ))}
+                                        </datalist>
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 mt-1 italic flex items-center gap-1">
+                                        <span>💡</span> <span>Puedes seleccionar un trabajador de la lista o usar el micrófono verde para dictar el nombre por voz.</span>
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1.5 custom-scrollbar mb-4">
                                 {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {
@@ -1125,15 +1234,28 @@ export default function ReporteACPage() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[8px] font-black border border-slate-700">
-                                                            {r.responsible.substring(0,2).toUpperCase()}
+                                                            {r.is_anonymous || r.responsible === 'ANÓNIMO' ? '🕶️' : r.responsible.substring(0,2).toUpperCase()}
                                                         </div>
-                                                        <span className="text-xs">{r.responsible}</span>
+                                                        <span className="text-xs">
+                                                            {r.is_anonymous || r.responsible === 'ANÓNIMO' ? (
+                                                                <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                                                    🕶️ Anónimo
+                                                                </span>
+                                                            ) : (
+                                                                r.responsible
+                                                            )}
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="space-y-1">
                                                         {r.acto && <span className="block text-[10px] bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/20 w-fit">A: {r.acto}</span>}
                                                         {r.condicion && <span className="block text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 w-fit">C: {r.condicion}</span>}
+                                                        {r.persona_observada && (
+                                                            <span className="block text-[9px] bg-rose-500/15 text-rose-300 px-2 py-0.5 rounded-md border border-rose-500/30 w-fit font-semibold">
+                                                                👤 Observado: {r.persona_observada}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-center font-black text-orange-500">{r.cantidad}</td>

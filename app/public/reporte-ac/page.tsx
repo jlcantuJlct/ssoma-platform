@@ -103,6 +103,8 @@ export default function PublicReporteACPage() {
         type: 'acto' | 'condicion';
         actos_checked: string[];
         condiciones_checked: string[];
+        persona_observada: string;
+        is_anonymous: boolean;
     }>({
         date: new Date().toISOString().split('T')[0],
         responsible: '',
@@ -111,7 +113,9 @@ export default function PublicReporteACPage() {
         accion_inmediata: '',
         type: 'acto',
         actos_checked: [],
-        condiciones_checked: []
+        condiciones_checked: [],
+        persona_observada: '',
+        is_anonymous: false
     });
     
     const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -193,8 +197,15 @@ export default function PublicReporteACPage() {
             return;
         }
 
-        if (!form.responsible || !form.location) {
-            alert("Debe completar Responsable y Lugar.");
+        const effectiveResponsible = (form.is_anonymous || form.responsible === 'ANÓNIMO') ? 'ANÓNIMO' : form.responsible;
+
+        if (!effectiveResponsible && !form.is_anonymous) {
+            alert("Debe seleccionar o escribir quién reporta (o marcar la opción Anónimo).");
+            return;
+        }
+
+        if (!form.location) {
+            alert("Debe seleccionar el Lugar / Ubicación.");
             return;
         }
 
@@ -216,7 +227,7 @@ export default function PublicReporteACPage() {
                     'ActosInseguros' as any,
                     'Reporte_TOP_Publico',
                     form.date,
-                    form.responsible,
+                    effectiveResponsible,
                     'EVID',
                     'SEGURIDAD',
                     form.location
@@ -227,6 +238,7 @@ export default function PublicReporteACPage() {
             const reportNum = String(baseId).slice(-4);
             const proyectoActivo = projectWorkspace.toUpperCase();
             const horaActual = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+            const effectivePersonaObservada = form.type === 'acto' ? (form.persona_observada?.trim() || '') : '';
 
             try {
                 const excelRes = await fetch('/api/export-excel', {
@@ -239,7 +251,9 @@ export default function PublicReporteACPage() {
                         meta: {
                             reportNumber: reportNum,
                             proyecto: proyectoActivo,
-                            responsible: form.responsible,
+                            responsible: effectiveResponsible,
+                            is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO'),
+                            persona_observada: effectivePersonaObservada,
                             date: form.date,
                             hora: horaActual,
                             location: form.location,
@@ -281,7 +295,9 @@ export default function PublicReporteACPage() {
                 newRecords.push({
                     id: baseId + i,
                     date: form.date,
-                    responsible: form.responsible,
+                    responsible: effectiveResponsible,
+                    is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO'),
+                    persona_observada: effectivePersonaObservada,
                     location: form.location,
                     acto: actoStr,
                     condicion: '',
@@ -296,7 +312,9 @@ export default function PublicReporteACPage() {
                 newRecords.push({
                     id: baseId + 1000 + i,
                     date: form.date,
-                    responsible: form.responsible,
+                    responsible: effectiveResponsible,
+                    is_anonymous: Boolean(form.is_anonymous || form.responsible === 'ANÓNIMO'),
+                    persona_observada: '',
                     location: form.location,
                     acto: '',
                     condicion: condStr,
@@ -319,7 +337,7 @@ export default function PublicReporteACPage() {
             await fetch(`/api/reporte-ac-records?workspace=${encodeURIComponent(activeWs)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ records: newRecords, userName: form.responsible, workspace: activeWs })
+                body: JSON.stringify({ records: newRecords, userName: effectiveResponsible, workspace: activeWs })
             });
 
             setSubmitted(true);
@@ -386,7 +404,9 @@ export default function PublicReporteACPage() {
                                     accion_inmediata: '',
                                     descripcion: '',
                                     responsible: '',
-                                    location: ''
+                                    location: '',
+                                    persona_observada: '',
+                                    is_anonymous: false
                                 });
                                 setPdfFile(null);
                             }}
@@ -464,14 +484,35 @@ export default function PublicReporteACPage() {
                         </div>
                         
                         <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
-                            <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2 mb-1"><Users size={12}/> Reportado Por ({projectWorkspace}):</label>
-                            <SearchableSelect name="form_responsible" 
-                                options={sctrNames}
-                                value={form.responsible}
-                                onChange={(val) => setForm({...form, responsible: val})}
-                                placeholder="Escribe o selecciona tu nombre..."
-                                className="[&>div]:bg-[#1c222b] [&>div]:border-none [&>div]:p-0"
-                            />
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="text-[10px] text-slate-400 uppercase flex items-center gap-2"><Users size={12}/> Reportado Por ({projectWorkspace}):</label>
+                                <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-bold text-amber-400 hover:text-amber-300">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={form.is_anonymous} 
+                                        onChange={(e) => setForm(f => ({ 
+                                            ...f, 
+                                            is_anonymous: e.target.checked, 
+                                            responsible: e.target.checked ? 'ANÓNIMO' : (f.responsible === 'ANÓNIMO' ? '' : f.responsible) 
+                                        }))}
+                                        className="rounded border-slate-700 text-amber-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                                    />
+                                    <span>🕶️ Anónimo</span>
+                                </label>
+                            </div>
+                            {form.is_anonymous ? (
+                                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 text-amber-300 text-xs font-bold flex items-center gap-2">
+                                    <span>🕶️ Reporte confidencial anónimo (el nombre del reportero no será divulgado)</span>
+                                </div>
+                            ) : (
+                                <SearchableSelect name="form_responsible" 
+                                    options={sctrNames}
+                                    value={form.responsible}
+                                    onChange={(val) => setForm({...form, responsible: val})}
+                                    placeholder="Escribe o selecciona tu nombre..."
+                                    className="[&>div]:bg-[#1c222b] [&>div]:border-none [&>div]:p-0"
+                                />
+                            )}
                         </div>
                         
                         <div className={`border ${isLongitudinal ? 'border-emerald-600/70' : 'border-[#b35922]'} rounded-xl p-3 bg-transparent flex flex-col justify-center`}>
@@ -494,6 +535,39 @@ export default function PublicReporteACPage() {
                             </button>
                         </div>
                     </div>
+
+                    {form.type === 'acto' && (
+                        <div className={`border ${isLongitudinal ? 'border-emerald-600/70 bg-emerald-950/20' : 'border-[#b35922] bg-orange-950/20'} rounded-xl p-3.5 flex flex-col justify-center gap-2 transition-all shadow-inner mb-4`}>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold text-orange-400 uppercase flex items-center gap-1.5">
+                                    <User size={14} className="text-orange-400" />
+                                    Persona Observada / Reportada (Acto Inseguro):
+                                </label>
+                                <VoiceDictation 
+                                    onResult={(text) => setForm(f => ({ ...f, persona_observada: f.persona_observada ? f.persona_observada + ' ' + text : text }))} 
+                                    onClear={() => setForm(f => ({ ...f, persona_observada: '' }))}
+                                />
+                            </div>
+                            <div className="relative">
+                                <input 
+                                    type="text"
+                                    list="sctr-workers-public-list"
+                                    value={form.persona_observada}
+                                    onChange={(e) => setForm({ ...form, persona_observada: e.target.value })}
+                                    placeholder="Seleccionar o dictar por voz el nombre del trabajador..."
+                                    className="w-full bg-[#1c222b] border border-orange-500/40 rounded-lg px-3 py-2 text-white text-sm font-semibold outline-none focus:border-orange-500 transition-colors"
+                                />
+                                <datalist id="sctr-workers-public-list">
+                                    {sctrNames.map(w => (
+                                        <option key={w.id} value={w.label} />
+                                    ))}
+                                </datalist>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                                💡 Puedes escoger el nombre del personal de la lista o pulsar el micrófono para dictarlo por voz.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1.5 custom-scrollbar mb-4">
                         {(form.type === 'acto' ? ACTOS_LIST : CONDICIONES_LIST).map(item => {

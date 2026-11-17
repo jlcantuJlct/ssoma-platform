@@ -2363,11 +2363,14 @@ export async function POST(req: Request) {
 
           // Descripción observada (Filas 10 a 13, columnas B:G)
           try { worksheet.mergeCells("B11:G11"); } catch (e) {}
-          const rawDesc = (
+          let rawDesc = (
             meta.descripcion ||
             [...actosChecked, ...condicionesChecked].filter(Boolean).join(" / ") ||
             ""
           ).trim();
+          if (meta.persona_observada && !rawDesc.includes(meta.persona_observada)) {
+            rawDesc = `[Persona observada: ${meta.persona_observada}]\n${rawDesc}`.trim();
+          }
           const splitTextIntoLines = (txt: string, maxLen: number, maxLines: number) => {
             if (!txt) return [];
             const paragraphs = txt.split(/\r?\n/);
