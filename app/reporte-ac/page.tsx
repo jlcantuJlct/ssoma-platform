@@ -605,16 +605,18 @@ export default function ReporteACPage() {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             const d = monthlyData.find(m => m.month === label);
+            const actosVal = d?.actos ?? (payload.find((p: any) => p.dataKey === 'actos')?.value ?? 0);
+            const condicionesVal = d?.condiciones ?? (payload.find((p: any) => p.dataKey === 'condiciones')?.value ?? 0);
             return (
                 <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl">
                     <p className="text-white font-black mb-2 uppercase">{label}</p>
                     <div className="space-y-2">
                         <div className="bg-orange-500/10 p-2 rounded-lg border border-orange-500/20">
-                            <p className="text-orange-500 font-bold text-xs">Actos: {payload[0]?.value}</p>
+                            <p className="text-orange-500 font-bold text-xs">Actos: {actosVal}</p>
                             {d?.topActo && <p className="text-orange-400 text-[10px] mt-1 line-clamp-2 leading-tight">🔥 Principal: {d.topActo}</p>}
                         </div>
                         <div className="bg-blue-500/10 p-2 rounded-lg border border-blue-500/20">
-                            <p className="text-blue-500 font-bold text-xs">Condiciones: {payload[1]?.value}</p>
+                            <p className="text-blue-500 font-bold text-xs">Condiciones: {condicionesVal}</p>
                             {d?.topCondicion && <p className="text-blue-400 text-[10px] mt-1 line-clamp-2 leading-tight">❄️ Principal: {d.topCondicion}</p>}
                         </div>
                     </div>
@@ -832,18 +834,6 @@ export default function ReporteACPage() {
                                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 'bold' }} iconType="circle" />
                                 <Area 
                                     type="monotone" 
-                                    dataKey="condiciones" 
-                                    name="Condiciones Inseguras" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={4} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorCondiciones)" 
-                                    filter="url(#glow)"
-                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#60a5fa' }}
-                                    label={<CustomizedCondicionLabel />}
-                                />
-                                <Area 
-                                    type="monotone" 
                                     dataKey="actos" 
                                     name="Actos Inseguros" 
                                     stroke="#f97316" 
@@ -853,6 +843,18 @@ export default function ReporteACPage() {
                                     filter="url(#glow)"
                                     activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#fb923c' }}
                                     label={<CustomizedActoLabel />}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="condiciones" 
+                                    name="Condiciones Inseguras" 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={4} 
+                                    fillOpacity={1} 
+                                    fill="url(#colorCondiciones)" 
+                                    filter="url(#glow)"
+                                    activeDot={{ r: 6, stroke: '#1e293b', strokeWidth: 2, fill: '#60a5fa' }}
+                                    label={<CustomizedCondicionLabel />}
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
