@@ -142,8 +142,14 @@ export default function PublicReporteACPage() {
                 }).catch(() => {});
             }
 
-            const isStand = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-            setIsStandalone(!!isStand);
+            // Detectar si ya está instalado en el dispositivo o abierto desde el icono de la pantalla
+            const searchParams = new URLSearchParams(window.location.search);
+            const isPwaSource = searchParams.get('source') === 'pwa' || searchParams.get('installed') === 'true';
+            const isStandMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+            const isSavedInstalled = localStorage.getItem('top_app_installed') === 'true' || document.cookie.includes('top_app_installed=true');
+
+            const alreadyInstalledOnDevice = isStandMode || isPwaSource || isSavedInstalled;
+            setIsStandalone(alreadyInstalledOnDevice);
 
             const handleBeforeInstall = (e: any) => {
                 e.preventDefault();
@@ -151,13 +157,19 @@ export default function PublicReporteACPage() {
             };
             window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-            // Al abrir el QR o la página, desplegar automáticamente la pregunta para fijar en pantalla
-            const autoPromptTimer = setTimeout(() => {
-                setShowInstallModal(true);
-            }, 400);
+            // Solo mostrar la ventana emergente si NO está instalado en este celular
+            if (!alreadyInstalledOnDevice) {
+                const autoPromptTimer = setTimeout(() => {
+                    setShowInstallModal(true);
+                }, 400);
+
+                return () => {
+                    clearTimeout(autoPromptTimer);
+                    window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+                };
+            }
 
             return () => {
-                clearTimeout(autoPromptTimer);
                 window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
             };
         }
@@ -176,6 +188,11 @@ export default function PublicReporteACPage() {
                 setInstallProgress(75);
                 const choice = await promptEvent.userChoice;
                 if (choice && choice.outcome === 'accepted') {
+                    try {
+                        localStorage.setItem('top_app_installed', 'true');
+                        document.cookie = "top_app_installed=true; max-age=315360000; path=/";
+                    } catch (e) {}
+                    setIsStandalone(true);
                     setInstallProgress(100);
                     setInstallSuccess(true);
                     setInstalling(false);
@@ -203,6 +220,11 @@ export default function PublicReporteACPage() {
             if (current >= 90) {
                 clearInterval(interval);
                 setTimeout(() => {
+                    try {
+                        localStorage.setItem('top_app_installed', 'true');
+                        document.cookie = "top_app_installed=true; max-age=315360000; path=/";
+                    } catch (e) {}
+                    setIsStandalone(true);
                     setInstallProgress(100);
                     setInstallSuccess(true);
                     setInstalling(false);

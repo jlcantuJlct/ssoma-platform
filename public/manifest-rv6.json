@@ -1,9 +1,9 @@
 {
-  "id": "/public/reporte-ac?workspace=Red%20Vial%206",
+  "id": "/public/reporte-ac?workspace=Red%20Vial%206&source=pwa",
   "name": "Tarjeta TOP - Red Vial 6",
   "short_name": "TOP RV6",
   "description": "Tarjeta de Observación Preventiva - Red Vial 6",
-  "start_url": "/public/reporte-ac?workspace=Red%20Vial%206",
+  "start_url": "/public/reporte-ac?workspace=Red%20Vial%206&source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -1,9 +1,9 @@
 {
-  "id": "/public/reporte-ac?workspace=Longitudinal%20tramo%204",
+  "id": "/public/reporte-ac?workspace=Longitudinal%20tramo%204&source=pwa",
   "name": "Tarjeta TOP - Longitudinal 4",
   "short_name": "TOP L4",
   "description": "Tarjeta de Observación Preventiva - Longitudinal Tramo 4",
-  "start_url": "/public/reporte-ac?workspace=Longitudinal%20tramo%204",
+  "start_url": "/public/reporte-ac?workspace=Longitudinal%20tramo%204&source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
