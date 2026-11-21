@@ -35,19 +35,17 @@ import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
 
-// Objetivos oficiales del Programa Anual para comprobación y coincidencia
+// Objetivos oficiales del Programa Anual para comprobación y coincidencia (F-SIG-023 CASA)
 export const PROGRAM_OBJECTIVES = [
-    { id: 'obj1', code: 'OBJ 01', label: 'OBJ 01: SCSST', name: 'Comité y Sistema de Gestión de SST', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { id: 'obj2', code: 'OBJ 02', label: 'OBJ 02: Capacitación', name: 'Capacitación, Entrenamiento y Simulacros', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 'obj3', code: 'OBJ 03', label: 'OBJ 03: Inspecciones Seguridad', name: 'Inspecciones Internas de Seguridad', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { id: 'obj4', code: 'OBJ 04', label: 'OBJ 04: Reporte A/C Inseguras', name: 'Tarjetas de Observación Preventiva (TOP)', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { id: 'obj5', code: 'OBJ 05', label: 'OBJ 05: EMO Realizados', name: 'Exámenes Médicos Ocupacionales', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
-    { id: 'obj6', code: 'SEG 01', label: 'SEG 01: Inspecciones de Salud', name: 'Inspecciones y Vigilancia de Salud', icon: HeartPulse, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-    { id: 'obj7', code: 'SEG 02', label: 'SEG 02: Formaciones de Salud', name: 'Formaciones y Talleres de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { id: 'obj8', code: 'SEG 03', label: 'SEG 03: Inspecciones M. Ambiente', name: 'Inspecciones de Medio Ambiente y PMA', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'obj9', code: 'SEG 04', label: 'SEG 04: Formaciones M. Ambiente', name: 'Formaciones Ambientales', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
-    { id: 'obj10', code: 'SEG 05', label: 'SEG 05: Control de Simulacros', name: 'Simulacros y Brigadas de Emergencia', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { id: 'obj11', code: 'SEG 06', label: 'SEG 06: Control de Brigadistas', name: 'Brigadas de Emergencia', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj1', code: 'OBJ 01', label: 'OBJ 01: Participación y SCSST', name: 'Asegurar la consulta, participación e información activa de los trabajadores y sus representantes', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { id: 'obj2', code: 'OBJ 02', label: 'OBJ 02: Capacitación y Entrenamiento', name: 'Asegurar la formación, capacitación y entrenamiento de los trabajadores en seguridad', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { id: 'obj3', code: 'OBJ 03', label: 'OBJ 03: Inspecciones de Seguridad', name: 'Reducir y corregir la cantidad de condiciones inseguras mediante inspecciones continuas', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 'obj4', code: 'OBJ 04', label: 'OBJ 04: Control de Peligros y RAC', name: 'Identificar y evaluar permanentemente los peligros y controlar los riesgos en el origen', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { id: 'obj5', code: 'OBJ 05', label: 'OBJ 05: Vigilancia de Salud y EMO', name: 'Identificar y realizar el seguimiento al personal con enfermedades ocupacionales (Vigilancia de Salud)', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
+    { id: 'obj6', code: 'OBJ 06', label: 'OBJ 06: Emergencias y Simulacros', name: 'Garantizar la preparación y respuesta oportuna ante emergencias en obra', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'obj7', code: 'OBJ 07', label: 'OBJ 07: Gestión Ambiental y PMA', name: 'Asegurar el cumplimiento ambiental, manejo de residuos sólidos y Plan de Manejo Ambiental (PMA)', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { id: 'obj8', code: 'OBJ 08', label: 'OBJ 08: Requisitos Legales SSTMA', name: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj9', code: 'OBJ 09', label: 'OBJ 09: Mejora Continua y Auditorías', name: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
 ];
 
 export interface ObjetivoEstrategicoItem {
@@ -97,13 +95,13 @@ export default function ObjetivosPage() {
         // 5. EMO / Vigilancia de Salud
         if (full.includes('enfermedades ocupacionales') || full.includes('vigilancia de salud') || full.includes('vigilancia de la salud') || full.includes('emo') || full.includes('médico')) return 'obj5';
         // 6. Emergencias y Simulacros
-        if (full.includes('emergencia') || full.includes('simulacro') || full.includes('brigada') || full.includes('rescate')) return 'obj10';
+        if (full.includes('emergencia') || full.includes('simulacro') || full.includes('brigada') || full.includes('rescate')) return 'obj6';
         // 7. Medio Ambiente / PMA
-        if (full.includes('ambiental') || full.includes('ambiente') || full.includes('residuos') || full.includes('pma')) return 'obj8';
+        if (full.includes('ambiental') || full.includes('ambiente') || full.includes('residuos') || full.includes('pma')) return 'obj7';
         // 8. Requisitos Legales
-        if (full.includes('requisitos legales') || full.includes('matriz legal')) return undefined;
+        if (full.includes('requisitos legales') || full.includes('matriz legal')) return 'obj8';
         // 9. Mejora continua
-        if (full.includes('mejora continua') || full.includes('acciones correctivas')) return undefined;
+        if (full.includes('mejora continua') || full.includes('acciones correctivas') || full.includes('auditoría') || full.includes('auditoria')) return 'obj9';
 
         return undefined;
     };

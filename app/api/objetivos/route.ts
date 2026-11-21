@@ -84,7 +84,7 @@ export const DEFAULT_CASA_OBJECTIVES = [
     },
     {
         id: 'casa_obj_6',
-        codigo: 'SEG 05',
+        codigo: 'OBJ 06',
         objetivo_estrategico: 'Garantizar la preparación y respuesta oportuna ante emergencias en obra',
         perspectiva_casa: 'Art. 32 y 83 de Ley 29783 y Art. 18 inc. j del D.S. 011-2019-TR. Disponer de brigadas capacitadas, medios de rescate y protocolos de contingencia en obra civil.',
         responsable: 'Jefe de SSOMA / Brigadistas',
@@ -93,46 +93,46 @@ export const DEFAULT_CASA_OBJECTIVES = [
         meta: '100%',
         frecuencia: 'Trimestral',
         estrategia_acciones: 'Entrenamiento a las brigadas de primeros auxilios, evacuación y lucha contra incendios; inspección operativa de extintores, camillas y botiquines.',
-        matchedProgramId: 'obj10'
+        matchedProgramId: 'obj6'
     },
     {
         id: 'casa_obj_7',
-        codigo: 'SEG 03',
+        codigo: 'OBJ 07',
         objetivo_estrategico: 'Asegurar el cumplimiento ambiental, manejo de residuos sólidos y Plan de Manejo Ambiental (PMA)',
         perspectiva_casa: 'Perspectiva CASA SSOMA: Controles ambientales en frentes de trabajo, acopio y disposición final según normativa ambiental y PMA del proyecto.',
-        responsable: 'Jefe de SSOMA',
+        responsable: 'Jefe de SSOMA / Especialista Ambiental',
         indicador: 'Evidencia e Informes de Gestión Ambiental',
         formula: '% Env. = (N° Evidencias realizadas / N° Evidencias programadas) * 100',
         meta: '100%',
         frecuencia: 'Mensual',
         estrategia_acciones: 'Generar informes mensuales con registro fotográfico de acopio temporal de residuos peligrosos y no peligrosos, y verificar cumplimiento del PMA.',
-        matchedProgramId: 'obj8'
+        matchedProgramId: 'obj7'
     },
     {
         id: 'casa_obj_8',
-        codigo: 'LEG 01',
-        objetivo_estrategico: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en seguridad, salud ocupacional y medio ambiente.',
-        perspectiva_casa: 'Objetivo específico: Se realizará la revisión, evaluación y seguimiento periódico de la matriz de requisitos legales y normativos aplicables al proyecto.',
-        responsable: 'Jefe SSTMA',
+        codigo: 'OBJ 08',
+        objetivo_estrategico: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA',
+        perspectiva_casa: 'Revisión, evaluación y seguimiento periódico de la matriz de requisitos legales y normativos aplicables al proyecto (ISO 45001 / 14001: 6.1.3, 9.1.2).',
+        responsable: 'Jefe de SSOMA',
         indicador: 'Cumplimiento de Requisitos Legales',
         formula: '% Cumpl. = (N° Requisitos ejecutados en el mes / N° Requisitos programado en el mes) * 100',
         meta: '100%',
         frecuencia: 'Mensual',
         estrategia_acciones: 'Verificación y seguimiento mensual de la matriz de requisitos legales.',
-        matchedProgramId: undefined
+        matchedProgramId: 'obj8'
     },
     {
         id: 'casa_obj_9',
-        codigo: 'MEJ 01',
-        objetivo_estrategico: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías, incidentes y revisiones del sistema de gestión SSTMA.',
-        perspectiva_casa: 'Objetivo específico: Se implementará el seguimiento y cierre oportuno de las acciones correctivas, preventivas y oportunidades de mejora identificadas.',
-        responsable: 'Jefe SSTMA',
+        codigo: 'OBJ 09',
+        objetivo_estrategico: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes',
+        perspectiva_casa: 'Implementación del seguimiento y cierre oportuno de acciones correctivas, preventivas, auditorías internas y revisión por la dirección (ISO 45001 / 14001: 9.2, 9.3, 10.2).',
+        responsable: 'Jefe Prevención Corporativo / Gerencia / Jefe SSOMA',
         indicador: 'Eficacia de Mejora Continua',
         formula: '% Mejora = (N° Acciones de mejora cerradas / N° Acciones programadas) * 100',
-        meta: '90%',
+        meta: '≥ 90%',
         frecuencia: 'Mensual',
-        estrategia_acciones: 'Seguimiento mensual del plan de acción y mejora continua.',
-        matchedProgramId: undefined
+        estrategia_acciones: 'Seguimiento mensual del plan de acción, investigaciones de incidentes y auditoría interna anual.',
+        matchedProgramId: 'obj9'
     }
 ];
 

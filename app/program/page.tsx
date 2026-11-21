@@ -43,20 +43,17 @@ import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import SearchableSelect from '@/components/SearchableSelect';
 
-// Definición de Objetivos y Seguimiento
+// Definición de Objetivos Oficiales (F-SIG-023 CASA V02)
 const OBJECTIVES = [
-    { id: 'obj1', label: 'OBJ 01: SCSST', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { id: 'obj2', label: 'OBJ 02: Capacitación', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 'obj3', label: 'OBJ 03: Inspecciones Seguridad', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { id: 'obj4', label: 'OBJ 04: Reporte A/C Inseguras', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { id: 'obj5', label: 'OBJ 05: EMO Realizados', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
-    // --- SEGUIMIENTO ---
-    { id: 'obj6', label: 'SEG 01: Inspecciones de Salud', icon: HeartPulse, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-    { id: 'obj7', label: 'SEG 02: Formaciones de Salud', icon: UserPlus, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente', icon: Sprout, color: 'text-lime-400', bg: 'bg-lime-500/10' },
-    { id: 'obj10', label: 'SEG 05: Control de Simulacros', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { id: 'obj11', label: 'SEG 06: Control de Brigadistas', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj1', label: 'OBJ 01: Participación y SCSST', fullTitle: '1. Asegurar la consulta, participación e información activa de los trabajadores y sus representantes', icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { id: 'obj2', label: 'OBJ 02: Capacitación y Entrenamiento', fullTitle: '2. Asegurar la formación, capacitación y entrenamiento de los trabajadores en seguridad', icon: GraduationCap, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { id: 'obj3', label: 'OBJ 03: Inspecciones de Seguridad', fullTitle: '3. Reducir y corregir la cantidad de condiciones inseguras mediante inspecciones continuas', icon: ClipboardCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 'obj4', label: 'OBJ 04: Control de Peligros y RAC', fullTitle: '4. Identificar y evaluar permanentemente los peligros y controlar los riesgos en el origen', icon: AlertTriangle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { id: 'obj5', label: 'OBJ 05: Vigilancia de Salud y EMO', fullTitle: '5. Identificar y realizar el seguimiento al personal con enfermedades ocupacionales (Vigilancia de Salud)', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
+    { id: 'obj6', label: 'OBJ 06: Emergencias y Simulacros', fullTitle: '6. Garantizar la preparación y respuesta oportuna ante emergencias en obra', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'obj7', label: 'OBJ 07: Gestión Ambiental y PMA', fullTitle: '7. Asegurar el cumplimiento ambiental, manejo de residuos sólidos y Plan de Manejo Ambiental (PMA)', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { id: 'obj8', label: 'OBJ 08: Requisitos Legales SSTMA', fullTitle: '8. Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj9', label: 'OBJ 09: Mejora Continua y Auditorías', fullTitle: '9. Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
 ];
 
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
@@ -905,10 +902,10 @@ export default function ProgramPage() {
             const t = (exec.inspectionType || '').toLowerCase();
             
             if (t.includes('botiquin') || t.includes('campamento') || t.includes('cocina') || t.includes('comedor')) {
-                targetArea = 'obj6'; // SEG 01 (Salud)
+                targetArea = 'obj5'; // Salud
                 searchKeyword = 'salud';
             } else if (t.includes('derrame')) {
-                targetArea = 'obj8'; // SEG 03 (Medio Ambiente)
+                targetArea = 'obj7'; // Medio Ambiente
                 searchKeyword = 'ambiente';
             }
 
@@ -966,9 +963,50 @@ export default function ProgramPage() {
             const m = getMonthFromStr(ev.date);
             if (m < 0 || m > 11 || !hasEvidence(ev)) return;
 
-            for (const areaKey in grouped) {
+                        for (const areaKey in grouped) {
                 // Prioritize 'activity' over 'description' because 'activity' holds the official name in SCSST and others
-                const match = findMatch(areaKey, ev.activity || ev.description || (isEmoMatch ? 'EMO' : ''));
+                let actSearch = ev.activity || ev.description || (isEmoMatch ? 'EMO' : '');
+
+                // Mapeo inteligente para OBJ 01 (SCSST)
+                if (targetObjId === 'obj1') {
+                    const normAct = actSearch.toLowerCase();
+                    let targetAct = actSearch;
+
+                    if (normAct.includes('aprobaci') || normAct.includes('revisi') || normAct.includes('plan sst') || normAct.includes('plan de emergencia') || normAct.includes('planes de salud') || normAct.includes('objetivos estrat')) {
+                        const actRowKey = Object.keys(grouped[areaKey]).find(k => k.toLowerCase().includes('aprobaci') || k.toLowerCase().includes('revisi') || k.toLowerCase().includes('plan sst'));
+                        targetAct = actRowKey || 'Elaboración, revisión y aprobación del Plan SSTMA, Programa Anual y Objetivos Estratégicos por el SCSST';
+                    } else if (normAct.includes('reuni') || normAct.includes('ordinaria')) {
+                        const meetRowKey = Object.keys(grouped[areaKey]).find(k => k.toLowerCase().includes('reuni') || k.toLowerCase().includes('ordinaria'));
+                        targetAct = meetRowKey || 'Realizar reuniones ordinarias mensuales del Subcomité de SST (SCSST)';
+                    } else if (normAct.includes('acuerdo')) {
+                        const acRowKey = Object.keys(grouped[areaKey]).find(k => k.toLowerCase().includes('acuerdo'));
+                        targetAct = acRowKey || 'Seguimiento mensual de acuerdos del Subcomité de SST (Indicador: ≥ 90% acuerdos cerrados)';
+                    }
+
+                    const match = findMatch(areaKey, targetAct);
+                    if (match) {
+                        grouped[areaKey][match].executed[m]++;
+                        if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
+                        grouped[areaKey][match].executionRecords[m].push({ ...ev, _type: 'EVIDENCE' });
+                    }
+
+                    // Si el registro contiene acuerdos registrados (totales o cerrados) y no fue asignado únicamente a seguimiento de acuerdos:
+                    const hasAcuerdos = (ev.acuerdos_total !== null && ev.acuerdos_total !== undefined && Number(ev.acuerdos_total) > 0) ||
+                                        (ev.acuerdos_cerrados !== null && ev.acuerdos_cerrados !== undefined && Number(ev.acuerdos_cerrados) > 0) ||
+                                        (ev.description && ev.description.includes('[Acuerdos:'));
+                    
+                    if (hasAcuerdos && targetAct !== 'Seguimiento mensual de acuerdos del Subcomité de SST (Indicador: ≥ 90% acuerdos cerrados)') {
+                        const acuerdosMatch = findMatch(areaKey, 'Seguimiento mensual de acuerdos del Subcomité de SST (Indicador: ≥ 90% acuerdos cerrados)');
+                        if (acuerdosMatch) {
+                            grouped[areaKey][acuerdosMatch].executed[m]++;
+                            if (!grouped[areaKey][acuerdosMatch].executionRecords[m]) grouped[areaKey][acuerdosMatch].executionRecords[m] = [];
+                            grouped[areaKey][acuerdosMatch].executionRecords[m].push({ ...ev, _type: 'EVIDENCE' });
+                        }
+                    }
+                    continue;
+                }
+
+                const match = findMatch(areaKey, actSearch);
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
@@ -977,10 +1015,47 @@ export default function ProgramPage() {
             }
         });
 
+        // Transformar contabilidad de Acuerdos del Subcomité (OBJ 01) en 1 cuando está cumplido
+        if (targetObjId === 'obj1') {
+            for (const areaKey in grouped) {
+                const acuerdosKey = Object.keys(grouped[areaKey]).find(k => k.toLowerCase().includes('acuerdo'));
+                if (acuerdosKey) {
+                    for (let m = 0; m < 12; m++) {
+                        const recs = grouped[areaKey][acuerdosKey].executionRecords[m] || [];
+                        if (recs.length > 0) {
+                            let mTotal = 0;
+                            let mCerrados = 0;
+                            recs.forEach(r => {
+                                if (r.acuerdos_total !== null && r.acuerdos_total !== undefined && !isNaN(Number(r.acuerdos_total))) {
+                                    mTotal += Number(r.acuerdos_total);
+                                } else if (r.description) {
+                                    const match = r.description.match(/\[Acuerdos:\s*(\d+)\/(\d+)/i);
+                                    if (match) mTotal += Number(match[2]);
+                                }
+
+                                if (r.acuerdos_cerrados !== null && r.acuerdos_cerrados !== undefined && !isNaN(Number(r.acuerdos_cerrados))) {
+                                    mCerrados += Number(r.acuerdos_cerrados);
+                                } else if (r.description) {
+                                    const match = r.description.match(/\[Acuerdos:\s*(\d+)\/(\d+)/i);
+                                    if (match) mCerrados += Number(match[1]);
+                                }
+                            });
+
+                            // Meta oficial: ≥ 90% acuerdos cerrados (o si tiene cerrados válidos)
+                            const isCumplido = (mTotal > 0 && (mCerrados / mTotal) >= 0.9) || (mTotal > 0 && mCerrados >= mTotal) || (mCerrados > 0);
+                            grouped[areaKey][acuerdosKey].executed[m] = isCumplido ? 1 : 0;
+                        } else {
+                            grouped[areaKey][acuerdosKey].executed[m] = 0;
+                        }
+                    }
+                }
+            }
+        }
+
         // 5. Map PMA Records (Objective 08 - Photos / SEG 03)
         pmaRecords.forEach(pma => {
             // PMA is now SEG 03 (obj8)
-            if (targetObjId !== 'obj8') return; 
+            if (targetObjId !== 'obj7' && targetObjId !== 'obj8') return; 
 
             const m = getMonthFromStr(pma.date);
             if (m < 0 || m > 11 || !hasEvidence(pma)) return;
@@ -1054,7 +1129,7 @@ export default function ProgramPage() {
 
         // 9. Map Simulacro Records (SEG 05 - obj10)
         simulacroRecords.forEach(sim => {
-            if (targetObjId !== 'obj10') return;
+            if (targetObjId !== 'obj6' && targetObjId !== 'obj10') return;
 
             const m = getMonthFromStr(sim.date);
             if (m < 0 || m > 11 || !hasEvidence(sim)) return;
@@ -1072,7 +1147,7 @@ export default function ProgramPage() {
 
         // 10. Map Brigadista Records (SEG 06 - obj11)
         brigadistaRecords.forEach(bri => {
-            if (targetObjId !== 'obj11') return;
+            if (targetObjId !== 'obj6' && targetObjId !== 'obj11') return;
 
             const m = getMonthFromStr(bri.date);
             if (m < 0 || m > 11 || !hasEvidence(bri)) return;
@@ -1175,9 +1250,9 @@ export default function ProgramPage() {
             }, { p: 0, e: 0 });
         };
         return {
-            seguridad: sum(['obj1', 'obj2', 'obj3', 'obj4', 'obj10', 'obj11']),
-            salud: sum(['obj5', 'obj6', 'obj7']),
-            ambiente: sum(['obj8', 'obj9'])
+                        seguridad: sum(['obj1', 'obj2', 'obj3', 'obj4', 'obj6', 'obj8', 'obj9']),
+            salud: sum(['obj5']),
+            ambiente: sum(['obj7'])
         };
     }, [sidebarTotals]);
 
@@ -1441,7 +1516,7 @@ export default function ProgramPage() {
                                                         setPreviewData(null);
                                                         setPreviewSheet(0);
                                                         try {
-                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9'];
                                                             const exportMatrixData: Record<string, any> = {};
                                                             for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
 
@@ -1474,7 +1549,7 @@ export default function ProgramPage() {
                                                     onClick={async () => {
                                                         setExportingType(tipo);
                                                         try {
-                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                            const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9'];
                                                             const exportMatrixData: Record<string, any> = {};
                                                             for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
 
@@ -1591,7 +1666,7 @@ export default function ProgramPage() {
                                             const labels: Record<string,string> = { actividades: 'Programa de Actividades', capacitacion: 'Programa de Capacitaciones', inspeccion: 'Programa de Inspecciones' };
                                             setExportingType(tipo);
                                             try {
-                                                const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9', 'obj10', 'obj11'];
+                                                const ALL_OBJS = ['obj1', 'obj2', 'obj3', 'obj4', 'obj5', 'obj6', 'obj7', 'obj8', 'obj9'];
                                                 const exportMatrixData: Record<string, any> = {};
                                                 for (const id of ALL_OBJS) exportMatrixData[id] = getMatrixData(id);
 
@@ -1948,6 +2023,13 @@ export default function ProgramPage() {
                                         <div>
                                             <p className="text-sm font-bold text-white capitalize">{rec.responsible || rec.responsable || 'Sin responsable'}</p>
                                             <p className="text-[10px] text-slate-500 font-mono mt-0.5">{rec.date}</p>
+                                            {((rec.acuerdos_total !== null && rec.acuerdos_total !== undefined && Number(rec.acuerdos_total) > 0) || (rec.description && rec.description.includes('[Acuerdos:'))) && (
+                                                <div className="mt-1">
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                        🎯 {rec.acuerdos_total ? `Acuerdos: ${rec.acuerdos_cerrados || 0}/${rec.acuerdos_total} (${Math.round(((rec.acuerdos_cerrados || 0) / rec.acuerdos_total) * 100)}% cerrados)` : (rec.description.match(/\[Acuerdos:[^\]]+\]/)?.[0] || '🎯 Acuerdos')}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     

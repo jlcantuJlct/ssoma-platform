@@ -24,6 +24,9 @@ async function ensureTable() {
         )
     `);
     try { await db.execute("ALTER TABLE evidence_center_records ADD COLUMN workspace VARCHAR(100) DEFAULT 'Red Vial 6'"); } catch(e) {}
+    try { await db.execute("ALTER TABLE evidence_center_records ADD COLUMN acuerdos_total INTEGER DEFAULT NULL"); } catch(e) {}
+    try { await db.execute("ALTER TABLE evidence_center_records ADD COLUMN acuerdos_cerrados INTEGER DEFAULT NULL"); } catch(e) {}
+    try { await db.execute("ALTER TABLE evidence_center_records ADD COLUMN porcentaje_cumplimiento NUMERIC DEFAULT NULL"); } catch(e) {}
 }
 
 // GET - Obtener registros de evidencias (soporta filtros para el Asistente SSOMA)
@@ -122,8 +125,8 @@ export async function POST(req: NextRequest) {
                 }
 
                 const res = await db.execute(
-                    `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type, workspace)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+                    `INSERT INTO evidence_center_records (record_id, date, objective, activity, description, responsable, zona, file_url, file_type, workspace, acuerdos_total, acuerdos_cerrados, porcentaje_cumplimiento)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                     [
                         String(r.id || r.record_id || Date.now()),
                         r.date || '',
@@ -134,7 +137,10 @@ export async function POST(req: NextRequest) {
                         r.zona || r.location || r.zone || '',
                         finalFileUrl,
                         r.fileType || r.file_type || '',
-                        workspace
+                        workspace,
+                        r.acuerdos_total !== undefined ? r.acuerdos_total : null,
+                        r.acuerdos_cerrados !== undefined ? r.acuerdos_cerrados : null,
+                        r.porcentaje_cumplimiento !== undefined ? r.porcentaje_cumplimiento : null
                     ]
                 );
                 
@@ -154,7 +160,8 @@ export async function POST(req: NextRequest) {
 
                 // Intentar actualizar por id (numérico) primero, si no usar record_id
                 let updateQuery = `UPDATE evidence_center_records 
-                                   SET date = ?, objective = ?, activity = ?, description = ?, responsable = ?, zona = ?, file_url = ?, file_type = ?
+                                   SET date = ?, objective = ?, activity = ?, description = ?, responsable = ?, zona = ?, file_url = ?, file_type = ?,
+                                       acuerdos_total = ?, acuerdos_cerrados = ?, porcentaje_cumplimiento = ?
                                    WHERE `;
                 const params = [
                     r.date || '',
@@ -164,7 +171,10 @@ export async function POST(req: NextRequest) {
                     r.responsable || r.responsible || '',
                     r.zona || r.location || r.zone || '',
                     finalFileUrl,
-                    r.fileType || r.file_type || ''
+                    r.fileType || r.file_type || '',
+                    r.acuerdos_total !== undefined ? r.acuerdos_total : null,
+                    r.acuerdos_cerrados !== undefined ? r.acuerdos_cerrados : null,
+                    r.porcentaje_cumplimiento !== undefined ? r.porcentaje_cumplimiento : null
                 ];
 
                 if (r.id) {

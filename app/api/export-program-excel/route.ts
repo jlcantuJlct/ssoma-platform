@@ -701,17 +701,15 @@ async function exportActividades(matrixData: Record<string, any>): Promise<Buffe
     }
 
     const ALL_OBJECTIVES = [
-        { id: 'obj1', label: 'OBJ 01: SCSST' },
-        { id: 'obj2', label: 'OBJ 02: Capacitación' },
-        { id: 'obj3', label: 'OBJ 03: Inspecciones Seguridad' },
-        { id: 'obj4', label: 'OBJ 04: Reporte A/C Inseguras' },
-        { id: 'obj5', label: 'OBJ 05: EMO Realizados' },
-        { id: 'obj6', label: 'SEG 01: Inspecciones de Salud' },
-        { id: 'obj7', label: 'SEG 02: Formaciones de Salud' },
-        { id: 'obj8', label: 'SEG 03: Inspecciones M. Ambiente' },
-        { id: 'obj9', label: 'SEG 04: Formaciones M. Ambiente' },
-        { id: 'obj10', label: 'SEG 05: Control de Simulacros' },
-        { id: 'obj11', label: 'SEG 06: Control de Brigadistas' },
+        { id: 'obj1', label: 'OBJ 01: Participación y SCSST' },
+        { id: 'obj2', label: 'OBJ 02: Capacitación y Entrenamiento' },
+        { id: 'obj3', label: 'OBJ 03: Inspecciones de Seguridad' },
+        { id: 'obj4', label: 'OBJ 04: Control de Peligros y RAC' },
+        { id: 'obj5', label: 'OBJ 05: Vigilancia de Salud y EMO' },
+        { id: 'obj6', label: 'OBJ 06: Emergencias y Simulacros' },
+        { id: 'obj7', label: 'OBJ 07: Gestión Ambiental y PMA' },
+        { id: 'obj8', label: 'OBJ 08: Requisitos Legales SSTMA' },
+        { id: 'obj9', label: 'OBJ 09: Mejora Continua y Auditorías' },
     ];
 
     const refRow = ws.getRow(startRow);

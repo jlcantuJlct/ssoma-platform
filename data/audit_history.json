@@ -1,5 +1,237 @@
 [
   {
+    "id": "6d242867-aa08-4ed6-8283-42f768c51077",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T23:10:24.391Z"
+  },
+  {
+    "id": "229efb02-5b84-41e8-a2e0-c7d0c8621ca1",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Inspecciones del SCSST",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T22:53:38.981Z"
+  },
+  {
+    "id": "3f00ce2a-d8a1-4e2c-9731-affe4dadef4c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Inspecciones del SCSST",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T22:52:44.565Z"
+  },
+  {
+    "id": "01ce2e9f-5879-4736-96ee-a281656d1997",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Inspecciones del SCSST",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T22:51:51.943Z"
+  },
+  {
+    "id": "62ca81b5-ad21-4ded-b675-c7ec6e45f752",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2651",
+    "timestamp": "2026-11-20T22:51:05.524Z"
+  },
+  {
+    "id": "15341383-76e1-4eaa-9090-69f3e5584389",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2255",
+    "timestamp": "2026-11-20T22:50:56.001Z"
+  },
+  {
+    "id": "1852efae-da53-4108-bf86-a187379707d3",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2659",
+    "timestamp": "2026-11-20T22:49:53.649Z"
+  },
+  {
+    "id": "91adfe3c-41b4-4cd5-a86a-256875c5e58f",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2257",
+    "timestamp": "2026-11-20T22:49:39.794Z"
+  },
+  {
+    "id": "1f73e557-70fb-4496-bf41-e886feb1ba71",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2258",
+    "timestamp": "2026-11-20T22:49:25.206Z"
+  },
+  {
+    "id": "f076c8d0-6cf6-4721-b9a6-d8ab28cbaae3",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T21:18:14.652Z"
+  },
+  {
+    "id": "b6a54756-f483-4281-b73a-a6ea1ad0ba0e",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T21:16:55.323Z"
+  },
+  {
+    "id": "38689453-0859-4698-9f0f-be9041bc361c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T21:15:48.804Z"
+  },
+  {
+    "id": "1b008323-e087-47ea-a011-31ab4e0d42e8",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2660",
+    "timestamp": "2026-11-20T21:14:22.160Z"
+  },
+  {
+    "id": "200e8ef5-4217-42ed-b6a2-26e7c5738d96",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2260",
+    "timestamp": "2026-11-20T21:14:08.697Z"
+  },
+  {
+    "id": "98c76e29-8a50-48dc-aafc-911560ac52cd",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2264",
+    "timestamp": "2026-11-20T21:13:56.276Z"
+  },
+  {
+    "id": "cf9ff954-681b-4516-b220-14b02720a52c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:50:53.450Z"
+  },
+  {
+    "id": "945e12b1-6b56-4732-b50e-24253a878a7c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:50:20.787Z"
+  },
+  {
+    "id": "3c234460-3468-41e2-bb28-f0a656c1a60d",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:37:55.150Z"
+  },
+  {
+    "id": "59037d3c-aa2c-4ae2-b7e3-cd6a22b53cd0",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:37:08.465Z"
+  },
+  {
+    "id": "0bf39df4-b20d-4c96-ac14-7ad6f9659cc4",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Inspecciones del SCSST",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:34:59.885Z"
+  },
+  {
+    "id": "eb602229-295f-49e1-9d51-287f4fd4e6f7",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2256",
+    "timestamp": "2026-11-20T20:33:36.433Z"
+  },
+  {
+    "id": "ecedeaa3-4b95-4d5b-9b25-1f2d7062a45e",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T20:32:54.177Z"
+  },
+  {
+    "id": "5aa309b7-29a3-4e8f-8e33-4aa44c806f17",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2261",
+    "timestamp": "2026-11-20T20:31:53.107Z"
+  },
+  {
+    "id": "565bfe14-529a-4c66-9352-ac4362d6e957",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T19:50:31.508Z"
+  },
+  {
+    "id": "fd0a96df-ffd7-4f69-86ff-2e01e21b7ef4",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T19:45:42.697Z"
+  },
+  {
+    "id": "e9c74542-e483-4ec3-a2d0-b2240becf8ae",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T19:44:35.320Z"
+  },
+  {
+    "id": "a7a80bd6-ab1f-4a65-a9a7-6b7686e6c045",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T18:02:37.579Z"
+  },
+  {
+    "id": "1773a63b-e49c-4143-ae4c-9cd251a15946",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2649",
+    "timestamp": "2026-11-20T18:01:37.339Z"
+  },
+  {
+    "id": "47379a02-f692-46ce-96d4-f3b6d5c76ed0",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Revisión y aprobación del plan SST, programa anual, objetivos estratégicos, planes de salud, plan de emergencia, programa",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-20T17:56:08.633Z"
+  },
+  {
     "id": "12e9dbe6-9b80-4dce-b541-a498ce80a2df",
     "user_name": "Admin",
     "action": "ELIMINACIÓN INSPECCIÓN",
