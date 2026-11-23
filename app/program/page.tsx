@@ -324,7 +324,7 @@ export default function ProgramPage() {
                 if (risData.success) setRisstmaRecords(risData.records);
 
                 // 12. Load Reporte A/C from cloud
-                const racRes = await fetch('/api/reporte-ac-records?_t=' + Date.now(), { cache: 'no-store' });
+                const racRes = await fetch(`/api/reporte-ac-records?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
                 const racData = await racRes.json();
                 if (racData.success) setReporteAcRecords(racData.records);
 
@@ -1187,9 +1187,15 @@ export default function ProgramPage() {
             for (const areaKey in grouped) {
                 let match = null;
                 
-                // En OBJ 04, todos los reportes A/C deben sumar a la actividad principal de reporte
+                // En OBJ 04, todos los reportes A/C deben sumar a la actividad de seguimiento y cierre de actos y condiciones
                 if (targetObjId === 'obj4') {
-                    match = findMatch(areaKey, 'Reporte de actos y condiciones insegura') || findMatch(areaKey, 'Reporte de actos y condiciones') || findMatch(areaKey, 'Reporte');
+                    const keys = Object.keys(grouped[areaKey]);
+                    match = keys.find(k => {
+                        const l = k.toLowerCase();
+                        return (l.includes('seguimiento') && l.includes('cierre')) || 
+                               (l.includes('actos') && l.includes('condiciones')) ||
+                               l.includes('reporte');
+                    });
                 }
 
                 if (!match) {
@@ -1197,13 +1203,33 @@ export default function ProgramPage() {
                 }
 
                 if (match) {
-                    grouped[areaKey][match].executed[m] += (Number(rac.cantidad) || 1);
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
                     grouped[areaKey][match].executionRecords[m].push({ ...rac, _type: 'REPORTE_AC' });
                     break; // Stop searching other areas once matched
                 }
             }
         });
+
+        // En OBJ 04, la meta mínima mensual es de 10 reportes de actos y condiciones inseguras.
+        // En cada mes que se genere 10 o más (>= 10), se considera automáticamente como CUMPLIDO y contabiliza 1 como ejecutado (E = 1); si no, 0.
+        if (targetObjId === 'obj4') {
+            for (const areaKey in grouped) {
+                const keys = Object.keys(grouped[areaKey]);
+                const acRowKey = keys.find(k => {
+                    const l = k.toLowerCase();
+                    return (l.includes('seguimiento') && l.includes('cierre')) || 
+                           (l.includes('actos') && l.includes('condiciones')) ||
+                           l.includes('reporte');
+                });
+                if (acRowKey) {
+                    for (let m = 0; m < 12; m++) {
+                        const recs = grouped[areaKey][acRowKey].executionRecords[m] || [];
+                        const totalObservaciones = recs.reduce((sum, r) => sum + (Number(r.cantidad) || 1), 0);
+                        grouped[areaKey][acRowKey].executed[m] = totalObservaciones >= 10 ? 1 : 0;
+                    }
+                }
+            }
+        }
 
         return grouped;
     };
@@ -2023,6 +2049,14 @@ export default function ProgramPage() {
                                         <div>
                                             <p className="text-sm font-bold text-white capitalize">{rec.responsible || rec.responsable || 'Sin responsable'}</p>
                                             <p className="text-[10px] text-slate-500 font-mono mt-0.5">{rec.date}</p>
+                                            {rec._type === 'REPORTE_AC' && (
+                                                <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                                                    {rec.acto && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">A: {rec.acto}</span>}
+                                                    {rec.condicion && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">C: {rec.condicion}</span>}
+                                                    {rec.location && <span className="text-[9px] text-slate-400 font-medium">📍 {rec.location}</span>}
+                                                    <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Tarjeta TOP</span>
+                                                </div>
+                                            )}
                                             {((rec.acuerdos_total !== null && rec.acuerdos_total !== undefined && Number(rec.acuerdos_total) > 0) || (rec.description && rec.description.includes('[Acuerdos:'))) && (
                                                 <div className="mt-1">
                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">

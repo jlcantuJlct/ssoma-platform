@@ -105,14 +105,21 @@ export function generateFolderName(
  */
 export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: boolean = false): string {
     if (!url) return '';
-    if (url.includes('drive.google.com/file/d/')) {
-        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-            if (isThumbnail) {
-                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
-            } else {
-                return `https://drive.google.com/file/d/${match[1]}/preview`;
-            }
+    let fileId: string | null = null;
+    const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchFile) fileId = matchFile[1];
+    const matchSheets = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchSheets) fileId = matchSheets[1];
+    const matchDoc = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchDoc) fileId = matchDoc[1];
+    const matchId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchId) fileId = matchId[1];
+
+    if (fileId) {
+        if (isThumbnail) {
+            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+        } else {
+            return `https://drive.google.com/file/d/${fileId}/preview`;
         }
     }
     return url;
@@ -123,11 +130,18 @@ export function getDriveViewerUrl(url: string | null | undefined, isThumbnail: b
  */
 export function getDriveDownloadUrl(url: string | null | undefined): string {
     if (!url) return '';
-    if (url.includes('drive.google.com/file/d/')) {
-        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-        }
+    let fileId: string | null = null;
+    const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchFile) fileId = matchFile[1];
+    const matchSheets = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchSheets) fileId = matchSheets[1];
+    const matchDoc = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchDoc) fileId = matchDoc[1];
+    const matchId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchId) fileId = matchId[1];
+
+    if (fileId) {
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
     return url;
 }

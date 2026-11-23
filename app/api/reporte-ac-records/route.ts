@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         await ensureTable();
         try { await db.execute("DELETE FROM reporte_ac_records WHERE record_id = '9999991'"); } catch (e) {}
         const workspace = getRequestWorkspace(req);
-        const records = await db.fetchAll('SELECT * FROM reporte_ac_records WHERE workspace = ? ORDER BY created_at DESC, id DESC', [workspace]);
+        const records = await db.fetchAll('SELECT * FROM reporte_ac_records WHERE workspace = ? ORDER BY date DESC, id DESC', [workspace]);
         return NextResponse.json({ success: true, records });
     } catch (error: any) {
         console.error('Error fetching Reporte A/C records:', error);
@@ -106,30 +106,46 @@ export async function PUT(req: NextRequest) {
         await ensureTable();
         const data = await req.json();
         
-        const { id, record_id, date, responsible, acto, condicion, cantidad, location, pdfUrl, accion_inmediata, descripcion, persona_observada, is_anonymous } = data;
+        const { id, record_id } = data;
         
         if (!id && !record_id) {
             return NextResponse.json({ success: false, error: 'Se requiere ID o record_id' }, { status: 400 });
         }
 
         const targetId = record_id || String(id);
+        const existing = await db.fetchOne('SELECT * FROM reporte_ac_records WHERE record_id = ? OR id = ?', [targetId, Number(targetId) || 0]);
+        if (!existing) {
+            return NextResponse.json({ success: false, error: 'Registro no encontrado' }, { status: 404 });
+        }
+
+        const newDate = data.date !== undefined ? data.date : existing.date;
+        const newResponsible = data.responsible !== undefined ? data.responsible : existing.responsible;
+        const newActo = data.acto !== undefined ? data.acto : existing.acto;
+        const newCondicion = data.condicion !== undefined ? data.condicion : existing.condicion;
+        const newCantidad = data.cantidad !== undefined ? Number(data.cantidad) : (existing.cantidad || 1);
+        const newLocation = data.location !== undefined ? data.location : existing.location;
+        const newPdfUrl = data.pdfUrl !== undefined ? data.pdfUrl : (data.pdf_url !== undefined ? data.pdf_url : existing.pdf_url);
+        const newAccion = data.accion_inmediata !== undefined ? data.accion_inmediata : existing.accion_inmediata;
+        const newDesc = data.descripcion !== undefined ? data.descripcion : existing.descripcion;
+        const newObs = data.persona_observada !== undefined ? data.persona_observada : existing.persona_observada;
+        const newAnon = data.is_anonymous !== undefined ? Boolean(data.is_anonymous) : Boolean(existing.is_anonymous || newResponsible === 'ANÓNIMO');
 
         await db.execute(
             `UPDATE reporte_ac_records 
              SET date = ?, responsible = ?, acto = ?, condicion = ?, cantidad = ?, location = ?, pdf_url = ?, accion_inmediata = ?, descripcion = ?, persona_observada = ?, is_anonymous = ?
              WHERE record_id = ? OR id = ?`,
             [
-                date || '',
-                responsible || '',
-                acto || '',
-                condicion || '',
-                Number(cantidad) || 0,
-                location || '',
-                pdfUrl || '',
-                accion_inmediata || '',
-                descripcion || '',
-                persona_observada || '',
-                Boolean(is_anonymous || responsible === 'ANÓNIMO'),
+                newDate || '',
+                newResponsible || '',
+                newActo || '',
+                newCondicion || '',
+                Number(newCantidad) || 1,
+                newLocation || '',
+                newPdfUrl || '',
+                newAccion || '',
+                newDesc || '',
+                newObs || '',
+                newAnon,
                 targetId,
                 Number(targetId) || 0
             ]

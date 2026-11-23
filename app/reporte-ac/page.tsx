@@ -1,6 +1,7 @@
 "use client";
  
 import { useState, useEffect } from "react";
+import Link from 'next/link';
 import VoiceDictation from '@/components/VoiceDictation';
 import {
     AlertTriangle,
@@ -28,6 +29,7 @@ import {
     Car,
     HardHat,
     ArrowUp,
+    ArrowDown,
     Zap,
     Lock,
     Smartphone,
@@ -105,7 +107,7 @@ import {
     Legend
 } from 'recharts';
 import { generateFilename, getDriveViewerUrl, canDeleteRecord} from '@/lib/utils';
-import { exportTableToPDF, exportRecordToPDF } from "@/lib/pdfExport";
+import { exportTableToPDF, exportRecordToPDF, generateRecordPDFBlobUrl } from "@/lib/pdfExport";
 import jsPDF from 'jspdf';
 import { uploadEvidence } from "@/lib/uploadClient";
 import { SSOMA_LOCATIONS, getActiveWorkspace, getLocationsForWorkspace } from "@/lib/locations";
@@ -175,12 +177,14 @@ export default function ReporteACPage() {
     // Edit State
     const [editingRecord, setEditingRecord] = useState<ReporteACRecord | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [generatingId, setGeneratingId] = useState<number | null>(null);
 
     // Filters
     const [filterDate, setFilterDate] = useState("");
     const [filterLocation, setFilterLocation] = useState("");
     const [filterActo, setFilterActo] = useState("");
     const [filterMonths, setFilterMonths] = useState<string[]>([]);
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     // Dynamic Activities from Program (OBJ 04)
     const [programActivities, setProgramActivities] = useState<any[]>([]);
@@ -283,8 +287,15 @@ export default function ReporteACPage() {
             return;
         }
 
-        if (!form.responsible || !form.location) {
-            alert("Debe completar Responsable y Lugar.");
+        const effectiveResponsible = (form.is_anonymous || form.responsible === 'ANÓNIMO') ? 'ANÓNIMO' : form.responsible;
+
+        if (!effectiveResponsible && !form.is_anonymous) {
+            alert("⚠️ Debe seleccionar quién reporta (o marcar la opción Anónimo).");
+            return;
+        }
+
+        if (!form.location || form.location.trim() === '') {
+            alert("⚠️ Debe seleccionar la 'Ubicación del Evento' en el menú desplegable.");
             return;
         }
 
@@ -487,6 +498,67 @@ export default function ReporteACPage() {
         }
     };
 
+    const handleViewRecord = async (r: ReporteACRecord) => {
+        if (r.pdfUrl && r.pdfUrl.trim()) {
+            setPreviewFile({ url: r.pdfUrl, type: 'pdf' });
+            return;
+        }
+
+        setGeneratingId(r.id);
+        try {
+            const proyectoActivo = (user?.workspace || getActiveWorkspace() || 'RED VIAL 6').toUpperCase();
+            const res = await fetch('/api/export-excel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    moduleName: 'F-SIG-060 Tarjeta TOP',
+                    isTopMatrix: true,
+                    saveToDrive: true,
+                    meta: {
+                        reportNumber: String(r.id).slice(-4),
+                        proyecto: proyectoActivo,
+                        responsible: r.responsible,
+                        is_anonymous: Boolean(r.is_anonymous || r.responsible === 'ANÓNIMO'),
+                        persona_observada: r.persona_observada || '',
+                        date: r.date,
+                        hora: '08:00',
+                        location: r.location,
+                        descripcion: r.descripcion || r.acto || r.condicion || '',
+                        accion_inmediata: r.accion_inmediata || '',
+                        actos_checked: r.acto ? [r.acto] : [],
+                        condiciones_checked: r.condicion ? [r.condicion] : []
+                    }
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.driveUrl) {
+                    const updatedRecords = records.map(item => item.id === r.id ? { ...item, pdfUrl: data.driveUrl } : item);
+                    setRecords(updatedRecords);
+                    const wsKey = `reporte_ac_records_${proyectoActivo}`;
+                    localStorage.setItem(wsKey, JSON.stringify(updatedRecords));
+                    localStorage.setItem('reporte_ac_records', JSON.stringify(updatedRecords));
+
+                    fetch('/api/reporte-ac-records', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: r.id, pdfUrl: data.driveUrl, workspace: proyectoActivo })
+                    }).catch(console.error);
+
+                    setPreviewFile({ url: data.driveUrl, type: 'pdf' });
+                    return;
+                }
+            }
+            alert("No se pudo obtener la visualización en Google Drive.");
+        } catch (err) {
+            console.error("Error visualizando tarjeta TOP:", err);
+            alert("Error al cargar la visualización de la tarjeta TOP.");
+        } finally {
+            setGeneratingId(null);
+        }
+    };
+
     const handleDelete = async (id: number) => {
         const record = records.find(r => r.id === id);
         if (!canDeleteRecord(id, user?.role || 'user', record?.date)) {
@@ -532,13 +604,59 @@ export default function ReporteACPage() {
         }
     };
 
+    const getRecordMonthIndex = (dateStr?: string): number => {
+        if (!dateStr || typeof dateStr !== 'string') return -1;
+        const clean = dateStr.trim();
+        const dashMatch = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (dashMatch) return parseInt(dashMatch[2], 10) - 1;
+        const slashMatch = clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (slashMatch) return parseInt(slashMatch[2], 10) - 1;
+        const slashMatchRev = clean.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+        if (slashMatchRev) return parseInt(slashMatchRev[2], 10) - 1;
+        const d = new Date(clean);
+        if (!isNaN(d.getTime())) return d.getUTCMonth();
+        return -1;
+    };
+
+    const parseDateToTime = (dateStr?: string): number => {
+        if (!dateStr || typeof dateStr !== 'string') return 0;
+        const clean = dateStr.trim();
+        const dashMatch = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (dashMatch) {
+            return new Date(parseInt(dashMatch[1], 10), parseInt(dashMatch[2], 10) - 1, parseInt(dashMatch[3], 10)).getTime();
+        }
+        const slashMatch = clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (slashMatch) {
+            return new Date(parseInt(slashMatch[3], 10), parseInt(slashMatch[2], 10) - 1, parseInt(slashMatch[1], 10)).getTime();
+        }
+        const d = new Date(clean);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
+    };
+
+    const MONTHS_LIST = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
     const filteredRecords = (records || []).filter(r => {
         const matchesDate = !filterDate || (r.date && r.date.includes(filterDate));
         const matchesLocation = !filterLocation || (r.location && r.location === filterLocation);
         const matchesActo = !filterActo || (r.acto && r.acto === filterActo);
-        const matchesMonth = filterMonths.length === 0 || (r.date && filterMonths.includes(new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '')));
+        const rMonthIdx = getRecordMonthIndex(r.date);
+        const matchesMonth = filterMonths.length === 0 || (
+            rMonthIdx >= 0 && filterMonths.some(fm => {
+                const fIdx = MONTHS_LIST.findIndex(m => m.toLowerCase() === fm.toLowerCase());
+                return fIdx === rMonthIdx;
+            })
+        );
         
         return matchesDate && matchesLocation && matchesActo && matchesMonth;
+    });
+
+    const sortedFilteredRecords = [...filteredRecords].sort((a, b) => {
+        const timeA = parseDateToTime(a.date);
+        const timeB = parseDateToTime(b.date);
+        if (timeA !== timeB) {
+            return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        }
+        return sortOrder === 'desc' ? (b.id - a.id) : (a.id - b.id);
     });
 
     const actoCounts = filteredRecords.reduce((acc, r) => {
@@ -553,13 +671,10 @@ export default function ReporteACPage() {
     }, {} as Record<string, number>);
     const sortedCondiciones = Object.entries(condicionCounts).sort((a, b) => b[1] - a[1]);
 
-    const MONTHS_LIST = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const getMonthCount = (m: string) => {
-        return records.filter(r => {
-            if (!r.date) return false;
-            const monthStr = new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '');
-            return monthStr === m.toLowerCase();
-        }).length;
+        const targetIdx = MONTHS_LIST.findIndex(x => x.toLowerCase() === m.toLowerCase());
+        if (targetIdx === -1) return 0;
+        return records.filter(r => getRecordMonthIndex(r.date) === targetIdx).length;
     };
 
     // --- CHART DATA LOGIC ---
@@ -572,9 +687,8 @@ export default function ReporteACPage() {
 
         records.forEach(r => {
             if (!r.date) return;
-            const m = new Date(r.date).toLocaleString('es-ES', { month: 'short' }).toLowerCase().replace('.', '');
-            const monthIndex = months.findIndex(x => x.toLowerCase() === m);
-            if (monthIndex === -1) return;
+            const monthIndex = getRecordMonthIndex(r.date);
+            if (monthIndex < 0 || monthIndex > 11) return;
             
             const targetMonth = months[monthIndex];
             const monthData = data[monthIndex];
@@ -1111,15 +1225,35 @@ export default function ReporteACPage() {
                         {/* Ranking & Global Filters */}
                         <div className="bg-slate-900 border border-slate-800 rounded-[2rem] shadow-xl overflow-hidden">
                             <div className="p-6">
-                                <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
-                                    <BarChart3 size={20} className="text-orange-500" />
-                                    Ranking de Observaciones {filterMonths.length > 0 && <span className="text-orange-500 uppercase">({filterMonths.join(', ')})</span>}
-                                </h3>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                    <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                        <BarChart3 size={20} className="text-orange-500" />
+                                        Ranking de Observaciones {filterMonths.length > 0 && <span className="text-orange-500 uppercase">({filterMonths.join(', ')})</span>}
+                                    </h3>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[10px] text-slate-400 bg-slate-950 px-3 py-1 rounded-full border border-slate-800 flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            Meta mensual: <strong className="text-emerald-400 font-black">≥ 10</strong> → <span className="text-slate-300">1 Ejecutado en Prog. Anual (Obj. 04)</span>
+                                        </span>
+                                        <Link 
+                                            href="/program" 
+                                            className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30 transition-all flex items-center gap-1"
+                                            title="Ir al Programa Anual 2026 (Objetivo 04: Control de Peligros y RAC)"
+                                        >
+                                            <Calendar size={12} />
+                                            Ver Obj 04
+                                        </Link>
+                                    </div>
+                                </div>
+
                                 {/* Month Summary Bar */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 md:grid-cols-12 gap-2 mb-6">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-2 mb-6">
                                     {MONTHS_LIST.map(m => {
                                         const count = getMonthCount(m);
                                         const mLower = m.toLowerCase();
+                                        const isSelected = filterMonths.includes(mLower);
+                                        const isCumplido = count >= 10;
+
                                         return (
                                             <div 
                                                 key={m} 
@@ -1130,10 +1264,58 @@ export default function ReporteACPage() {
                                                         setFilterMonths([...filterMonths, mLower]);
                                                     }
                                                 }}
-                                                className={`p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all ${filterMonths.includes(mLower) ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]' : count > 0 ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 hover:bg-orange-500/20' : 'bg-slate-950 border-slate-800 text-slate-700 opacity-40'}`}
+                                                className={`p-2 rounded-xl border flex flex-col items-center justify-between cursor-pointer transition-all select-none min-h-[82px] relative ${
+                                                    isSelected 
+                                                        ? 'bg-orange-500 border-orange-400 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)] ring-2 ring-orange-400' 
+                                                        : isCumplido
+                                                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+                                                            : count > 0 
+                                                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20' 
+                                                                : 'bg-slate-950 border-slate-800 text-slate-600 opacity-40 hover:opacity-70'
+                                                }`}
+                                                title={`${m}: ${count} observaciones (Meta mínima: 10). ${isCumplido ? '✓ Cumplido: Contabiliza 1 ejecutado en Objetivo 04 del Programa Anual.' : 'Pendiente para alcanzar la meta mínima.'}`}
                                             >
-                                                <span className="text-[8px] font-black uppercase">{m}</span>
-                                                <span className="text-xs font-black">{count}</span>
+                                                {/* Encabezado: Mes y Mínimo 10 */}
+                                                <div className="w-full flex items-center justify-between gap-1">
+                                                    <span className={`text-[9px] font-black uppercase ${isSelected ? 'text-black' : isCumplido ? 'text-emerald-300' : 'text-slate-400'}`}>
+                                                        {m}
+                                                    </span>
+                                                    <span className={`text-[7.5px] font-mono px-1 rounded ${isSelected ? 'bg-black/20 text-black font-bold' : 'bg-slate-950/80 text-slate-400 border border-slate-800'}`}>
+                                                        Mín: 10
+                                                    </span>
+                                                </div>
+
+                                                {/* Cantidad Generada */}
+                                                <div className="my-0.5 flex flex-col items-center">
+                                                    <span className={`text-base font-black leading-none ${isSelected ? 'text-black' : isCumplido ? 'text-white' : count > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
+                                                        {count}
+                                                    </span>
+                                                </div>
+
+                                                {/* Estado: Cumplido / Pendiente */}
+                                                <div className="w-full flex justify-center">
+                                                    {isCumplido ? (
+                                                        <span className={`text-[7px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
+                                                            isSelected 
+                                                                ? 'bg-black text-emerald-400 font-bold' 
+                                                                : 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                                                        }`}>
+                                                            ✓ Cumplido
+                                                        </span>
+                                                    ) : count > 0 ? (
+                                                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full ${
+                                                            isSelected 
+                                                                ? 'bg-black/30 text-black' 
+                                                                : 'bg-amber-500/15 text-amber-400/90 border border-amber-500/20'
+                                                        }`}>
+                                                            {count}/10
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[7.5px] font-mono text-slate-700">
+                                                            0/10
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -1191,9 +1373,9 @@ export default function ReporteACPage() {
                                                 { header: 'Descripción', dataKey: 'descripcion' },
                                                 { header: 'Acción Inmediata', dataKey: 'accion_inmediata' }
                                             ];
-                                            exportTableToPDF('Reportes de Actos y Condiciones', cols, filteredRecords, 'Reportes_AC.pdf');
+                                            exportTableToPDF('Reportes de Actos y Condiciones', cols, sortedFilteredRecords, 'Reportes_AC.pdf');
                                         }}
-                                        disabled={filteredRecords.length === 0}
+                                        disabled={sortedFilteredRecords.length === 0}
                                         className="bg-slate-800 hover:bg-orange-600 disabled:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border border-slate-700"
                                     >
                                         <FileText size={14} /> Descargar PDF
@@ -1264,11 +1446,28 @@ export default function ReporteACPage() {
                                     </div>
                                 </div>
 
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="border-b border-slate-800 bg-slate-950/50">
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">Fecha</th>
+                            <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar border-t border-slate-800 relative">
+                                <table className="w-full text-left min-w-[950px] relative border-collapse">
+                                    <thead className="sticky top-0 z-20 bg-slate-950 shadow-md">
+                                        <tr className="border-b border-slate-800 bg-slate-950/95 backdrop-blur-md">
+                                            <th 
+                                                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                                className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase cursor-pointer hover:text-white select-none transition-colors"
+                                                title="Clic para cambiar orden (Descendente / Ascendente)"
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span>Fecha</span>
+                                                    {sortOrder === 'desc' ? (
+                                                        <span className="flex items-center gap-0.5 text-orange-400 text-[9px] font-black bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">
+                                                            <ArrowDown size={10} strokeWidth={3} /> DESC
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-0.5 text-blue-400 text-[9px] font-black bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                                            <ArrowUp size={10} strokeWidth={3} /> ASC
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">Responsable</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">Acto / Condición</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase text-center">Cant.</th>
@@ -1277,7 +1476,7 @@ export default function ReporteACPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {filteredRecords.map(r => (
+                                        {sortedFilteredRecords.map(r => (
                                             <tr key={r.id} className="hover:bg-slate-800/30 transition-colors group">
                                                 <td className="px-6 py-4 text-xs font-bold">{r.date}</td>
                                                 <td className="px-6 py-4">
@@ -1311,22 +1510,14 @@ export default function ReporteACPage() {
                                                 <td className="px-6 py-4 text-[10px] text-slate-400 font-medium uppercase">{r.location}</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        {r.pdfUrl ? (
-                                                            <button 
-                                                                onClick={() => setPreviewFile({ url: r.pdfUrl, type: 'pdf' })}
-                                                                className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-500/20"
-                                                                title="Ver Archivo"
-                                                            >
-                                                                <Eye size={16} />
-                                                            </button>
-                                                        ) : (
-                                                            <div 
-                                                                className="p-2 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20 cursor-help"
-                                                                title="Archivo no cargado"
-                                                            >
-                                                                <FileX size={16} />
-                                                            </div>
-                                                        )}
+                                                        <button 
+                                                            onClick={() => handleViewRecord(r)}
+                                                            disabled={generatingId === r.id}
+                                                            className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-500/20"
+                                                            title="Visualizar Tarjeta TOP Oficial (Google Drive)"
+                                                        >
+                                                            {generatingId === r.id ? <Activity size={16} className="animate-spin text-orange-400" /> : <Eye size={16} />}
+                                                        </button>
                                                         <button 
                                                             onClick={() => handleDownloadExcelTop(r)}
                                                             className="p-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-all border border-green-500/20" 
@@ -1369,35 +1560,44 @@ export default function ReporteACPage() {
             {/* PREVIEW MODAL */}
             {previewFile && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-slate-950/95 backdrop-blur-md">
-                    <div className="relative w-full max-w-5xl h-full flex flex-col bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                            <h3 className="text-xl font-black text-white flex items-center gap-3">
-                                <FileText className="text-orange-500" />
-                                Visualización de Evidencia
-                            </h3>
-                            <button 
-                                onClick={() => setPreviewFile(null)}
-                                className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all"
-                            >
-                                <X size={24} />
-                            </button>
+                    <div className="relative w-full max-w-6xl h-full flex flex-col bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-orange-500/20 text-orange-400 rounded-xl border border-orange-500/30">
+                                    <FileText size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-white">
+                                        Tarjeta de Observaciones Preventivas de Seguridad (F-SIG-060)
+                                    </h3>
+                                    <p className="text-xs text-slate-400 font-bold">
+                                        Documento oficial de Tarjeta TOP alojado en Google Drive
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a 
+                                    href={previewFile.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all text-xs flex items-center gap-2 shadow-sm"
+                                >
+                                    <span>🌐</span> Abrir en Google Drive
+                                </a>
+                                <button 
+                                    onClick={() => setPreviewFile(null)}
+                                    className="p-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition-all"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex-1 bg-slate-950 p-4">
+                        <div className="flex-1 bg-slate-950 p-2 md:p-4">
                             <iframe 
                                 src={getDriveViewerUrl(previewFile.url)} 
-                                className="w-full h-full rounded-2xl border border-slate-800"
-                                title="Visualizador"
+                                className="w-full h-full rounded-2xl border border-slate-800 shadow-inner"
+                                title="Visualizador Tarjeta TOP F-SIG-060"
                             />
-                        </div>
-                        <div className="p-4 border-t border-slate-800 flex justify-center">
-                            <a 
-                                href={previewFile.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-8 py-3 bg-slate-800 hover:bg-orange-600 text-white font-black rounded-xl transition-all uppercase text-xs tracking-widest"
-                            >
-                                <Download size={18} /> Descargar Original
-                            </a>
                         </div>
                     </div>
                 </div>

@@ -80,3 +80,56 @@ export function exportRecordToPDF(
 
     doc.save(filename);
 }
+
+export function generateRecordPDFBlobUrl(
+    title: string,
+    record: Record<string, any>,
+    workspace?: string
+): string {
+    const doc = new jsPDF('portrait');
+    
+    // Cabecera estilizada
+    doc.setFillColor(249, 115, 22); // Orange #f97316
+    doc.rect(0, 0, 210, 24, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text("TARJETA DE OBSERVACIÓN PREVENTIVA (TOP / STOP)", 14, 11);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`CÓDIGO: F-SIG-060 | VERSIÓN: 01 | PROYECTO: ${(workspace || 'RED VIAL 6').toUpperCase()}`, 14, 18);
+
+    const r = record;
+    const dataRows = [
+        ['N° Registro / ID', String(r.id || '')],
+        ['Fecha del Reporte', String(r.date || 'N/A')],
+        ['¿Quién Reporta? / Responsable', r.is_anonymous || r.responsible === 'ANÓNIMO' ? 'ANÓNIMO (Confidencial)' : String(r.responsible || 'N/A')],
+        ['Ubicación del Evento', String(r.location || 'N/A')],
+        ['Tipo de Observación', r.acto ? 'ACTO INSEGURO' : (r.condicion ? 'CONDICIÓN INSEGURA' : 'OBSERVACIÓN')],
+        ['Clasificación Detallada', String(r.acto || r.condicion || 'N/A')],
+        ['Persona Observada / Involucrada', String(r.persona_observada || 'No especificada')],
+        ['Cantidad Observada', String(r.cantidad || 1)],
+        ['Descripción Detallada', String(r.descripcion || 'Sin descripción adicional')],
+        ['Acción Inmediata Correctiva', String(r.accion_inmediata || 'No registrada')]
+    ];
+
+    autoTable(doc, {
+        startY: 30,
+        head: [['Campo', 'Detalle de la Observación']],
+        body: dataRows,
+        theme: 'grid',
+        styles: { fontSize: 9.5, cellPadding: 4, textColor: [30, 41, 59] },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 65, fillColor: [248, 250, 252] },
+            1: { cellWidth: 120 }
+        }
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY || 180;
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Generado automáticamente por Plataforma SSOMA - ${new Date().toLocaleString('es-PE')}`, 14, Math.min(finalY + 15, 285));
+
+    return doc.output('bloburl').toString();
+}

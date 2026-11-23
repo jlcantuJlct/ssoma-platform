@@ -15,11 +15,17 @@ import TemplateUploadModal from "@/components/TemplateUploadModal";
 
 // Activities from Annual Program OBJ 01 (Based on F-SIG-023 CASA - Deduplicated)
 const SCSST_ACTIVITIES = [
+    "Acta de instalación del Subcomité de Seguridad y Salud en el Trabajo (SCSST)",
     "Revisión y aprobación del plan SST, programa anual, objetivos estratégicos, planes de salud, plan de emergencia, programa",
     "Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "Reunión extraordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
     "Inspecciones del SCSST",
     "Capacitaciones Notificación, investigación y reporte de incidentes (SCSST).",
     "Elaboración de Informes trimestrales (SCSST).",
+    "Informe Trimestral I del SCSST (Enero – Marzo)",
+    "Informe Trimestral II del SCSST (Abril – Junio)",
+    "Informe Trimestral III del SCSST (Julio – Septiembre)",
+    "Informe Trimestral IV del SCSST (Octubre – Diciembre)",
     "Capacitaciones IPERC (SCSST).",
     "Capacitaciones Inspecciones de Seguridad y salud en el trabajo (SCSST).",
     "Capacitaciones seguridad y salud en el trabajo, actualización de la Ley 29783 (SCSST)."
@@ -41,6 +47,7 @@ export default function SCSSTPage() {
     const [viewingFile, setViewingFile] = useState<any>(null);
     const [isActaModalOpen, setIsActaModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [isInformeMenuOpen, setIsInformeMenuOpen] = useState(false);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -92,10 +99,16 @@ export default function SCSSTPage() {
         const isOfficialActivity = SCSST_ACTIVITIES.some(a => 
             a.toLowerCase().trim() === (rec.activity || '').toLowerCase().trim() ||
             (rec.activity && (
+                rec.activity.toLowerCase().includes('instalaci') ||
+                rec.activity.toLowerCase().includes('constituci') ||
                 rec.activity.toLowerCase().includes('aprobaci') || 
                 rec.activity.toLowerCase().includes('revisi') || 
                 rec.activity.toLowerCase().includes('plan sst') || 
                 rec.activity.toLowerCase().includes('reuni') || 
+                rec.activity.toLowerCase().includes('extraordinari') ||
+                rec.activity.toLowerCase().includes('capacitaci') ||
+                rec.activity.toLowerCase().includes('inspecci') ||
+                rec.activity.toLowerCase().includes('informe') ||
                 rec.activity.toLowerCase().includes('scsst')
             ))
         );
@@ -104,7 +117,9 @@ export default function SCSSTPage() {
         const matchDate = !filters.date || rec.date === filters.date;
         const matchActivity = !filters.activity || 
             rec.activity === filters.activity ||
+            (filters.activity.toLowerCase().includes('instalaci') && rec.activity?.toLowerCase().includes('instalaci')) ||
             (filters.activity.toLowerCase().includes('aprobaci') && rec.activity?.toLowerCase().includes('aprobaci')) ||
+            (filters.activity.toLowerCase().includes('extraordinari') && rec.activity?.toLowerCase().includes('extraordinari')) ||
             (filters.activity.toLowerCase().includes('reuni') && rec.activity?.toLowerCase().includes('reuni'));
         const matchResp = !filters.responsable || (rec.responsable || rec.responsible) === filters.responsable;
         const matchZone = !filters.zona || (rec.zona || rec.location) === filters.zona;
@@ -372,7 +387,13 @@ export default function SCSSTPage() {
         );
     };
 
+    const isActaInstalacion = (activity: string) => {
+        const act = (activity || '').toLowerCase();
+        return act.includes('instalaci') || act.includes('constituci') || act.includes('conformaci');
+    };
+
     const isActaAprobacion = (activity: string) => {
+        if (isActaInstalacion(activity)) return false;
         const act = (activity || '').toLowerCase();
         return act.includes('aprobaci') || 
                act.includes('revisi') || 
@@ -384,41 +405,53 @@ export default function SCSSTPage() {
                act.includes('objetivos estrat');
     };
 
-    const actasAprobacion = filteredRecords.filter(r => isActaAprobacion(r.activity));
-    
-    const reuniones = filteredRecords.filter(r => {
-        if (isActaAprobacion(r.activity)) return false;
-        const act = (r.activity || '').toLowerCase();
-        return act.includes('reuni') || act.includes('acuerdo');
-    });
+    const isReunionExtraordinaria = (activity: string) => {
+        if (isActaInstalacion(activity) || isActaAprobacion(activity)) return false;
+        const act = (activity || '').toLowerCase();
+        return act.includes('extraordinari');
+    };
 
-    const capacitaciones = filteredRecords.filter(r => {
-        if (isActaAprobacion(r.activity)) return false;
-        const act = (r.activity || '').toLowerCase();
+    const isReunionOrdinaria = (activity: string) => {
+        if (isActaInstalacion(activity) || isActaAprobacion(activity) || isReunionExtraordinaria(activity)) return false;
+        const act = (activity || '').toLowerCase();
+        return act.includes('reuni') || act.includes('acuerdo') || act.includes('ordinari') || act.includes('sesi');
+    };
+
+    const isCapacitacion = (activity: string) => {
+        if (isActaInstalacion(activity) || isActaAprobacion(activity)) return false;
+        const act = (activity || '').toLowerCase();
         return act.includes('capacitaci');
-    });
+    };
 
-    const inspecciones = filteredRecords.filter(r => {
-        if (isActaAprobacion(r.activity)) return false;
-        const act = (r.activity || '').toLowerCase();
+    const isInspeccion = (activity: string) => {
+        if (isActaInstalacion(activity) || isActaAprobacion(activity)) return false;
+        const act = (activity || '').toLowerCase();
         return act.includes('inspecci') && !act.includes('capacitaci');
-    });
+    };
 
-    const informes = filteredRecords.filter(r => {
-        if (isActaAprobacion(r.activity)) return false;
-        const act = (r.activity || '').toLowerCase();
+    const isInforme = (activity: string) => {
+        if (isActaInstalacion(activity) || isActaAprobacion(activity)) return false;
+        const act = (activity || '').toLowerCase();
         return act.includes('informe');
-    });
+    };
 
-    const otros = filteredRecords.filter(r => {
-        if (isActaAprobacion(r.activity)) return false;
-        const act = (r.activity || '').toLowerCase();
-        return !act.includes('reuni') && 
-               !act.includes('acuerdo') && 
-               !act.includes('capacitaci') && 
-               !act.includes('inspecci') && 
-               !act.includes('informe');
-    });
+    const actasInstalacion = filteredRecords.filter(r => isActaInstalacion(r.activity));
+    const actasAprobacion = filteredRecords.filter(r => isActaAprobacion(r.activity));
+    const reunionesOrdinarias = filteredRecords.filter(r => isReunionOrdinaria(r.activity));
+    const reunionesExtraordinarias = filteredRecords.filter(r => isReunionExtraordinaria(r.activity));
+    const capacitaciones = filteredRecords.filter(r => isCapacitacion(r.activity));
+    const inspecciones = filteredRecords.filter(r => isInspeccion(r.activity));
+    const informes = filteredRecords.filter(r => isInforme(r.activity));
+
+    const otros = filteredRecords.filter(r => 
+        !isActaInstalacion(r.activity) &&
+        !isActaAprobacion(r.activity) &&
+        !isReunionExtraordinaria(r.activity) &&
+        !isReunionOrdinaria(r.activity) &&
+        !isCapacitacion(r.activity) &&
+        !isInspeccion(r.activity) &&
+        !isInforme(r.activity)
+    );
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8">
@@ -456,9 +489,67 @@ export default function SCSSTPage() {
                         </div>
                     </div>
                     
-                    <div className="flex flex-wrap gap-3">
-                        {/* Cargar Formato removed */}
-                        {/* Elaboración de acta removed */}
+                    <div className="flex flex-wrap gap-3 items-center">
+                        {/* Menú Informe Trimestral */}
+                        <div className="relative">
+                            <button 
+                                type="button"
+                                onClick={() => setIsInformeMenuOpen(!isInformeMenuOpen)}
+                                className="flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-5 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95 text-xs uppercase tracking-wider"
+                                title="Opciones de Informes Trimestrales del SCSST"
+                            >
+                                <FileText size={18} className="text-amber-400" />
+                                <span>Informe Trimestral</span>
+                                <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isInformeMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+
+                            {isInformeMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="px-3 py-2 border-b border-slate-800/80 mb-1 flex items-center justify-between">
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Informes del Subcomité SST</p>
+                                        <button onClick={() => setIsInformeMenuOpen(false)} className="text-slate-500 hover:text-white">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="px-3 py-2 text-xs text-slate-400 flex items-center justify-between hover:bg-slate-800/50 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-slate-600"></span>
+                                                <span>Trimestre I (Enero – Marzo)</span>
+                                            </div>
+                                            <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Q1</span>
+                                        </div>
+                                        <div className="px-3 py-2 text-xs text-slate-400 flex items-center justify-between hover:bg-slate-800/50 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-slate-600"></span>
+                                                <span>Trimestre II (Abril – Junio)</span>
+                                            </div>
+                                            <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Q2</span>
+                                        </div>
+                                        <a 
+                                            href="/Informe_Subcomite_SST_Trimestre_III_Jul_Set_2026.xlsx" 
+                                            download="Informe_Subcomite_SST_Trimestre_III_Jul_Set_2026.xlsx"
+                                            onClick={() => setIsInformeMenuOpen(false)}
+                                            className="flex items-center justify-between px-3 py-2 hover:bg-amber-500/20 rounded-xl text-xs text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/30 bg-amber-500/10 font-bold"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                                <span>Trimestre III (Julio – Septiembre)</span>
+                                            </div>
+                                            <span className="text-[9px] font-mono text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">Descargar Excel</span>
+                                        </a>
+                                        <div className="px-3 py-2 text-xs text-slate-400 flex items-center justify-between hover:bg-slate-800/50 rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-slate-600"></span>
+                                                <span>Trimestre IV (Octubre – Diciembre)</span>
+                                            </div>
+                                            <span className="text-[10px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Q4</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <BatchDownloadZip records={records} moduleName="SCSST" />
                         <button 
                             onClick={() => setIsAdding(!isAdding)}
@@ -1054,89 +1145,137 @@ export default function SCSSTPage() {
                             <p className="text-xs text-slate-500 max-w-xs">Intente ajustando los filtros o cargue una nueva evidencia.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                            {/* Columna: Acta de Aprobación */}
-                            <div className="space-y-4">
-                                <h2 className="text-xs font-black text-violet-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-violet-500 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span>Acta de Aprobación</span>
-                                    <span className="text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full font-mono">{actasAprobacion.length}</span>
-                                </h2>
-                                {actasAprobacion.length === 0 ? (
-                                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
-                                        <p className="text-[11px] text-slate-500">Sin actas registradas</p>
-                                    </div>
-                                ) : (
-                                    actasAprobacion.map(renderCard)
-                                )}
-                            </div>
-
-                            {/* Columna: Reuniones */}
-                            <div className="space-y-4">
-                                <h2 className="text-xs font-black text-emerald-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-emerald-500 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span>Reuniones</span>
-                                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono">{reuniones.length}</span>
-                                </h2>
-                                {reuniones.length === 0 ? (
-                                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
-                                        <p className="text-[11px] text-slate-500">Sin reuniones registradas</p>
-                                    </div>
-                                ) : (
-                                    reuniones.map(renderCard)
-                                )}
-                            </div>
-
-                            {/* Columna: Capacitaciones */}
-                            <div className="space-y-4">
-                                <h2 className="text-xs font-black text-blue-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-blue-500 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span>Capacitaciones</span>
-                                    <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full font-mono">{capacitaciones.length}</span>
-                                </h2>
-                                {capacitaciones.length === 0 ? (
-                                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
-                                        <p className="text-[11px] text-slate-500">Sin capacitaciones</p>
-                                    </div>
-                                ) : (
-                                    capacitaciones.map(renderCard)
-                                )}
-                            </div>
-
-                            {/* Columna: Inspecciones */}
-                            <div className="space-y-4">
-                                <h2 className="text-xs font-black text-rose-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-rose-500 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span>Inspecciones</span>
-                                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded-full font-mono">{inspecciones.length}</span>
-                                </h2>
-                                {inspecciones.length === 0 ? (
-                                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
-                                        <p className="text-[11px] text-slate-500">Sin inspecciones</p>
-                                    </div>
-                                ) : (
-                                    inspecciones.map(renderCard)
-                                )}
-                            </div>
-
-                            {/* Columna: Informes Trimestrales */}
-                            <div className="space-y-4">
-                                <h2 className="text-xs font-black text-amber-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-amber-500 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span>Informes Trimestrales</span>
-                                    <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">{informes.length}</span>
-                                </h2>
-                                {informes.length === 0 && otros.length === 0 ? (
-                                    <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
-                                        <p className="text-[11px] text-slate-500">Sin informes</p>
-                                    </div>
-                                ) : (
-                                    informes.map(renderCard)
-                                )}
-                                {otros.length > 0 && (
-                                    <>
-                                        <h2 className="text-xs font-black text-slate-400 bg-slate-800/50 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-slate-500 mt-6 flex items-center justify-center gap-1.5 shadow-sm">
-                                            <span>Otros</span>
-                                            <span className="text-[10px] bg-slate-500/20 text-slate-300 px-1.5 py-0.5 rounded-full font-mono">{otros.length}</span>
+                        <div className="overflow-x-auto overflow-y-auto max-h-[600px] xl:max-h-[650px] custom-scrollbar rounded-2xl border border-slate-800/80 bg-slate-950/50 p-4 shadow-2xl relative">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 min-w-[1400px] items-start">
+                                {/* Columna 1: Actas de Instalación */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-cyan-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-cyan-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Actas de Instalación</span>
+                                            <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full font-mono">{actasInstalacion.length}</span>
                                         </h2>
-                                        {otros.map(renderCard)}
-                                    </>
-                                )}
+                                    </div>
+                                    {actasInstalacion.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin actas de instalación</p>
+                                        </div>
+                                    ) : (
+                                        actasInstalacion.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 2: Actas de Aprobación */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-violet-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-violet-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Actas de Aprobación</span>
+                                            <span className="text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full font-mono">{actasAprobacion.length}</span>
+                                        </h2>
+                                    </div>
+                                    {actasAprobacion.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin actas de aprobación</p>
+                                        </div>
+                                    ) : (
+                                        actasAprobacion.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 3: Reuniones Ordinarias */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-emerald-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-emerald-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Reuniones Ordinarias</span>
+                                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-mono">{reunionesOrdinarias.length}</span>
+                                        </h2>
+                                    </div>
+                                    {reunionesOrdinarias.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin reuniones ordinarias</p>
+                                        </div>
+                                    ) : (
+                                        reunionesOrdinarias.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 4: Reuniones Extraordinarias */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-amber-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-amber-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Reunión Extraordinaria</span>
+                                            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full font-mono">{reunionesExtraordinarias.length}</span>
+                                        </h2>
+                                    </div>
+                                    {reunionesExtraordinarias.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin reuniones extraordinarias</p>
+                                        </div>
+                                    ) : (
+                                        reunionesExtraordinarias.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 5: Capacitaciones */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-blue-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-blue-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Capacitaciones</span>
+                                            <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-full font-mono">{capacitaciones.length}</span>
+                                        </h2>
+                                    </div>
+                                    {capacitaciones.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin capacitaciones</p>
+                                        </div>
+                                    ) : (
+                                        capacitaciones.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 6: Inspecciones */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-rose-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-rose-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Inspecciones</span>
+                                            <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded-full font-mono">{inspecciones.length}</span>
+                                        </h2>
+                                    </div>
+                                    {inspecciones.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin inspecciones</p>
+                                        </div>
+                                    ) : (
+                                        inspecciones.map(renderCard)
+                                    )}
+                                </div>
+
+                                {/* Columna 7: Informes Trimestrales */}
+                                <div className="space-y-4">
+                                    <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5">
+                                        <h2 className="text-xs font-black text-yellow-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-yellow-500 flex items-center justify-center gap-1.5 shadow-md">
+                                            <span>Informes Trimestrales</span>
+                                            <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full font-mono">{informes.length}</span>
+                                        </h2>
+                                    </div>
+                                    {informes.length === 0 && otros.length === 0 ? (
+                                        <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+                                            <p className="text-[11px] text-slate-500">Sin informes</p>
+                                        </div>
+                                    ) : (
+                                        informes.map(renderCard)
+                                    )}
+                                    {otros.length > 0 && (
+                                        <>
+                                            <div className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur-md pb-2 pt-0.5 mt-6">
+                                                <h2 className="text-xs font-black text-slate-400 bg-slate-900/90 p-3 rounded-xl text-center uppercase tracking-widest border-t-2 border-slate-500 flex items-center justify-center gap-1.5 shadow-md">
+                                                    <span>Otros</span>
+                                                    <span className="text-[10px] bg-slate-500/20 text-slate-300 px-1.5 py-0.5 rounded-full font-mono">{otros.length}</span>
+                                                </h2>
+                                            </div>
+                                            {otros.map(renderCard)}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

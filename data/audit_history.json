@@ -1,5 +1,309 @@
 [
   {
+    "id": "ea0836f7-91a1-41ad-a30f-a9cb02e3920c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Informe Trimestral III del SCSST (Julio – Septiembre)",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:28:51.769Z"
+  },
+  {
+    "id": "02f5ddf3-a235-4044-9944-e36c92fff73d",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Informe Trimestral II del SCSST (Abril – Junio)",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:22:08.761Z"
+  },
+  {
+    "id": "f61abe3e-7188-41d4-870d-15d66b2c9881",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Informe Trimestral I del SCSST (Enero – Marzo)",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:21:29.955Z"
+  },
+  {
+    "id": "2e42c291-7e35-406f-81d6-3423fc26c794",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Inspecciones del SCSST",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:19:21.810Z"
+  },
+  {
+    "id": "e7536aac-fdab-4d26-9358-90d3bbc00520",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2666",
+    "timestamp": "2026-11-23T01:16:51.560Z"
+  },
+  {
+    "id": "cd7fd550-d98d-4baf-b5f7-82f076a0da49",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2650",
+    "timestamp": "2026-11-23T01:12:44.926Z"
+  },
+  {
+    "id": "dd455004-0b8b-4633-8556-88e0ca67ae74",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:02:13.207Z"
+  },
+  {
+    "id": "8f386b8a-8982-4267-9cd3-7b9dea66bf07",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T01:00:28.768Z"
+  },
+  {
+    "id": "49306a11-e316-4079-b573-8bd224a7d1c2",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:58:30.165Z"
+  },
+  {
+    "id": "28c2c1ae-1105-4026-859b-4e77efc2cf7f",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:55:31.055Z"
+  },
+  {
+    "id": "cba6ef31-eb33-4be5-977e-8f0a646d38be",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:54:29.721Z"
+  },
+  {
+    "id": "32b62d8a-3a94-445a-8441-f8b946a0862b",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:52:04.105Z"
+  },
+  {
+    "id": "4ee5a114-2ae9-4873-99cc-b871d6cbc8d8",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:50:57.665Z"
+  },
+  {
+    "id": "16bd3cce-e3b7-4200-9689-9634ceafe286",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:49:55.292Z"
+  },
+  {
+    "id": "8d9217ea-5886-4143-9dc3-924476325a2c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión extraordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:48:23.746Z"
+  },
+  {
+    "id": "cacee5df-4423-4794-8923-36a768a29890",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Revisión y aprobación del plan SST, programa anual, objetivos estratégicos, planes de salud, plan de emergencia, programa",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-23T00:35:40.728Z"
+  },
+  {
+    "id": "45f39f5c-8424-4a7a-8d2f-0d3280aef68c",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2652",
+    "timestamp": "2026-11-23T00:34:32.824Z"
+  },
+  {
+    "id": "0df54bef-8e0b-45c4-a625-e420599857a6",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2653",
+    "timestamp": "2026-11-23T00:34:22.012Z"
+  },
+  {
+    "id": "f2f95a20-296e-4b21-989d-7e03eebfb959",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2658",
+    "timestamp": "2026-11-23T00:33:57.575Z"
+  },
+  {
+    "id": "54310170-9731-487e-b864-66597784c5a4",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2661",
+    "timestamp": "2026-11-23T00:33:47.562Z"
+  },
+  {
+    "id": "f91bcd83-9d25-42c2-8efa-8f026aeb1b27",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2259",
+    "timestamp": "2026-11-23T00:33:37.058Z"
+  },
+  {
+    "id": "5541e238-2072-4ebe-b096-0905e65dd737",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2662",
+    "timestamp": "2026-11-23T00:33:25.426Z"
+  },
+  {
+    "id": "10030eb3-3d60-4a5c-aae0-eb738b286457",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2663",
+    "timestamp": "2026-11-23T00:33:12.928Z"
+  },
+  {
+    "id": "e8e7768f-612d-4cb5-8fd9-c43eba8a5ad2",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2664",
+    "timestamp": "2026-11-23T00:33:01.247Z"
+  },
+  {
+    "id": "c922b0be-e06d-4948-8e7c-1458264d413b",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2669",
+    "timestamp": "2026-11-23T00:32:46.130Z"
+  },
+  {
+    "id": "1fc3107d-4985-4835-960e-34856279c665",
+    "user_name": "Robot SSOMA",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 72 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T22:23:14.471Z"
+  },
+  {
+    "id": "e081c841-9ed9-4aac-821c-03944664a198",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T22:07:15.346Z"
+  },
+  {
+    "id": "98cdeb81-3c01-4424-b369-f3d78d151730",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:58:16.616Z"
+  },
+  {
+    "id": "484fd441-39dd-47dd-b8df-9d7bae697a2d",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:56:22.615Z"
+  },
+  {
+    "id": "9d553987-0c38-4595-bdd0-0337a56fa7f6",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:54:49.740Z"
+  },
+  {
+    "id": "1972069a-79d3-42a4-b87a-1bcd8a19670f",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:54:00.758Z"
+  },
+  {
+    "id": "f64aea2c-4bad-4357-a501-3be3f85d3117",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:52:49.787Z"
+  },
+  {
+    "id": "4f045e10-d159-44c0-85ad-95462fd6bffd",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:51:09.504Z"
+  },
+  {
+    "id": "8f60e57b-b511-432e-aee7-4c7d00e0d271",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:49:41.486Z"
+  },
+  {
+    "id": "40174cb9-6081-4f98-9a6a-41fb0b738d02",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:47:37.211Z"
+  },
+  {
+    "id": "a7276b46-f6de-43d1-ade4-0ff0078a4f85",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:46:49.160Z"
+  },
+  {
+    "id": "65a241c7-956f-443c-a66e-bf1cdb8e106f",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:43:58.310Z"
+  },
+  {
+    "id": "143c1b68-d4f0-4a34-9bee-48c12bc448d2",
+    "user_name": "Jose Luis Cancino",
+    "action": "SINCRONIZACIÓN REPORTE A/C: 1 nuevos items",
+    "module": "Reporte A/C",
+    "details": "Última carga",
+    "timestamp": "2026-11-22T21:41:41.056Z"
+  },
+  {
     "id": "6d242867-aa08-4ed6-8283-42f768c51077",
     "user_name": "Jose Luis Cancino",
     "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
