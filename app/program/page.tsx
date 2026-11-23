@@ -36,7 +36,15 @@ import {
     Cloud,
     Download,
     FileUp,
-    FolderOpen
+    FolderOpen,
+    LayoutDashboard,
+    ArrowUpRight,
+    CheckCircle2,
+    Filter,
+    Activity,
+    Layers,
+    TrendingUp,
+    Sparkles
 } from 'lucide-react';
 import { useState, useEffect, Fragment, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -78,7 +86,28 @@ type ExecutedInspection = {
 
 export default function ProgramPage() {
     const { user } = useAuth();
-    const [selectedObjId, setSelectedObjId] = useState<string>('obj1');
+    const [selectedObjId, setSelectedObjId] = useState<string>('all');
+    const [selectedMonitorMonths, setSelectedMonitorMonths] = useState<number[]>(() => {
+        const m = new Date().getMonth();
+        return [isNaN(m) ? 10 : m]; // Default to current month or Nov
+    });
+    const activeMonitorMonth = selectedMonitorMonths[0] ?? 0;
+    const periodLabel = useMemo(() => {
+        if (selectedMonitorMonths.length === 0) return 'Ningún mes';
+        if (selectedMonitorMonths.length === 12) return 'Todo el Año (12 Meses)';
+        if (selectedMonitorMonths.length === 1) return MONTHS[selectedMonitorMonths[0]];
+        const sorted = [...selectedMonitorMonths].sort((a, b) => a - b);
+        const isContiguous = sorted.every((val, i) => i === 0 || val === sorted[i - 1] + 1);
+        if (isContiguous) {
+            return `${MONTHS[sorted[0]]} - ${MONTHS[sorted[sorted.length - 1]]} (${sorted.length}m)`;
+        }
+        return `${sorted.map(m => MONTHS[m]).join(', ')}`;
+    }, [selectedMonitorMonths]);
+    const [masterFilterObj, setMasterFilterObj] = useState<string>('all');
+    const [masterFilterArea, setMasterFilterArea] = useState<string>('all');
+    const [masterFilterMonth, setMasterFilterMonth] = useState<string>('all');
+    const [masterFilterStatus, setMasterFilterStatus] = useState<string>('all');
+    const [masterSearchQuery, setMasterSearchQuery] = useState<string>('');
     const [programData, setProgramData] = useState<Record<string, ProgramItem[]>>({});
     const [executedInspections, setExecutedInspections] = useState<ExecutedInspection[]>([]);
     const [hhcRecords, setHhcRecords] = useState<any[]>([]);
@@ -662,6 +691,10 @@ export default function ProgramPage() {
                 }
 
                 if (newRecords.length > 0) {
+                    if (selectedObjId === 'all') {
+                        alert('⚠️ Para importar actividades desde Excel, selecciona primero el objetivo específico (OBJ 01 a OBJ 09) en el menú lateral o desde las tarjetas de objetivo.');
+                        return;
+                    }
                     const current = programData[selectedObjId] || [];
                     const finalRecords = autoReplace ? newRecords : [...current, ...newRecords];
                     const nextProgram = { ...programData, [selectedObjId]: finalRecords };
@@ -687,7 +720,11 @@ export default function ProgramPage() {
     };
 
     const handleClearAll = () => {
-        if (confirm('⚠️ ¿Estás seguro de eliminar TODOS los datos de este objetivo?')) {
+        if (selectedObjId === 'all') {
+            alert('⚠️ Para limpiar actividades, selecciona un objetivo específico (OBJ 01 a OBJ 09).');
+            return;
+        }
+        if (confirm(`⚠️ ¿Estás seguro de eliminar TODOS los datos de ${currentObj?.label || 'este objetivo'}?`)) {
             const emptyData = { ...programData, [selectedObjId]: [] };
             setProgramData(emptyData);
             syncToCloud(emptyData, selectedObjId, []);
@@ -1234,39 +1271,238 @@ export default function ProgramPage() {
         return grouped;
     };
 
-    const matrixData = getMatrixData();
+    const matrixData = selectedObjId !== 'all' ? getMatrixData(selectedObjId) : null;
 
     // CSS GRID LAYOUT CONSTANTS
     // Columns: [Area/Desc 25%] [Type 4%] [12 Months equal fraction]
     // 100% - 29% = 71% / 12 = ~5.9%
     // Using Grid template columns for absolute precision
 
-    // Precalculate totals for all objectives to prevent UI freezing on render
+    // Consolidado General del Programa Anual (9 Objetivos Estratégicos F-SIG-023)
+    const consolidatedOverview = useMemo(() => {
+        const objSummaries: Record<string, {
+            id: string;
+            label: string;
+            shortLabel: string;
+            fullTitle: string;
+            icon: any;
+            color: string;
+            bg: string;
+            totalP: number;
+            totalE: number;
+            totalA: number;
+            totalFulfilled: number;
+            annualPercent: number;
+            monthlyTotals: { p: number; e: number; a: number; fulfilled: number; percent: number }[];
+            monthP: number;
+            monthE: number;
+            monthPercent: number;
+            matrix: any;
+            activities: {
+                id: string;
+                objId: string;
+                objCode: string;
+                objName: string;
+                objColor: string;
+                objBg: string;
+                area: string;
+                desc: string;
+                tipo?: string;
+                programmed: number[];
+                executed: number[];
+                executionRecords: Record<number, any[]>;
+                totalP: number;
+                totalE: number;
+                totalFulfilled: number;
+                percent: number;
+                status: 'cumplido' | 'parcial' | 'pendiente' | 'adicional';
+            }[];
+        }> = {};
+
+        const grandMonthlyTotals = Array.from({ length: 12 }, () => ({
+            p: 0,
+            e: 0,
+            a: 0,
+            fulfilled: 0,
+            percent: 0
+        }));
+
+        let grandTotalP = 0;
+        let grandTotalE = 0;
+        let grandTotalA = 0;
+        let grandTotalFulfilled = 0;
+        const allActivitiesList: any[] = [];
+
+        OBJECTIVES.forEach(obj => {
+            const matrix = getMatrixData(obj.id);
+            const monthlyTotals = Array.from({ length: 12 }, () => ({
+                p: 0,
+                e: 0,
+                a: 0,
+                fulfilled: 0,
+                percent: 0
+            }));
+
+            let objTotalP = 0;
+            let objTotalE = 0;
+            let objTotalA = 0;
+            let objTotalFulfilled = 0;
+            const objActivities: any[] = [];
+
+            Object.entries(matrix).forEach(([areaKey, areaItems]: [string, any]) => {
+                Object.entries(areaItems).forEach(([desc, itemData]: [string, any]) => {
+                    const actTotalP = itemData.programmed.reduce((s: number, v: number) => s + v, 0);
+                    const actTotalE = itemData.executed.reduce((s: number, v: number) => s + v, 0);
+                    let actFulfilled = 0;
+
+                    for (let m = 0; m < 12; m++) {
+                        const p = itemData.programmed[m] || 0;
+                        const e = itemData.executed[m] || 0;
+                        const f = Math.min(p, e);
+                        const a = Math.max(0, e - p);
+                        actFulfilled += f;
+
+                        monthlyTotals[m].p += p;
+                        monthlyTotals[m].e += e;
+                        monthlyTotals[m].a += a;
+                        monthlyTotals[m].fulfilled += f;
+
+                        grandMonthlyTotals[m].p += p;
+                        grandMonthlyTotals[m].e += e;
+                        grandMonthlyTotals[m].a += a;
+                        grandMonthlyTotals[m].fulfilled += f;
+                    }
+
+                    const actPercent = actTotalP > 0 ? Math.round((actFulfilled / actTotalP) * 100) : (actTotalE > 0 ? 100 : 0);
+                    const actStatus: 'cumplido' | 'parcial' | 'pendiente' | 'adicional' = 
+                        (actTotalP > 0 && actTotalE >= actTotalP) ? 'cumplido' : 
+                        (actTotalE > 0 ? 'parcial' : 
+                        (actTotalP > 0 ? 'pendiente' : 'adicional'));
+
+                    const actObj = {
+                        id: `${obj.id}-${areaKey}-${desc}`,
+                        objId: obj.id,
+                        objCode: obj.label.split(':')[0],
+                        objName: obj.label.split(':')[1]?.trim() || obj.label,
+                        objColor: obj.color,
+                        objBg: obj.bg,
+                        area: areaKey,
+                        desc,
+                        tipo: itemData.tipo,
+                        programmed: itemData.programmed,
+                        executed: itemData.executed,
+                        executionRecords: itemData.executionRecords || {},
+                        totalP: actTotalP,
+                        totalE: actTotalE,
+                        totalFulfilled: actFulfilled,
+                        percent: actPercent,
+                        status: actStatus
+                    };
+
+                    objActivities.push(actObj);
+                    allActivitiesList.push(actObj);
+
+                    objTotalP += actTotalP;
+                    objTotalE += actTotalE;
+                    objTotalA += Math.max(0, actTotalE - actTotalP);
+                    objTotalFulfilled += actFulfilled;
+                });
+            });
+
+            // Calculate monthly percents for this objective
+            for (let m = 0; m < 12; m++) {
+                const mt = monthlyTotals[m];
+                mt.percent = mt.p > 0 ? Math.round((mt.fulfilled / mt.p) * 100) : (mt.e > 0 ? 100 : 0);
+            }
+
+            // Calculate period stats for this objective across all selectedMonitorMonths
+            let objPeriodP = 0;
+            let objPeriodE = 0;
+            let objPeriodFulfilled = 0;
+
+            selectedMonitorMonths.forEach(m => {
+                if (m >= 0 && m < 12) {
+                    objPeriodP += monthlyTotals[m].p;
+                    objPeriodE += monthlyTotals[m].e;
+                    objPeriodFulfilled += monthlyTotals[m].fulfilled;
+                }
+            });
+
+            const objPeriodPercent = objPeriodP > 0 ? Math.round((objPeriodFulfilled / objPeriodP) * 100) : (objPeriodE > 0 ? 100 : 0);
+            const objAnnualPercent = objTotalP > 0 ? Math.round((objTotalFulfilled / objTotalP) * 100) : (objTotalE > 0 ? 100 : 0);
+
+            objSummaries[obj.id] = {
+                id: obj.id,
+                label: obj.label,
+                shortLabel: obj.label.split(':')[1]?.trim() || obj.label,
+                fullTitle: obj.fullTitle,
+                icon: obj.icon,
+                color: obj.color,
+                bg: obj.bg,
+                totalP: objTotalP,
+                totalE: objTotalE,
+                totalA: objTotalA,
+                totalFulfilled: objTotalFulfilled,
+                annualPercent: objAnnualPercent,
+                monthlyTotals,
+                monthP: objPeriodP,
+                monthE: objPeriodE,
+                monthPercent: objPeriodPercent,
+                matrix,
+                activities: objActivities
+            };
+
+            grandTotalP += objTotalP;
+            grandTotalE += objTotalE;
+            grandTotalA += objTotalA;
+            grandTotalFulfilled += objTotalFulfilled;
+        });
+
+        // Calculate grand monthly percents
+        for (let m = 0; m < 12; m++) {
+            const gmt = grandMonthlyTotals[m];
+            gmt.percent = gmt.p > 0 ? Math.round((gmt.fulfilled / gmt.p) * 100) : (gmt.e > 0 ? 100 : 0);
+        }
+
+        let grandPeriodP = 0;
+        let grandPeriodE = 0;
+        let grandPeriodFulfilled = 0;
+
+        selectedMonitorMonths.forEach(m => {
+            if (m >= 0 && m < 12) {
+                grandPeriodP += grandMonthlyTotals[m].p;
+                grandPeriodE += grandMonthlyTotals[m].e;
+                grandPeriodFulfilled += grandMonthlyTotals[m].fulfilled;
+            }
+        });
+
+        const grandPeriodPercent = grandPeriodP > 0 ? Math.round((grandPeriodFulfilled / grandPeriodP) * 100) : (grandPeriodE > 0 ? 100 : 0);
+        const grandAnnualPercent = grandTotalP > 0 ? Math.round((grandTotalFulfilled / grandTotalP) * 100) : (grandTotalE > 0 ? 100 : 0);
+
+        return {
+            objSummaries,
+            grandMonthlyTotals,
+            grandTotalP,
+            grandTotalE,
+            grandTotalA,
+            grandTotalFulfilled,
+            grandAnnualPercent,
+            grandMonthP: grandPeriodP,
+            grandMonthE: grandPeriodE,
+            grandMonthPercent: grandPeriodPercent,
+            allActivities: allActivitiesList
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedMonitorMonths, programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords, reporteAcRecords]);
+
     const sidebarTotals = useMemo(() => {
         const totals: Record<string, { p: number, e: number }> = {};
         OBJECTIVES.forEach(obj => {
-            const pTotal = (programData[obj.id] || []).length;
-            const objMatrix = getMatrixData(obj.id);
-            let eTotal = 0;
-            Object.values(objMatrix).forEach(area => {
-                Object.values(area).forEach(item => {
-                    eTotal += item.executed.reduce((acc, val) => acc + val, 0);
-                });
-            });
-            totals[obj.id] = { p: pTotal, e: eTotal };
+            const s = consolidatedOverview.objSummaries[obj.id];
+            totals[obj.id] = { p: s?.totalP || 0, e: s?.totalE || 0 };
         });
-        
-        try {
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('annual_program_totals', JSON.stringify(totals));
-            }
-        } catch (e) {
-            console.error('Failed to save annual_program_totals to localStorage', e);
-        }
-
         return totals;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [programData, executedInspections, hhcRecords, evidenceRecords, pmaRecords, atsRecords, petarRecords, detourRecords, simulacroRecords, brigadistaRecords, risstmaRecords, reporteAcRecords]);
+    }, [consolidatedOverview]);
 
     const summaryTotals = useMemo(() => {
         const sum = (ids: string[]) => {
@@ -1276,11 +1512,36 @@ export default function ProgramPage() {
             }, { p: 0, e: 0 });
         };
         return {
-                        seguridad: sum(['obj1', 'obj2', 'obj3', 'obj4', 'obj6', 'obj8', 'obj9']),
+            seguridad: sum(['obj1', 'obj2', 'obj3', 'obj4', 'obj6', 'obj8', 'obj9']),
             salud: sum(['obj5']),
             ambiente: sum(['obj7'])
         };
     }, [sidebarTotals]);
+
+    const filteredMasterActivities = useMemo(() => {
+        return consolidatedOverview.allActivities.filter(act => {
+            if (masterFilterObj !== 'all' && act.objId !== masterFilterObj) return false;
+            if (masterFilterArea !== 'all' && !act.area.toUpperCase().includes(masterFilterArea.toUpperCase())) return false;
+            if (masterFilterMonth !== 'all') {
+                const m = parseInt(masterFilterMonth);
+                const pInMonth = act.programmed[m] || 0;
+                const eInMonth = act.executed[m] || 0;
+                if (pInMonth === 0 && eInMonth === 0) return false;
+            }
+            if (masterFilterStatus === 'programmed' && act.totalP === 0) return false;
+            if (masterFilterStatus === 'executed' && act.totalE === 0) return false;
+            if (masterFilterStatus === 'pending' && (act.totalP === 0 || act.totalE >= act.totalP)) return false;
+            if (masterFilterStatus === 'completed' && (act.totalP === 0 || act.totalE < act.totalP)) return false;
+            if (masterSearchQuery.trim()) {
+                const q = masterSearchQuery.toLowerCase();
+                const inDesc = act.desc.toLowerCase().includes(q);
+                const inObj = act.objName.toLowerCase().includes(q) || act.objCode.toLowerCase().includes(q);
+                const inArea = act.area.toLowerCase().includes(q);
+                if (!inDesc && !inObj && !inArea) return false;
+            }
+            return true;
+        });
+    }, [consolidatedOverview.allActivities, masterFilterObj, masterFilterArea, masterFilterMonth, masterFilterStatus, masterSearchQuery]);
 
     return (
         <div className="relative h-full flex flex-col md:flex-row bg-slate-950 overflow-hidden">
@@ -1294,6 +1555,56 @@ export default function ProgramPage() {
                     <p className="text-xs text-slate-500 px-2 mt-1">Selecciona un objetivo estratégico</p>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700">
+                    {/* Botón Maestro: Control Total Anual */}
+                    <button
+                        onClick={() => {
+                            setSelectedObjId('all');
+                            setMobileView('content');
+                        }}
+                        className={`w-full text-left p-3.5 rounded-xl transition-all border group relative overflow-hidden mb-3.5 shadow-md ${
+                            selectedObjId === 'all'
+                                ? 'bg-gradient-to-r from-emerald-950/70 to-slate-900 border-emerald-500/70 shadow-emerald-500/10'
+                                : 'bg-slate-950/80 border-slate-800 hover:bg-slate-800 text-slate-300'
+                        }`}
+                    >
+                        <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 relative z-10">
+                            <div className={`p-2 rounded-lg flex-shrink-0 transition-transform group-hover:scale-105 ${
+                                selectedObjId === 'all' ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/30' : 'bg-slate-900 text-emerald-400 border border-emerald-500/20'
+                            }`}>
+                                <LayoutDashboard size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0 text-center md:text-left">
+                                <div className="flex items-center gap-1.5 justify-center md:justify-start">
+                                    <h3 className={`text-[11px] font-black uppercase tracking-wider ${selectedObjId === 'all' ? 'text-emerald-400' : 'text-white'}`}>
+                                        Control Total Anual
+                                    </h3>
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold border border-emerald-500/30">
+                                        TODOS
+                                    </span>
+                                </div>
+                                <p className="text-[10px] font-medium leading-tight text-slate-400 mt-0.5 hidden md:block">
+                                    Monitoreo General de los 9 Objetivos
+                                </p>
+                            </div>
+                            <div className="hidden md:flex flex-col gap-1 items-end">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-[9px] text-slate-500 font-bold">P:</span>
+                                    <span className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded text-emerald-500 font-bold">{consolidatedOverview.grandTotalP}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-[9px] text-slate-500 font-bold">E:</span>
+                                    <span className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded text-blue-400 font-bold">{consolidatedOverview.grandTotalE}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {selectedObjId === 'all' && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500 shadow-sm" />}
+                    </button>
+
+                    <div className="flex items-center justify-between px-2 pt-1 pb-2">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Objetivos Específicos</span>
+                        <span className="text-[9px] font-mono text-slate-500 font-bold">1 AL 9</span>
+                    </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
                     {OBJECTIVES.map(obj => {
                         const ItemIcon = obj.icon;
@@ -1379,9 +1690,18 @@ export default function ProgramPage() {
                                 <ChevronRight className="rotate-180" size={20} />
                             </button>
                             <div>
-                                <span className="text-emerald-500 font-bold tracking-widest text-xs uppercase mb-1 block">Gestión de Programa</span>
+                                <span className="text-emerald-500 font-bold tracking-widest text-xs uppercase mb-1 block">
+                                    {selectedObjId === 'all' ? 'Herramienta Integral SSTMA • F-SIG-023' : 'Gestión de Programa'}
+                                </span>
                                 <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-                                    {currentObj?.label ? currentObj.label.split(':')[1] : 'Seleccione Objetivo'}
+                                    {selectedObjId === 'all' ? (
+                                        <>
+                                            <LayoutDashboard className="text-emerald-400" size={26} />
+                                            <span>Control Total del Programa Anual</span>
+                                        </>
+                                    ) : (
+                                        currentObj?.label ? currentObj.label.split(':')[1] : 'Seleccione Objetivo'
+                                    )}
                                 </h1>
                             </div>
                         </div>
@@ -1400,48 +1720,124 @@ export default function ProgramPage() {
                                 </div>
                             )}
 
-                            {/* Checkbox de Reemplazo */}
-                            <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
-                                <input name="input_62888"
-                                    type="checkbox"
-                                    id="replace-mode"
-                                    checked={autoReplace}
-                                    onChange={e => setAutoReplace(e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-offset-0 focus:ring-emerald-500 bg-slate-800 cursor-pointer"
-                                />
-                                <label htmlFor="replace-mode" className="text-xs text-slate-400 cursor-pointer select-none font-medium">
-                                    Reemplazar datos al cargar
-                                </label>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleClearAll}
-                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl font-bold text-xs border border-red-500/20 transition-all active:scale-95"
-                                >
-                                    <RotateCcw size={16} />
-                                    Limpiar
-                                </button>
-                                <div className="relative">
-                                    <input name="input_68752" type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
-                                    <label htmlFor="excel-import-btn" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all border border-indigo-400/20 active:scale-95">
-                                        <Upload size={18} />
-                                        Cargar Excel
-                                    </label>
+                            {selectedObjId === 'all' ? (
+                                <div className="flex items-center gap-2">
+                                    {/* Selector de Mes / Periodo para Contadores */}
+                                    <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-800 shadow-inner">
+                                        <Calendar size={15} className="text-emerald-400" />
+                                        <span className="text-slate-400 font-bold text-xs">Periodo:</span>
+                                        <select
+                                            value={
+                                                selectedMonitorMonths.length === 12 ? 'ALL' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([0,1,2]) ? 'Q1' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([3,4,5]) ? 'Q2' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([6,7,8]) ? 'Q3' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([9,10,11]) ? 'Q4' :
+                                                selectedMonitorMonths.length === 6 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([0,1,2,3,4,5]) ? 'S1' :
+                                                selectedMonitorMonths.length === 6 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([6,7,8,9,10,11]) ? 'S2' :
+                                                selectedMonitorMonths.length === 1 ? String(selectedMonitorMonths[0]) :
+                                                'CUSTOM'
+                                            }
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                if (v === 'ALL') setSelectedMonitorMonths([0,1,2,3,4,5,6,7,8,9,10,11]);
+                                                else if (v === 'Q1') setSelectedMonitorMonths([0,1,2]);
+                                                else if (v === 'Q2') setSelectedMonitorMonths([3,4,5]);
+                                                else if (v === 'Q3') setSelectedMonitorMonths([6,7,8]);
+                                                else if (v === 'Q4') setSelectedMonitorMonths([9,10,11]);
+                                                else if (v === 'S1') setSelectedMonitorMonths([0,1,2,3,4,5]);
+                                                else if (v === 'S2') setSelectedMonitorMonths([6,7,8,9,10,11]);
+                                                else if (v !== 'CUSTOM') setSelectedMonitorMonths([Number(v)]);
+                                            }}
+                                            className="bg-slate-950 text-emerald-400 font-black border border-slate-700 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-500 cursor-pointer"
+                                        >
+                                            <optgroup label="Mes Individual">
+                                                {MONTHS.map((m, idx) => (
+                                                    <option key={m} value={idx}>{m} (Mes {idx + 1})</option>
+                                                ))}
+                                            </optgroup>
+                                            <optgroup label="Periodos Combinados">
+                                                <option value="Q1">1° Trimestre (ENE - MAR)</option>
+                                                <option value="Q2">2° Trimestre (ABR - JUN)</option>
+                                                <option value="Q3">3° Trimestre (JUL - SET)</option>
+                                                <option value="Q4">4° Trimestre (OCT - DIC)</option>
+                                                <option value="S1">1° Semestre (ENE - JUN)</option>
+                                                <option value="S2">2° Semestre (JUL - DIC)</option>
+                                                <option value="ALL">Todo el Año (12 Meses)</option>
+                                            </optgroup>
+                                            {selectedMonitorMonths.length > 1 &&
+                                             !['ALL','Q1','Q2','Q3','Q4','S1','S2'].includes(
+                                                selectedMonitorMonths.length === 12 ? 'ALL' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([0,1,2]) ? 'Q1' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([3,4,5]) ? 'Q2' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([6,7,8]) ? 'Q3' :
+                                                selectedMonitorMonths.length === 3 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([9,10,11]) ? 'Q4' :
+                                                selectedMonitorMonths.length === 6 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([0,1,2,3,4,5]) ? 'S1' :
+                                                selectedMonitorMonths.length === 6 && JSON.stringify([...selectedMonitorMonths].sort()) === JSON.stringify([6,7,8,9,10,11]) ? 'S2' : ''
+                                             ) && (
+                                                <option value="CUSTOM">Personalizado ({selectedMonitorMonths.length} meses)</option>
+                                            )}
+                                        </select>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowFormatos(v => !v)}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs border transition-all active:scale-95 ${
+                                            showFormatos
+                                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-500/40 hover:text-amber-300'
+                                        }`}
+                                        title="Gestionar plantillas y exportar programas Excel"
+                                    >
+                                        <FolderOpen size={16} />
+                                        Formatos
+                                    </button>
                                 </div>
-                                {/* Botón Formatos */}
-                                <button
-                                    onClick={() => setShowFormatos(v => !v)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs border transition-all active:scale-95 ${
-                                        showFormatos
-                                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-500/40 hover:text-amber-300'
-                                    }`}
-                                    title="Gestionar plantillas y exportar programas Excel"
-                                >
-                                    <FolderOpen size={16} />
-                                    Formatos
-                                </button>
-                            </div>
+                            ) : (
+                                <>
+                                    {/* Checkbox de Reemplazo */}
+                                    <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
+                                        <input name="input_62888"
+                                            type="checkbox"
+                                            id="replace-mode"
+                                            checked={autoReplace}
+                                            onChange={e => setAutoReplace(e.target.checked)}
+                                            className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-offset-0 focus:ring-emerald-500 bg-slate-800 cursor-pointer"
+                                        />
+                                        <label htmlFor="replace-mode" className="text-xs text-slate-400 cursor-pointer select-none font-medium">
+                                            Reemplazar datos al cargar
+                                        </label>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleClearAll}
+                                            className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2.5 rounded-xl font-bold text-xs border border-red-500/20 transition-all active:scale-95"
+                                        >
+                                            <RotateCcw size={16} />
+                                            Limpiar
+                                        </button>
+                                        <div className="relative">
+                                            <input name="input_68752" type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelImport} className="hidden" id="excel-import-btn" />
+                                            <label htmlFor="excel-import-btn" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white pl-4 pr-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer transition-all border border-indigo-400/20 active:scale-95">
+                                                <Upload size={18} />
+                                                Cargar Excel
+                                            </label>
+                                        </div>
+                                        {/* Botón Formatos */}
+                                        <button
+                                            onClick={() => setShowFormatos(v => !v)}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs border transition-all active:scale-95 ${
+                                                showFormatos
+                                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-500/40 hover:text-amber-300'
+                                            }`}
+                                            title="Gestionar plantillas y exportar programas Excel"
+                                        >
+                                            <FolderOpen size={16} />
+                                            Formatos
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -1725,7 +2121,795 @@ export default function ProgramPage() {
 
 
                     <div className="flex-1 overflow-auto px-6 md:px-8 pb-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden min-w-[1200px]">
+                        {selectedObjId === 'all' ? (
+                            <div className="space-y-8 min-w-[1200px]">
+                                {/* ── 1. BANNER RESUMEN GLOBAL / TARJETAS KPI ── */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {/* Card 1: Avance Anual General */}
+                                    <div className="bg-gradient-to-br from-slate-900/90 to-slate-950 p-5 rounded-2xl border border-emerald-500/30 shadow-xl relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <TrendingUp size={16} className="text-emerald-400" /> Avance Anual General
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                                                CONSOLIDADO
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-black text-white font-mono">{consolidatedOverview.grandAnnualPercent}%</span>
+                                            <span className="text-xs text-slate-400">del programa 2026</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"
+                                                style={{ width: `${Math.min(100, consolidatedOverview.grandAnnualPercent)}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-[11px] text-slate-400 font-mono">
+                                            <span>Programadas: <strong className="text-emerald-400">{consolidatedOverview.grandTotalP}</strong></span>
+                                            <span>Ejecutadas: <strong className="text-blue-400">{consolidatedOverview.grandTotalE}</strong></span>
+                                        </div>
+                                        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                                    </div>
+
+                                    {/* Card 2: Avance Mensual / Periodo Activo */}
+                                    <div className="bg-gradient-to-br from-slate-900/90 to-slate-950 p-5 rounded-2xl border border-blue-500/30 shadow-xl relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <Calendar size={16} className="text-blue-400" /> Avance {selectedMonitorMonths.length === 1 ? `Mes (${MONTHS[selectedMonitorMonths[0]]})` : `Periodo (${periodLabel})`}
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
+                                                {selectedMonitorMonths.length === 1 ? `MES ${selectedMonitorMonths[0] + 1}` : `${selectedMonitorMonths.length} MESES`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-black text-blue-400 font-mono">{consolidatedOverview.grandMonthPercent}%</span>
+                                            <span className="text-xs text-slate-400">del periodo ({periodLabel})</span>
+                                        </div>
+                                        <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700"
+                                                style={{ width: `${Math.min(100, consolidatedOverview.grandMonthPercent)}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-[11px] text-slate-400 font-mono">
+                                            <span>P. en periodo: <strong className="text-slate-200">{consolidatedOverview.grandMonthP}</strong></span>
+                                            <span>E. en periodo: <strong className="text-blue-400">{consolidatedOverview.grandMonthE}</strong></span>
+                                        </div>
+                                        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+                                    </div>
+
+                                    {/* Card 3: Actividades Monitoreadas */}
+                                    <div className="bg-gradient-to-br from-slate-900/90 to-slate-950 p-5 rounded-2xl border border-purple-500/30 shadow-xl relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <Layers size={16} className="text-purple-400" /> Actividades en Programa
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30">
+                                                9 OBJETIVOS
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-black text-purple-400 font-mono">{consolidatedOverview.allActivities.length}</span>
+                                            <span className="text-xs text-slate-400">estrategias oficiales</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-1 text-[10px] font-mono mt-3 pt-2 border-t border-slate-800/80">
+                                            <div className="bg-slate-950/80 p-1.5 rounded-lg text-center border border-slate-800/60">
+                                                <span className="text-slate-500 block text-[9px]">SEG</span>
+                                                <span className="text-emerald-400 font-bold">{summaryTotals.seguridad.p}</span>
+                                            </div>
+                                            <div className="bg-slate-950/80 p-1.5 rounded-lg text-center border border-slate-800/60">
+                                                <span className="text-slate-500 block text-[9px]">SAL</span>
+                                                <span className="text-pink-400 font-bold">{summaryTotals.salud.p}</span>
+                                            </div>
+                                            <div className="bg-slate-950/80 p-1.5 rounded-lg text-center border border-slate-800/60">
+                                                <span className="text-slate-500 block text-[9px]">AMB</span>
+                                                <span className="text-green-400 font-bold">{summaryTotals.ambiente.p}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Card 4: Meta F-SIG-023 y Estado */}
+                                    <div className="bg-gradient-to-br from-slate-900/90 to-slate-950 p-5 rounded-2xl border border-amber-500/30 shadow-xl relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <Shield size={16} className="text-amber-400" /> Meta del Programa
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
+                                                F-SIG-023
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-2 mb-2">
+                                            <span className="text-3xl font-black text-amber-400 font-mono">100%</span>
+                                            <span className="text-xs text-slate-400">meta anual</span>
+                                        </div>
+                                        <div className="mt-3 pt-2 border-t border-slate-800/80">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded-full ${consolidatedOverview.grandAnnualPercent >= 90 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                                                <span className="text-xs font-bold text-slate-200">
+                                                    {consolidatedOverview.grandAnnualPercent >= 90 ? 'Excelente Cumplimiento' : 'En Ejecución / Monitoreo'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-1">Normativa Ley 29783 / D.S. 011-2019-TR</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── 2. BARRA SELECTORA DE MESES (SELECCIÓN INDIVIDUAL O MÚLTIPLE) ── */}
+                                <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-sm shadow-md">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 px-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Calendar size={16} className="text-emerald-400" />
+                                            <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                                                Mes de Análisis para Contadores
+                                            </span>
+                                            <span className="text-[11px] text-slate-400">
+                                                (Haz clic en los meses para seleccionar 1, 2, 3 o hasta 12 meses simultáneamente)
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] font-mono text-slate-400">
+                                                Seleccionado: <strong className="text-emerald-400 font-bold">{periodLabel}</strong> ({selectedMonitorMonths.length} {selectedMonitorMonths.length === 1 ? 'mes' : 'meses'})
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Atajos Rápidos de Periodos */}
+                                    <div className="flex flex-wrap items-center gap-1.5 mb-3 px-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-500 mr-1">Periodos Rápidos:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([0,1,2,3,4,5,6,7,8,9,10,11])}
+                                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 12
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            Todo el Año (12M)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([0,1,2])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 3 && [0,1,2].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            T1 (ENE-MAR)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([3,4,5])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 3 && [3,4,5].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            T2 (ABR-JUN)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([6,7,8])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 3 && [6,7,8].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            T3 (JUL-SET)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([9,10,11])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 3 && [9,10,11].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            T4 (OCT-DIC)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([0,1,2,3,4,5])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 6 && [0,1,2,3,4,5].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            S1 (ENE-JUN)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedMonitorMonths([6,7,8,9,10,11])}
+                                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                                                selectedMonitorMonths.length === 6 && [6,7,8,9,10,11].every(m => selectedMonitorMonths.includes(m))
+                                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                                    : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 border-slate-800'
+                                            }`}
+                                        >
+                                            S2 (JUL-DIC)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const curM = new Date().getMonth();
+                                                setSelectedMonitorMonths([isNaN(curM) ? 0 : curM]);
+                                            }}
+                                            className="px-2 py-1 rounded-lg text-[10px] font-bold transition-all border bg-slate-950/60 hover:bg-slate-800 text-blue-400 border-blue-500/30"
+                                        >
+                                            Mes Actual
+                                        </button>
+                                    </div>
+
+                                    {/* Botones de Meses ENE - DIC con soporte de selección múltiple */}
+                                    <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
+                                        {MONTHS.map((m, idx) => {
+                                            const gmt = consolidatedOverview.grandMonthlyTotals[idx];
+                                            const isSelected = selectedMonitorMonths.includes(idx);
+                                            return (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedMonitorMonths(prev => {
+                                                            if (prev.includes(idx)) {
+                                                                if (prev.length > 1) return prev.filter(x => x !== idx).sort((a, b) => a - b);
+                                                                return prev;
+                                                            } else {
+                                                                return [...prev, idx].sort((a, b) => a - b);
+                                                            }
+                                                        });
+                                                    }}
+                                                    className={`py-2 px-1 rounded-xl text-center transition-all border relative ${
+                                                        isSelected
+                                                            ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-lg shadow-emerald-500/20 scale-105 z-10 ring-2 ring-emerald-400/40'
+                                                            : 'bg-slate-950/80 hover:bg-slate-800 text-slate-400 hover:text-white border-slate-800/80'
+                                                    }`}
+                                                    title={`Haz clic para ${isSelected ? 'quitar' : 'agregar'} ${m} (${idx + 1}) del análisis`}
+                                                >
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <span className={`block text-[11px] font-bold ${isSelected ? 'text-slate-950' : 'text-slate-300'}`}>{m}</span>
+                                                        {isSelected && <span className="text-[10px] font-black text-slate-950">✓</span>}
+                                                    </div>
+                                                    <span className={`block text-[9px] font-mono mt-0.5 ${isSelected ? 'text-slate-900 font-black' : gmt.p > 0 ? (gmt.percent >= 90 ? 'text-emerald-400' : 'text-amber-400') : 'text-slate-600'}`}>
+                                                        {gmt.p > 0 ? `${gmt.percent}%` : '-'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* ── 3. CONTADORES POR OBJETIVO ESTRATÉGICO (OBJETIVO 1 AL 9) ── */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                                <Activity size={18} className="text-emerald-400" />
+                                                Contadores de Cumplimiento por Objetivo
+                                            </h3>
+                                            <p className="text-xs text-slate-400 mt-0.5">
+                                                Haz clic en cualquier objetivo para ingresar a su detalle operativo y gestionar sus actividades.
+                                            </p>
+                                        </div>
+                                        <span className="text-xs text-slate-500 font-mono font-bold bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+                                            9 de 9 Objetivos Activos
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {OBJECTIVES.map((obj, objIdx) => {
+                                            const objSummary = consolidatedOverview.objSummaries[obj.id];
+                                            if (!objSummary) return null;
+                                            const ItemIcon = obj.icon;
+                                            const objNum = objIdx + 1;
+                                            const objCleanName = obj.label.includes(':') ? obj.label.split(':')[1].trim() : obj.label;
+                                            const titleText = `Objetivo ${objNum} - ${objCleanName}`;
+
+                                            // Paletas de color temáticas de alta gama (inspiradas en consolas ITOps)
+                                            const THEMES = [
+                                                { hex: '#10b981', ring: 'border-emerald-500/40 hover:border-emerald-400', glow: 'from-emerald-950/40 via-slate-900/90 to-slate-950', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', text: 'text-emerald-400', shadow: 'shadow-emerald-500/10 hover:shadow-emerald-500/25' },
+                                                { hex: '#f59e0b', ring: 'border-amber-500/40 hover:border-amber-400', glow: 'from-amber-950/40 via-slate-900/90 to-slate-950', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', text: 'text-amber-400', shadow: 'shadow-amber-500/10 hover:shadow-amber-500/25' },
+                                                { hex: '#3b82f6', ring: 'border-blue-500/40 hover:border-blue-400', glow: 'from-blue-950/40 via-slate-900/90 to-slate-950', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40', text: 'text-blue-400', shadow: 'shadow-blue-500/10 hover:shadow-blue-500/25' },
+                                                { hex: '#f97316', ring: 'border-orange-500/40 hover:border-orange-400', glow: 'from-orange-950/40 via-slate-900/90 to-slate-950', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/40', text: 'text-orange-400', shadow: 'shadow-orange-500/10 hover:shadow-orange-500/25' },
+                                                { hex: '#ec4899', ring: 'border-pink-500/40 hover:border-pink-400', glow: 'from-pink-950/40 via-slate-900/90 to-slate-950', badge: 'bg-pink-500/20 text-pink-300 border-pink-500/40', text: 'text-pink-400', shadow: 'shadow-pink-500/10 hover:shadow-pink-500/25' },
+                                                { hex: '#06b6d4', ring: 'border-cyan-500/40 hover:border-cyan-400', glow: 'from-cyan-950/40 via-slate-900/90 to-slate-950', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40', text: 'text-cyan-400', shadow: 'shadow-cyan-500/10 hover:shadow-cyan-500/25' },
+                                                { hex: '#22c55e', ring: 'border-green-500/40 hover:border-green-400', glow: 'from-green-950/40 via-slate-900/90 to-slate-950', badge: 'bg-green-500/20 text-green-300 border-green-500/40', text: 'text-green-400', shadow: 'shadow-green-500/10 hover:shadow-green-500/25' },
+                                                { hex: '#eab308', ring: 'border-yellow-500/40 hover:border-yellow-400', glow: 'from-yellow-950/40 via-slate-900/90 to-slate-950', badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40', text: 'text-yellow-400', shadow: 'shadow-yellow-500/10 hover:shadow-yellow-500/25' },
+                                                { hex: '#a855f7', ring: 'border-purple-500/40 hover:border-purple-400', glow: 'from-purple-950/40 via-slate-900/90 to-slate-950', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40', text: 'text-purple-400', shadow: 'shadow-purple-500/10 hover:shadow-purple-500/25' },
+                                            ];
+                                            const theme = THEMES[objIdx % THEMES.length];
+
+                                            return (
+                                                <div
+                                                    key={obj.id}
+                                                    onClick={() => {
+                                                        setSelectedObjId(obj.id);
+                                                        setMobileView('content');
+                                                    }}
+                                                    className={`bg-gradient-to-br ${theme.glow} border ${theme.ring} rounded-2xl p-4 cursor-pointer transition-all duration-300 group shadow-lg hover:shadow-2xl ${theme.shadow} hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between backdrop-blur-md`}
+                                                >
+                                                    {/* Glow de fondo ambiental */}
+                                                    <div 
+                                                        className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-3xl pointer-events-none opacity-30 group-hover:opacity-60 transition-opacity"
+                                                        style={{ background: theme.hex }}
+                                                    />
+
+                                                    <div className="relative z-10">
+                                                        {/* ── Encabezado: Código, Nombre e Ícono ── */}
+                                                        <div className="flex items-start justify-between gap-2.5 mb-3.5">
+                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                <div 
+                                                                    className="p-2 rounded-xl text-white shadow-md flex-shrink-0 transition-transform group-hover:scale-110"
+                                                                    style={{ background: `${theme.hex}25`, border: `1px solid ${theme.hex}50` }}
+                                                                >
+                                                                    <ItemIcon size={18} style={{ color: theme.hex }} />
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${theme.badge}`}>
+                                                                            {obj.label.split(':')[0]}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 font-mono">
+                                                                            {objSummary.activities.length} act.
+                                                                        </span>
+                                                                    </div>
+                                                                    <h4 className="text-xs font-bold text-white mt-1 group-hover:text-white transition-colors leading-snug line-clamp-1" title={titleText}>
+                                                                        {titleText}
+                                                                    </h4>
+                                                                </div>
+                                                            </div>
+                                                            <div 
+                                                                className="p-1.5 rounded-lg border transition-all text-slate-400 group-hover:text-white flex-shrink-0"
+                                                                style={{ background: `${theme.hex}15`, borderColor: `${theme.hex}30` }}
+                                                            >
+                                                                <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* ── CONTADORES EN FORMATO VERTICAL (SIN BARRAS DE AVANCE • NÚMEROS HEROICOS GIGANTES) ── */}
+                                                        <div className="space-y-2.5">
+                                                            {/* 1. Avance Anual (Arribita) */}
+                                                            <div 
+                                                                className="rounded-xl p-3 border transition-all relative overflow-hidden"
+                                                                style={{ background: 'rgba(2, 6, 23, 0.65)', borderColor: `${theme.hex}30` }}
+                                                            >
+                                                                <div className="flex items-center justify-between mb-0.5">
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                                                        <TrendingUp size={12} style={{ color: theme.hex }} /> Avance Anual
+                                                                    </span>
+                                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold border ${
+                                                                        objSummary.annualPercent >= 100 
+                                                                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                                                                            : objSummary.annualPercent > 0 
+                                                                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
+                                                                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                                                                    }`}>
+                                                                        {objSummary.annualPercent >= 100 ? 'Cumplido ✓' : objSummary.annualPercent > 0 ? 'En Curso' : '0%'}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Número Heroico Gigante */}
+                                                                <div className="my-1">
+                                                                    <span 
+                                                                        className="text-4xl font-black font-mono tracking-tight block leading-tight"
+                                                                        style={{ color: theme.hex, textShadow: `0 0 25px ${theme.hex}45` }}
+                                                                    >
+                                                                        {objSummary.annualPercent}%
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Subtexto P vs E */}
+                                                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
+                                                                    <span>Prog: <strong className="text-white">{objSummary.totalP}</strong></span>
+                                                                    <span>Ejec: <strong style={{ color: theme.hex }}>{objSummary.totalE}</strong></span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* 2. Avance Mensual (Noviembre / Periodo) (Abajito) */}
+                                                            <div 
+                                                                className="rounded-xl p-3 border transition-all relative overflow-hidden"
+                                                                style={{ background: 'rgba(2, 6, 23, 0.55)', borderColor: 'rgba(59, 130, 246, 0.25)' }}
+                                                            >
+                                                                <div className="flex items-center justify-between mb-0.5">
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5 truncate max-w-[140px]" title={periodLabel}>
+                                                                        <Calendar size={12} className="text-blue-400" /> Avance {selectedMonitorMonths.length === 1 ? MONTHS[selectedMonitorMonths[0]] : periodLabel}
+                                                                    </span>
+                                                                    <span className="text-[9px] text-slate-400 font-mono">
+                                                                        {selectedMonitorMonths.length === 1 ? `Mes ${selectedMonitorMonths[0] + 1}` : `${selectedMonitorMonths.length}m`}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Número Heroico Secundario */}
+                                                                <div className="my-1">
+                                                                    <span className="text-3xl font-black font-mono tracking-tight text-blue-400 block leading-tight drop-shadow-[0_0_20px_rgba(59,130,246,0.35)]">
+                                                                        {objSummary.monthPercent}%
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Subtexto P vs E */}
+                                                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
+                                                                    <span>Prog: <strong className="text-white">{objSummary.monthP}</strong></span>
+                                                                    <span>Ejec: <strong className="text-blue-400 font-bold">{objSummary.monthE}</strong></span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── Pie de tarjeta interactivo ── */}
+                                                    <div 
+                                                        className="mt-3.5 pt-2 border-t flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-white transition-colors relative z-10"
+                                                        style={{ borderColor: `${theme.hex}20` }}
+                                                    >
+                                                        <span className="text-[10px] text-slate-400 group-hover:text-slate-200">
+                                                            Matriz Operativa
+                                                        </span>
+                                                        <div className="flex items-center gap-1 text-[11px] font-bold" style={{ color: theme.hex }}>
+                                                            <span>Ver detalle</span>
+                                                            <ChevronRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* ── 4. MATRIZ CONSOLIDADA DE TODO EL PROGRAMA ANUAL ── */}
+                                <div className="space-y-4 pt-4 border-t border-slate-800">
+                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800 backdrop-blur-sm">
+                                        <div>
+                                            <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                                <Layers size={20} className="text-emerald-400" />
+                                                Matriz Consolidada de Control Total • Programa 2026
+                                            </h3>
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                Monitoreo unificado de todas las actividades: verifica en qué mes están marcadas/programadas (P) y si se están ejecutando (E).
+                                            </p>
+                                        </div>
+
+                                        {/* Filtros de la Matriz */}
+                                        <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                                            {/* Filtro por Objetivo */}
+                                            <select
+                                                value={masterFilterObj}
+                                                onChange={e => setMasterFilterObj(e.target.value)}
+                                                className="bg-slate-950 text-slate-200 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-medium"
+                                            >
+                                                <option value="all">Todos los Objetivos (9)</option>
+                                                {OBJECTIVES.map(o => (
+                                                    <option key={o.id} value={o.id}>{o.label.split(':')[0]}: {o.label.split(':')[1]?.trim()}</option>
+                                                ))}
+                                            </select>
+
+                                            {/* Filtro por Área */}
+                                            <select
+                                                value={masterFilterArea}
+                                                onChange={e => setMasterFilterArea(e.target.value)}
+                                                className="bg-slate-950 text-slate-200 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-medium"
+                                            >
+                                                <option value="all">Todas las Áreas</option>
+                                                <option value="SEGURIDAD">Seguridad</option>
+                                                <option value="SALUD">Salud Ocupacional</option>
+                                                <option value="MEDIO AMBIENTE">Medio Ambiente</option>
+                                            </select>
+
+                                            {/* Filtro por Mes */}
+                                            <select
+                                                value={masterFilterMonth}
+                                                onChange={e => setMasterFilterMonth(e.target.value)}
+                                                className="bg-slate-950 text-slate-200 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-medium"
+                                            >
+                                                <option value="all">Todo el Año (12 Meses)</option>
+                                                {MONTHS.map((m, idx) => (
+                                                    <option key={m} value={idx}>{m} (Mes {idx + 1})</option>
+                                                ))}
+                                            </select>
+
+                                            {/* Filtro por Estado */}
+                                            <select
+                                                value={masterFilterStatus}
+                                                onChange={e => setMasterFilterStatus(e.target.value)}
+                                                className="bg-slate-950 text-slate-200 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-medium"
+                                            >
+                                                <option value="all">Todos los Estados</option>
+                                                <option value="programmed">Con Programación (P &gt; 0)</option>
+                                                <option value="executed">Con Ejecución (E &gt; 0)</option>
+                                                <option value="completed">Cumplidas (E ≥ P)</option>
+                                                <option value="pending">Pendientes / En Brecha</option>
+                                            </select>
+
+                                            {/* Buscador de texto */}
+                                            <div className="relative">
+                                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Buscar actividad..."
+                                                    value={masterSearchQuery}
+                                                    onChange={e => setMasterSearchQuery(e.target.value)}
+                                                    className="bg-slate-950 text-white placeholder-slate-500 pl-8 pr-3 py-2 rounded-xl border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 w-44"
+                                                />
+                                            </div>
+
+                                            <span className="text-[11px] font-mono text-emerald-400 font-bold bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                                                {filteredMasterActivities.length} act.
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* TABLA MASTER CONSOLIDADA */}
+                                    <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden min-w-[1200px]">
+                                        <div className="grid grid-cols-[80px_24%_4%_repeat(12,1fr)_65px_65px_70px_70px] bg-slate-900/50 text-xs min-w-[1200px]">
+                                            {/* Encabezado Único */}
+                                            <div className="col-span-[19] grid grid-cols-subgrid bg-slate-950 text-slate-400 font-bold uppercase tracking-wider sticky top-0 z-20 border-b border-slate-800">
+                                                <div className="px-3 py-2 border-r border-slate-800 flex items-center justify-center text-[10px] bg-slate-950 sticky left-0 z-30">OBJ</div>
+                                                <div className="px-4 py-2 border-r border-slate-800 flex items-center text-[10px]">ACTIVIDAD / ESTRATEGIA</div>
+                                                <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px]">TIPO</div>
+                                                {MONTHS.map(m => (
+                                                    <div key={m} className={`px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[10px] ${m === MONTHS[activeMonitorMonth] ? 'text-emerald-400 font-black bg-emerald-950/30' : ''}`}>{m}</div>
+                                                ))}
+                                                <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-emerald-400">P ANUAL</div>
+                                                <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-blue-400">E ANUAL</div>
+                                                <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-amber-400">% ANUAL</div>
+                                                <div className="px-1 py-1 text-center border-r border-slate-800 flex items-center justify-center text-[9px] text-slate-300">ACCIONES</div>
+                                            </div>
+
+                                            {/* Filas de Actividades */}
+                                            {filteredMasterActivities.map((act) => {
+                                                return (
+                                                    <Fragment key={act.id}>
+                                                        {/* Columna OBJ (Span 2 filas) */}
+                                                        <div className="row-span-2 px-2 py-2 border-r border-b border-slate-800 flex flex-col items-center justify-center bg-slate-950 sticky left-0 z-20">
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-center ${act.objBg} ${act.objColor} border border-current/20`}>
+                                                                {act.objCode}
+                                                            </span>
+                                                            <span className="text-[8px] text-slate-500 font-mono mt-1 text-center leading-none">
+                                                                {act.area.slice(0, 3)}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Columna Descripción (Span 2 filas) */}
+                                                        <div className="row-span-2 px-4 py-2 border-r border-b border-slate-800 font-bold text-slate-200 flex items-center bg-slate-900/90">
+                                                            <div className="whitespace-normal leading-tight text-[11px] text-balance">
+                                                                <span className="text-white block">{act.desc}</span>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <span className="text-[9px] text-slate-500 font-medium">{act.objName}</span>
+                                                                    <span className="text-[8px] px-1 rounded bg-slate-800 text-slate-400 border border-slate-700">{act.area}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Fila P (Programado) */}
+                                                        <div className="h-[32px] font-black text-center bg-slate-800/50 text-emerald-400 border-r border-b border-slate-800 flex items-center justify-center">
+                                                            <span>P</span>
+                                                        </div>
+                                                        {act.programmed.map((pVal: number, mIdx: number) => {
+                                                            const isHighlight = mIdx === activeMonitorMonth;
+                                                            return (
+                                                                <div
+                                                                    key={`mp-${act.id}-${mIdx}`}
+                                                                    className={`h-[32px] border-r border-b border-slate-800/60 flex items-center justify-center text-xs transition-colors ${
+                                                                        pVal > 0
+                                                                            ? 'text-emerald-400 font-black bg-emerald-950/20'
+                                                                            : 'text-slate-800'
+                                                                    } ${isHighlight ? 'border-emerald-500/30' : ''}`}
+                                                                >
+                                                                    {pVal > 0 ? pVal : '-'}
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                        {/* Totales Anuales (Span 2 filas) */}
+                                                        <div className="row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-emerald-400 bg-emerald-950/20 text-xs">
+                                                            {act.totalP}
+                                                        </div>
+                                                        <div className="row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-blue-400 bg-blue-950/20 text-xs">
+                                                            {act.totalE}
+                                                        </div>
+                                                        <div className={`row-span-2 font-black text-center border-r border-b border-slate-800 flex items-center justify-center text-xs ${
+                                                            act.percent >= 90 ? 'text-emerald-400 bg-emerald-950/30' : act.percent >= 50 ? 'text-amber-400 bg-amber-950/30' : 'text-red-400 bg-red-950/20'
+                                                        }`}>
+                                                            {act.percent}%
+                                                        </div>
+                                                        <div className="row-span-2 border-r border-b border-slate-800 flex items-center justify-center p-1 bg-slate-900/60">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedObjId(act.objId);
+                                                                    setMobileView('content');
+                                                                }}
+                                                                className="px-2 py-1 rounded bg-slate-800 hover:bg-emerald-600 text-slate-300 hover:text-white text-[10px] font-bold transition-all border border-slate-700 hover:border-emerald-500"
+                                                                title="Abrir este objetivo con todo su detalle"
+                                                            >
+                                                                Ver Obj
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Fila E (Ejecutado) */}
+                                                        <div className="h-[32px] font-black text-center bg-slate-800/50 text-blue-400 border-r border-b border-slate-950 flex items-center justify-center">
+                                                            <span>E</span>
+                                                        </div>
+                                                        {act.executed.map((eVal: number, mIdx: number) => {
+                                                            const pVal = act.programmed[mIdx] || 0;
+                                                            const isPending = pVal > 0 && eVal === 0;
+                                                            return (
+                                                                <div
+                                                                    key={`me-${act.id}-${mIdx}`}
+                                                                    onClick={() => {
+                                                                        if (eVal > 0 && act.executionRecords && act.executionRecords[mIdx]) {
+                                                                            setSelectedRecords({
+                                                                                activity: act.desc,
+                                                                                month: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][mIdx],
+                                                                                records: act.executionRecords[mIdx]
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    className={`h-[32px] border-r border-b border-slate-950 flex items-center justify-center font-bold text-xs transition-all ${
+                                                                        eVal > 0
+                                                                            ? 'text-white bg-blue-500/20 hover:bg-blue-500/40 cursor-pointer shadow-sm'
+                                                                            : isPending
+                                                                            ? 'text-slate-800 bg-red-950/5'
+                                                                            : 'text-slate-800'
+                                                                    }`}
+                                                                    title={eVal > 0 ? `Ver evidencias registradas (${eVal})` : isPending ? 'Programado pero sin ejecución aún' : 'Sin actividad'}
+                                                                >
+                                                                    {eVal > 0 ? eVal : '-'}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </Fragment>
+                                                );
+                                            })}
+
+                                            {/* FILA DE TOTALES CONSOLIDADOS (F-SIG-023 OFICIAL) */}
+                                            {(() => {
+                                                const totalsP = new Array(12).fill(0);
+                                                const totalsE = new Array(12).fill(0);
+                                                const totalsA = new Array(12).fill(0);
+                                                const totalsFulfilled = new Array(12).fill(0);
+                                                let grandP = 0;
+                                                let grandE = 0;
+                                                let grandA = 0;
+                                                let grandFulfilled = 0;
+
+                                                filteredMasterActivities.forEach(act => {
+                                                    for (let i = 0; i < 12; i++) {
+                                                        const p = act.programmed[i] || 0;
+                                                        const e = act.executed[i] || 0;
+                                                        const f = Math.min(p, e);
+                                                        const a = Math.max(0, e - p);
+                                                        totalsP[i] += p;
+                                                        totalsE[i] += e;
+                                                        totalsA[i] += a;
+                                                        totalsFulfilled[i] += f;
+
+                                                        grandP += p;
+                                                        grandE += e;
+                                                        grandA += a;
+                                                        grandFulfilled += f;
+                                                    }
+                                                });
+
+                                                const grandPct = grandP > 0 ? Math.round((grandFulfilled / grandP) * 100) : 0;
+
+                                                return (
+                                                    <div className="col-span-[19] grid grid-cols-[80px_24%_4%_repeat(12,1fr)_65px_65px_70px_70px] bg-slate-950 border-t-2 border-emerald-500/60 shadow-[0_-10px_20px_rgba(0,0,0,0.4)] text-xs z-30 sticky bottom-0">
+                                                        <div className="row-span-4 col-span-2 px-4 py-2 border-r border-slate-800 font-black text-emerald-400 flex items-center justify-between bg-slate-950 sticky left-0 z-30">
+                                                            <div className="uppercase tracking-widest text-xs flex items-center gap-2">
+                                                                <BarChart2 size={16} className="text-emerald-400" />
+                                                                <span>TOTAL CONSOLIDADO DEL PROGRAMA</span>
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-500 font-mono">F-SIG-023</span>
+                                                        </div>
+
+                                                        {/* Total P Row */}
+                                                        <div className="h-[36px] font-black text-center bg-emerald-950/40 text-emerald-500 border-r border-b border-emerald-900/50 flex items-center justify-center">
+                                                            P
+                                                        </div>
+                                                        {totalsP.map((c, i) => (
+                                                            <div key={`gtp-${i}`} className="h-[36px] font-black border-r border-b border-emerald-900/50 flex items-center justify-center bg-emerald-950/20 text-emerald-400 text-xs">
+                                                                {c}
+                                                            </div>
+                                                        ))}
+                                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-emerald-400 bg-emerald-950/30 text-sm">{grandP}</div>
+                                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-blue-400 bg-blue-950/30 text-sm">{grandE}</div>
+                                                        <div className="row-span-4 font-black text-center border-r border-slate-800 flex items-center justify-center text-amber-400 bg-amber-950/30 text-sm">{grandPct}%</div>
+                                                        <div className="row-span-4 border-r border-slate-800 flex items-center justify-center p-1 bg-slate-950 text-[9px] text-slate-500 font-bold text-center">
+                                                            GENERAL
+                                                        </div>
+
+                                                        {/* Total E Row */}
+                                                        <div className="h-[36px] font-black text-center bg-blue-950/40 text-blue-500 border-r border-b border-blue-900/50 flex items-center justify-center">
+                                                            E
+                                                        </div>
+                                                        {totalsE.map((c, i) => (
+                                                            <div key={`gte-${i}`} className="h-[36px] font-black border-r border-b border-blue-900/50 flex items-center justify-center bg-blue-950/20 text-blue-400 text-xs">
+                                                                {c}
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Total A Row */}
+                                                        <div className="h-[36px] font-black text-center bg-purple-950/40 text-purple-500 border-r border-b border-purple-900/50 flex items-center justify-center">
+                                                            A
+                                                        </div>
+                                                        {totalsA.map((c, i) => (
+                                                            <div key={`gta-${i}`} className="h-[36px] font-black border-r border-b border-purple-900/50 flex items-center justify-center bg-purple-950/20 text-purple-400 text-xs">
+                                                                {c > 0 ? c : '-'}
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Total % Row */}
+                                                        <div className="h-[36px] font-black text-center bg-amber-950/40 text-amber-500 border-r border-amber-900/50 flex items-center justify-center">
+                                                            %
+                                                        </div>
+                                                        {totalsP.map((p, i) => {
+                                                            const pct = p > 0 ? Math.round((totalsFulfilled[i] / p) * 100) : 0;
+                                                            return (
+                                                                <div key={`gtpct-${i}`} className="h-[36px] font-black border-r border-amber-900/50 flex items-center justify-center bg-amber-950/20 text-amber-400 text-xs">
+                                                                    {p > 0 ? `${pct}%` : '-'}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        {filteredMasterActivities.length === 0 && (
+                                            <div className="p-12 text-center text-slate-500">
+                                                <FileSpreadsheet size={48} className="mx-auto mb-4 opacity-50" />
+                                                <p className="text-sm font-bold text-slate-400">No se encontraron actividades con los filtros seleccionados.</p>
+                                                <p className="text-xs mt-1">Prueba cambiando el objetivo, área o quitando los términos de búsqueda.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Barra Superior de Retorno al Control Total y Navegación */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800 backdrop-blur-sm shadow-md">
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setSelectedObjId('all')}
+                                            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                                        >
+                                            <LayoutDashboard size={15} />
+                                            <span>← Volver al Control Total Anual</span>
+                                        </button>
+                                        <span className="text-slate-600">|</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-slate-400 font-medium">Objetivo actual:</span>
+                                            <span className="text-xs font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                                                {currentObj?.label}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Selector Rápido de Objetivos */}
+                                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase mr-1">Ir a:</span>
+                                        {OBJECTIVES.map(o => (
+                                            <button
+                                                key={o.id}
+                                                onClick={() => setSelectedObjId(o.id)}
+                                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all ${
+                                                    selectedObjId === o.id
+                                                        ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                                                        : 'bg-slate-950 hover:bg-slate-800 text-slate-400 border border-slate-800/80'
+                                                }`}
+                                            >
+                                                {o.id.replace('obj', 'OBJ ')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm overflow-hidden min-w-[1200px]">
                             {/* Grid Container ÚNICO */}
                             <div className="grid grid-cols-[25%_4%_repeat(12,1fr)_70px_70px_70px] bg-slate-900/50 text-xs min-w-[1200px]">
 
@@ -1944,6 +3128,8 @@ export default function ProgramPage() {
                             )}
                         </div>
                     </div>
+                )}
+            </div>
                 </div>
             </div>
             {/* Traceability Modal */}
