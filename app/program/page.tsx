@@ -934,7 +934,7 @@ export default function ProgramPage() {
         const hasEvidence = (r: any): boolean => {
             if (!r) return false;
             // Check for PDF fields (singular and plural)
-            const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url || r.fileUrls || r.file_urls;
+            const pdf = r.evidencePdf || r.evidence_pdf || r.pdfUrl || r.pdf_url || r.fileUrl || r.file_url || r.evidenceUrl || r.evidence_url || r.fileUrls || r.file_urls;
             
             if (pdf) {
                 if (typeof pdf === 'string' && pdf.trim().length > 10 && !pdf.includes('undefined') && !pdf.includes('null')) return true;
@@ -1338,7 +1338,7 @@ export default function ProgramPage() {
             }
         });
 
-        // 9. Map Simulacro Records (SEG 05 - obj10)
+        // 9. Map Simulacro Records (SEG 05 - obj10 / obj6)
         simulacroRecords.forEach(sim => {
             if (targetObjId !== 'obj6' && targetObjId !== 'obj10') return;
 
@@ -1346,8 +1346,10 @@ export default function ProgramPage() {
             if (m < 0 || m > 11 || !hasEvidence(sim)) return;
 
             for (const areaKey in grouped) {
-                // Fuzzy match for drill type
-                const match = findMatch(areaKey, sim.drillType || 'Simulacro');
+                // Match directly to the Simulacro activity
+                const match = Object.keys(grouped[areaKey]).find(desc => 
+                    desc.toLowerCase().includes('simulacro')
+                ) || findMatch(areaKey, sim.drillType || 'Simulacro');
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
@@ -1356,7 +1358,7 @@ export default function ProgramPage() {
             }
         });
 
-        // 10. Map Brigadista Records (SEG 06 - obj11)
+        // 10. Map Brigadista Records (SEG 06 - obj11) - strictly match conformacion de brigadas, never simulacros
         brigadistaRecords.forEach(bri => {
             if (targetObjId !== 'obj6' && targetObjId !== 'obj11') return;
 
@@ -1364,7 +1366,9 @@ export default function ProgramPage() {
             if (m < 0 || m > 11 || !hasEvidence(bri)) return;
 
             for (const areaKey in grouped) {
-                const match = findMatch(areaKey, bri.brigadistaType || 'Brigadista');
+                const match = Object.keys(grouped[areaKey]).find(desc => 
+                    desc.toLowerCase().includes('brigada') && !desc.toLowerCase().includes('simulacro')
+                );
                 if (match) {
                     grouped[areaKey][match].executed[m]++;
                     if (!grouped[areaKey][match].executionRecords[m]) grouped[areaKey][match].executionRecords[m] = [];
@@ -3640,9 +3644,9 @@ export default function ProgramPage() {
                                     <div className="flex items-center gap-3">
                                         {/* BOTÓN PDF */}
                                         {(() => {
-                                            const pdfUrl = rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || rec.evidenceUrl || rec.evidence_url ||
-                                                         (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf') ? rec.fileUrl : '') || 
-                                                         (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf') ? rec.file_url : '') ||
+                                            const pdfUrl = rec.pdf_url || rec.pdfUrl || rec.evidencePdf || rec.evidence_pdf || rec.evidenceUrl || rec.evidence_url ||
+                                                         (rec.fileUrl && (String(rec.fileUrl).toLowerCase().includes('.pdf') || String(rec.fileUrl).includes('drive.google.com')) ? rec.fileUrl : '') || 
+                                                         (rec.file_url && (String(rec.file_url).toLowerCase().includes('.pdf') || String(rec.file_url).includes('drive.google.com')) ? rec.file_url : '') ||
                                                          (rec.file_type && String(rec.file_type).toLowerCase().includes('pdf') ? (rec.fileUrl || rec.file_url) : '');
                                             
                                             if (pdfUrl) {
@@ -3694,9 +3698,9 @@ export default function ProgramPage() {
                                                 );
                                             }
                                             
-                                            const hasPdf = !!(rec.evidencePdf || rec.evidence_pdf || rec.pdfUrl || rec.evidenceUrl || rec.evidence_url ||
-                                                          (rec.fileUrl && String(rec.fileUrl).toLowerCase().includes('.pdf')) || 
-                                                          (rec.file_url && String(rec.file_url).toLowerCase().includes('.pdf')));
+                                            const hasPdf = !!(rec.pdf_url || rec.pdfUrl || rec.evidencePdf || rec.evidence_pdf || rec.evidenceUrl || rec.evidence_url ||
+                                                          (rec.fileUrl && (String(rec.fileUrl).toLowerCase().includes('.pdf') || String(rec.fileUrl).includes('drive.google.com'))) || 
+                                                          (rec.file_url && (String(rec.file_url).toLowerCase().includes('.pdf') || String(rec.file_url).includes('drive.google.com'))));
                                             
                                             if (!hasPdf) {
                                                 return (

@@ -87,7 +87,7 @@ export const INITIAL_USERS: Record<string, { password: string, name: string, rol
         "email": "bvega@casacontratistas.com",
         "phone": "+51900000000",
         "workspace": "Red Vial 6",
-        "deactivated": true
+        "deactivated": false
     },
     "gladis.aroste": {
         "password": "GAroste@2026",
