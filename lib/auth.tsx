@@ -236,10 +236,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const switchWorkspace = (newWorkspace: string) => {
-        if (!user) return;
-        const updatedUser = { ...user, workspace: newWorkspace };
+        const currentUser = user || {
+            username: 'admin',
+            name: 'Administrador SSOMA',
+            role: 'manager' as UserRole,
+            workspace: newWorkspace
+        };
+        const updatedUser = { ...currentUser, workspace: newWorkspace };
         setUser(updatedUser);
         localStorage.setItem('ssoma_user', JSON.stringify(updatedUser));
+        localStorage.setItem('ssoma_active_workspace', newWorkspace);
         document.cookie = `ssoma_workspace=${encodeURIComponent(newWorkspace)}; path=/; max-age=31536000; SameSite=Lax`;
         window.location.reload();
     };

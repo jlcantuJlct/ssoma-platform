@@ -111,9 +111,9 @@ export const DEFAULT_CASA_OBJECTIVES = [
     {
         id: 'casa_obj_8',
         codigo: 'OBJ 08',
-        objetivo_estrategico: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA',
-        perspectiva_casa: 'Revisión, evaluación y seguimiento periódico de la matriz de requisitos legales y normativos aplicables al proyecto (ISO 45001 / 14001: 6.1.3, 9.1.2).',
-        responsable: 'Jefe de SSOMA',
+        objetivo_estrategico: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en seguridad, salud ocupacional y medio ambiente.',
+        perspectiva_casa: 'Objetivo específico: Se realizará la revisión, evaluación y seguimiento periódico de la matriz de requisitos legales y normativos aplicables al proyecto.',
+        responsable: 'Jefe SSTMA',
         indicador: 'Cumplimiento de Requisitos Legales',
         formula: '% Cumpl. = (N° Requisitos ejecutados en el mes / N° Requisitos programado en el mes) * 100',
         meta: '100%',
@@ -124,14 +124,14 @@ export const DEFAULT_CASA_OBJECTIVES = [
     {
         id: 'casa_obj_9',
         codigo: 'OBJ 09',
-        objetivo_estrategico: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes',
-        perspectiva_casa: 'Implementación del seguimiento y cierre oportuno de acciones correctivas, preventivas, auditorías internas y revisión por la dirección (ISO 45001 / 14001: 9.2, 9.3, 10.2).',
-        responsable: 'Jefe Prevención Corporativo / Gerencia / Jefe SSOMA',
+        objetivo_estrategico: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías, incidentes y revisiones del sistema de gestión SSTMA.',
+        perspectiva_casa: 'Objetivo específico: Se implementará el seguimiento y cierre oportuno de las acciones correctivas, preventivas y oportunidades de mejora identificadas.',
+        responsable: 'Jefe SSTMA',
         indicador: 'Eficacia de Mejora Continua',
         formula: '% Mejora = (N° Acciones de mejora cerradas / N° Acciones programadas) * 100',
         meta: '≥ 90%',
         frecuencia: 'Mensual',
-        estrategia_acciones: 'Seguimiento mensual del plan de acción, investigaciones de incidentes y auditoría interna anual.',
+        estrategia_acciones: 'Seguimiento mensual del plan de acción y mejora continua.',
         matchedProgramId: 'obj9'
     }
 ];

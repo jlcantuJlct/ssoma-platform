@@ -13,10 +13,10 @@ async function ensureTable() {
     
     // Add location and focusedField columns if they don't exist
     try {
-        await db.execute(`ALTER TABLE presence_records ADD COLUMN location VARCHAR(255)`);
+        await db.execute(`ALTER TABLE presence_records ADD COLUMN IF NOT EXISTS location VARCHAR(255)`);
     } catch (e) {}
     try {
-        await db.execute(`ALTER TABLE presence_records ADD COLUMN focusedField VARCHAR(255)`);
+        await db.execute(`ALTER TABLE presence_records ADD COLUMN IF NOT EXISTS focusedField VARCHAR(255)`);
     } catch (e) {}
 }
 

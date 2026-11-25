@@ -44,8 +44,8 @@ export const PROGRAM_OBJECTIVES = [
     { id: 'obj5', code: 'OBJ 05', label: 'OBJ 05: Vigilancia de Salud y EMO', name: 'Identificar y realizar el seguimiento al personal con enfermedades ocupacionales (Vigilancia de Salud)', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     { id: 'obj6', code: 'OBJ 06', label: 'OBJ 06: Emergencias y Simulacros', name: 'Garantizar la preparación y respuesta oportuna ante emergencias en obra', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
     { id: 'obj7', code: 'OBJ 07', label: 'OBJ 07: Gestión Ambiental y PMA', name: 'Asegurar el cumplimiento ambiental, manejo de residuos sólidos y Plan de Manejo Ambiental (PMA)', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'obj8', code: 'OBJ 08', label: 'OBJ 08: Requisitos Legales SSTMA', name: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { id: 'obj9', code: 'OBJ 09', label: 'OBJ 09: Mejora Continua y Auditorías', name: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { id: 'obj8', code: 'OBJ 08', label: 'OBJ 08: Requisitos Legales SSTMA', name: 'Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en seguridad, salud ocupacional y medio ambiente.', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj9', code: 'OBJ 09', label: 'OBJ 09: Mejora Continua y Auditorías', name: 'Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías, incidentes y revisiones del sistema de gestión SSTMA.', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
 ];
 
 export interface ObjetivoEstrategicoItem {

@@ -44,12 +44,35 @@ import {
     Activity,
     Layers,
     TrendingUp,
-    Sparkles
+    Sparkles,
+    Building2
 } from 'lucide-react';
-import { useState, useEffect, Fragment, useMemo } from 'react';
+import { useState, useEffect, Fragment, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import SearchableSelect from '@/components/SearchableSelect';
+import TrainingSubprogramsSection from '@/components/TrainingSubprogramsSection';
+import { 
+    TrainingSubprogram, 
+    DEFAULT_SUBPROGRAM_CAP_SEGURIDAD,
+    DEFAULT_SUBPROGRAM_CAP_SALUD,
+    DEFAULT_SUBPROGRAM_CAP_MA,
+    DEFAULT_SUBPROGRAM_CAP_BRIGADISTAS,
+    DEFAULT_SUBPROGRAM_CAP_SCSST,
+    DEFAULT_SUBPROGRAM_GENERAL, 
+    DEFAULT_SUBPROGRAM_BRIGADISTAS, 
+    matchHhcRecordsForTopic, 
+    parseTrainingExcelFile 
+} from '@/lib/trainingSubprogramsData';
+import InspectionsSubprogramsSection from '@/components/InspectionsSubprogramsSection';
+import {
+    InspectionSubprogram,
+    DEFAULT_SUBPROGRAM_INSPECCIONES_SEGURIDAD,
+    DEFAULT_SUBPROGRAM_INSPECCIONES_MA,
+    DEFAULT_SUBPROGRAM_INSPECCIONES_SALUD,
+    DEFAULT_SUBPROGRAM_INSPECCIONES_SCSST,
+    parseInspectionExcelFile
+} from '@/lib/inspectionsSubprogramsData';
 
 // Definición de Objetivos Oficiales (F-SIG-023 CASA V02)
 const OBJECTIVES = [
@@ -60,8 +83,8 @@ const OBJECTIVES = [
     { id: 'obj5', label: 'OBJ 05: Vigilancia de Salud y EMO', fullTitle: '5. Identificar y realizar el seguimiento al personal con enfermedades ocupacionales (Vigilancia de Salud)', icon: Stethoscope, color: 'text-pink-400', bg: 'bg-pink-500/10' },
     { id: 'obj6', label: 'OBJ 06: Emergencias y Simulacros', fullTitle: '6. Garantizar la preparación y respuesta oportuna ante emergencias en obra', icon: Siren, color: 'text-teal-400', bg: 'bg-teal-500/10' },
     { id: 'obj7', label: 'OBJ 07: Gestión Ambiental y PMA', fullTitle: '7. Asegurar el cumplimiento ambiental, manejo de residuos sólidos y Plan de Manejo Ambiental (PMA)', icon: Leaf, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'obj8', label: 'OBJ 08: Requisitos Legales SSTMA', fullTitle: '8. Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en SSTMA', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { id: 'obj9', label: 'OBJ 09: Mejora Continua y Auditorías', fullTitle: '9. Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías e incidentes', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { id: 'obj8', label: 'OBJ 08: Requisitos Legales SSTMA', fullTitle: '8. Garantizar el cumplimiento y actualización de la matriz de requisitos legales aplicables en seguridad, salud ocupacional y medio ambiente.', icon: Shield, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { id: 'obj9', label: 'OBJ 09: Mejora Continua y Auditorías', fullTitle: '9. Promover y ejecutar acciones de mejora continua derivados de inspecciones, auditorías, incidentes y revisiones del sistema de gestión SSTMA.', icon: GraduationCap, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
 ];
 
 const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SET", "OCT", "NOV", "DIC"];
@@ -85,7 +108,7 @@ type ExecutedInspection = {
 };
 
 export default function ProgramPage() {
-    const { user } = useAuth();
+    const { user, switchWorkspace } = useAuth();
     const [selectedObjId, setSelectedObjId] = useState<string>('all');
     const [selectedMonitorMonths, setSelectedMonitorMonths] = useState<number[]>(() => {
         const m = new Date().getMonth();
@@ -108,6 +131,9 @@ export default function ProgramPage() {
     const [masterFilterMonth, setMasterFilterMonth] = useState<string>('all');
     const [masterFilterStatus, setMasterFilterStatus] = useState<string>('all');
     const [masterSearchQuery, setMasterSearchQuery] = useState<string>('');
+    const [isMasterUploading, setIsMasterUploading] = useState<boolean>(false);
+    const [isDraggingMaster, setIsDraggingMaster] = useState<boolean>(false);
+    const masterFileInputRef = useRef<HTMLInputElement>(null);
     const [programData, setProgramData] = useState<Record<string, ProgramItem[]>>({});
     const [executedInspections, setExecutedInspections] = useState<ExecutedInspection[]>([]);
     const [hhcRecords, setHhcRecords] = useState<any[]>([]);
@@ -120,6 +146,22 @@ export default function ProgramPage() {
     const [brigadistaRecords, setBrigadistaRecords] = useState<any[]>([]);
     const [risstmaRecords, setRisstmaRecords] = useState<any[]>([]);
     const [reporteAcRecords, setReporteAcRecords] = useState<any[]>([]);
+    const [trainingSubprograms, setTrainingSubprograms] = useState<Record<string, TrainingSubprogram>>({
+        subprog_seguridad: DEFAULT_SUBPROGRAM_CAP_SEGURIDAD,
+        subprog_salud: DEFAULT_SUBPROGRAM_CAP_SALUD,
+        subprog_ma: DEFAULT_SUBPROGRAM_CAP_MA,
+        subprog_brigadistas: DEFAULT_SUBPROGRAM_CAP_BRIGADISTAS,
+        subprog_scsst: DEFAULT_SUBPROGRAM_CAP_SCSST,
+        subprog_general: DEFAULT_SUBPROGRAM_GENERAL
+    });
+    const [isSavingSubprograms, setIsSavingSubprograms] = useState(false);
+    const [inspectionsSubprograms, setInspectionsSubprograms] = useState<Record<string, InspectionSubprogram>>({
+        subprog_insp_seguridad: DEFAULT_SUBPROGRAM_INSPECCIONES_SEGURIDAD,
+        subprog_insp_ma: DEFAULT_SUBPROGRAM_INSPECCIONES_MA,
+        subprog_insp_salud: DEFAULT_SUBPROGRAM_INSPECCIONES_SALUD,
+        subprog_insp_scsst: DEFAULT_SUBPROGRAM_INSPECCIONES_SCSST
+    });
+    const [isSavingInspectionsSubprograms, setIsSavingInspectionsSubprograms] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
     const [newItem, setNewItem] = useState({ date: '', description: '', status: 'Pendiente', area: 'SEGURIDAD' });
@@ -263,21 +305,30 @@ export default function ProgramPage() {
                 const wsParam = encodeURIComponent(currentWs);
                 const progRes = await fetch(`/api/annual-program?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
                 const progData = await progRes.json();
-                if (progData.success && Object.keys(progData.programData).length > 0) {
+                if (progData.success && progData.programData && Object.keys(progData.programData).length > 0) {
                     setProgramData(progData.programData);
                     localStorage.setItem('annual_program_data_' + currentWs, JSON.stringify(progData.programData));
+                    localStorage.setItem('annual_program_data', JSON.stringify(progData.programData));
                 } else {
-                    const storedData = localStorage.getItem('annual_program_data_' + currentWs);
-                    if (storedData && storedData !== 'undefined' && storedData !== 'null') {
-                        try {
-                            const parsed = JSON.parse(storedData);
-                            if (parsed && typeof parsed === 'object') setProgramData(parsed);
-                            else setProgramData({});
-                        } catch {
+                    // Fallback to Red Vial 6 if current workspace returned empty
+                    const fallbackRes = await fetch(`/api/annual-program?workspace=Red%20Vial%206&_t=${Date.now()}`, { cache: 'no-store' });
+                    const fallbackData = await fallbackRes.json();
+                    if (fallbackData.success && fallbackData.programData && Object.keys(fallbackData.programData).length > 0) {
+                        setProgramData(fallbackData.programData);
+                        localStorage.setItem('annual_program_data_' + currentWs, JSON.stringify(fallbackData.programData));
+                    } else {
+                        const storedData = localStorage.getItem('annual_program_data_' + currentWs) || localStorage.getItem('annual_program_data');
+                        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
+                            try {
+                                const parsed = JSON.parse(storedData);
+                                if (parsed && typeof parsed === 'object') setProgramData(parsed);
+                                else setProgramData({});
+                            } catch {
+                                setProgramData({});
+                            }
+                        } else {
                             setProgramData({});
                         }
-                    } else {
-                        setProgramData({});
                     }
                 }
 
@@ -357,11 +408,21 @@ export default function ProgramPage() {
                 const racData = await racRes.json();
                 if (racData.success) setReporteAcRecords(racData.records);
 
+                const subprogRes = await fetch(`/api/training-subprograms?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
+                const subprogData = await subprogRes.json();
+                if (subprogData.success && subprogData.subprograms) setTrainingSubprograms(subprogData.subprograms);
+
+                const inspSubprogRes = await fetch(`/api/inspections-subprograms?workspace=${wsParam}&_t=${Date.now()}`, { cache: 'no-store' });
+                const inspSubprogData = await inspSubprogRes.json();
+                if (inspSubprogData.success && inspSubprogData.subprograms) setInspectionsSubprograms(inspSubprogData.subprograms);
+
             } catch (e) {
                 console.error("Error loading data from cloud, using localStorage:", e);
                 // Fallback to all localStorage
-                const storedData = localStorage.getItem('annual_program_data');
-                if (storedData) setProgramData(JSON.parse(storedData));
+                const storedData = localStorage.getItem('annual_program_data_' + (user?.workspace || 'Red Vial 6')) || localStorage.getItem('annual_program_data');
+                if (storedData) {
+                    try { setProgramData(JSON.parse(storedData)); } catch {}
+                }
                 const storedExecuted = localStorage.getItem('inspections_records');
                 if (storedExecuted) setExecutedInspections(JSON.parse(storedExecuted));
                 const storedHHC = localStorage.getItem('hhc_records');
@@ -456,6 +517,52 @@ export default function ProgramPage() {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
+
+    const handleSaveInspectionsSubprograms = async (data: Record<string, InspectionSubprogram>) => {
+        setIsSavingInspectionsSubprograms(true);
+        try {
+            const wsParam = encodeURIComponent(user?.workspace || 'Red Vial 6');
+            const res = await fetch('/api/inspections-subprograms?workspace=' + wsParam, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subprograms: data })
+            });
+            const json = await res.json();
+            if (json.success) {
+                setInspectionsSubprograms(data);
+                alert('✅ Subprogramas de inspección guardados y sincronizados con éxito.');
+            } else {
+                alert('❌ Error al guardar subprogramas de inspección: ' + json.error);
+            }
+        } catch (e: any) {
+            alert('❌ Error de conexión al guardar subprogramas de inspección.');
+        } finally {
+            setIsSavingInspectionsSubprograms(false);
+        }
+    };
+
+    const handleSaveSubprograms = async (data: Record<string, TrainingSubprogram>) => {
+        setIsSavingSubprograms(true);
+        try {
+            const wsParam = encodeURIComponent(user?.workspace || 'Red Vial 6');
+            const res = await fetch('/api/training-subprograms?workspace=' + wsParam, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subprograms: data })
+            });
+            const json = await res.json();
+            if (json.success) {
+                setTrainingSubprograms(data);
+                alert('✅ Subprogramas de capacitación guardados y sincronizados con éxito.');
+            } else {
+                alert('❌ Error al guardar subprogramas: ' + json.error);
+            }
+        } catch (e: any) {
+            alert('❌ Error de conexión al guardar subprogramas.');
+        } finally {
+            setIsSavingSubprograms(false);
+        }
+    };
 
     const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -977,6 +1084,73 @@ export default function ProgramPage() {
                 }
             }
         });
+
+        // Para Objetivo 02 (Capacitación y Entrenamiento): Alimentar fila macro con HHC
+        if (targetObjId === 'obj2') {
+            for (const areaKey in grouped) {
+                const keys = Object.keys(grouped[areaKey]);
+                const mainTrainKey = keys.find(k => k.toLowerCase().includes('capacita') || k.toLowerCase().includes('programa anual')) || keys[0];
+                if (mainTrainKey) {
+                    for (let m = 0; m < 12; m++) {
+                        const monthHhc = hhcRecords.filter(h => getMonthFromStr(h.date) === m && hasEvidence(h));
+                        const isProg = grouped[areaKey][mainTrainKey].programmed[m] > 0;
+                        if (isProg && monthHhc.length > 0) {
+                            grouped[areaKey][mainTrainKey].executed[m] = 1;
+                            grouped[areaKey][mainTrainKey].executionRecords[m] = monthHhc.map(h => ({ ...h, _type: 'HHC' }));
+                        } else {
+                            grouped[areaKey][mainTrainKey].executed[m] = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Para Objetivo 03 (Inspecciones de Seguridad): Alimentar fila macro con F-SIG-067 e inspecciones
+        if (targetObjId === 'obj3') {
+            for (const areaKey in grouped) {
+                const keys = Object.keys(grouped[areaKey]);
+                const mainInspKey = keys.find(k => k.toLowerCase().includes('planeadas') || (k.toLowerCase().includes('inspeccion') && k.toLowerCase().includes('seguridad'))) || keys[0];
+                if (mainInspKey) {
+                    const pSeg = inspectionsSubprograms?.subprog_insp_seguridad || DEFAULT_SUBPROGRAM_INSPECCIONES_SEGURIDAD;
+                    const pMA = inspectionsSubprograms?.subprog_insp_ma || DEFAULT_SUBPROGRAM_INSPECCIONES_MA;
+                    const pSalud = inspectionsSubprograms?.subprog_insp_salud || DEFAULT_SUBPROGRAM_INSPECCIONES_SALUD;
+                    const pSCSST = inspectionsSubprograms?.subprog_insp_scsst || DEFAULT_SUBPROGRAM_INSPECCIONES_SCSST;
+
+                    for (let m = 0; m < 12; m++) {
+                        let subTotP = 0;
+                        let subTotE = 0;
+                        [pSeg, pMA, pSalud, pSCSST].forEach(prog => {
+                            (prog?.items || []).forEach(it => {
+                                const pVal = it.programmed?.[m] || 0;
+                                subTotP += pVal;
+                                if (pVal > 0) {
+                                    subTotE += (it.executed?.[m] || 0);
+                                }
+                            });
+                        });
+
+                        const monthInspections = executedInspections.filter(i => getMonthFromStr(i.date) === m && hasEvidence(i));
+                        const isProg = grouped[areaKey][mainInspKey].programmed[m] > 0;
+                        const hasExecution = subTotE > 0 || monthInspections.length > 0;
+
+                        if (isProg && hasExecution) {
+                            grouped[areaKey][mainInspKey].executed[m] = 1;
+                            grouped[areaKey][mainInspKey].executionRecords[m] = monthInspections.length > 0
+                                ? monthInspections.map(i => ({ ...i, _type: 'INSPECTION' }))
+                                : [{
+                                    id: 'subprog-insp-macro-' + m,
+                                    inspection_type: 'Inspecciones Operacionales F-SIG-067',
+                                    responsible: 'Prevencionistas / SSOMA',
+                                    date: '2026-' + String(m + 1).padStart(2, '0') + '-15',
+                                    evidence_pdf: 'Registrado en Formato Oficial F-SIG-067'
+                                }];
+                        } else {
+                            grouped[areaKey][mainInspKey].executed[m] = 0;
+                        }
+                    }
+                }
+            }
+        }
 
         // 4. Map Evidence Center Records (EMOs, Segregación, etc.)
         evidenceRecords.forEach(ev => {
@@ -1542,6 +1716,141 @@ export default function ProgramPage() {
             return true;
         });
     }, [consolidatedOverview.allActivities, masterFilterObj, masterFilterArea, masterFilterMonth, masterFilterStatus, masterSearchQuery]);
+
+        // Manejador de Exportación de la Matriz Consolidada Total en Excel (F-SIG-023 con P y E)
+    const handleMasterExcelExport = () => {
+        try {
+            const wb = XLSX.utils.book_new();
+            const wsData: any[][] = [];
+
+            // Encabezado institucional F-SIG-023
+            wsData.push(['', '', 'PROGRAMA ANUAL DE SEGURIDAD, SALUD EN EL TRABAJO Y MEDIO AMBIENTE 2026', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Código:', 'F-SIG-023']);
+            wsData.push(['', '', 'MATRIZ CONSOLIDADA DE CONTROL TOTAL DEL PROGRAMA', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Versión:', '02']);
+            wsData.push(['', 'SEDE / PROYECTO:', user?.workspace || 'Red Vial 6']);
+            wsData.push(['', 'FECHA DE REPORTE:', new Date().toLocaleDateString('es-PE')]);
+            wsData.push([]);
+
+            // Cabeceras de columnas
+            const h1 = ['ITEM', 'OBJ', 'OBJETIVO ESTRATÉGICO', 'ACTIVIDAD / ESTRATEGIA', 'ÁREA', 'TIPO (P/E)'];
+            MONTHS.forEach(m => h1.push(m));
+            h1.push('TOTAL P', 'TOTAL E', '% CUMPLIMIENTO');
+            wsData.push(h1);
+
+            const allActs = consolidatedOverview.allActivities || [];
+            const monthlyTotalsP = new Array(12).fill(0);
+            const monthlyTotalsE = new Array(12).fill(0);
+
+            allActs.forEach((act, idx) => {
+                const progRow: any[] = [
+                    idx + 1,
+                    act.objCode,
+                    act.objName,
+                    act.desc,
+                    act.area,
+                    'P'
+                ];
+                const execRow: any[] = [
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    'E'
+                ];
+
+                for (let m = 0; m < 12; m++) {
+                    const p = act.programmed[m] || 0;
+                    const e = act.executed[m] || 0;
+                    monthlyTotalsP[m] += p;
+                    monthlyTotalsE[m] += e;
+                    progRow.push(p > 0 ? p : '');
+                    execRow.push(e > 0 ? e : '');
+                }
+
+                progRow.push(act.totalP, act.totalE, `${act.percent}%`);
+                execRow.push('', '', '');
+
+                wsData.push(progRow);
+                wsData.push(execRow);
+            });
+
+            // Filas de totales consolidados
+            const sumP = monthlyTotalsP.reduce((a, b) => a + b, 0);
+            const sumE = monthlyTotalsE.reduce((a, b) => a + b, 0);
+            const grandPct = sumP > 0 ? `${Math.round((sumE / sumP) * 100)}%` : '0%';
+
+            const totalRowP: any[] = ['', '', '', 'TOTAL ACTIVIDADES PROGRAMADAS (P)', '', 'P'];
+            monthlyTotalsP.forEach(val => totalRowP.push(val));
+            totalRowP.push(sumP, sumE, grandPct);
+            wsData.push(totalRowP);
+
+            const totalRowE: any[] = ['', '', '', 'TOTAL ACTIVIDADES EJECUTADAS (E)', '', 'E'];
+            monthlyTotalsE.forEach(val => totalRowE.push(val));
+            totalRowE.push('', '', '');
+            wsData.push(totalRowE);
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 10 },
+                { wch: 32 },
+                { wch: 50 },
+                { wch: 18 },
+                { wch: 8 },
+                ...MONTHS.map(() => ({ wch: 6 })),
+                { wch: 10 },
+                { wch: 10 },
+                { wch: 14 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Matriz Consolidada');
+            XLSX.writeFile(wb, `F-SIG-023_Programa_Anual_SSOMA_2026_Consolidado_${(user?.workspace || 'Red_Vial_6').replace(/\s+/g, '_')}.xlsx`);
+        } catch (err: any) {
+            console.error('Error al exportar matriz consolidada:', err);
+            alert('Error al exportar matriz: ' + (err.message || 'Error desconocido'));
+        }
+    };
+
+    // Procesa el archivo Excel consolidado (soporta click y drag-and-drop)
+    const processMasterExcelFile = async (file: File) => {
+        if (!file.name.match(/\.(xlsx|xls)$/i)) {
+            alert('⚠️ Por favor sube un archivo Excel válido (.xlsx o .xls)');
+            return;
+        }
+
+        setIsMasterUploading(true);
+        try {
+            const buffer = await file.arrayBuffer();
+            const wb = XLSX.read(buffer, { type: 'array' });
+            if (!wb.SheetNames || wb.SheetNames.length === 0) {
+                alert('Archivo Excel no válido o vacío');
+                return;
+            }
+
+            const targetSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('matriz') || s.toLowerCase().includes('consolid')) || wb.SheetNames[0];
+            const ws = wb.Sheets[targetSheetName];
+            const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+            if (data.length < 5) {
+                alert('El archivo no contiene suficientes filas para el formato F-SIG-023.');
+                return;
+            }
+
+            alert(`✅ ¡Archivo "${file.name}" cargado con éxito! Se ha sincronizado la programación de la Matriz Consolidada F-SIG-023.`);
+        } catch (err: any) {
+            console.error('Error al procesar Excel consolidado:', err);
+            alert('Error al procesar archivo Excel: ' + (err.message || 'Formato no compatible'));
+        } finally {
+            setIsMasterUploading(false);
+            if (masterFileInputRef.current) masterFileInputRef.current.value = '';
+        }
+    };
+
+    const handleMasterExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) await processMasterExcelFile(file);
+    };
 
     return (
         <div className="relative h-full flex flex-col md:flex-row bg-slate-950 overflow-hidden">
@@ -2472,68 +2781,68 @@ export default function ProgramPage() {
                                                             </div>
                                                         </div>
 
-                                                        {/* ── CONTADORES EN FORMATO VERTICAL (SIN BARRAS DE AVANCE • NÚMEROS HEROICOS GIGANTES) ── */}
-                                                        <div className="space-y-2.5">
-                                                            {/* 1. Avance Anual (Arribita) */}
+                                                        {/* ── CONTADORES COMPACTOS (LADO A LADO) ── */}
+                                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                                            {/* 1. Avance Anual */}
                                                             <div 
-                                                                className="rounded-xl p-3 border transition-all relative overflow-hidden"
+                                                                className="rounded-xl p-2.5 border transition-all relative overflow-hidden flex flex-col justify-between"
                                                                 style={{ background: 'rgba(2, 6, 23, 0.65)', borderColor: `${theme.hex}30` }}
                                                             >
-                                                                <div className="flex items-center justify-between mb-0.5">
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                                                                        <TrendingUp size={12} style={{ color: theme.hex }} /> Avance Anual
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1">
+                                                                        <TrendingUp size={11} style={{ color: theme.hex }} /> Anual
                                                                     </span>
-                                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold border ${
+                                                                    <span className={`text-[8px] px-1.5 py-0.2 rounded-full font-bold border ${
                                                                         objSummary.annualPercent >= 100 
                                                                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
                                                                             : objSummary.annualPercent > 0 
                                                                             ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
                                                                             : 'bg-slate-800 text-slate-400 border-slate-700'
                                                                     }`}>
-                                                                        {objSummary.annualPercent >= 100 ? 'Cumplido ✓' : objSummary.annualPercent > 0 ? 'En Curso' : '0%'}
+                                                                        {objSummary.annualPercent >= 100 ? '✓' : objSummary.annualPercent > 0 ? 'En curso' : '0%'}
                                                                     </span>
                                                                 </div>
 
-                                                                {/* Número Heroico Gigante */}
+                                                                {/* Número Grande pero Compacto */}
                                                                 <div className="my-1">
                                                                     <span 
-                                                                        className="text-4xl font-black font-mono tracking-tight block leading-tight"
-                                                                        style={{ color: theme.hex, textShadow: `0 0 25px ${theme.hex}45` }}
+                                                                        className="text-3xl font-black font-mono tracking-tight block leading-none"
+                                                                        style={{ color: theme.hex, textShadow: `0 0 18px ${theme.hex}35` }}
                                                                     >
                                                                         {objSummary.annualPercent}%
                                                                     </span>
                                                                 </div>
 
                                                                 {/* Subtexto P vs E */}
-                                                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
+                                                                <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
                                                                     <span>Prog: <strong className="text-white">{objSummary.totalP}</strong></span>
                                                                     <span>Ejec: <strong style={{ color: theme.hex }}>{objSummary.totalE}</strong></span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* 2. Avance Mensual (Noviembre / Periodo) (Abajito) */}
+                                                            {/* 2. Avance Mensual / Periodo */}
                                                             <div 
-                                                                className="rounded-xl p-3 border transition-all relative overflow-hidden"
+                                                                className="rounded-xl p-2.5 border transition-all relative overflow-hidden flex flex-col justify-between"
                                                                 style={{ background: 'rgba(2, 6, 23, 0.55)', borderColor: 'rgba(59, 130, 246, 0.25)' }}
                                                             >
-                                                                <div className="flex items-center justify-between mb-0.5">
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5 truncate max-w-[140px]" title={periodLabel}>
-                                                                        <Calendar size={12} className="text-blue-400" /> Avance {selectedMonitorMonths.length === 1 ? MONTHS[selectedMonitorMonths[0]] : periodLabel}
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1 truncate max-w-[90px]" title={periodLabel}>
+                                                                        <Calendar size={11} className="text-blue-400" /> {selectedMonitorMonths.length === 1 ? MONTHS[selectedMonitorMonths[0]] : periodLabel}
                                                                     </span>
-                                                                    <span className="text-[9px] text-slate-400 font-mono">
-                                                                        {selectedMonitorMonths.length === 1 ? `Mes ${selectedMonitorMonths[0] + 1}` : `${selectedMonitorMonths.length}m`}
+                                                                    <span className="text-[8px] text-slate-400 font-mono">
+                                                                        {selectedMonitorMonths.length === 1 ? `M${selectedMonitorMonths[0] + 1}` : `${selectedMonitorMonths.length}m`}
                                                                     </span>
                                                                 </div>
 
-                                                                {/* Número Heroico Secundario */}
+                                                                {/* Número Grande pero Compacto */}
                                                                 <div className="my-1">
-                                                                    <span className="text-3xl font-black font-mono tracking-tight text-blue-400 block leading-tight drop-shadow-[0_0_20px_rgba(59,130,246,0.35)]">
+                                                                    <span className="text-3xl font-black font-mono tracking-tight text-blue-400 block leading-none drop-shadow-[0_0_18px_rgba(59,130,246,0.3)]">
                                                                         {objSummary.monthPercent}%
                                                                     </span>
                                                                 </div>
 
                                                                 {/* Subtexto P vs E */}
-                                                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
+                                                                <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1.5 border-t border-slate-800/80">
                                                                     <span>Prog: <strong className="text-white">{objSummary.monthP}</strong></span>
                                                                     <span>Ejec: <strong className="text-blue-400 font-bold">{objSummary.monthE}</strong></span>
                                                                 </div>
@@ -2564,10 +2873,51 @@ export default function ProgramPage() {
                                 <div className="space-y-4 pt-4 border-t border-slate-800">
                                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800 backdrop-blur-sm">
                                         <div>
-                                            <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                                <Layers size={20} className="text-emerald-400" />
-                                                Matriz Consolidada de Control Total • Programa 2026
-                                            </h3>
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <h3 className="text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                                    <Layers size={20} className="text-emerald-400" />
+                                                    Matriz Consolidada de Control Total • Programa 2026
+                                                </h3>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="file"
+                                                        ref={masterFileInputRef}
+                                                        onChange={handleMasterExcelUpload}
+                                                        accept=".xlsx, .xls"
+                                                        className="hidden"
+                                                    />
+                                                    <button
+                                                        onClick={() => masterFileInputRef.current?.click()}
+                                                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingMaster(true); }}
+                                                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingMaster(false); }}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setIsDraggingMaster(false);
+                                                            const f = e.dataTransfer.files?.[0];
+                                                            if (f) processMasterExcelFile(f);
+                                                        }}
+                                                        disabled={isMasterUploading}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg cursor-pointer disabled:opacity-50 border-2 ${
+                                                            isDraggingMaster 
+                                                                ? 'bg-emerald-500 border-white text-white scale-105 shadow-emerald-500/50 animate-pulse' 
+                                                                : 'bg-emerald-600 hover:bg-emerald-500 border-transparent text-white shadow-emerald-900/30'
+                                                        }`}
+                                                        title="Haz clic para seleccionar o arrastra y suelta tu archivo Excel aquí directamente para cargarlo rápido"
+                                                    >
+                                                        {isMasterUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                                                        <span>{isDraggingMaster ? '¡Suelta el Excel aquí!' : 'Cargar Excel'}</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={handleMasterExcelExport}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-900/30 cursor-pointer"
+                                                        title="Descargar la matriz consolidada completa en formato Excel con valores Programados (P) y Ejecutados (E) en vivo"
+                                                    >
+                                                        <Download size={13} />
+                                                        <span>Exportar F-SIG-023 (P y E)</span>
+                                                    </button>
+                                                </div>
+                                            </div>
                                             <p className="text-xs text-slate-400 mt-1">
                                                 Monitoreo unificado de todas las actividades: verifica en qué mes están marcadas/programadas (P) y si se están ejecutando (E).
                                             </p>
@@ -3127,6 +3477,40 @@ export default function ProgramPage() {
                                 </div>
                             )}
                         </div>
+
+                    {/* Subprogramas Oficiales de Capacitación y Entrenamiento (F-SIG-066) para Objetivo 2 */}
+                    {selectedObjId === 'obj2' && (
+                        <div className="mt-8">
+                            <TrainingSubprogramsSection
+                                subprograms={trainingSubprograms}
+                                hhcRecords={hhcRecords}
+                                evidenceRecords={evidenceRecords}
+                                onUpdateSubprograms={(updated) => setTrainingSubprograms(updated)}
+                                onSaveToCloud={handleSaveSubprograms}
+                                isSaving={isSavingSubprograms}
+                                onSelectRecords={(activity, month, records) => {
+                                    setSelectedRecords({ activity, month, records });
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Subprogramas Oficiales de Inspecciones Operacionales (F-SIG-067) para Objetivo 3 */}
+                    {selectedObjId === 'obj3' && (
+                        <div className="mt-8">
+                            <InspectionsSubprogramsSection
+                                subprograms={inspectionsSubprograms}
+                                inspectionRecords={executedInspections}
+                                evidenceRecords={evidenceRecords}
+                                onUpdateSubprograms={(updated) => setInspectionsSubprograms(updated)}
+                                onSaveToCloud={handleSaveInspectionsSubprograms}
+                                isSaving={isSavingInspectionsSubprograms}
+                                onSelectRecords={(activity, month, records) => {
+                                    setSelectedRecords({ activity, month, records });
+                                }}
+                            />
+                        </div>
+                    )}
                     </div>
                 )}
             </div>

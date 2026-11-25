@@ -1,5 +1,77 @@
 [
   {
+    "id": "09e7e87c-6dc0-4198-8237-fb450e9e6f20",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ACTUALIZADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T18:27:14.776Z"
+  },
+  {
+    "id": "782aa3c5-6457-4319-9ceb-0f0666304179",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T18:26:18.339Z"
+  },
+  {
+    "id": "a64b1653-c4da-4b11-bb3f-6d0c712184b3",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2688",
+    "timestamp": "2026-11-24T18:25:35.960Z"
+  },
+  {
+    "id": "cfabeaf8-39d3-44d1-8a9f-4369a4124661",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión ordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T18:03:51.458Z"
+  },
+  {
+    "id": "795a7881-5596-40fe-95d2-acdb54ad5dc5",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Reunión extraordinaria del Subcomité de seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T18:00:09.251Z"
+  },
+  {
+    "id": "20dc3bd6-f7c4-44a0-9d5a-d4a568351cfc",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Acta de instalación del Subcomité de Seguridad y Salud en el Trabajo (SCSST)",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T17:58:51.197Z"
+  },
+  {
+    "id": "7fecf3d1-290a-4f12-8270-31000e5be0b8",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Capacitaciones Inspecciones de Seguridad y salud en el trabajo (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T17:35:37.228Z"
+  },
+  {
+    "id": "23889018-561a-461f-beb7-71ac0a254258",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA CREADA: Capacitaciones Notificación, investigación y reporte de incidentes (SCSST).",
+    "module": "PMA",
+    "details": "Objetivo: OBJ 01",
+    "timestamp": "2026-11-24T17:33:44.276Z"
+  },
+  {
+    "id": "08646a85-6159-4d10-8076-d86fc08bce19",
+    "user_name": "Jose Luis Cancino",
+    "action": "EVIDENCIA ELIMINADA",
+    "module": "PMA",
+    "details": "ID: 2263",
+    "timestamp": "2026-11-24T17:32:43.590Z"
+  },
+  {
     "id": "ea0836f7-91a1-41ad-a30f-a9cb02e3920c",
     "user_name": "Jose Luis Cancino",
     "action": "EVIDENCIA CREADA: Informe Trimestral III del SCSST (Julio – Septiembre)",

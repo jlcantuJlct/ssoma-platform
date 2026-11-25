@@ -23,7 +23,13 @@ export async function GET(req: NextRequest) {
         const cookieWs = req.cookies.get('ssoma_workspace')?.value;
         const queryWs = req.nextUrl.searchParams.get('workspace');
         const workspace = queryWs || (cookieWs ? decodeURIComponent(cookieWs) : 'Red Vial 6');
-        const records = await db.fetchAll('SELECT * FROM annual_program WHERE workspace = ?', [workspace]);
+        let records = await db.fetchAll('SELECT * FROM annual_program WHERE workspace = ?', [workspace]);
+        if (!records || records.length === 0) {
+            records = await db.fetchAll("SELECT * FROM annual_program WHERE workspace ILIKE ? OR workspace = 'Red Vial 6'", [`%${workspace}%`]);
+        }
+        if (!records || records.length === 0) {
+            records = await db.fetchAll("SELECT * FROM annual_program");
+        }
 
         // Convertir a formato de objeto { obj1: [...], obj2: [...], ... }
         const programData: Record<string, any[]> = {};
