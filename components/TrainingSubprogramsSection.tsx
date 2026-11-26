@@ -88,10 +88,10 @@ export default function TrainingSubprogramsSection({
         let matched: any[] = [];
         if (subprogKey === 'subprog_scsst') {
             // Alimentar estrictamente desde Control SCSST (evidenceRecords)
-            matched = matchScsstTrainingRecords(it.tema, it.item, mIdx, evidenceRecords);
+            matched = matchScsstTrainingRecords(it.tema, it.item, mIdx, evidenceRecords).map(r => ({ ...r, _type: 'EVIDENCE' }));
         } else {
             const isBrig = subprogKey === 'subprog_brigadistas';
-            matched = matchHhcRecordsForTopic(it.tema, it.item, isBrig, mIdx, hhcRecords);
+            matched = matchHhcRecordsForTopic(it.tema, it.item, isBrig, mIdx, hhcRecords).map(r => ({ ...r, _type: 'HHC' }));
         }
 
         const hasLiveRecords = matched.length > 0;

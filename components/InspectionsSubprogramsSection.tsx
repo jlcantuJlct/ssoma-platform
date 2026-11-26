@@ -79,9 +79,9 @@ export default function InspectionsSubprogramsSection({
         let matched: any[] = [];
         if (subprogKey === 'subprog_insp_scsst') {
             // Vincular estrictamente con las inspecciones registradas en Control SCSST (evidenceRecords)
-            matched = matchScsstInspectionRecords(mIdx, evidenceRecords);
+            matched = matchScsstInspectionRecords(mIdx, evidenceRecords).map(r => ({ ...r, _type: 'EVIDENCE' }));
         } else {
-            matched = matchInspectionRecordsForTopic(it.title, it.formCode, mIdx, inspectionRecords);
+            matched = matchInspectionRecordsForTopic(it.title, it.formCode, mIdx, inspectionRecords).map(r => ({ ...r, _type: 'INSPECTION' }));
         }
 
         const hasLiveRecords = matched.length > 0;
