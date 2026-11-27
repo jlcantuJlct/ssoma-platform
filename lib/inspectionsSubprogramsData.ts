@@ -301,9 +301,18 @@ export function matchInspectionRecordsForTopic(
     return records.filter(r => {
         const rawDate = r.date || r.fecha || r.created_at;
         if (!rawDate) return false;
-        const d = new Date(rawDate);
-        if (isNaN(d.getTime())) return false;
-        if (d.getMonth() !== monthIdx) return false;
+
+        // Extracción robusta de mes sin desfases por zona horaria UTC
+        let m = -1;
+        if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+            m = parseInt(rawDate.split('-')[1], 10) - 1;
+        } else if (typeof rawDate === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(rawDate)) {
+            m = parseInt(rawDate.split('/')[1], 10) - 1;
+        } else {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) m = d.getMonth();
+        }
+        if (m !== monthIdx) return false;
 
         const hayTitle = normalize(r.inspection_type || r.title || r.tipo || r.area || '');
         const hayCode = normalize(r.form_code || r.code || '');

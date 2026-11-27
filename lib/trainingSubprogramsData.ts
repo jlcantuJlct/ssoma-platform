@@ -729,6 +729,17 @@ function normalize(str: string): string {
 }
 
 /**
+ * Elimina prefijos comunes de temas para comparar el núcleo del tema
+ * Permite tolerar errores como 'Cap. Obligaría' vs 'Cap. Obligatoria'
+ */
+function cleanPrefix(s: string): string {
+    return (s || '')
+        .replace(/^(cap|capacitacion|charla|taller|induccion|entrenamiento)+/g, '')
+        .replace(/^(obligatoria|obligaria)+/g, '')
+        .replace(/^(cap|capacitacion|charla|taller|induccion|entrenamiento)+/g, '');
+}
+
+/**
  * Vincula registros de Control de HHC (asistencias a capacitaciones) con el tema programado
  */
 export function matchHhcRecordsForTopic(
@@ -741,22 +752,44 @@ export function matchHhcRecordsForTopic(
     if (!hhcRecords || hhcRecords.length === 0) return [];
 
     const normTopic = normalize(topicTema);
+    const coreTopic = cleanPrefix(normTopic);
 
     return hhcRecords.filter(hhc => {
+        // Excluir charlas operacionales (15 min / 5 min): no pertenecen al Programa Anual de Capacitaciones (1 hora)
+        const normTipo = normalize(hhc.tipo || '');
+        if (normTipo.includes('charla') || normTipo.includes('15min') || normTipo.includes('5min')) return false;
+
         const rawDate = hhc.date || hhc.fecha || hhc.created_at;
         if (!rawDate) return false;
-        const d = new Date(rawDate);
-        if (isNaN(d.getTime())) return false;
-        if (d.getMonth() !== monthIdx) return false;
+
+        // Extracción robusta de mes sin desfases por zona horaria UTC
+        let m = -1;
+        if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+            m = parseInt(rawDate.split('-')[1], 10) - 1;
+        } else if (typeof rawDate === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(rawDate)) {
+            m = parseInt(rawDate.split('/')[1], 10) - 1;
+        } else {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) m = d.getMonth();
+        }
+        if (m !== monthIdx) return false;
 
         const hayTema = normalize(hhc.tema || hhc.topic || hhc.capacitacion || hhc.actividad || '');
         if (!hayTema) return false;
 
         if (normTopic.includes(hayTema) || hayTema.includes(normTopic)) return true;
 
+        // Coincidencia por núcleo temático (elimina 'cap', 'obligatoria', 'obligaria', etc.)
+        const coreHayTema = cleanPrefix(hayTema);
+        if (coreHayTema && coreTopic && (coreTopic.includes(coreHayTema) || coreHayTema.includes(coreTopic))) return true;
+
         // Coincidencias temáticas inteligentes
+        // AST / ATS (Análisis de Trabajo Seguro / Análisis de Seguridad en el Trabajo)
+        const isAstTopic = normTopic.includes('ats') || normTopic.includes('ast') || normTopic.includes('analisisdetrabajo') || normTopic.includes('trabajoseguro');
+        const isAstRecord = hayTema.includes('ats') || hayTema.includes('ast') || hayTema.includes('analisisdetrabajo') || hayTema.includes('trabajoseguro');
+        if (isAstTopic && isAstRecord) return true;
+
         if (normTopic.includes('epp') && hayTema.includes('epp')) return true;
-        if (normTopic.includes('ats') && hayTema.includes('ats')) return true;
         if (normTopic.includes('iperc') && hayTema.includes('iperc')) return true;
         if (normTopic.includes('defensivo') && (hayTema.includes('defensivo') || hayTema.includes('manejo'))) return true;
         if (normTopic.includes('ergonomia') && hayTema.includes('ergonom')) return true;
