@@ -1440,7 +1440,7 @@ export default function ProgramPage() {
                     for (let m = 0; m < 12; m++) {
                         const recs = grouped[areaKey][acRowKey].executionRecords[m] || [];
                         const totalObservaciones = recs.reduce((sum, r) => sum + (Number(r.cantidad) || 1), 0);
-                        grouped[areaKey][acRowKey].executed[m] = totalObservaciones >= 10 ? 1 : 0;
+                        grouped[areaKey][acRowKey].executed[m] = totalObservaciones;
                     }
                 }
             }
