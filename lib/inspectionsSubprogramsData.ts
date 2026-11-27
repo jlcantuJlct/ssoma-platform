@@ -314,10 +314,10 @@ export function matchInspectionRecordsForTopic(
         }
         if (m !== monthIdx) return false;
 
-        const hayTitle = normalize(r.inspection_type || r.title || r.tipo || r.area || '');
+        const hayTitle = normalize(r.inspectionType || r.inspection_type || r.title || r.tipo || r.area || '');
         const hayCode = normalize(r.form_code || r.code || '');
 
-        if (hayTitle && normTopic.includes(hayTitle)) return true;
+        if (hayTitle && (normTopic.includes(hayTitle) || hayTitle.includes(normTopic))) return true;
         if (hayCode && normCode && (normCode.includes(hayCode) || hayCode.includes(normCode))) return true;
 
         if (normTopic.includes('maquinaria') && hayTitle.includes('maquinaria')) return true;
@@ -331,6 +331,14 @@ export function matchInspectionRecordsForTopic(
         if (normTopic.includes('residuo') && hayTitle.includes('residuo')) return true;
         if (normTopic.includes('antiderr') && hayTitle.includes('antiderr')) return true;
         if (normTopic.includes('scsst') && (hayTitle.includes('scsst') || hayTitle.includes('subcomite') || hayTitle.includes('comite'))) return true;
+        if (normTopic.includes('cocina') && (hayTitle.includes('cocina') || hayTitle.includes('comedor'))) return true;
+        if (normTopic.includes('topico') && hayTitle.includes('topico')) return true;
+        if (normTopic.includes('herramienta') && hayTitle.includes('herramienta')) return true;
+        if (normTopic.includes('taller') && hayTitle.includes('taller')) return true;
+        if (normTopic.includes('almacen') && hayTitle.includes('almacen')) return true;
+        if (normTopic.includes('senalizacion') && hayTitle.includes('senalizacion')) return true;
+        if (normTopic.includes('campamento') && hayTitle.includes('campamento')) return true;
+        if (normTopic.includes('estacion') && (hayTitle.includes('estacion') || hayTitle.includes('primerosauxilios'))) return true;
 
         return false;
     });
