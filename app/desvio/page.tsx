@@ -608,15 +608,80 @@ export default function DetourPage() {
                                     </div>
                                 </div>
 
+                                
+                                {/* MATRIZ POR TIPO DE DOCUMENTO (ESTILO CONTROL SCSST) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                                    {detourCategories.map((cat) => {
+                                        const catRecords = records.filter(r => {
+                                            const matchesDate = filterDate === "" || r.date === filterDate;
+                                            const matchesResp = filterResponsible === "" || (r.responsible?.toLowerCase() || "").includes(filterResponsible.toLowerCase());
+                                            const matchesLoc = filterLocation === "" || r.location === filterLocation;
+                                            const matchesCat = filterCategory === "" || r.category === filterCategory;
+                                            return r.category === cat.id && matchesDate && matchesResp && matchesLoc && matchesCat;
+                                        });
+                                        return (
+                                            <div key={cat.id} className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-all shadow-lg">
+                                                <div>
+                                                    <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-800/80">
+                                                        <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-tight leading-snug">{cat.label}</h4>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${catRecords.length > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>
+                                                            {catRecords.length}
+                                                        </span>
+                                                    </div>
+                                                    {catRecords.length === 0 ? (
+                                                        <p className="text-[10px] text-slate-600 italic py-4 text-center">Sin documentos registrados</p>
+                                                    ) : (
+                                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                                            {catRecords.map(r => (
+                                                                <div key={r.id} className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-col gap-1.5">
+                                                                    <div className="flex items-center justify-between text-[10px]">
+                                                                        <span className="font-mono font-bold text-slate-300">{r.date}</span>
+                                                                        <span className="text-slate-400 truncate max-w-[110px]" title={r.responsible}>{r.responsible}</span>
+                                                                    </div>
+                                                                    {r.location && <div className="text-[9px] text-emerald-400/90 font-semibold truncate">{r.location}</div>}
+                                                                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-800/60">
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {(r.images || []).map((fileUrl, idx) => (
+                                                                                <button
+                                                                                    key={idx}
+                                                                                    type="button"
+                                                                                    onClick={() => setPreviewFile({ url: fileUrl, type: fileUrl.toLowerCase().includes('.pdf') ? 'pdf' : 'image' })}
+                                                                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/15 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 rounded-md text-[9px] font-bold transition-colors"
+                                                                                >
+                                                                                    <FileText size={10} /> Ver Enlace {r.images.length > 1 ? idx + 1 : ''}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                        {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleDelete(r.id)}
+                                                                                className="p-1 text-red-400 hover:bg-red-500/20 rounded-md transition-colors"
+                                                                                title="Eliminar registro"
+                                                                            >
+                                                                                <Trash2 size={11} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
                                 <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
                                     <table className="w-full min-w-[800px] text-left text-xs">
                                         <thead className="uppercase font-black text-slate-500 border-b border-slate-800">
                                             <tr>
                                                 <th className="pb-3 pl-2">Fecha</th>
+                                                <th className="pb-3">Documento de Gestión</th>
                                                 <th className="pb-3">Responsable</th>
-                                                <th className="pb-3">Categoría</th>
                                                 <th className="pb-3">Lugar</th>
-                                                <th className="pb-3 text-center">Fotos</th>
+                                                <th className="pb-3 text-center">Hipervínculos / Archivos</th>
                                                 <th className="pb-3 text-center">Acciones</th>
                                             </tr>
                                         </thead>
@@ -629,8 +694,8 @@ export default function DetourPage() {
                                                 return matchesDate && matchesResp && matchesLoc && matchesCat;
                                             }).length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={6} className="py-12 text-center text-slate-600 italic">
-                                                        {records.length === 0 ? "No hay registros aún." : "No se encontraron registros con los filtros aplicados."}
+                                                    <td colSpan={6} className="py-10 text-center text-slate-600 italic">
+                                                        {records.length === 0 ? "No hay documentos de gestión registrados aún." : "No se encontraron registros con los filtros aplicados."}
                                                     </td>
                                                 </tr>
                                             ) : (
@@ -646,30 +711,34 @@ export default function DetourPage() {
                                                     <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
                                                         <td className="py-4 pl-2 font-mono text-white">{r.date}</td>
                                                         <td className="py-4">
+                                                            <span className="bg-blue-500/15 text-blue-300 border border-blue-500/20 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                                                                {detourCategories.find(c => c.id === r.category)?.label || r.category}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4">
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[8px] font-bold">{Utils.getInitials(r.responsible)}</div>
                                                                 <span className="truncate max-w-[120px]">{r.responsible}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="py-4">
-                                                            <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[9px] font-bold">
-                                                                {detourCategories.find(c => c.id === r.category)?.label || r.category}
-                                                            </span>
-                                                        </td>
                                                         <td className="py-4 font-medium">{r.location || '-'}</td>
                                                         <td className="py-4">
-                                                            <div className="flex justify-center -space-x-1.5">
-                                                                {r.images.slice(0, 3).map((img, i) => (
-                                                                    <div key={i} className="w-7 h-7 rounded-full border border-slate-900 bg-slate-800 overflow-hidden cursor-pointer hover:scale-110 shadow-lg" onClick={() => setPreviewFile({url: img, type:'image'})}>
-                                                                        <ImageIcon className="w-full h-full p-1 text-blue-400" />
-                                                                    </div>
+                                                            <div className="flex flex-wrap justify-center gap-1.5">
+                                                                {(r.images || []).map((img, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        type="button"
+                                                                        onClick={() => setPreviewFile({url: img, type: img.toLowerCase().includes('.pdf') ? 'pdf' : 'image'})}
+                                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-blue-600/30 text-blue-400 border border-slate-700 text-[10px] font-bold transition-colors"
+                                                                    >
+                                                                        <Eye size={11} /> Abrir {r.images.length > 1 ? i + 1 : 'Archivo'}
+                                                                    </button>
                                                                 ))}
-                                                                {r.images.length > 3 && <div className="w-7 h-7 rounded-full bg-slate-700 text-[8px] flex items-center justify-center font-bold">+{r.images.length - 3}</div>}
                                                             </div>
                                                         </td>
                                                         <td className="py-4">
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => Utils.handleBulkDownload([r], `Desvio_${r.date}`, setIsDownloading, setDownloadMsg, true)} className="p-1.5 hover:bg-blue-500/20 text-blue-400 rounded-lg border border-slate-700 transition-colors" title="Descargar Imágenes"><Download size={14}/></button>
+                                                                <button onClick={() => Utils.handleBulkDownload([r], `DocGestion_${r.date}`, setIsDownloading, setDownloadMsg, true)} className="p-1.5 hover:bg-blue-500/20 text-blue-400 rounded-lg border border-slate-700 transition-colors" title="Descargar Archivos"><Download size={14}/></button>
                                                                 <button onClick={() => generatePDF(r)} className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-slate-700 transition-colors" title="Generar PDF"><FileText size={14}/></button>
                                                                 {(user?.role === 'developer' || user?.role === 'manager' || user?.name === r.responsible) && (
                                                                     <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-500/20 text-red-500 rounded-lg border border-slate-700 transition-colors" title="Eliminar"><Trash2 size={14}/></button>
