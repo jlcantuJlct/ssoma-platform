@@ -379,7 +379,10 @@ export function matchScsstInspectionRecords(
 }
 
 /**
- * Parser inteligente de libros Excel para el formato oficial F-SIG-067
+ * Parser inteligente de libros Excel para el formato oficial F-SIG-067.
+ * Soporta tanto:
+ *  - Formato A (Oficial F-SIG-067): 1 columna por mes (ENE..DIC) y 3 filas por ítem (Responsable / Programado / Ejecutado)
+ *  - Formato B (Exportado Plataforma): 2 columnas por mes (P / E) y 1 fila por ítem
  */
 export function parseInspectionExcelFile(buffer: ArrayBuffer): {
     seguridad?: InspectionSubprogram;
@@ -395,7 +398,66 @@ export function parseInspectionExcelFile(buffer: ArrayBuffer): {
     let saludResult: InspectionSubprogram | undefined;
     let scsstResult: InspectionSubprogram | undefined;
 
-    const MONTH_LABELS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'];
+    const normText = (v: any) => String(v ?? '').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const MONTH_PATTERNS: string[][] = [
+        ['ENE', 'ENERO', 'JAN'],
+        ['FEB', 'FEBRERO'],
+        ['MAR', 'MARZO'],
+        ['ABR', 'ABRIL', 'APR'],
+        ['MAY', 'MAYO'],
+        ['JUN', 'JUNIO'],
+        ['JUL', 'JULIO'],
+        ['AGO', 'AGOSTO', 'AUG'],
+        ['SET', 'SEP', 'SETIEMBRE', 'SEPTIEMBRE'],
+        ['OCT', 'OCTUBRE'],
+        ['NOV', 'NOVIEMBRE'],
+        ['DIC', 'DICIEMBRE', 'DEC']
+    ];
+
+    const splitTitleAndCode = (raw: string): { title: string; formCode: string } => {
+        const cleaned = String(raw || '').trim();
+        const lines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length >= 2) {
+            return {
+                title: lines[0],
+                formCode: lines.slice(1).join(' ')
+            };
+        }
+        const codeMatch = cleaned.match(/(\(?F-(?:SIG|OP)-\d+.*|LISTA DE CHEQUEO.*)/i);
+        if (codeMatch && codeMatch.index && codeMatch.index > 3) {
+            return {
+                title: cleaned.slice(0, codeMatch.index).trim(),
+                formCode: codeMatch[1].trim()
+            };
+        }
+        return { title: cleaned, formCode: '' };
+    };
+
+    const detectAreaFromSheetName = (name: string): 'seguridad' | 'ma' | 'salud' | 'scsst' | null => {
+        const sLower = normText(name).toLowerCase();
+        if (sLower.includes('scsst') || sLower.includes('subcomit') || sLower.includes('comite')) return 'scsst';
+        if (sLower.includes('salud') || sLower.includes('medic') || sLower.includes('enferm')) return 'salud';
+        if (sLower.includes('medio') || sLower.includes('ambient') || /\bma\b/.test(sLower)) return 'ma';
+        if (sLower.includes('seguridad') || sLower.includes('prevencion') || sLower.includes('seg')) return 'seguridad';
+        return null;
+    };
+
+    const detectAreaFromItems = (items: InspectionSubprogramItem[]): 'seguridad' | 'ma' | 'salud' | 'scsst' => {
+        const allResp = items.map(i => normText(i.responsable)).join(' ');
+        const allTitles = items.map(i => normText(i.title)).join(' ');
+        if (items.length <= 2 && (allResp.includes('SCSST') || allTitles.includes('SCSST'))) return 'scsst';
+        if (allResp.includes('ENFERM') || allResp.includes('MEDIC') || allTitles.includes('BOTIQUIN') || allTitles.includes('TOPICO')) return 'salud';
+        if (allResp.includes('ASISTENTE MA') || allResp.includes('AMBIENT') || allTitles.includes('RESIDUOS') || allTitles.includes('ANTIDERRAME')) return 'ma';
+        return 'seguridad';
+    };
+
+    const toNum = (v: any): number => {
+        if (typeof v === 'number') return isNaN(v) ? 0 : v;
+        const s = String(v ?? '').trim();
+        if (!s || !/^\d+(\.\d+)?$/.test(s)) return 0;
+        const n = Number(s);
+        return isNaN(n) ? 0 : n;
+    };
 
     wb.SheetNames.forEach(sheetName => {
         const ws = wb.Sheets[sheetName];
@@ -403,123 +465,241 @@ export function parseInspectionExcelFile(buffer: ArrayBuffer): {
         const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
         if (data.length < 5) return;
 
-        let areaType: 'seguridad' | 'ma' | 'salud' | 'scsst' | null = null;
-        const sLower = sheetName.toLowerCase();
-        if (sLower.includes('scsst') || sLower.includes('subcomite')) areaType = 'scsst';
-        else if (sLower.includes('salud') || sLower.includes('medico') || sLower.includes('enferm')) areaType = 'salud';
-        else if (sLower.includes('medio') || sLower.includes('ambiente') || sLower.includes('ma')) areaType = 'ma';
-        else if (sLower.includes('seguridad') || sLower.includes('prevencion') || sLower.includes('insp')) areaType = 'seguridad';
-
-        let headerRowIdx = -1;
-        let monthColMap: { [m: number]: { p: number; e: number } } = {};
-
-        for (let r = 0; r < Math.min(data.length, 25); r++) {
+        // Extraer metadatos si existen (Sede y Fecha)
+        let sede = 'Red Vial 6 (Obras Nuevas - Zona Industrial Pisco)';
+        let fechaActualizacion = '29 de Noviembre 2026';
+        for (let r = 0; r < Math.min(data.length, 15); r++) {
             const row = data[r] || [];
-            for (let c = 0; c < row.length; c++) {
-                const cell = String(row[c] || '').trim().toUpperCase();
-                if (cell === 'ENE' || cell.startsWith('ENERO')) {
-                    headerRowIdx = r;
-                    break;
+            for (let c = 0; c < row.length - 1; c++) {
+                const label = normText(row[c]);
+                if (label.includes('SEDE') || label.includes('PROYECTO')) {
+                    const val = row.slice(c + 1).find(x => String(x ?? '').trim().length > 2);
+                    if (val) sede = String(val).trim();
+                } else if (label.includes('FECHA DE ACTUALIZ')) {
+                    const val = row.slice(c + 1).find(x => String(x ?? '').trim().length > 2);
+                    if (val) fechaActualizacion = String(val).trim();
                 }
             }
-            if (headerRowIdx !== -1) break;
         }
 
-        if (headerRowIdx !== -1) {
-            const headerRow = data[headerRowIdx] || [];
-            const subRow = data[headerRowIdx + 1] || [];
+        // Buscar la fila de encabezado con al menos 6 meses (ENE..DIC)
+        let headerRowIdx = -1;
+        let monthCols: number[] = new Array(12).fill(-1);
 
-            MONTH_LABELS.forEach((mLabel, mIdx) => {
-                for (let c = 0; c < headerRow.length; c++) {
-                    const cell = String(headerRow[c] || '').trim().toUpperCase();
-                    if (cell.includes(mLabel)) {
-                        monthColMap[mIdx] = { p: c, e: c + 1 };
+        for (let r = 0; r < Math.min(data.length, 30); r++) {
+            const row = data[r] || [];
+            const candidateCols = new Array(12).fill(-1);
+            let foundCount = 0;
+            for (let mIdx = 0; mIdx < 12; mIdx++) {
+                for (let c = 0; c < row.length; c++) {
+                    const cell = normText(row[c]);
+                    if (!cell) continue;
+                    if (MONTH_PATTERNS[mIdx].some(p => cell === p || cell.startsWith(p))) {
+                        candidateCols[mIdx] = c;
+                        foundCount++;
                         break;
                     }
                 }
-            });
+            }
+            if (foundCount >= 10) {
+                headerRowIdx = r;
+                monthCols = candidateCols;
+                break;
+            }
+        }
 
-            if (Object.keys(monthColMap).length < 12) {
-                const pCols: number[] = [];
-                for (let c = 0; c < subRow.length; c++) {
-                    if (String(subRow[c] || '').trim().toUpperCase() === 'P') {
-                        pCols.push(c);
-                    }
-                }
-                if (pCols.length >= 12) {
-                    pCols.slice(0, 12).forEach((pCol, idx) => {
-                        monthColMap[idx] = { p: pCol, e: pCol + 1 };
-                    });
+        if (headerRowIdx === -1) return;
+
+        const firstMonthCol = Math.min(...monthCols.filter(c => c !== -1));
+        const subRow = data[headerRowIdx + 1] || [];
+        const pCountInSubRow = subRow.filter(c => normText(c) === 'P').length;
+        const isSideBySidePE = pCountInSubRow >= 10;
+
+        // Verificar si es formato de 3 filas apiladas (Responsable / Programado / Ejecutado)
+        let hasStackedRows = false;
+        if (!isSideBySidePE) {
+            for (let r = headerRowIdx + 1; r < Math.min(data.length, headerRowIdx + 12); r++) {
+                const row = data[r] || [];
+                const leftCells = row.slice(0, Math.max(firstMonthCol + 1, 4)).map(normText);
+                if (leftCells.some(c => c === 'PROGRAMADO' || c === 'EJECUTADO' || c === 'RESPONSABLE')) {
+                    hasStackedRows = true;
+                    break;
                 }
             }
         }
 
-        if (Object.keys(monthColMap).length < 12) return;
-
         const parsedItems: InspectionSubprogramItem[] = [];
-        for (let r = headerRowIdx + 2; r < data.length; r++) {
-            const row = data[r];
-            if (!row || row.length === 0) continue;
 
-            const firstStr = String(row[0] || row[1] || '').trim().toUpperCase();
-            if (firstStr.includes('TOTAL') || firstStr.includes('PORCENTAJE')) break;
+        if (hasStackedRows) {
+            // ── FORMATO A: Oficial F-SIG-067 (Responsable / Programado / Ejecutado en filas apiladas) ──
+            let currentTitleRaw = '';
+            let currentResp = '';
+            let currentProg: number[] | null = null;
+            let currentExec: number[] | null = null;
 
-            let itemNum: number | null = null;
-            let title = '';
-            let formCode = '';
-            let responsable = '';
+            const flushItem = () => {
+                if (!currentTitleRaw || !currentProg) return;
+                if (currentTitleRaw.toLowerCase().includes('hora de la seguridad')) return;
+                const { title, formCode } = splitTitleAndCode(currentTitleRaw);
+                if (!title) return;
+                parsedItems.push({
+                    item: parsedItems.length + 1,
+                    title,
+                    formCode,
+                    responsable: currentResp || 'Prevencionistas',
+                    programmed: currentProg,
+                    executed: currentExec || new Array(12).fill(0)
+                });
+                currentTitleRaw = '';
+                currentResp = '';
+                currentProg = null;
+                currentExec = null;
+            };
 
-            for (let c = 0; c < 3; c++) {
-                const val = Number(row[c]);
-                if (!isNaN(val) && val > 0 && Number.isInteger(val)) {
-                    itemNum = val;
-                    title = String(row[c + 1] || '').trim();
-                    formCode = String(row[c + 2] || '').trim();
-                    responsable = String(row[c + 3] || '').trim();
+            for (let r = headerRowIdx + 1; r < data.length; r++) {
+                const row = data[r];
+                if (!row || row.length === 0) continue;
+
+                const rowJoinedLeft = row.slice(0, Math.max(firstMonthCol + 1, 4)).map(normText);
+                if (rowJoinedLeft.some(c => c.includes('TOTAL POR MES') || c.includes('CUMPLIMIENTO EN %'))) {
+                    flushItem();
                     break;
                 }
+
+                // Determinar el tipo de fila (Responsable / Programado / Ejecutado)
+                const isRespRow = rowJoinedLeft.some(c => c === 'RESPONSABLE');
+                const isProgRow = rowJoinedLeft.some(c => c === 'PROGRAMADO');
+                const isExecRow = rowJoinedLeft.some(c => c === 'EJECUTADO');
+
+                // Buscar texto de título en las columnas previas a las etiquetas
+                let rowTitle = '';
+                for (let c = 0; c < firstMonthCol; c++) {
+                    const rawCell = String(row[c] ?? '').trim();
+                    const up = normText(rawCell);
+                    if (rawCell.length > 4 && up !== 'RESPONSABLE' && up !== 'PROGRAMADO' && up !== 'EJECUTADO' && !/^\d+$/.test(up)) {
+                        rowTitle = rawCell;
+                        break;
+                    }
+                }
+
+                if (rowTitle && (isRespRow || isProgRow)) {
+                    // Nuevo ítem
+                    flushItem();
+                    currentTitleRaw = rowTitle;
+                } else if (isRespRow && !rowTitle) {
+                    // Fila de responsable vacía (bloque en blanco al final de la hoja)
+                    flushItem();
+                    continue;
+                }
+
+                if (!currentTitleRaw) continue;
+
+                if (isRespRow) {
+                    // Tomar el primer responsable no vacío bajo las columnas de meses
+                    for (let m = 0; m < 12; m++) {
+                        const col = monthCols[m];
+                        if (col === -1) continue;
+                        const val = String(row[col] ?? '').trim();
+                        const up = normText(val);
+                        if (val && up !== 'RESPONSABLE' && up !== '0') {
+                            currentResp = val;
+                            break;
+                        }
+                    }
+                } else if (isProgRow) {
+                    const prog = new Array(12).fill(0);
+                    for (let m = 0; m < 12; m++) {
+                        const col = monthCols[m];
+                        if (col !== -1) prog[m] = toNum(row[col]);
+                    }
+                    currentProg = prog;
+                } else if (isExecRow) {
+                    const exec = new Array(12).fill(0);
+                    for (let m = 0; m < 12; m++) {
+                        const col = monthCols[m];
+                        if (col !== -1) exec[m] = toNum(row[col]);
+                    }
+                    currentExec = exec;
+                    flushItem();
+                }
+            }
+            flushItem();
+        } else {
+            // ── FORMATO B: Columnas P/E lado a lado (Exportado desde Plataforma) ──
+            const monthColMap: { [m: number]: { p: number; e: number } } = {};
+            if (isSideBySidePE) {
+                const pCols: number[] = [];
+                for (let c = 0; c < subRow.length; c++) {
+                    if (normText(subRow[c]) === 'P') pCols.push(c);
+                }
+                pCols.slice(0, 12).forEach((pCol, idx) => {
+                    monthColMap[idx] = { p: pCol, e: pCol + 1 };
+                });
+            } else {
+                monthCols.forEach((col, idx) => {
+                    if (col !== -1) monthColMap[idx] = { p: col, e: col + 1 };
+                });
             }
 
-            if (!itemNum || !title) continue;
-            if (title.toLowerCase().includes('hora de la seguridad')) continue;
+            if (Object.keys(monthColMap).length < 10) return;
 
-            const prog: number[] = new Array(12).fill(0);
-            const exec: number[] = new Array(12).fill(0);
+            for (let r = headerRowIdx + (isSideBySidePE ? 2 : 1); r < data.length; r++) {
+                const row = data[r];
+                if (!row || row.length === 0) continue;
 
-            for (let m = 0; m < 12; m++) {
-                const pCol = monthColMap[m]?.p;
-                const eCol = monthColMap[m]?.e;
-                if (pCol !== undefined) {
-                    const rawP = Number(row[pCol]);
-                    prog[m] = !isNaN(rawP) ? rawP : 0;
+                const firstStr = normText(row[0] || row[1]);
+                if (firstStr.includes('TOTAL') || firstStr.includes('PORCENTAJE') || firstStr.includes('CUMPLIMIENTO')) break;
+
+                let itemNum: number | null = null;
+                let title = '';
+                let formCode = '';
+                let responsable = '';
+
+                for (let c = 0; c < 3; c++) {
+                    const val = Number(row[c]);
+                    if (!isNaN(val) && val > 0 && Number.isInteger(val)) {
+                        itemNum = val;
+                        title = String(row[c + 1] || '').trim();
+                        formCode = String(row[c + 2] || '').trim();
+                        responsable = String(row[c + 3] || '').trim();
+                        break;
+                    }
                 }
-                if (eCol !== undefined) {
-                    const rawE = Number(row[eCol]);
-                    exec[m] = !isNaN(rawE) ? rawE : 0;
+
+                if (!itemNum || !title) continue;
+                if (title.toLowerCase().includes('hora de la seguridad')) continue;
+
+                const prog = new Array(12).fill(0);
+                const exec = new Array(12).fill(0);
+                for (let m = 0; m < 12; m++) {
+                    const pCol = monthColMap[m]?.p;
+                    const eCol = monthColMap[m]?.e;
+                    if (pCol !== undefined) prog[m] = toNum(row[pCol]);
+                    if (eCol !== undefined) exec[m] = toNum(row[eCol]);
                 }
+
+                parsedItems.push({
+                    item: itemNum,
+                    title,
+                    formCode,
+                    responsable,
+                    programmed: prog,
+                    executed: exec
+                });
             }
-
-            parsedItems.push({
-                item: itemNum,
-                title,
-                formCode,
-                responsable,
-                programmed: prog,
-                executed: exec
-            });
         }
 
         if (parsedItems.length > 0) {
             totalItems += parsedItems.length;
-            const targetType = areaType || 'seguridad';
+            const targetType = detectAreaFromSheetName(sheetName) || detectAreaFromItems(parsedItems);
             const subprogram: InspectionSubprogram = {
                 id: targetType === 'scsst' ? 'subprog_insp_scsst' : targetType === 'salud' ? 'subprog_insp_salud' : targetType === 'ma' ? 'subprog_insp_ma' : 'subprog_insp_seguridad',
                 code: 'F-SIG-067',
                 version: '01',
                 title: `PROGRAMA ANUAL DE INSPECCIONES OPERACIONALES — ${targetType.toUpperCase()}`,
                 areaName: targetType === 'scsst' ? 'Subcomité SCSST' : targetType === 'salud' ? 'Lic. Enfermería' : targetType === 'ma' ? 'Asistente de Medio Ambiente' : 'Prevencionistas / SSOMA',
-                sede: 'Red Vial 6 (Obras Nuevas - Zona Industrial Pisco)',
-                fechaActualizacion: '29 de Noviembre 2026',
+                sede,
+                fechaActualizacion,
                 items: parsedItems
             };
 
