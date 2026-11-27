@@ -1749,7 +1749,7 @@ export default function ProgramPage() {
 
             // Encabezado institucional F-SIG-023
             wsData.push(['', '', 'PROGRAMA ANUAL DE SEGURIDAD, SALUD EN EL TRABAJO Y MEDIO AMBIENTE 2026', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Código:', 'F-SIG-023']);
-            wsData.push(['', '', 'MATRIZ CONSOLIDADA DE CONTROL TOTAL DEL PROGRAMA', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Versión:', '02']);
+            wsData.push(['', '', 'MATRIZ CONSOLIDADA DE CONTROL TOTAL DEL PROGRAMA', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Versión:', '03']);
             wsData.push(['', 'SEDE / PROYECTO:', user?.workspace || 'Red Vial 6']);
             wsData.push(['', 'FECHA DE REPORTE:', new Date().toLocaleDateString('es-PE')]);
             wsData.push([]);
@@ -1836,10 +1836,10 @@ export default function ProgramPage() {
         }
     };
 
-    // Procesa el archivo Excel consolidado (soporta click y drag-and-drop)
+    // Procesa el archivo Excel/CSV consolidado F-SIG-023 (soporta click y drag-and-drop)
     const processMasterExcelFile = async (file: File) => {
-        if (!file.name.match(/\.(xlsx|xls)$/i)) {
-            alert('⚠️ Por favor sube un archivo Excel válido (.xlsx o .xls)');
+        if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+            alert('⚠️ Por favor sube un archivo Excel o CSV válido (.xlsx, .xls o .csv)');
             return;
         }
 
@@ -1852,16 +1852,215 @@ export default function ProgramPage() {
                 return;
             }
 
-            const targetSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('matriz') || s.toLowerCase().includes('consolid')) || wb.SheetNames[0];
-            const ws = wb.Sheets[targetSheetName];
-            const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+            const norm = (v: any) => String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            const MONTH_NAMES_FULL = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SETIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const MONTH_NAMES_SHORT = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC'];
 
-            if (data.length < 5) {
-                alert('El archivo no contiene suficientes filas para el formato F-SIG-023.');
+            const getAreaForObj = (objNum: number, desc: string) => {
+                if (objNum === 5) return 'SALUD';
+                if (objNum === 7) return 'MEDIO AMBIENTE';
+                const d = norm(desc);
+                if (d.includes('EMO') || d.includes('SALUD') || d.includes('OCUPACIONAL') || d.includes('MEDICO')) return 'SALUD';
+                if (d.includes('AMBIENT') || d.includes('RESIDUO') || d.includes('PMA')) return 'MEDIO AMBIENTE';
+                return 'SEGURIDAD';
+            };
+
+            // Priorizar hojas que parezcan del programa, pero probar todas si es necesario
+            const prioritizedSheets = [
+                ...wb.SheetNames.filter(s => {
+                    const low = s.toLowerCase();
+                    return low.includes('programa') || low.includes('f-sig-023') || low.includes('matriz') || low.includes('consolid');
+                }),
+                ...wb.SheetNames.filter(s => {
+                    const low = s.toLowerCase();
+                    return !(low.includes('programa') || low.includes('f-sig-023') || low.includes('matriz') || low.includes('consolid'));
+                })
+            ];
+
+            let parsedByObj: Record<string, ProgramItem[]> = {};
+            let totalParsedItems = 0;
+
+            for (const sheetName of prioritizedSheets) {
+                const ws = wb.Sheets[sheetName];
+                const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                if (data.length < 5) continue;
+
+                const candidateByObj: Record<string, ProgramItem[]> = {};
+                let candidateCount = 0;
+
+                // Formato 1: F-SIG-023 Oficial (ITEM | OBJETIVO ESPECIFICO | ACTIVIDADES / ESTRATEGIAS | ... | ENERO..DICIEMBRE | S1..S53 | P/E)
+                const itemHeaderIdx = data.findIndex(row => Array.isArray(row) && row.some(c => norm(c) === 'ITEM') && row.some(c => norm(c).includes('ACTIVIDADES')));
+
+                if (itemHeaderIdx !== -1) {
+                    const headerRow = (data[itemHeaderIdx] || []).map(norm);
+                    const itemCol = headerRow.findIndex(c => c === 'ITEM');
+                    const descCol = headerRow.findIndex(c => c.includes('ACTIVIDADES'));
+                    const respCol = headerRow.findIndex(c => c.includes('RESPONSABLE'));
+                    const scheduleStartCol = Math.max(descCol + 1, respCol + 1, 5);
+
+                    // Buscar la fila de meses (ENERO..DICIEMBRE) debajo de ITEM
+                    let monthRowIdx = -1;
+                    for (let r = itemHeaderIdx + 1; r < Math.min(data.length, itemHeaderIdx + 5); r++) {
+                        const rowNorm = (data[r] || []).map(norm);
+                        if (rowNorm.includes('ENERO') && rowNorm.includes('FEBRERO')) {
+                            monthRowIdx = r;
+                            break;
+                        }
+                    }
+
+                    if (monthRowIdx !== -1) {
+                        const monthRow = data[monthRowIdx] || [];
+                        const weekRow = data[monthRowIdx + 1] || [];
+                        const peRow = data[monthRowIdx + 2] || [];
+                        const hasPeSubRow = peRow.some(c => norm(c) === 'P' || norm(c) === 'E');
+                        const dataStartRow = hasPeSubRow ? monthRowIdx + 3 : monthRowIdx + 1;
+
+                        const colToMonth: Record<number, number> = {};
+                        let curMonth = -1;
+                        let maxCol = scheduleStartCol;
+                        for (let c = scheduleStartCol; c < monthRow.length; c++) {
+                            const cellM = norm(monthRow[c]);
+                            const mIdx = MONTH_NAMES_FULL.findIndex(m => cellM === m || (m === 'SETIEMBRE' && cellM === 'SEPTIEMBRE'));
+                            if (mIdx !== -1) curMonth = mIdx;
+                            const wk = norm(weekRow[c]);
+                            const prevWk = c > 0 ? norm(weekRow[c - 1]) : '';
+                            const pe = norm(peRow[c]);
+                            if (curMonth !== -1 && (pe === 'P' || pe === 'E' || wk.startsWith('S') || prevWk.startsWith('S'))) {
+                                colToMonth[c] = curMonth;
+                                maxCol = c;
+                            }
+                        }
+
+                        let currentObjNum = 0;
+                        let idSeq = Date.now();
+                        for (let r = dataStartRow; r < data.length; r++) {
+                            const row = data[r];
+                            if (!row || row.length <= descCol) continue;
+                            const col0 = norm(row[itemCol]);
+                            if (col0.startsWith('LEYENDA') || col0.startsWith('TABLERO')) break;
+                            if (/^\d+$/.test(col0)) currentObjNum = parseInt(col0, 10);
+                            if (currentObjNum < 1 || currentObjNum > 9) continue;
+
+                            const desc = String(row[descCol] || '').trim();
+                            if (!desc) continue;
+                            const responsible = respCol !== -1 ? String(row[respCol] || '').trim() : '';
+                            const objId = `obj${currentObjNum}`;
+                            const area = getAreaForObj(currentObjNum, desc);
+                            if (!candidateByObj[objId]) candidateByObj[objId] = [];
+
+                            const monthlyCounts = new Array(12).fill(0);
+                            for (let c = scheduleStartCol; c <= maxCol; c++) {
+                                const pe = hasPeSubRow ? norm(peRow[c]) : 'P';
+                                if (hasPeSubRow && pe === 'E') continue;
+                                const rawVal = String(row[c] ?? '').trim();
+                                if (rawVal && /^\d+$/.test(rawVal)) {
+                                    const m = colToMonth[c];
+                                    if (m !== undefined) monthlyCounts[m] += parseInt(rawVal, 10);
+                                }
+                            }
+
+                            monthlyCounts.forEach((count, mIdx) => {
+                                const mStr = String(mIdx + 1).padStart(2, '0');
+                                for (let k = 0; k < count; k++) {
+                                    candidateByObj[objId].push({
+                                        id: idSeq++,
+                                        date: `2026-${mStr}-15`,
+                                        description: desc,
+                                        status: 'Pendiente',
+                                        compliance: 0,
+                                        responsible,
+                                        area,
+                                        tipo: 'otro'
+                                    });
+                                    candidateCount++;
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    // Formato 2: Matriz Consolidada Exportada (OBJ | ACTIVIDAD | AREA | P/E | ENE..DIC)
+                    const headerIdx = data.findIndex(row => {
+                        if (!Array.isArray(row)) return false;
+                        const rn = row.map(norm);
+                        return rn.includes('ENE') && rn.includes('FEB') && rn.includes('DIC');
+                    });
+                    if (headerIdx !== -1) {
+                        const hdr = data[headerIdx].map(norm);
+                        const monthCols = MONTH_NAMES_SHORT.map(m => hdr.indexOf(m));
+                        const objCol = hdr.findIndex(h => h.includes('OBJ'));
+                        const descCol = hdr.findIndex(h => h.includes('ACTIVIDAD') || h.includes('DESC'));
+                        const areaCol = hdr.findIndex(h => h.includes('AREA'));
+                        const peCol = hdr.findIndex(h => h === 'P/E' || h === 'TIPO' || h === 'P / E');
+
+                        let lastObjNum = 0;
+                        let lastDesc = '';
+                        let lastArea = 'SEGURIDAD';
+                        let idSeq = Date.now();
+
+                        for (let r = headerIdx + 1; r < data.length; r++) {
+                            const row = data[r];
+                            if (!row) continue;
+                            const peVal = peCol !== -1 ? norm(row[peCol]) : 'P';
+                            if (peVal === 'E' || peVal.includes('EJECUT')) continue;
+
+                            const rawObj = objCol !== -1 ? norm(row[objCol]) : '';
+                            const objMatch = rawObj.match(/(\d+)/);
+                            if (objMatch) lastObjNum = parseInt(objMatch[1], 10);
+                            const rawDesc = descCol !== -1 ? String(row[descCol] || '').trim() : '';
+                            if (rawDesc) lastDesc = rawDesc;
+                            if (norm(lastDesc).startsWith('TOTAL ')) break;
+                            const rawArea = areaCol !== -1 ? String(row[areaCol] || '').trim().toUpperCase() : '';
+                            if (rawArea) lastArea = rawArea;
+
+                            if (lastObjNum < 1 || lastObjNum > 9 || !lastDesc) continue;
+                            const objId = `obj${lastObjNum}`;
+                            if (!candidateByObj[objId]) candidateByObj[objId] = [];
+
+                            monthCols.forEach((colIdx, mIdx) => {
+                                if (colIdx === -1) return;
+                                const count = parseInt(String(row[colIdx] || '0').replace(/\D/g, ''), 10);
+                                if (!isNaN(count) && count > 0) {
+                                    const mStr = String(mIdx + 1).padStart(2, '0');
+                                    for (let k = 0; k < count; k++) {
+                                        candidateByObj[objId].push({
+                                            id: idSeq++,
+                                            date: `2026-${mStr}-15`,
+                                            description: lastDesc,
+                                            status: 'Pendiente',
+                                            compliance: 0,
+                                            area: lastArea || getAreaForObj(lastObjNum, lastDesc),
+                                            tipo: 'otro'
+                                        });
+                                        candidateCount++;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+                if (candidateCount > 0) {
+                    parsedByObj = candidateByObj;
+                    totalParsedItems = candidateCount;
+                    break;
+                }
+            }
+
+            const updatedObjs = Object.keys(parsedByObj);
+            if (updatedObjs.length === 0 || totalParsedItems === 0) {
+                alert('⚠️ No se encontraron actividades programadas válidas en el archivo. Verifica que sea el formato F-SIG-023 o la Matriz Consolidada.');
                 return;
             }
 
-            alert(`✅ ¡Archivo "${file.name}" cargado con éxito! Se ha sincronizado la programación de la Matriz Consolidada F-SIG-023.`);
+            const nextProgram: Record<string, ProgramItem[]> = { ...programData };
+            updatedObjs.forEach(objId => {
+                nextProgram[objId] = parsedByObj[objId];
+            });
+
+            setProgramData(nextProgram);
+            await syncToCloud(nextProgram);
+
+            alert(`✅ ¡Archivo "${file.name}" cargado y sincronizado con éxito!\nSe actualizaron ${updatedObjs.length} objetivos con ${totalParsedItems} actividades programadas en la nube.`);
         } catch (err: any) {
             console.error('Error al procesar Excel consolidado:', err);
             alert('Error al procesar archivo Excel: ' + (err.message || 'Formato no compatible'));
@@ -2907,7 +3106,7 @@ export default function ProgramPage() {
                                                         type="file"
                                                         ref={masterFileInputRef}
                                                         onChange={handleMasterExcelUpload}
-                                                        accept=".xlsx, .xls"
+                                                        accept=".xlsx, .xls, .csv"
                                                         className="hidden"
                                                     />
                                                     <button
