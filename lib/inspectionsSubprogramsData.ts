@@ -374,7 +374,7 @@ export function matchScsstInspectionRecords(
         // Excluir capacitaciones u otras actividades no relacionadas
         if (act.includes('capacitac')) return false;
 
-        return (isScsstObj || act.includes('scsst') || act.includes('subcomite')) && act.includes('inspecci');
+        return (isScsstObj || act.includes('scsst') || act.includes('subcomite')) && (act.includes('inspecci') || act.includes('trimestral'));
     });
 }
 

@@ -242,7 +242,7 @@ export default function Sidebar() {
                         <SidebarItem hasAlert={alerts['/scsst']} icon={<Users size={16} className="text-purple-500 group-hover:text-purple-300 transition-colors" />} label="Control SCSST" href="/scsst" active={pathname === '/scsst'} />
                         <SidebarItem hasAlert={alerts['/risstma']} icon={<BookOpen size={16} className="text-indigo-500 group-hover:text-indigo-300 transition-colors" />} label="Control de RISSTMA" href="/risstma" active={pathname === '/risstma'} />
                         <SidebarItem hasAlert={alerts['/simulacro']} icon={<Siren size={16} className="text-orange-400 group-hover:text-orange-300 transition-colors" />} label="Control Simulacro" href="/simulacro" active={pathname === '/simulacro'} />
-                        <SidebarItem hasAlert={alerts['/desvio']} icon={<GitBranch size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Desvíos" href="/desvio" active={pathname === '/desvio'} />
+                        <SidebarItem hasAlert={alerts['/desvio']} icon={<FileText size={16} className="text-fuchsia-500 group-hover:text-fuchsia-300 transition-colors" />} label="Control de Documentos de Gestión" href="/desvio" active={pathname === '/desvio'} />
                     </div>
 
                     {/* SALUD */}

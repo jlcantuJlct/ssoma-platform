@@ -243,7 +243,7 @@ export default function DetourPage() {
         const catLabel = detourCategories.find(c => c.id === record.category)?.label || record.category;
         const catShort = catLabel.split(' ').slice(0, 3).join('_').substring(0, 20).replace(/[^a-zA-Z0-9_]/g, '');
         const lugarShort = (record.location || 'SinLugar').replace(/\s+/g, '').substring(0, 12);
-        return `DESVIO_${catShort}_${lugarShort}_${record.date}`;
+        return `DOC_GESTION_${catShort}_${lugarShort}_${record.date}`;
     };
 
     const generatePDF = (record: DetourEvidenceRecord) => {
@@ -252,7 +252,7 @@ export default function DetourPage() {
 
         doc.setFontSize(16);
         doc.setTextColor(20, 100, 200); // Blueish
-        doc.text("REPORTE DE CONTROL DE DESVÍO", 105, y, { align: 'center' });
+        doc.text("REPORTE DE DOCUMENTOS DE GESTIÓN SSOMA", 105, y, { align: 'center' });
         y += 15;
 
         doc.setFontSize(10);
@@ -325,9 +325,9 @@ export default function DetourPage() {
                         <div>
                             <h1 className="text-3xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
                                 <ArrowUpRight className="text-blue-500" size={32} />
-                                Control de Desvíos
+                                Control de Documentos de Gestión
                             </h1>
-                            <p className="text-slate-400 font-medium tracking-tight">Registro de Señalización y Vigías en áreas de Desvío</p>
+                            <p className="text-slate-400 font-medium tracking-tight">Registro de Plan Anual, Plan de Contingencia, IPERC, IIAS, Procedimientos y Mapas de Riesgo</p>
                         </div>
                         <div className="bg-slate-800/50 px-6 py-3 rounded-xl border border-slate-700">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">Registros Totales</p>
@@ -342,7 +342,7 @@ export default function DetourPage() {
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl sticky top-6">
                                 <h3 className="text-blue-400 font-bold text-lg mb-6 flex flex-wrap items-center gap-2 uppercase tracking-tight">
                                     <Upload size={20} />
-                                    Nuevo Registro de Desvío
+                                    Nuevo Documento de Gestión
                                     {isSyncing && (
                                         <span className="flex items-center gap-1 text-[8px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full animate-pulse border border-blue-700/30">
                                             SINC...
@@ -403,13 +403,13 @@ export default function DetourPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase">Categoría de Desvío</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Tipo de Documento de Gestión</label>
                                         <SearchableSelect name="form_category" 
                                             options={detourCategories}
                                             value={form.category}
                                             onChange={(val) => setForm({ ...form, category: val })}
-                                            placeholder="Seleccionar Actividad..."
-                                            searchPlaceholder="Buscar actividad..."
+                                            placeholder="Seleccionar Documento..."
+                                            searchPlaceholder="Buscar documento..."
                                             icon={<MapIcon size={16} />}
                                             variant="blue"
                                         />
@@ -462,7 +462,7 @@ export default function DetourPage() {
                                         type="submit"
                                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                                     >
-                                        <Save size={18} /> Guardar Desvío
+                                        <Save size={18} /> Guardar Documento
                                     </button>
                                 </form>
                             </div>

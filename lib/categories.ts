@@ -46,19 +46,14 @@ export type DetourCategory = {
     hint: string;
 };
 
-// --- DETOUR CATEGORIES ---
+// --- DOCUMENTOS DE GESTIÓN CATEGORIES (Reemplaza Desvíos) ---
 export const DETOUR_CATEGORIES: DetourCategory[] = [
-    { id: "SIGN_SOUTH", label: "Foto señalización según PTP Sur", hint: "Evidenciar señalización de desvío sector Sur." },
-    { id: "SIGN_NORTH", label: "Foto señalización según PTP Norte", hint: "Evidenciar señalización de desvío sector Norte." },
-    { id: "VIGIAS_DAY", label: "Foto Vigias Día", hint: "Presencia y EPP de vigías en turno día." },
-    { id: "VIGIAS_NIGHT", label: "Foto Vigias Noche", hint: "Presencia y elementos luminosos de vigías en turno noche." },
-    { id: "LUMINOUS_ARROW", label: "Foto de flecha luminosa", hint: "Funcionamiento de flechas luminosas/paneles." },
-    { id: "DELINEATORS", label: "Foto delineadores", hint: "Estado y ubicación de delineadores." },
-    { id: "CHANNELIZERS", label: "Foto Canalizadores", hint: "Estado y ubicación de canalizadores (conos, barriles)." },
-    { id: "SIGN_CLEANING", label: "Limpieza de señalización", hint: "Evidencia de limpieza de señales preventivas/informativas." },
-    { id: "SIGN_REPLACEMENT", label: "Foto de reposición de señalización", hint: "Cambio de elementos dañados o faltantes." },
-    { id: "BUMP_PAINTING", label: "Foto de pintado de Giba y/o líneas", hint: "Mantenimiento de pintura en gibas o señalización horizontal." },
-    { id: "DETOUR_CLEANING", label: "Foto de limpieza de desvío", hint: "Limpieza general de la zona de desvío (basura, escombros)." }
+    { id: "PLAN_ANUAL", label: "Plan Anual de Seguridad y Salud (PASST)", hint: "Plan Anual de SSTMA y programa anual vigente." },
+    { id: "PLAN_CONTINGENCIA", label: "Plan de Contingencia y Emergencias", hint: "Plan de preparación y respuesta ante emergencias." },
+    { id: "IPERC", label: "IPERC (Línea Base / Continuo)", hint: "Matriz de Identificación de Peligros, Evaluación de Riesgos y Controles." },
+    { id: "IIAS", label: "IIAS (Impactos Ambientales)", hint: "Matriz de Identificación y Evaluación de Aspectos e Impactos Ambientales." },
+    { id: "PROCEDIMIENTOS", label: "Procedimientos (PETS / Estándares)", hint: "Procedimientos Escritos de Trabajo Seguro y estándares operacionales." },
+    { id: "MAPAS_RIESGO", label: "Mapas de Riesgo y Evacuación", hint: "Planos de mapas de riesgo, rutas de evacuación y puntos de reunión." }
 ];
 
 // --- PMA CATEGORIES (Based on Monthly Report Guide Text) ---

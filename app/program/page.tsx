@@ -1156,13 +1156,19 @@ export default function ProgramPage() {
         evidenceRecords.forEach(ev => {
             const objIdNum = targetObjId.replace('obj', '');
             const isEmoMatch = (targetObjId === 'obj5') && (ev.type?.toUpperCase() === 'EMO' || ev.category?.toUpperCase().includes('EMO'));
+            const evActLow = String(ev.activity || '').toLowerCase();
+            const evDescLow = String(ev.description || '').toLowerCase();
+            const isScsstTrimestralMatch = (targetObjId === 'obj3') && (
+                (String(ev.objective || '').toUpperCase().includes('OBJ 01') || String(ev.objective || '').toUpperCase().includes('OBJ 1') || evActLow.includes('scsst') || evDescLow.includes('scsst') || evActLow.includes('subcomit') || evDescLow.includes('subcomit')) &&
+                (evActLow.includes('trimestral') || evDescLow.includes('trimestral') || evActLow.includes('inspecci') || evDescLow.includes('inspecci'))
+            );
             
             // Robust Objective Matching: OBJ 01, OBJ 1, 01, 1
             const evObj = String(ev.objective || '').toUpperCase().replace(/\s+/g, '');
             const targetObjNorm = targetObjId.toUpperCase(); // OBJ1
             const targetObjAlt = `OBJ${objIdNum.padStart(2, '0')}`; // OBJ01
             
-            const isMatch = isEmoMatch || (ev.objective && (
+            const isMatch = isEmoMatch || isScsstTrimestralMatch || (ev.objective && (
                 currentObjLabel.toUpperCase().includes(evObj) || 
                 evObj.includes(objIdNum) ||
                 evObj === targetObjNorm ||
@@ -1177,6 +1183,20 @@ export default function ProgramPage() {
                         for (const areaKey in grouped) {
                 // Prioritize 'activity' over 'description' because 'activity' holds the official name in SCSST and others
                 let actSearch = ev.activity || ev.description || (isEmoMatch ? 'EMO' : '');
+
+                // Mapeo inteligente para OBJ 03 (Inspecciones/Informes Trimestrales SCSST)
+                if (isScsstTrimestralMatch) {
+                    const trimRowKey = Object.keys(grouped[areaKey]).find(k => {
+                        const l = k.toLowerCase();
+                        return l.includes('trimestral') || l.includes('scsst') || l.includes('subcomit');
+                    });
+                    if (trimRowKey) {
+                        grouped[areaKey][trimRowKey].executed[m]++;
+                        if (!grouped[areaKey][trimRowKey].executionRecords[m]) grouped[areaKey][trimRowKey].executionRecords[m] = [];
+                        grouped[areaKey][trimRowKey].executionRecords[m].push({ ...ev, _type: 'EVIDENCE' });
+                        break;
+                    }
+                }
 
                 // Mapeo inteligente para OBJ 01 (SCSST)
                 if (targetObjId === 'obj1') {
